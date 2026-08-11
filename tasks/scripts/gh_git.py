@@ -43,13 +43,22 @@ def sync_base_branch(repo_path: Path, base_branch: str) -> None:
 
 
 def commit_and_push_bookkeeping(
-    repo_path: Path, task_path: Path, message: str, base_branch: str
+    repo_path: Path, paths: list[Path], message: str, base_branch: str
 ) -> bool:
-    """Comitea y pushea a base_branch los cambios de estado de una tarea (front-matter).
+    """Comitea y pushea a base_branch los cambios de estado de una o más tareas.
+
+    Cada path en paths que ya no exista en disco (p.ej. porque move_to_done la movió)
+    se stagea como borrado; el resto se añade normal — así un rename (tasks/NNN.md ->
+    tasks/done/NNN.md) queda como un único commit coherente.
 
     Devuelve True si hubo algo que comitear, False si no había cambios (no-op idempotente).
     """
-    _run(["git", "add", str(task_path)], cwd=repo_path)
+    for path in paths:
+        if path.exists():
+            _run(["git", "add", str(path)], cwd=repo_path)
+        else:
+            _run(["git", "rm", "--cached", "--ignore-unmatch", "--", str(path)], cwd=repo_path)
+
     diff = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=repo_path)
     if diff.returncode == 0:
         return False  # nada en el índice, no hay nada que comitear

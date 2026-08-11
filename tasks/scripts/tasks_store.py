@@ -17,6 +17,7 @@ STATUS_FAILED = "failed"
 STATUS_DONE = "done"
 
 IGNORED_FILENAMES = {"README.md", "_template.md"}
+DONE_SUBDIR_NAME = "done"
 TASK_FILENAME_RE = re.compile(r"^(\d+)-([a-z0-9-]+)\.md$")
 FRONT_MATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.DOTALL)
 
@@ -144,6 +145,24 @@ def write_task(task: Task) -> None:
     )
     content = f"---\n{front_matter}---\n\n{task.body}\n"
     task.path.write_text(content, encoding="utf-8")
+
+
+def move_to_done(task: Task) -> Path:
+    """Mueve el archivo de la tarea a tasks/done/ (status ya debe ser done).
+
+    Devuelve la ruta anterior (para poder registrar su borrado al comitear) y deja
+    task.path apuntando a la nueva ubicación.
+    """
+    if task.path is None:
+        raise ValueError("move_to_done requiere que task.path esté fijado")
+
+    old_path = task.path
+    done_dir = old_path.parent / DONE_SUBDIR_NAME
+    done_dir.mkdir(exist_ok=True)
+    new_path = done_dir / old_path.name
+    old_path.rename(new_path)
+    task.path = new_path
+    return old_path
 
 
 def branch_name_for(task: Task) -> str:
