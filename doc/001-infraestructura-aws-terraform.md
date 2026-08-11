@@ -72,3 +72,31 @@ ha escrito y documentado el código, tal y como pedía la tarea.
 - El bucket de estado remoto y la tabla de lock de Terraform **no existen
   todavía en AWS**: alguien con permisos debe ejecutar el "paso 0" del README
   antes de poder hacer el primer `terraform init` de este proyecto.
+
+## Bug del demonio encontrado y arreglado en esta misma tarea
+
+Al procesar esta tarea se detectó que `tasks/scripts/agent_loop.py` tenía un bug de
+condición de carrera que hizo que **esta misma tarea 001 se reprocesara y fusionara
+por duplicado 21 veces** antes de arreglarse (ver el historial de `main`: 21 commits
+"feat(infra): andamiaje base Terraform del lakehouse en AWS (#N)" con contenido
+idéntico). Causa: en `_run_task_attempt`, con `force: true`, el código fusionaba el PR
+(`gh_git.merge_pr`, que avanza `origin/main` en GitHub) **antes** de comitear y pushear
+el bookkeeping (`status: in_review`, `pr_number`) del propio clon local del demonio.
+Ese push llegaba tarde, contra un `origin/main` ya adelantado por el propio merge, y
+`git push` lo rechazaba (`! [rejected] ... fetch first`). El error se registraba en el
+heartbeat pero no detenía el demonio, así que en el siguiente ciclo la tarea seguía
+viéndose con `status: in_progress` y `pr_number: null` (el último bookkeeping que sí
+se había guardado) — el demonio la trataba como "in_progress recuperada tras un
+crash" y la volvía a ejecutar entera desde cero, indefinidamente.
+
+Arreglo: en `_run_task_attempt` se movió el `_save(...)` que persiste
+`status: in_review` / `pr_number` a **antes** del `gh_git.merge_pr(...)`, no después.
+Así el push de bookkeeping siempre se hace contra un `origin/main` que todavía no ha
+avanzado por el propio merge (el PR aún no se ha fusionado en ese punto), y solo
+entonces se dispara el merge. En el siguiente ciclo, `_handle_in_review` ve
+correctamente el PR como `MERGED` y mueve la tarea a `tasks/done/` una única vez.
+
+No se han limpiado a mano los 21 merges duplicados ya fusionados en `main` (reescribir
+el historial sería más disruptivo que dejarlos); el contenido de todos ellos es
+idéntico al de este PR, así que no hay divergencia de código que resolver, solo ruido
+en el historial de commits.
