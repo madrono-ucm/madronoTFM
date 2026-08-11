@@ -1,0 +1,22 @@
+# Estado de Terraform (contiene datos sensibles/IDs de recursos reales)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Directorio local de plugins/proveedores descargados
+.terraform/
+.terraform.lock.hcl
+
+# Variables reales (pueden contener valores específicos del entorno)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Configuración real del backend (contiene el nombre del bucket de estado)
+backend.hcl
+!backend.hcl.example
+
+# Ficheros de plan
+*.tfplan
+crash.log
+crash.*.log

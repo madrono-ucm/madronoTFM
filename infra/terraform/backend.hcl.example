@@ -1,0 +1,10 @@
+# Copia este fichero a backend.hcl (NO se commitea, ver .gitignore) y rellena
+# los valores del bucket/tabla creados a mano en el "paso 0" (ver README.md).
+#
+# Uso: terraform init -backend-config=backend.hcl
+
+bucket         = "madrono-tfm-terraform-state"
+key            = "infra/lakehouse/terraform.tfstate"
+region         = "eu-west-1"
+dynamodb_table = "madrono-tfm-terraform-locks"
+encrypt        = true

@@ -1,0 +1,12 @@
+# Copia este fichero a terraform.tfvars (NO se commitea, ver .gitignore) y
+# ajusta los valores. Todas las variables tienen un default razonable en
+# variables.tf, así que terraform.tfvars solo hace falta si quieres
+# sobreescribir alguno.
+
+aws_region   = "eu-west-1"
+project_name = "madrono-tfm"
+environment  = "dev"
+
+# Servicio(s) que asumirán el rol de ingesta. Ajusta cuando se implemente el
+# primer productor de datos real (p.ej. una Lambda de scraping/ingesta).
+ingestion_trusted_services = ["lambda.amazonaws.com"]
