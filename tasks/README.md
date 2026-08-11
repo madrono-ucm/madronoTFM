@@ -100,3 +100,9 @@ real (`--permission-mode bypassPermissions`). La única red de seguridad real es
 eso: evita tareas que por su naturaleza necesiten hacer cosas irreversibles o con
 efectos fuera del propio repo (borrar infraestructura, rotar credenciales, publicar
 paquetes, etc.) — resérvalas para hacerlas tú mismo de forma interactiva.
+
+En particular, para tareas de infraestructura (Terraform u otro IaC): el system prompt
+del demonio ya le prohíbe a `claude` ejecutar `terraform apply`/`destroy` o cualquier
+comando `aws` con efectos reales — solo debe dejar el código escrito y documentado. La
+aplicación real de esos cambios (y las credenciales para hacerlo) es siempre un paso
+manual, fuera de este pipeline.
