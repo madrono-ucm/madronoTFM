@@ -25,6 +25,7 @@ FRONT_MATTER_FIELDS = (
     "slug",
     "title",
     "status",
+    "force",
     "branch",
     "pr_number",
     "pr_url",
@@ -57,6 +58,7 @@ class Task:
     slug: str
     title: str
     status: str = STATUS_PENDING
+    force: bool = False
     branch: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None

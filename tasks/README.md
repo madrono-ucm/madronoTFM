@@ -4,7 +4,9 @@ Esta carpeta es la cola de trabajo de `madrono-agent`, el demonio que corre 24/7
 EC2 (ver `scripts/`). Cada archivo `.md` de esta carpeta (excepto `README.md` y
 `_template.md`) es una tarea. El demonio las procesa **una a una y en orden estricto**,
 según el prefijo numérico del nombre de archivo, y no empieza la tarea `NNN+1` hasta que
-el Pull Request de la tarea `NNN` esté **fusionado manualmente por un humano**.
+el Pull Request de la tarea `NNN` esté **fusionado** — por defecto, manualmente por un
+humano; si la tarea tiene `force: true`, el propio demonio lo fusiona en cuanto lo crea
+(ver [Auto-merge (`force`)](#auto-merge-force)).
 
 ## Cómo añadir una tarea
 
@@ -29,7 +31,8 @@ id: 1                    # entero, debe coincidir con el prefijo del nombre de a
 slug: slug-descriptivo
 title: "Título legible de la tarea"
 status: pending           # pending | in_progress | in_review | blocked | failed | done
-branch: null               # rama creada por el demonio, p.ej. task/001-slug-descriptivo
+force: false               # true = fusiona el PR sin revisión humana (ver más abajo)
+branch: null                 # rama creada por el demonio, p.ej. task/001-slug-descriptivo
 pr_number: null
 pr_url: null
 attempts: 0                 # nº de intentos fallidos registrados (se usa para el backoff)
@@ -61,6 +64,21 @@ pending ──(el demonio crea rama + PR)──▶ in_review ──(alguien merg
 
 Si una tarea queda en `failed`, el demonio **detiene toda la cola** (no toca tareas
 posteriores) hasta que alguien revise `last_error` y la desatasque manualmente.
+
+## Auto-merge (`force`)
+
+Con `force: true`, en cuanto el demonio crea el PR lo fusiona él mismo
+(`gh pr merge --squash --delete-branch`) sin esperar a que nadie lo revise — la tarea
+pasa de `in_review` a `done` en el siguiente ciclo, sin que la cola se quede parada
+esperando una revisión manual. Si el auto-merge falla (por ejemplo, por protección de
+rama), el PR se queda igualmente en `in_review` a la espera de un merge manual, como si
+`force` no estuviera activo.
+
+Úsalo con cuidado: te saltas la única red de seguridad real del sistema (que nada llega
+a `main` sin que un humano lo revise antes). Tiene sentido para las primeras tareas del
+proyecto (andamiaje, estructura de carpetas...) o para tareas sueltas sin dependientes
+que confíes en revisar después con calma en vez de antes — no para tareas de las que
+dependan otras posteriores importantes.
 
 ## Qué NO debe hacer una tarea
 
