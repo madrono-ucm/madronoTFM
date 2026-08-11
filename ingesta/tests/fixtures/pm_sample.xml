@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pms>
+  <fecha_hora>12/08/2026 1:45:04</fecha_hora>
+  <pm>
+    <idelem>9841</idelem>
+    <descripcion>Valle de Mena S-E - Acc.Ramon Castroviejo-Gta.Isaac Rabín</descripcion>
+    <accesoAsociado>0301005</accesoAsociado>
+    <intensidad>20</intensidad>
+    <ocupacion>0</ocupacion>
+    <carga>0</carga>
+    <nivelServicio>0</nivelServicio>
+    <intensidadSat>3100</intensidadSat>
+    <error>N</error>
+    <subarea>0328</subarea>
+    <st_x>438339,375874991</st_x>
+    <st_y>4480454,96970565</st_y>
+  </pm>
+  <pm>
+    <idelem>9843</idelem>
+    <descripcion>Dr.Ramon Castroviejo O-E - Av.Miraflores-San Martin de Porres</descripcion>
+    <accesoAsociado>0301003</accesoAsociado>
+    <intensidad>40</intensidad>
+    <ocupacion>0</ocupacion>
+    <carga>2</carga>
+    <nivelServicio>0</nivelServicio>
+    <intensidadSat>2000</intensidadSat>
+    <error>N</error>
+    <subarea>0328</subarea>
+    <st_x>438098,880458143</st_x>
+    <st_y>4480455,13738494</st_y>
+  </pm>
+  <pm>
+    <idelem>5555</idelem>
+    <descripcion>Sensor con error de lectura</descripcion>
+    <accesoAsociado>0301099</accesoAsociado>
+    <intensidad></intensidad>
+    <ocupacion></ocupacion>
+    <carga></carga>
+    <nivelServicio>0</nivelServicio>
+    <intensidadSat>1000</intensidadSat>
+    <error>S</error>
+    <subarea>0328</subarea>
+    <st_x>438200,5</st_x>
+    <st_y>4480500,25</st_y>
+  </pm>
+</pms>
