@@ -219,5 +219,6 @@ __marimo__/
 
 # madrono-agent (tasks/scripts)
 tasks/scripts/.worktrees/
+tasks/scripts/.state/
 tasks/scripts/config.env
 tasks/scripts/*.log

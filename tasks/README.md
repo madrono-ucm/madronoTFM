@@ -17,8 +17,10 @@ humano; si la tarea tiene `force: true`, el propio demonio lo fusiona en cuanto 
 2. Rellena el front-matter (`id`, `slug`, `title`) y dejalo con `status: pending`.
 3. Escribe el cuerpo del archivo (todo lo que va después del `---` final) como el
    prompt que recibirá `claude`. Sé concreto: qué hay que implementar, criterios de
-   aceptación, y cualquier restricción relevante. El demonio no añade contexto extra
-   más allá de un breve encabezado con el título de la tarea.
+   aceptación, y cualquier restricción relevante. Además del encabezado con el título
+   de la tarea, el demonio le añade automáticamente el contexto acumulado del
+   proyecto — ver [`/doc`](../doc/README.md) — así que no hace falta repetir en cada
+   tarea decisiones ya documentadas en tareas anteriores.
 4. Haz commit y push del archivo normalmente (esto es trabajo interactivo tuyo, no del
    demonio). En su siguiente ciclo, el demonio lo recogerá si es la siguiente tarea en
    orden y todas las anteriores están en `status: done`.

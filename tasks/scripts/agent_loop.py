@@ -7,10 +7,13 @@ duerme POLL_INTERVAL_SECONDS. Pensado para correr como servicio systemd
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import random
+import socket
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -58,6 +61,10 @@ class Config:
     def worktrees_dir(self) -> Path:
         return self.repo_path / "tasks" / "scripts" / ".worktrees"
 
+    @property
+    def heartbeat_path(self) -> Path:
+        return self.repo_path / "tasks" / "scripts" / ".state" / "health.json"
+
 
 def load_config() -> Config:
     def env(name: str, default: str | None = None, required: bool = False) -> str:
@@ -103,29 +110,87 @@ def _parse_iso(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value) if value else None
 
 
+def _sd_notify(message: str) -> None:
+    """Notifica a systemd (READY=1, WATCHDOG=1...) sin depender de python-systemd."""
+    addr = os.environ.get("NOTIFY_SOCKET")
+    if not addr:
+        return
+    if addr[0] == "@":
+        addr = "\0" + addr[1:]
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    try:
+        sock.connect(addr)
+        sock.sendall(message.encode())
+    except OSError:
+        log.debug("no se pudo notificar a systemd (%s)", message)
+    finally:
+        sock.close()
+
+
+def _watchdog_loop(interval_seconds: float) -> None:
+    while True:
+        _sd_notify("WATCHDOG=1")
+        time.sleep(interval_seconds)
+
+
+def _start_watchdog_thread() -> None:
+    """Si la unit tiene WatchdogSec=, hace ping cada mitad de ese intervalo.
+
+    Corre en un hilo aparte para que un ciclo largo (claude puede tardar hasta
+    CLAUDE_TIMEOUT_SECONDS bloqueado en process_once) no dispare el watchdog: esto
+    solo confirma que el intérprete de Python sigue vivo y planificando hilos, no que
+    la tarea en curso haya terminado.
+    """
+    usec = os.environ.get("WATCHDOG_USEC")
+    if not usec:
+        return
+    interval = max(int(usec) / 1_000_000 / 2, 1.0)
+    threading.Thread(target=_watchdog_loop, args=(interval,), daemon=True).start()
+    log.info("Watchdog systemd activo, ping cada %.0fs", interval)
+
+
+def write_heartbeat(config: Config, status: str, ok: bool, error: str | None = None) -> None:
+    path = config.heartbeat_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "last_cycle_at": _now().isoformat(),
+        "ok": ok,
+        "status": status,
+        "error": error,
+        "pid": os.getpid(),
+    }
+    tmp_path = path.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp_path.replace(path)
+
+
 def _save(config: Config, task: Task, message: str) -> None:
     task.touch()
     tasks_store.write_task(task)
     gh_git.commit_and_push_bookkeeping(config.repo_path, task.path, message, config.git_base_branch)
 
 
-def _handle_in_review(config: Config, task: Task) -> None:
+def _handle_in_review(config: Config, task: Task) -> str:
     status = gh_git.view_pr(config.repo_path, task.pr_number, config)
     if status.state == "MERGED":
         task.status = STATUS_DONE
         task.merged_at = status.merged_at
         _save(config, task, f"chore(tasks): mark task {task.id:03d} as done (PR mergeado)")
-        log.info("Tarea %03d: PR #%s mergeado, marcada como done", task.id, task.pr_number)
+        msg = f"tarea {task.id:03d}: PR #{task.pr_number} mergeado, marcada como done"
+        log.info(msg)
     elif status.state == "CLOSED":
         task.status = STATUS_FAILED
         task.last_error = "PR cerrado sin fusionar"
         _save(config, task, f"chore(tasks): mark task {task.id:03d} as failed (PR cerrado)")
-        log.warning("Tarea %03d: PR #%s cerrado sin fusionar, marcada como failed", task.id, task.pr_number)
+        msg = f"tarea {task.id:03d}: PR #{task.pr_number} cerrado sin fusionar, marcada como failed"
+        log.warning(msg)
     else:
-        log.info("Tarea %03d: PR #%s todavía abierto, esperando merge manual", task.id, task.pr_number)
+        msg = f"tarea {task.id:03d}: PR #{task.pr_number} todavía abierto, esperando merge manual"
+        log.info(msg)
+    return msg
 
 
-def _run_task_attempt(config: Config, task: Task) -> None:
+def _run_task_attempt(config: Config, task: Task) -> str:
     branch = task.branch or tasks_store.branch_name_for(task)
     task.status = "in_progress"
     task.branch = branch
@@ -139,6 +204,13 @@ def _run_task_attempt(config: Config, task: Task) -> None:
     result = claude_runner.invoke_claude(task, worktree_dir, config)
 
     if result.ok and result.made_commits:
+        doc_path = worktree_dir / "doc" / tasks_store.doc_filename_for(task)
+        if not doc_path.exists():
+            log.warning(
+                "Tarea %03d: claude no creó %s (contexto acumulado sin actualizar para esta tarea)",
+                task.id, doc_path.relative_to(worktree_dir),
+            )
+
         gh_git.push_branch(worktree_dir, branch)
         pr = gh_git.create_pr(worktree_dir, branch, task, config)
         gh_git.remove_worktree(config.repo_path, worktree_dir)
@@ -160,13 +232,16 @@ def _run_task_attempt(config: Config, task: Task) -> None:
                 )
 
         _save(config, task, f"chore(tasks): open PR for task {task.id:03d}")
+        return f"tarea {task.id:03d}: PR creado {pr.url}"
 
     elif result.ok and not result.made_commits:
         gh_git.remove_worktree(config.repo_path, worktree_dir)
         task.status = STATUS_FAILED
         task.last_error = "claude finalizó sin crear ningún commit"
         _save(config, task, f"chore(tasks): mark task {task.id:03d} as failed (sin commits)")
-        log.warning("Tarea %03d: claude no hizo ningún commit, marcada como failed", task.id)
+        msg = f"tarea {task.id:03d}: claude no hizo ningún commit, marcada como failed"
+        log.warning(msg)
+        return msg
 
     elif result.is_retryable:
         gh_git.remove_worktree(config.repo_path, worktree_dir)
@@ -176,10 +251,12 @@ def _run_task_attempt(config: Config, task: Task) -> None:
         task.next_retry_at = (_now() + delay).isoformat()
         task.last_error = result.error_snippet
         _save(config, task, f"chore(tasks): backoff retry for task {task.id:03d} (intento {task.attempts})")
-        log.warning(
-            "Tarea %03d: fallo reintentable (intento %d), próximo intento en %s: %s",
-            task.id, task.attempts, delay, result.error_snippet,
+        msg = (
+            f"tarea {task.id:03d}: fallo reintentable (intento {task.attempts}), "
+            f"próximo intento en {delay}: {result.error_snippet}"
         )
+        log.warning(msg)
+        return msg
 
     else:
         gh_git.remove_worktree(config.repo_path, worktree_dir)
@@ -187,10 +264,12 @@ def _run_task_attempt(config: Config, task: Task) -> None:
         task.status = STATUS_FAILED
         task.last_error = result.error_snippet
         _save(config, task, f"chore(tasks): mark task {task.id:03d} as failed")
-        log.error("Tarea %03d: fallo duro, marcada como failed: %s", task.id, result.error_snippet)
+        msg = f"tarea {task.id:03d}: fallo duro, marcada como failed: {result.error_snippet}"
+        log.error(msg)
+        return msg
 
 
-def process_once(config: Config) -> None:
+def process_once(config: Config) -> str:
     gh_git.sync_base_branch(config.repo_path, config.git_base_branch)
     tasks = tasks_store.load_tasks(config.tasks_dir)
 
@@ -199,27 +278,29 @@ def process_once(config: Config) -> None:
             continue
 
         if task.status == STATUS_FAILED:
-            log.warning(
-                "Tarea %03d en FAILED (%s). Cola detenida, requiere intervención manual.",
-                task.id, task.last_error,
+            msg = (
+                f"tarea {task.id:03d} en failed ({task.last_error}). "
+                "Cola detenida, requiere intervención manual."
             )
-            return
+            log.warning(msg)
+            return msg
 
         if task.status == STATUS_IN_REVIEW:
-            _handle_in_review(config, task)
-            return
+            return _handle_in_review(config, task)
 
         if task.status == STATUS_BLOCKED:
             next_retry_at = _parse_iso(task.next_retry_at)
             if next_retry_at and _now() < next_retry_at:
-                log.info("Tarea %03d: en backoff, próximo intento en %s", task.id, next_retry_at - _now())
-                return
+                msg = f"tarea {task.id:03d}: en backoff, próximo intento en {next_retry_at - _now()}"
+                log.info(msg)
+                return msg
 
         # pending, blocked (backoff vencido), o in_progress recuperado tras un crash
-        _run_task_attempt(config, task)
-        return
+        return _run_task_attempt(config, task)
 
-    log.info("No hay tareas pendientes. Cola vacía.")
+    msg = "no hay tareas pendientes, cola vacía"
+    log.info(msg)
+    return msg
 
 
 def main() -> None:
@@ -232,12 +313,16 @@ def main() -> None:
         "madrono-agent arrancando. repo_path=%s poll_interval=%ss",
         config.repo_path, config.poll_interval_seconds,
     )
+    _sd_notify("READY=1")
+    _start_watchdog_thread()
 
     while True:
         try:
-            process_once(config)
-        except Exception:
+            status = process_once(config)
+            write_heartbeat(config, status=status, ok=True)
+        except Exception as exc:
             log.exception("Fallo inesperado en process_once(); se reintentará en el próximo ciclo")
+            write_heartbeat(config, status="excepción en process_once", ok=False, error=str(exc))
         time.sleep(config.poll_interval_seconds)
 
 
