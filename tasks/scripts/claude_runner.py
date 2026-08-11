@@ -29,6 +29,11 @@ dentro de un git worktree aislado en la rama "{branch}" (creada desde {base_bran
 - Haz commit de tus cambios (uno o varios, con mensajes claros). NO ejecutes `git push`
   ni `gh pr create` bajo ninguna circunstancia: un orquestador externo se encarga de eso
   después de que termines.
+- NO ejecutes comandos con efectos reales fuera de este worktree ni con coste
+  económico o difíciles de revertir (`terraform apply`/`destroy`, `aws ... create/
+  delete/deploy`, llamadas a APIs de pago, etc.). Si la tarea implica infraestructura,
+  deja el código (Terraform, scripts...) escrito y listo, pero sin aplicarlo — eso lo
+  decide un humano tras revisar el PR.
 - Además del código, crea (o actualiza) el archivo `doc/{doc_filename}` como parte de
   tus commits: un resumen breve en markdown de qué implementaste, por qué, y cualquier
   decisión relevante para tareas futuras. Este archivo se revisa junto con el resto del
