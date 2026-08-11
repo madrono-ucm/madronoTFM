@@ -164,10 +164,11 @@ def write_heartbeat(config: Config, status: str, ok: bool, error: str | None = N
     tmp_path.replace(path)
 
 
-def _save(config: Config, task: Task, message: str) -> None:
+def _save(config: Config, task: Task, message: str, extra_paths: list[Path] | None = None) -> None:
     task.touch()
     tasks_store.write_task(task)
-    gh_git.commit_and_push_bookkeeping(config.repo_path, task.path, message, config.git_base_branch)
+    paths = [task.path, *(extra_paths or [])]
+    gh_git.commit_and_push_bookkeeping(config.repo_path, paths, message, config.git_base_branch)
 
 
 def _handle_in_review(config: Config, task: Task) -> str:
@@ -175,8 +176,13 @@ def _handle_in_review(config: Config, task: Task) -> str:
     if status.state == "MERGED":
         task.status = STATUS_DONE
         task.merged_at = status.merged_at
-        _save(config, task, f"chore(tasks): mark task {task.id:03d} as done (PR mergeado)")
-        msg = f"tarea {task.id:03d}: PR #{task.pr_number} mergeado, marcada como done"
+        old_path = tasks_store.move_to_done(task)
+        _save(
+            config, task,
+            f"chore(tasks): mark task {task.id:03d} as done and move to tasks/done/",
+            extra_paths=[old_path],
+        )
+        msg = f"tarea {task.id:03d}: PR #{task.pr_number} mergeado, marcada como done y movida a tasks/done/"
         log.info(msg)
     elif status.state == "CLOSED":
         task.status = STATUS_FAILED

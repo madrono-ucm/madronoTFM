@@ -13,7 +13,9 @@ humano; si la tarea tiene `force: true`, el propio demonio lo fusiona en cuanto 
 1. Copia `_template.md` a `NNN-slug-descriptivo.md`, donde `NNN` es el siguiente número
    de 3 dígitos libre (`001`, `002`, ...) y `slug-descriptivo` es un nombre corto en
    kebab-case. El número decide el orden de ejecución — es la única forma de expresar
-   dependencias entre tareas.
+   dependencias entre tareas. Comprueba también [`done/`](#tareas-completadas-done) al
+   elegir el número: las tareas ya completadas se archivan ahí y no aparecen sueltas en
+   `tasks/`, pero su número sigue "gastado".
 2. Rellena el front-matter (`id`, `slug`, `title`) y dejalo con `status: pending`.
 3. Escribe el cuerpo del archivo (todo lo que va después del `---` final) como el
    prompt que recibirá `claude`. Sé concreto: qué hay que implementar, criterios de
@@ -66,6 +68,14 @@ pending ──(el demonio crea rama + PR)──▶ in_review ──(alguien merg
 
 Si una tarea queda en `failed`, el demonio **detiene toda la cola** (no toca tareas
 posteriores) hasta que alguien revise `last_error` y la desatasque manualmente.
+
+## Tareas completadas (`done/`)
+
+En cuanto una tarea pasa a `status: done`, el demonio mueve su archivo de
+`tasks/NNN-slug.md` a `tasks/done/NNN-slug.md` en el mismo commit que actualiza el
+front-matter (git lo registra como un rename limpio). Así `tasks/` solo muestra lo que
+todavía está pendiente o en curso, y `tasks/done/` sirve de archivo histórico — el
+`id`/`slug` de una tarea archivada no se debe reutilizar para una tarea nueva.
 
 ## Auto-merge (`force`)
 
