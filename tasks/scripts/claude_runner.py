@@ -7,6 +7,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import tasks_store
+
 RATE_LIMIT_KEYWORDS = (
     "usage limit",
     "rate limit",
@@ -16,6 +18,10 @@ RATE_LIMIT_KEYWORDS = (
     "limit reached",
 )
 
+# Tope de caracteres del contexto acumulado (doc/*.md) inyectado en cada prompt, para
+# que el coste por tarea no crezca sin límite a medida que el proyecto avanza.
+MAX_CONTEXT_CHARS = 40_000
+
 SYSTEM_PROMPT_ADDENDUM_TEMPLATE = """\
 Estás operando de forma autónoma en un pipeline sin supervisión humana en tiempo real,
 dentro de un git worktree aislado en la rama "{branch}" (creada desde {base_branch}).
@@ -23,8 +29,14 @@ dentro de un git worktree aislado en la rama "{branch}" (creada desde {base_bran
 - Haz commit de tus cambios (uno o varios, con mensajes claros). NO ejecutes `git push`
   ni `gh pr create` bajo ninguna circunstancia: un orquestador externo se encarga de eso
   después de que termines.
+- Además del código, crea (o actualiza) el archivo `doc/{doc_filename}` como parte de
+  tus commits: un resumen breve en markdown de qué implementaste, por qué, y cualquier
+  decisión relevante para tareas futuras. Este archivo se revisa junto con el resto del
+  PR y pasa a formar parte del contexto acumulado del proyecto que verán las próximas
+  tareas (sesiones nuevas, sin memoria de esta) — sé conciso y concreto, no reescribas
+  el código, solo resume qué cambió y por qué.
 - No hay ningún humano para pedir confirmación; ante ambigüedad, toma la decisión más
-  razonable y documenta el porqué en el mensaje de commit.
+  razonable y documenta el porqué en el mensaje de commit y en el resumen de doc/.
 - Al terminar, deja el worktree limpio (sin cambios sin commitear).
 """
 
@@ -38,8 +50,44 @@ class ClaudeResult:
     total_cost_usd: float | None
 
 
-def build_prompt(task) -> str:
-    return f"Tarea #{task.id}: {task.title}\n\n{task.body}\n"
+def _load_accumulated_context(worktree_dir: Path) -> str:
+    """Concatena doc/*.md ya mergeados en main (resúmenes de tareas anteriores)."""
+    doc_dir = worktree_dir / "doc"
+    if not doc_dir.is_dir():
+        return ""
+
+    paths = sorted(p for p in doc_dir.glob("*.md") if p.name != "README.md")
+    if not paths:
+        return ""
+
+    sections = [f"### {p.name}\n\n{p.read_text(encoding='utf-8').strip()}" for p in paths]
+    combined = "\n\n".join(sections)
+
+    if len(combined) > MAX_CONTEXT_CHARS:
+        combined = (
+            "[...resúmenes más antiguos omitidos por tamaño, siguen disponibles en doc/...]\n\n"
+            + combined[-MAX_CONTEXT_CHARS:]
+        )
+
+    return combined
+
+
+def build_prompt(task, worktree_dir: Path) -> str:
+    parts = [f"Tarea #{task.id}: {task.title}\n"]
+
+    context = _load_accumulated_context(worktree_dir)
+    if context:
+        parts.append(
+            "## Contexto acumulado del proyecto\n\n"
+            "Resúmenes de tareas anteriores ya mergeadas en main (carpeta doc/), para "
+            "que tengas continuidad aunque esta sea una sesión nueva sin memoria de "
+            "ellas:\n\n"
+            f"{context}\n"
+        )
+        parts.append("## Tarea a implementar\n")
+
+    parts.append(task.body)
+    return "\n".join(parts) + "\n"
 
 
 def _looks_like_rate_limit(text: str) -> bool:
@@ -71,7 +119,9 @@ def _parse_json_output(stdout: str) -> tuple[bool | None, str | None, float | No
 
 def invoke_claude(task, worktree_dir: Path, config) -> ClaudeResult:
     system_prompt_addendum = SYSTEM_PROMPT_ADDENDUM_TEMPLATE.format(
-        branch=task.branch, base_branch=config.git_base_branch
+        branch=task.branch,
+        base_branch=config.git_base_branch,
+        doc_filename=tasks_store.doc_filename_for(task),
     )
 
     cmd = [
@@ -88,7 +138,7 @@ def invoke_claude(task, worktree_dir: Path, config) -> ClaudeResult:
     if config.claude_fallback_model:
         cmd += ["--fallback-model", config.claude_fallback_model]
 
-    prompt = build_prompt(task)
+    prompt = build_prompt(task, worktree_dir)
 
     try:
         proc = subprocess.run(

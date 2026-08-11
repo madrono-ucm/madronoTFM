@@ -148,3 +148,8 @@ def write_task(task: Task) -> None:
 
 def branch_name_for(task: Task) -> str:
     return f"task/{_filename_for(task.id, task.slug).removesuffix('.md')}"
+
+
+def doc_filename_for(task: Task) -> str:
+    """Nombre del resumen en doc/, con el mismo esquema NNN-slug.md que la propia tarea."""
+    return _filename_for(task.id, task.slug)
