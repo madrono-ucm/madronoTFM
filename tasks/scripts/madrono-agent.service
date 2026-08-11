@@ -1,0 +1,20 @@
+[Unit]
+Description=Madrono TFM autonomous task agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Environment=HOME=/home/ubuntu
+WorkingDirectory=/home/ubuntu/repos/madronoTFM-agent
+EnvironmentFile=/home/ubuntu/repos/madronoTFM-agent/tasks/scripts/config.env
+ExecStart=/usr/bin/python3 /home/ubuntu/repos/madronoTFM-agent/tasks/scripts/agent_loop.py
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# madrono-agent (tasks/scripts)
+tasks/scripts/.worktrees/
+tasks/scripts/config.env
+tasks/scripts/*.log
