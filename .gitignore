@@ -222,3 +222,10 @@ tasks/scripts/.worktrees/
 tasks/scripts/.state/
 tasks/scripts/config.env
 tasks/scripts/*.log
+
+# Terraform (infra/terraform/ tiene además su propio .gitignore más detallado)
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+!*.tfvars.example
