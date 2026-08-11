@@ -226,6 +226,17 @@ def _run_task_attempt(config: Config, task: Task) -> str:
         task.submitted_at = tasks_store.now_iso()
         log.info("Tarea %03d: PR creado %s", task.id, pr.url)
 
+        # Importante: comitear y pushear este bookkeeping ANTES de fusionar. Si se
+        # fusionara primero, origin/<base_branch> avanzaría (por el propio merge) y el
+        # push de este bookkeeping se rechazaría por "fetch first" contra el repo_path
+        # local (sincronizado al principio del ciclo, antes del merge). Ese push
+        # fallido perdía silenciosamente el pr_number/status=in_review: en el
+        # siguiente ciclo la tarea parecía "in_progress recuperada tras un crash" y se
+        # reprocesaba entera desde cero — con force=true esto producía un PR y un
+        # merge duplicados en cada ciclo, indefinidamente (es lo que le pasó a la
+        # tarea 001: 21 merges duplicados antes de detectar y arreglar este bug).
+        _save(config, task, f"chore(tasks): open PR for task {task.id:03d}")
+
         if task.force:
             try:
                 gh_git.merge_pr(config.repo_path, pr.number, config)
@@ -236,8 +247,6 @@ def _run_task_attempt(config: Config, task: Task) -> str:
                     "queda en in_review esperando merge manual",
                     task.id, pr.number,
                 )
-
-        _save(config, task, f"chore(tasks): open PR for task {task.id:03d}")
         return f"tarea {task.id:03d}: PR creado {pr.url}"
 
     elif result.ok and not result.made_commits:
