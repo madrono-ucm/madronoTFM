@@ -229,3 +229,8 @@ tasks/scripts/*.log
 .terraform/
 *.tfvars
 !*.tfvars.example
+
+# ingesta/ (productores): aterrizaje local de la capa Bronze (BRONZE_BASE_PATH
+# por defecto), no se commitea al repo.
+ingesta/bronze/
+/bronze/
