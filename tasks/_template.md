@@ -3,6 +3,7 @@ id: 0
 slug: slug-descriptivo
 title: "Título legible de la tarea"
 status: pending
+force: false  # true = el PR se fusiona automáticamente, sin revisión humana
 branch: null
 pr_number: null
 pr_url: null

@@ -98,7 +98,12 @@ def create_pr(worktree_dir: Path, branch: str, task, config) -> PullRequestInfo:
     title = f"[task {task.id:03d}] {task.title}"
     body = (
         f"Implementa `tasks/{task.path.name}` de forma automática.\n\n"
-        "Generado por madrono-agent. Revisa el diff antes de fusionar."
+        + (
+            "Generado por madrono-agent. `force: true` — este PR se fusionará "
+            "automáticamente sin revisión humana."
+            if task.force
+            else "Generado por madrono-agent. Revisa el diff antes de fusionar."
+        )
     )
     out = _run(
         [
@@ -117,6 +122,20 @@ def create_pr(worktree_dir: Path, branch: str, task, config) -> PullRequestInfo:
     if not match:
         raise GitError(f"no se pudo extraer el número de PR de la salida de gh: {out!r}")
     return PullRequestInfo(number=int(match.group(1)), url=url)
+
+
+def merge_pr(repo_path: Path, pr_number: int, config) -> None:
+    """Fusiona un PR sin esperar revisión humana (solo para tareas con force: true)."""
+    _run(
+        [
+            config.gh_bin, "pr", "merge", str(pr_number),
+            "--repo", config.github_repo,
+            f"--{config.gh_merge_method}",
+            "--delete-branch",
+        ],
+        cwd=repo_path,
+        timeout=120,
+    )
 
 
 def view_pr(repo_path: Path, pr_number: int, config) -> PullRequestStatus:

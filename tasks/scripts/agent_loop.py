@@ -48,6 +48,7 @@ class Config:
     claude_max_budget_usd: float
     claude_timeout_seconds: int
     gh_bin: str
+    gh_merge_method: str
 
     @property
     def tasks_dir(self) -> Path:
@@ -80,6 +81,7 @@ def load_config() -> Config:
         claude_max_budget_usd=float(env("CLAUDE_MAX_BUDGET_USD", "3.00")),
         claude_timeout_seconds=int(env("CLAUDE_TIMEOUT_SECONDS", "5400")),
         gh_bin=env("GH_BIN", "gh"),
+        gh_merge_method=env("GH_MERGE_METHOD", "squash"),
     )
 
 
@@ -144,8 +146,20 @@ def _run_task_attempt(config: Config, task: Task) -> None:
         task.pr_number = pr.number
         task.pr_url = pr.url
         task.submitted_at = tasks_store.now_iso()
-        _save(config, task, f"chore(tasks): open PR for task {task.id:03d}")
         log.info("Tarea %03d: PR creado %s", task.id, pr.url)
+
+        if task.force:
+            try:
+                gh_git.merge_pr(config.repo_path, pr.number, config)
+                log.info("Tarea %03d: force=true, PR #%s fusionado sin revisión humana", task.id, pr.number)
+            except gh_git.GitError:
+                log.exception(
+                    "Tarea %03d: force=true pero el auto-merge del PR #%s falló; "
+                    "queda en in_review esperando merge manual",
+                    task.id, pr.number,
+                )
+
+        _save(config, task, f"chore(tasks): open PR for task {task.id:03d}")
 
     elif result.ok and not result.made_commits:
         gh_git.remove_worktree(config.repo_path, worktree_dir)
