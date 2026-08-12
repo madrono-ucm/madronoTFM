@@ -14,9 +14,9 @@ systemd timer, o su propio modo `--interval-seconds`) y escriben directamente
 a disco. El punto donde se conectaría un productor Kafka está marcado con
 `TODO(kafka)` en cada módulo. Las excepciones son `transporte_publico_madrid.py`
 (tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005),
-`calidad_aire_madrid.py` (tarea 006) y `ruido_madrid.py` (tarea 007), que a
-propósito solo hacen capturas puntuales de muestra — ver sus secciones más
-abajo.
+`calidad_aire_madrid.py` (tarea 006), `ruido_madrid.py` (tarea 007) y
+`meteorologia_madrid.py` (tarea 008), que a propósito solo hacen capturas
+puntuales de muestra — ver sus secciones más abajo.
 
 ## Instalación
 
@@ -715,6 +715,153 @@ en vivo: el fixture commiteado en
 (estaciones RF-01 a RF-05, con sus 4 periodos cada una) del último día
 disponible en el momento de la captura, descargadas ejecutando el script tal
 cual contra ambos recursos públicos durante esta sesión — no son datos de
+ejemplo generados a mano.
+
+## `capturas/meteorologia_madrid.py` — Datos meteorológicos de Madrid (muestra puntual)
+
+Descarga las lecturas horarias en tiempo real de la red de estaciones
+meteorológicas del Ayuntamiento de Madrid, dataset "Datos meteorológicos.
+Datos en tiempo real" (id `300392-0-meteorologia-tiempo-real`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/300392-0-meteorologia-tiempo-real):
+temperatura, humedad, viento, presión, radiación (solar y ultravioleta) y
+precipitación, actualizadas cada 20 minutos (minutos 15/35/55) para ~25
+estaciones fijas de la red.
+
+Igual que `transporte_publico_madrid.py`, `bicimad.py`,
+`aparcamientos_madrid.py`, `calidad_aire_madrid.py` y `ruido_madrid.py`,
+**este productor es solo una captura puntual** que genera una muestra
+pequeña versionada como fixture — no admite bucle ni scheduling propio (ver
+"Alcance reducido" más abajo).
+
+### Fuente elegida y por qué (no AEMET)
+
+El objetivo de la tarea sugería tanto esta fuente municipal como AEMET
+OpenData. Se eligió la fuente de datos.madrid.es porque **no requiere
+ninguna credencial** (AEMET OpenData sí exige una API key gratuita con
+registro) y ya cubre el objetivo (temperatura, humedad, viento,
+precipitación...) sin ese paso adicional.
+
+### Formato real encontrado
+
+Este dataset usa el mismo backend "bdca" (Servicio de Calidad del Aire) que
+`calidad_aire_madrid.py` (tarea 006), documentado en el mismo tipo de PDF
+("Intérprete de ficheros de datos meteorológicos horarios – diarios y
+tiempo real" que publica el propio dataset): no es una lista plana de
+lecturas, sino un registro por combinación estación+magnitud+día, con las
+24 lecturas horarias de ese día ya embebidas en columnas `H01`..`H24` (cada
+una con su código de validación `V01`..`V24`). A diferencia del JSON de
+calidad del aire, aquí no hay campo `PUNTO_MUESTREO`: el código de estación
+es directamente el campo `ESTACION` (p.ej. `"102"`), que coincide con la
+columna `CÓDIGO_CORTO` del catálogo de estaciones.
+
+Códigos de magnitud (Anexo II del PDF): `80` radiación ultravioleta
+(Mw/m2), `81` velocidad de viento (m/s), `82` dirección de viento (sin
+unidad según el PDF — se asume grados), `83` temperatura (ºC), `86`
+humedad relativa (%), `87` presión barométrica (mb), `88` radiación solar
+(W/m2), `89` precipitación (l/m2). No todas las estaciones miden todas las
+magnitudes (el catálogo marca con `X` cuáles).
+
+El JSON de tiempo real no incluye nombre, dirección ni coordenadas de la
+estación (solo su código corto), así que esta captura hace una segunda
+descarga al dataset "Datos meteorológicos. Estaciones de control" (id
+`300360-0-meteorologicos-estaciones`), un CSV con esos metadatos —
+mismo patrón de dos fuentes combinadas que `calidad_aire_madrid.py` y
+`ruido_madrid.py`. Ese catálogo ya publica `LONGITUD`/`LATITUD` en WGS84
+decimal con punto (no hace falta ninguna corrección de formato, a
+diferencia del catálogo de ruido de la tarea 007).
+
+Se verificó en vivo desde este entorno que ambos recursos son accesibles
+**sin ninguna autenticación ni API key**.
+
+A diferencia de `calidad_aire_madrid.py` (un registro por magnitud), cada
+registro normalizado aquí agrega **todas las magnitudes de una misma
+estación** en un único registro (temperatura, humedad, viento, presión,
+radiación, precipitación como columnas): el objetivo de la tarea pide
+explícitamente un esquema con "temperatura, humedad, viento, precipitación"
+como campos de un mismo registro, no un registro por magnitud.
+
+### Alcance reducido respecto a `trafico_madrid.py`
+
+Igual que en las tareas 003-007, todavía no se ha aplicado la
+infraestructura AWS (tarea 001), así que este productor, a propósito:
+
+- **No** tiene modo `--interval-seconds` ni bucle: cada invocación hace
+  exactamente una captura y termina.
+- **No** escribe en la capa Bronze particionada (`BronzeWriter`): escribe un
+  único fichero de muestra pequeño (como mucho `MADRID_WEATHER_SAMPLE_SIZE`,
+  5 por defecto, de las ~25 estaciones de la red completa) en una ruta fija,
+  pensado para commitearse como fixture, no para acumularse en disco.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.meteorologia_madrid
+```
+
+Escribe la muestra en `ingesta/capturas/samples/meteorologia_madrid_sample.json`
+(configurable con `--out`). No requiere ninguna variable de entorno de
+credenciales.
+
+### Variables de entorno
+
+| Variable                       | Por defecto                                     | Descripción                                                |
+| -------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| `MADRID_WEATHER_REALTIME_URL`  | URL del recurso JSON de tiempo real (ver módulo)  | URL del JSON de lecturas horarias en tiempo real.            |
+| `MADRID_WEATHER_STATIONS_URL`  | URL del recurso CSV de estaciones (ver módulo)    | URL del CSV del catálogo de estaciones meteorológicas.       |
+| `MADRID_WEATHER_SAMPLE_SIZE`   | `5`                                                 | Nº máximo de estaciones (una por registro) en la muestra.    |
+| `HTTP_TIMEOUT_SECONDS`         | `15`                                                | Timeout por request HTTP.                                    |
+| `HTTP_MAX_RETRIES`             | `3`                                                 | Reintentos ante fallo de red (backoff lineal simple).        |
+| `HTTP_RETRY_BACKOFF_SECONDS`   | `2`                                                 | Base del backoff entre reintentos (segundos * intento).      |
+| `LOG_LEVEL`                    | `INFO`                                              | Nivel de logging (también configurable con `--log-level`).   |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_meteorologia",
+  "station_id": "28079102",
+  "station_name": "J.M.D. Moratalaz",
+  "station_address": "C/ Fuente Carantona, 8",
+  "measured_at": "2026-08-12T00:00:00+00:00",
+  "ingested_at": "2026-08-12T01:49:00.436260+00:00",
+  "temperature_c": 25.6,
+  "humidity_pct": 19.0,
+  "wind_speed_ms": 1.0,
+  "wind_direction_deg": 73.0,
+  "pressure_mb": 941.0,
+  "solar_radiation_wm2": 0.0,
+  "uv_radiation_mwm2": null,
+  "precipitation_lm2": 0.0,
+  "location": {"lat": 40.398611, "lon": -3.636944, "srid": "EPSG:4326", "altitude_m": 686}
+}
+```
+
+- Cada registro es un único instante por **estación**, con todas las
+  magnitudes que reporta esa estación como columnas (`null` si la estación
+  no mide esa magnitud, p.ej. `uv_radiation_mwm2` en la mayoría de
+  estaciones de esta red).
+- `measured_at`: la hora válida más reciente entre todas las magnitudes de
+  la estación (hora de Madrid convertida a UTC). En la práctica, una misma
+  estación actualiza todas sus magnitudes a la vez, así que suele coincidir
+  para todos los campos de un mismo registro.
+- `ingested_at`: instante en que este productor consultó ambas fuentes
+  (UTC).
+- `station_name`/`station_address`/`location`: `null` si el código corto de
+  estación de la lectura no aparece en el catálogo descargado (no debería
+  ocurrir en condiciones normales, pero se normaliza así en vez de
+  descartar la lectura, mismo criterio que en el resto de capturas).
+- `location.lat`/`location.lon`: coordenadas del catálogo de estaciones ya
+  en WGS84 decimal, no UTM.
+
+### Nota sobre el acceso desde este entorno (tarea 008)
+
+Igual que en las tareas 004-007, fue posible completar una captura real en
+vivo: el fixture commiteado en
+`ingesta/capturas/samples/meteorologia_madrid_sample.json` son 5 estaciones
+reales (J.M.D. Moratalaz, E.D.A.R. La China, Centro Mpal. De Acústica,
+J.M.D. Hortaleza, Peñagrande), descargadas ejecutando el script tal cual
+contra ambos recursos públicos durante esta sesión — no son datos de
 ejemplo generados a mano.
 
 ## Tests
