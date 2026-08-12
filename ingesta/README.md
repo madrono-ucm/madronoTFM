@@ -13,9 +13,10 @@ de estos productores están pensados para ejecutarse periódicamente (cron,
 systemd timer, o su propio modo `--interval-seconds`) y escriben directamente
 a disco. El punto donde se conectaría un productor Kafka está marcado con
 `TODO(kafka)` en cada módulo. Las excepciones son `transporte_publico_madrid.py`
-(tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005)
-y `calidad_aire_madrid.py` (tarea 006), que a propósito solo hacen capturas
-puntuales de muestra — ver sus secciones más abajo.
+(tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005),
+`calidad_aire_madrid.py` (tarea 006) y `ruido_madrid.py` (tarea 007), que a
+propósito solo hacen capturas puntuales de muestra — ver sus secciones más
+abajo.
 
 ## Instalación
 
@@ -566,6 +567,155 @@ vivo: el fixture commiteado en
 reales (estaciones Ramón y Cajal y Arturo Soria; magnitudes NOx, NO, NO2 y
 O3), descargadas ejecutando el script tal cual contra ambos recursos
 públicos durante esta sesión — no son datos de ejemplo generados a mano.
+
+## `capturas/ruido_madrid.py` — Contaminación acústica (ruido) de Madrid (muestra puntual)
+
+Descarga los valores diarios de contaminación acústica de la Red Fija del
+Sistema Integral de Vigilancia de la Contaminación Acústica (SIVCA) del
+Ayuntamiento de Madrid, dataset "Contaminación acústica. Datos diarios" (id
+`215885-0-contaminacion-ruido`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/215885-0-contaminacion-ruido):
+LAeq y percentiles L1/L10/L50/L90/L99 por estación y por periodo horario
+(diurno, vespertino, nocturno, total), actualizados a diario (excepto fines
+de semana y festivos) para las 31 estaciones fijas de la red.
+
+Igual que `transporte_publico_madrid.py`, `bicimad.py`,
+`aparcamientos_madrid.py` y `calidad_aire_madrid.py`, **este productor es
+solo una captura puntual** que genera una muestra pequeña versionada como
+fixture — no admite bucle ni scheduling propio (ver "Alcance reducido" más
+abajo).
+
+### Formato real encontrado y por qué esta fuente (no una de tiempo real)
+
+A diferencia de calidad del aire (tarea 006), **no existe en datos.madrid.es
+un dataset de ruido con granularidad horaria/tiempo real**: la Red Fija del
+SIVCA solo publica un agregado **diario** por estación+periodo. El resto de
+datasets de ruido del portal (histórico mensual, mapas estratégicos de
+ruido) son agregados a un plazo aún mayor, peor ajuste para una muestra
+"actual". Se eligió por tanto el dataset diario por ser el más granular y
+más actualizado disponible para esta red — sigue encajando con lo que pedía
+la tarea ("datos.madrid.es publica niveles sonoros por estación").
+
+El recurso descargable es un único CSV con el **histórico completo desde
+2014** (~540.000 filas, ~24 MB a fecha de esta captura), en formato
+ISO-8859-1 (Latin-1, a diferencia del UTF-8 de calidad del aire) y con coma
+decimal (p.ej. `"62,9"`). No hay un recurso separado por día, así que
+`parse_latest_day_entries` recorre el CSV completo pero solo conserva en
+memoria las filas del último día presente en el fichero (que está ordenado
+cronológicamente ascendente), en vez de acumular las ~540.000 filas de
+histórico.
+
+El CSV diario **no incluye nombre, dirección ni coordenadas de la
+estación** (solo su código numérico plano, p.ej. `"1"`), así que este
+productor hace una segunda descarga al dataset "Estaciones de medición de
+ruido de la Red Fija del SIVCA" (id `211346-0-estaciones-acusticas`), un CSV
+con esos metadatos por estación (código `RF-01`, `RF-02`...) — mismo patrón
+de combinar dos fuentes que `calidad_aire_madrid.py`,
+`aparcamientos_madrid.py` y `bicimad.py`. Ese catálogo publica latitud y
+longitud en un formato peculiar (p.ej. `"-3.691.877"` en vez de
+`-3.691877`): puntos de más, resultado de exportar un decimal con separador
+de miles; `_parse_grouped_decimal` lo corrige tomando el primer fragmento
+como parte entera y concatenando el resto como parte decimal.
+
+Se verificó en vivo desde este entorno que ambos recursos son accesibles
+**sin ninguna autenticación ni API key**.
+
+### Alcance reducido respecto a `trafico_madrid.py`
+
+Igual que en las tareas 003/004/005/006, todavía no se ha aplicado la
+infraestructura AWS (tarea 001), así que este productor, a propósito:
+
+- **No** tiene modo `--interval-seconds` ni bucle: cada invocación hace
+  exactamente una captura y termina.
+- **No** escribe en la capa Bronze particionada (`BronzeWriter`): escribe un
+  único fichero de muestra pequeño en una ruta fija, pensado para
+  commitearse como fixture, no para acumularse en disco. A diferencia de las
+  tareas 003-006 (donde `..._SAMPLE_SIZE` cuenta *registros*), aquí
+  `MADRID_NOISE_SAMPLE_STATIONS` cuenta **estaciones** (5 por defecto): cada
+  estación aporta hasta 4 registros (uno por periodo D/E/N/T) del último día
+  disponible, así que la muestra sigue siendo pequeña (20 registros con el
+  valor por defecto) pero cubre varias estaciones completas, en línea con
+  "unas pocas estaciones" del objetivo de la tarea.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.ruido_madrid
+```
+
+Escribe la muestra en `ingesta/capturas/samples/ruido_madrid_sample.json`
+(configurable con `--out`). No requiere ninguna variable de entorno de
+credenciales.
+
+### Variables de entorno
+
+| Variable                       | Por defecto                                     | Descripción                                                |
+| -------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| `MADRID_NOISE_DAILY_URL`       | URL del CSV histórico diario (ver módulo)         | URL del CSV de contaminación acústica diaria.               |
+| `MADRID_NOISE_STATIONS_URL`    | URL del CSV de estaciones (ver módulo)            | URL del CSV del catálogo de estaciones de la Red Fija.       |
+| `MADRID_NOISE_SAMPLE_STATIONS` | `5`                                                 | Nº máximo de estaciones (no registros) incluidas en la muestra. |
+| `HTTP_TIMEOUT_SECONDS`         | `15`                                                | Timeout por request HTTP.                                    |
+| `HTTP_MAX_RETRIES`             | `3`                                                 | Reintentos ante fallo de red (backoff lineal simple).        |
+| `HTTP_RETRY_BACKOFF_SECONDS`   | `2`                                                 | Base del backoff entre reintentos (segundos * intento).      |
+| `LOG_LEVEL`                    | `INFO`                                              | Nivel de logging (también configurable con `--log-level`).   |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_ruido_diario",
+  "station_id": "RF-01",
+  "station_name": "Paseo de Recoletos",
+  "station_address": "Frente al n23 del Paseo de Recoletos",
+  "district": "Centro",
+  "neighbourhood": "Justicia",
+  "period": "D",
+  "period_name": "diurno",
+  "measured_date": "2026-08-10",
+  "ingested_at": "2026-08-12T01:40:10.464669+00:00",
+  "laeq_db": 62.9,
+  "l1_db": 69.7,
+  "l10_db": 66.0,
+  "l50_db": 60.4,
+  "l90_db": 54.6,
+  "l99_db": 52.2,
+  "location": {"lat": 40.422599, "lon": -3.691877, "srid": "EPSG:4326", "altitude_m": 648}
+}
+```
+
+- Cada registro es un agregado **diario** de una estación para un periodo
+  horario concreto (`D` diurno, `E` vespertino, `N` nocturno, `T` total).
+  Por eso usa `measured_date` (solo fecha) en vez de `measured_at` (instante
+  con hora) como el resto de capturas: la fuente no publica una hora
+  concreta, solo un día — este campo es honesto con esa granularidad real.
+  `ingested_at` es el instante en que este productor consultó ambas fuentes
+  (UTC).
+- `laeq_db`/`l1_db`/`l10_db`/`l50_db`/`l90_db`/`l99_db`: nivel continuo
+  equivalente y percentiles de presión sonora (dB), tal como define el PDF
+  "Contaminación acústica. Datos diarios. Contenido y estructura del
+  fichero" que publica el propio dataset.
+- `station_id`: código normalizado del catálogo (`RF-01`..`RF-86`),
+  construido con `zfill(2)` a partir del código numérico plano de la fuente
+  (`"1"` -> `"RF-01"`).
+- `station_name`/`station_address`/`district`/`neighbourhood`/`location`:
+  `null` si el código de estación de la lectura no aparece en el catálogo de
+  estaciones descargado (no debería ocurrir en condiciones normales, pero se
+  normaliza así en vez de descartar la lectura, mismo criterio que en el
+  resto de capturas).
+- `location.lat`/`location.lon`: coordenadas del catálogo de estaciones ya
+  en WGS84 decimal (tras corregir el formato de puntos de más de la fuente,
+  ver más arriba), no UTM.
+
+### Nota sobre el acceso desde este entorno (tarea 007)
+
+Igual que en las tareas 004/005/006, fue posible completar una captura real
+en vivo: el fixture commiteado en
+`ingesta/capturas/samples/ruido_madrid_sample.json` son 20 lecturas reales
+(estaciones RF-01 a RF-05, con sus 4 periodos cada una) del último día
+disponible en el momento de la captura, descargadas ejecutando el script tal
+cual contra ambos recursos públicos durante esta sesión — no son datos de
+ejemplo generados a mano.
 
 ## Tests
 
