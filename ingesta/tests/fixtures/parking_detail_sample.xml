@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<soap:Envelope xmlns="http://tempuri.org/" xmlns:dc="http://schemas.datacontract.org/2004/07/InfoParking" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+	<soap:Body>
+		<GetDetailParkingResponse>
+			<GetDetailParkingResult>
+				<dc:code>0</dc:code>
+				<dc:message>Operación registrada OK.</dc:message>
+				<dc:ArrayOfparkingDetails>
+					<dc:parkingDetails>
+						<dc:family>POI Familia</dc:family>
+						<dc:familyCode>001</dc:familyCode>
+						<dc:id>5</dc:id>
+						<dc:lstFeatures>
+							<dc:feature>
+								<dc:code>002</dc:code>
+								<dc:content>18</dc:content>
+								<dc:name>PMR</dc:name>
+								<dc:nameField>Tipo plaza</dc:nameField>
+								<dc:nameFieldTranslated>Número plazas</dc:nameFieldTranslated>
+								<dc:urlIcon>http://urlicono.org/neutro</dc:urlIcon>
+							</dc:feature>
+							<dc:feature>
+								<dc:code>001</dc:code>
+								<dc:content>832</dc:content>
+								<dc:name>Total</dc:name>
+								<dc:nameField>Tipo plaza</dc:nameField>
+								<dc:nameFieldTranslated>Número plazas</dc:nameFieldTranslated>
+								<dc:urlIcon>http://urlicono.org/neutro</dc:urlIcon>
+							</dc:feature>
+							<dc:feature>
+								<dc:code>013</dc:code>
+								<dc:content>SI</dc:content>
+								<dc:name>Aseos</dc:name>
+								<dc:nameField>Servicios adicionales</dc:nameField>
+								<dc:nameFieldTranslated>Servicios adicionales</dc:nameFieldTranslated>
+								<dc:urlIcon>http://urlicono.org/neutro</dc:urlIcon>
+							</dc:feature>
+						</dc:lstFeatures>
+						<dc:name>Nuestra Señora del Recuerdo</dc:name>
+						<dc:schedule>[24 Horas][Lunes,Martes,Miercoles,Jueves,Viernes,Sabado,Domingo][00:00][23:59]</dc:schedule>
+					</dc:parkingDetails>
+				</dc:ArrayOfparkingDetails>
+			</GetDetailParkingResult>
+		</GetDetailParkingResponse>
+	</soap:Body>
+</soap:Envelope>

@@ -1,0 +1,82 @@
+<?xml version="1.0" ?>
+<soap:Envelope xmlns="http://tempuri.org/" xmlns:dc="http://schemas.datacontract.org/2004/07/InfoParking" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+	<soap:Body>
+		<GetListParkingResponse>
+			<GetListParkingResult>
+				<dc:code>0</dc:code>
+				<dc:message>Operación registrada OK.</dc:message>
+				<dc:ArrayOflstParking>
+					<dc:lstParking>
+						<dc:address>Calle Corazón de María</dc:address>
+						<dc:administrativeArea>Madrid</dc:administrativeArea>
+						<dc:areaCode>28002 </dc:areaCode>
+						<dc:category>POI Categoria Parking</dc:category>
+						<dc:country>España</dc:country>
+						<dc:family>POI Familia</dc:family>
+						<dc:familyCode>001</dc:familyCode>
+						<dc:id>3</dc:id>
+						<dc:latitude>40.438524</dc:latitude>
+						<dc:longitude>-3.645525</dc:longitude>
+						<dc:name>Corazón de María II</dc:name>
+						<dc:nickName>MaríaII</dc:nickName>
+						<dc:state>Madrid  </dc:state>
+						<dc:town>Madrid</dc:town>
+						<dc:type>POI Tipo Parking</dc:type>
+					</dc:lstParking>
+					<dc:lstParking>
+						<dc:address>Calle de la Hiedra</dc:address>
+						<dc:administrativeArea>Madrid</dc:administrativeArea>
+						<dc:areaCode>28036 </dc:areaCode>
+						<dc:category>POI Categoria Parking</dc:category>
+						<dc:country>España</dc:country>
+						<dc:family>POI Familia</dc:family>
+						<dc:familyCode>001</dc:familyCode>
+						<dc:id>5</dc:id>
+						<dc:latitude>40.472181</dc:latitude>
+						<dc:longitude>-3.679160</dc:longitude>
+						<dc:name>Nuestra Señora del Recuerdo</dc:name>
+						<dc:nickName>Recuerdo</dc:nickName>
+						<dc:state>Madrid</dc:state>
+						<dc:town>Madrid</dc:town>
+						<dc:type>POI Tipo Parking</dc:type>
+						<dc:lstOccupation>
+							<dc:occupation>
+								<dc:code>001</dc:code>
+								<dc:free>431</dc:free>
+								<dc:moment>2026-08-12T03:17:36.000+02:00</dc:moment>
+								<dc:name>Total</dc:name>
+								<dc:renewalIndex>0.00</dc:renewalIndex>
+							</dc:occupation>
+						</dc:lstOccupation>
+					</dc:lstParking>
+					<dc:lstParking>
+						<dc:address>Avda. de Portugal, s/n. Frente al nº 51</dc:address>
+						<dc:administrativeArea>Madrid</dc:administrativeArea>
+						<dc:areaCode>28011 </dc:areaCode>
+						<dc:category>POI Categoria Parking</dc:category>
+						<dc:country>España</dc:country>
+						<dc:family>POI Familia</dc:family>
+						<dc:familyCode>001</dc:familyCode>
+						<dc:id>7</dc:id>
+						<dc:latitude>40.415415</dc:latitude>
+						<dc:longitude>-3.727515</dc:longitude>
+						<dc:name>Avenida de Portugal</dc:name>
+						<dc:nickName>AvPortugal</dc:nickName>
+						<dc:state>Madrid</dc:state>
+						<dc:town>Madrid</dc:town>
+						<dc:type>POI Tipo Parking</dc:type>
+						<dc:lstOccupation>
+							<dc:occupation>
+								<dc:code>001</dc:code>
+								<dc:free>224</dc:free>
+								<dc:moment>2026-08-12T03:17:44.000+02:00</dc:moment>
+								<dc:name>Total</dc:name>
+								<dc:renewalIndex>0.00</dc:renewalIndex>
+							</dc:occupation>
+						</dc:lstOccupation>
+					</dc:lstParking>
+				</dc:ArrayOflstParking>
+			</GetListParkingResult>
+		</GetListParkingResponse>
+	</soap:Body>
+</soap:Envelope>
