@@ -103,6 +103,34 @@ def push_branch(worktree_dir: Path, branch: str) -> None:
     _run(["git", "push", "-u", "origin", branch], cwd=worktree_dir, timeout=300)
 
 
+def find_pr_for_branch(repo_path: Path, branch: str, config) -> PullRequestInfo | None:
+    """Busca un PR ya existente (abierto o no) para branch.
+
+    Red de seguridad ante interrupciones entre crear el PR y persistir su número en
+    el front-matter de la tarea: sin esto, una tarea que ya tiene PR pero cuyo
+    bookkeeping no llegó a guardarse se reprocesaría desde cero, invocando a claude
+    otra vez y creando un PR duplicado.
+    """
+    out = _run(
+        [
+            config.gh_bin, "pr", "list",
+            "--repo", config.github_repo,
+            "--head", branch,
+            "--state", "all",
+            "--json", "number,url,state",
+            "--limit", "5",
+        ],
+        cwd=repo_path,
+        timeout=60,
+    )
+    prs = json.loads(out)
+    if not prs:
+        return None
+    open_prs = [p for p in prs if p["state"] == "OPEN"]
+    chosen = open_prs[0] if open_prs else prs[0]
+    return PullRequestInfo(number=chosen["number"], url=chosen["url"])
+
+
 def create_pr(worktree_dir: Path, branch: str, task, config) -> PullRequestInfo:
     title = f"[task {task.id:03d}] {task.title}"
     body = (
