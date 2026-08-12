@@ -1,0 +1,59 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_llegadas",
+    "stop_id": "71",
+    "line": "27",
+    "bus_id": 1234,
+    "destination": "PLAZA CASTILLA",
+    "ingested_at": "2026-08-12T09:15:30+00:00",
+    "estimate_arrive_sec": 180,
+    "distance_bus_m": 950,
+    "is_head": false,
+    "deviation_sec": 0,
+    "position_type_bus": "1",
+    "location": {
+      "lon": -3.700123,
+      "lat": 40.420456,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_llegadas",
+    "stop_id": "71",
+    "line": "27",
+    "bus_id": 5678,
+    "destination": "PLAZA CASTILLA",
+    "ingested_at": "2026-08-12T09:15:30+00:00",
+    "estimate_arrive_sec": 540,
+    "distance_bus_m": 2600,
+    "is_head": false,
+    "deviation_sec": 0,
+    "position_type_bus": "1",
+    "location": {
+      "lon": -3.702987,
+      "lat": 40.418811,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_llegadas",
+    "stop_id": "71",
+    "line": "N1",
+    "bus_id": 4321,
+    "destination": "PUERTA DEL SOL",
+    "ingested_at": "2026-08-12T09:15:30+00:00",
+    "estimate_arrive_sec": 60,
+    "distance_bus_m": 300,
+    "is_head": true,
+    "deviation_sec": 0,
+    "position_type_bus": "0",
+    "location": {
+      "lon": -3.699501,
+      "lat": 40.421899,
+      "srid": "EPSG:4326"
+    }
+  }
+]
