@@ -13,9 +13,9 @@ de estos productores están pensados para ejecutarse periódicamente (cron,
 systemd timer, o su propio modo `--interval-seconds`) y escriben directamente
 a disco. El punto donde se conectaría un productor Kafka está marcado con
 `TODO(kafka)` en cada módulo. Las excepciones son `transporte_publico_madrid.py`
-(tarea 003), `bicimad.py` (tarea 004) y `aparcamientos_madrid.py` (tarea 005),
-que a propósito solo hacen capturas puntuales de muestra — ver sus secciones
-más abajo.
+(tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005)
+y `calidad_aire_madrid.py` (tarea 006), que a propósito solo hacen capturas
+puntuales de muestra — ver sus secciones más abajo.
 
 ## Instalación
 
@@ -441,6 +441,131 @@ aparcamientos reales, descargados ejecutando el script tal cual contra el
 servicio SOAP público durante esta sesión (de los 75 aparcamientos del
 listado completo, 24 compartían ocupación en tiempo real en el momento de la
 captura) — no son datos de ejemplo generados a mano.
+
+## `capturas/calidad_aire_madrid.py` — Calidad del aire de Madrid (muestra puntual)
+
+Descarga las lecturas horarias en tiempo real de la red de estaciones de
+control de contaminación del Ayuntamiento de Madrid, dataset "Calidad del
+aire. Datos en tiempo real" (id `212531-0-calidad-aire-tiempo-real`) de
+[datos.madrid.es](https://datos.madrid.es/egob/catalogo/212531-0-calidad-aire-tiempo-real):
+actualizadas cada 20 minutos (minutos 15/35/55) para las 24 estaciones fijas
+de la red.
+
+Igual que `transporte_publico_madrid.py`, `bicimad.py` y
+`aparcamientos_madrid.py`, **este productor es solo una captura puntual**
+que genera una muestra pequeña versionada como fixture — no admite bucle ni
+scheduling propio (ver "Alcance reducido" más abajo).
+
+### Formato real encontrado
+
+El dataset ofrece TXT, CSV, JSON y XML con el mismo contenido; se eligió
+**JSON** por ser el más simple de parsear sin dependencias extra (a
+diferencia del XML de tráfico de la tarea 002). Se confirmó el formato
+descargando el recurso en vivo y contrastándolo con el PDF "Intérprete de
+ficheros de calidad del aire" que publica el propio dataset: no es una
+lista plana de lecturas, sino **un registro por combinación
+estación+magnitud+día**, con las 24 lecturas horarias de ese día ya
+embebidas en columnas `H01`..`H24` (cada una con su código de validación
+`V01`..`V24`: `"V"` = válido, `"N"` = no válido/sin dato). El campo
+`PUNTO_MUESTREO` (p.ej. `"28079011_12_8"`) codifica estación (`28079011`) +
+magnitud (`12`) + técnica de muestreo (`8`); el campo `MAGNITUD` da el
+código de magnitud sin ceros a la izquierda (`"1"` en vez de `"01"`), que
+esta captura normaliza con `zfill(2)` contra la tabla de magnitudes del
+Anexo II del PDF (códigos y unidades de SO2, NO, NO2, PM2.5, PM10, NOx, O3,
+BTX...).
+
+El JSON de tiempo real no incluye nombre, dirección ni coordenadas de la
+estación (solo su código), así que este productor hace una segunda
+descarga al dataset "Calidad del aire. Estaciones de control" (id
+`212629-0-estaciones-control-aire`), un CSV con esos metadatos por
+estación — mismo patrón de combinar dos fuentes que `aparcamientos_madrid.py`
+(`GetListParking` + `GetDetailParking`) o `bicimad.py`
+(`station_information` + `station_status`).
+
+Se verificó en vivo desde este entorno que ambos recursos son accesibles
+**sin ninguna autenticación ni API key**.
+
+### Alcance reducido respecto a `trafico_madrid.py`
+
+Igual que en las tareas 003/004/005, todavía no se ha aplicado la
+infraestructura AWS (tarea 001), así que este productor, a propósito:
+
+- **No** tiene modo `--interval-seconds` ni bucle: cada invocación hace
+  exactamente una captura y termina.
+- **No** escribe en la capa Bronze particionada (`BronzeWriter`): escribe un
+  único fichero de muestra pequeño (como mucho `MADRID_AIR_QUALITY_SAMPLE_SIZE`,
+  5 por defecto, de las 123 lecturas estación+magnitud que devolvió la
+  fuente en el momento de esta captura) en una ruta fija, pensado para
+  commitearse como fixture, no para acumularse en disco.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.calidad_aire_madrid
+```
+
+Escribe la muestra en `ingesta/capturas/samples/calidad_aire_madrid_sample.json`
+(configurable con `--out`). No requiere ninguna variable de entorno de
+credenciales.
+
+### Variables de entorno
+
+| Variable                          | Por defecto                                                                                                        | Descripción                                                     |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `MADRID_AIR_QUALITY_REALTIME_URL` | URL del recurso JSON de tiempo real (ver módulo)                                                                       | URL del JSON de lecturas horarias en tiempo real.                  |
+| `MADRID_AIR_QUALITY_STATIONS_URL` | URL del recurso CSV de estaciones (ver módulo)                                                                         | URL del CSV del catálogo de estaciones de control.                 |
+| `MADRID_AIR_QUALITY_SAMPLE_SIZE`  | `5`                                                                                                                      | Nº máximo de lecturas que se guardan en la muestra.                |
+| `HTTP_TIMEOUT_SECONDS`            | `15`                                                                                                                     | Timeout por request HTTP.                                          |
+| `HTTP_MAX_RETRIES`                | `3`                                                                                                                       | Reintentos ante fallo de red (backoff lineal simple).              |
+| `HTTP_RETRY_BACKOFF_SECONDS`      | `2`                                                                                                                       | Base del backoff entre reintentos (segundos * intento).            |
+| `LOG_LEVEL`                       | `INFO`                                                                                                                    | Nivel de logging (también configurable con `--log-level`).         |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_calidad_aire",
+  "station_id": "28079011",
+  "station_name": "Ramón y Cajal",
+  "station_address": "Avda. Ramón y Cajal  esq. C/ Príncipe de Vergara",
+  "magnitude_code": "12",
+  "magnitude_abbr": "NOx",
+  "magnitude_name": "Óxidos de Nitrógeno",
+  "unit": "µg/m³",
+  "value": 37.0,
+  "measured_at": "2026-08-12T00:00:00+00:00",
+  "ingested_at": "2026-08-12T01:30:08.436733+00:00",
+  "location": {"lat": 40.4514734, "lon": -3.6773491, "srid": "EPSG:4326"}
+}
+```
+
+- Cada registro es la lectura horaria **válida más reciente del día** para
+  una combinación estación+magnitud (la fuente da las 24 horas del día en
+  un único registro; este productor se queda con la última marcada como
+  válida, `V`, análogo a mostrar el estado "actual" en las demás capturas
+  puntuales de este proyecto).
+- `measured_at`: hora de esa lectura (de `ANO`/`MES`/`DIA` + la hora `Hxx`
+  elegida, hora de Madrid convertida a UTC). `ingested_at`: instante en que
+  este productor consultó ambas fuentes (UTC).
+- `station_name`/`station_address`/`location`: `null` si el código de
+  estación de la lectura no aparece en el catálogo de estaciones descargado
+  (no debería ocurrir en condiciones normales, pero se normaliza así en vez
+  de descartar la lectura, mismo criterio que en el resto de capturas).
+- `location.lat`/`location.lon`: coordenadas del catálogo de estaciones
+  (WGS84 estándar, no UTM).
+- Lecturas sin ninguna hora válida ese día (las 24 marcadas `N`) se
+  descartan de la muestra (`normalize_record` devuelve `None`): no aportan
+  ningún valor de calidad del aire que capturar.
+
+### Nota sobre el acceso desde este entorno (tarea 006)
+
+Igual que en las tareas 004/005, fue posible completar una captura real en
+vivo: el fixture commiteado en
+`ingesta/capturas/samples/calidad_aire_madrid_sample.json` son 5 lecturas
+reales (estaciones Ramón y Cajal y Arturo Soria; magnitudes NOx, NO, NO2 y
+O3), descargadas ejecutando el script tal cual contra ambos recursos
+públicos durante esta sesión — no son datos de ejemplo generados a mano.
 
 ## Tests
 
