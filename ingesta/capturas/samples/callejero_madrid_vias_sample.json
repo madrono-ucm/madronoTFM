@@ -1,0 +1,142 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_vias",
+    "vial_id": "00000127",
+    "class": "CALLE",
+    "particle": "DE",
+    "name": "ISABEL COLBRAND",
+    "full_name": "CALLE DE ISABEL COLBRAND",
+    "type": "Vía",
+    "situation": "Nivel",
+    "district_codes": [
+      "08"
+    ],
+    "postal_code": "28050",
+    "ine_code": "00011704",
+    "address_count": 52,
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "start_node": {
+      "lat": 40.515494,
+      "lon": -3.671311,
+      "srid": "EPSG:4326"
+    },
+    "end_node": {
+      "lat": 40.509358,
+      "lon": -3.680669,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_vias",
+    "vial_id": "00000150",
+    "class": "CALLE",
+    "particle": "DE",
+    "name": "GONZALEZ DAVILA",
+    "full_name": "CALLE DE GONZÁLEZ DÁVILA",
+    "type": "Vía",
+    "situation": "Nivel",
+    "district_codes": [
+      "18"
+    ],
+    "postal_code": "varios",
+    "ine_code": "00011280",
+    "address_count": 18,
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "start_node": {
+      "lat": 40.37675,
+      "lon": -3.638964,
+      "srid": "EPSG:4326"
+    },
+    "end_node": {
+      "lat": 40.373547,
+      "lon": -3.637967,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_vias",
+    "vial_id": "00000200",
+    "class": "CALLE",
+    "particle": "DE LA",
+    "name": "ABADA",
+    "full_name": "CALLE DE LA ABADA",
+    "type": "Vía",
+    "situation": "Nivel",
+    "district_codes": [
+      "21"
+    ],
+    "postal_code": "varios",
+    "ine_code": "00000003",
+    "address_count": 12,
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "start_node": {
+      "lat": 40.418897,
+      "lon": -3.703944,
+      "srid": "EPSG:4326"
+    },
+    "end_node": {
+      "lat": 40.419881,
+      "lon": -3.704817,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_vias",
+    "vial_id": "00000300",
+    "class": "CALLE",
+    "particle": "DE LOS",
+    "name": "ABADES",
+    "full_name": "CALLE DE LOS ABADES",
+    "type": "Vía",
+    "situation": "Nivel",
+    "district_codes": [
+      "01"
+    ],
+    "postal_code": "varios",
+    "ine_code": "00000004",
+    "address_count": 19,
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "start_node": {
+      "lat": 40.410253,
+      "lon": -3.704561,
+      "srid": "EPSG:4326"
+    },
+    "end_node": {
+      "lat": 40.409811,
+      "lon": -3.706008,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_vias",
+    "vial_id": "00000400",
+    "class": "CALLE",
+    "particle": "DE LA",
+    "name": "ABADESA",
+    "full_name": "CALLE DE LA ABADESA",
+    "type": "Vía",
+    "situation": "Nivel",
+    "district_codes": [
+      "06"
+    ],
+    "postal_code": "varios",
+    "ine_code": "00000005",
+    "address_count": 7,
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "start_node": {
+      "lat": 40.464525,
+      "lon": -3.704361,
+      "srid": "EPSG:4326"
+    },
+    "end_node": {
+      "lat": 40.465011,
+      "lon": -3.704272,
+      "srid": "EPSG:4326"
+    }
+  }
+]

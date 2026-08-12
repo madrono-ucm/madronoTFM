@@ -18,6 +18,14 @@ a disco. El punto donde se conectaría un productor Kafka está marcado con
 `meteorologia_madrid.py` (tarea 008), que a propósito solo hacen capturas
 puntuales de muestra — ver sus secciones más abajo.
 
+`callejero_madrid.py` (tarea 009) es un caso distinto de los anteriores: no
+es un dato que cambie con el tiempo (tráfico, calidad del aire...), sino un
+dato de **referencia** (el callejero y grafo viario de Madrid) que apenas
+varía. Por eso es, a propósito, una **carga batch puntual**, no solo una
+"muestra reducida por falta de infraestructura" — nunca necesitará
+programarse periódicamente, ni siquiera cuando exista infraestructura real.
+Ver su sección más abajo.
+
 ## Instalación
 
 ```bash
@@ -863,6 +871,188 @@ reales (J.M.D. Moratalaz, E.D.A.R. La China, Centro Mpal. De Acústica,
 J.M.D. Hortaleza, Peñagrande), descargadas ejecutando el script tal cual
 contra ambos recursos públicos durante esta sesión — no son datos de
 ejemplo generados a mano.
+
+## `capturas/callejero_madrid.py` — Callejero y grafo viario de Madrid (carga batch puntual, referencia)
+
+Descarga el callejero vigente del Ayuntamiento de Madrid — viales y sus
+cruces con otros viales — y lo normaliza a un esquema mínimo pensado para
+alimentar más adelante el grafo urbano en Neo4j (ver `documents/Memoria_TFM
+FV.docx`, apartado 5.2).
+
+### Esto es una carga puntual de referencia, no una captura periódica
+
+A diferencia de `transporte_publico_madrid.py`, `bicimad.py`,
+`aparcamientos_madrid.py`, `calidad_aire_madrid.py`, `ruido_madrid.py` y
+`meteorologia_madrid.py` (tareas 003-008), que son capturas de muestra
+*reducidas* solo porque todavía no existe infraestructura AWS donde
+aterrizar datos en volumen, aquí la razón es otra: el callejero de Madrid es
+un dato de **referencia** que apenas cambia (el propio dataset se actualiza
+"diariamente" solo para incorporar aprobaciones puntuales de nuevos viales o
+cambios de numeración, no para reflejar un estado que varía por sí solo,
+como sí hace el tráfico o la calidad del aire). No tiene sentido programar
+su recaptura ni siquiera cuando exista infraestructura real: por eso este
+módulo, igual que los anteriores, **no tiene modo `--interval-seconds` ni
+bucle**, pero aquí es una decisión permanente, no temporal. La carga
+completa real, el día que se aplique la infraestructura de la tarea 001,
+seguirá siendo una carga batch puntual invocada a mano cuando haga falta
+(p.ej. tras una actualización relevante del callejero oficial), no un
+productor en bucle.
+
+### Fuente elegida y por qué
+
+Dataset "Callejero. Información adicional asociada. Códigos postales, zonas
+SER, categoría fiscal, parcela catastral, etc." (id `200075-0-callejero`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/200075-0-callejero), en
+concreto dos de sus recursos CSV:
+
+- **"Viales oficiales y topónimos"**: un registro por vial vigente (calle,
+  avenida, plaza...) con su código, nombre, tipo, distritos que atraviesa,
+  código(s) postal(es), y las coordenadas de inicio y fin del vial — el
+  **nodo** del grafo viario.
+- **"Cruces de viales con coordenadas geográficas"**: un registro por cada
+  cruce/enlace de un vial con otro vial, con la coordenada del cruce — la
+  **arista** del grafo viario (qué vial conecta con qué otro vial, y dónde).
+
+Se descartaron otras alternativas encontradas en la investigación:
+
+- **"Callejero oficial del Ayuntamiento de Madrid"** (id
+  `213605-0-callejero-oficial-madrid`): mismo origen (sistema CADMA), pero
+  sus CSV de "viales vigentes" no incluyen coordenadas de inicio/fin ni
+  cruces — solo intervalos de numeración por distrito/barrio. Podría servir
+  a una futura tarea de direcciones/geocodificación, pero no da la topología
+  del grafo viario que pide esta tarea.
+- **"Callejero oficial. Viales vigentes"** (id `300735-0-mapas-callejero-viales`):
+  solo expone un servicio WMS (mapa renderizado), sin un recurso descargable
+  con la topología vial/cruces en un formato tabular simple.
+- **"Callejero Oficial del Ayuntamiento de Madrid (Servicio Web)"** (id
+  `300274-0-callejero-oficial-webservice`): un servicio SOAP pensado para
+  sincronizar *cambios* incrementales del callejero desde sistemas externos,
+  no para una carga inicial de referencia.
+
+Se ha verificado en vivo desde este entorno que ambos recursos elegidos son
+accesibles **sin ninguna autenticación ni API key**.
+
+### Formato real encontrado
+
+Ambos CSV se publican en **ISO-8859-1 (Latin-1)** con `;` como separador (a
+diferencia del UTF-8 de calidad del aire/meteorología). Las coordenadas
+WGS84 vienen como texto en formato grados-minutos-segundos con el símbolo
+`º` (p.ej. `"3º40'16.72'' W"`, `"40º30'55.78'' N"`), no como decimal — este
+módulo las convierte a grados decimales. El "Código de vía" (p.ej.
+`"00000127"`) es el identificador estable que enlaza ambos ficheros (un
+vial en "Viales" con sus cruces en "Cruces"), y se conserva tal cual como
+`vial_id` (cadena de 8 dígitos con ceros a la izquierda) para no perder esa
+capacidad de cruce con la fuente oficial ni con una futura carga completa.
+
+El campo "Distritos atravesados" puede traer varios códigos separados por
+`-` (p.ej. `"18-20-21"`); se normaliza a una lista. El campo "Códigos
+postales" puede ser un único código, el literal `"varios"` (la fuente no
+detalla cuáles cuando un vial tiene más de uno), o estar vacío — se conserva
+tal cual como texto, sin inventar una lista que la fuente no da.
+
+El CSV de cruces trae cada cruce **dos veces** (una vez con cada vial como
+"tratado", en direcciones opuestas); este módulo solo conserva los cruces
+cuyo vial "tratado" es uno de los viales de la muestra, para no duplicar la
+misma arista dos veces.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.callejero_madrid
+```
+
+Escribe dos ficheros de muestra (uno de viales/nodos, otro de cruces/
+aristas) en `ingesta/capturas/samples/callejero_madrid_vias_sample.json` y
+`ingesta/capturas/samples/callejero_madrid_cruces_sample.json`
+(configurables con `--out-vias`/`--out-cruces`). No requiere ninguna
+variable de entorno de credenciales.
+
+### Variables de entorno
+
+| Variable                              | Por defecto                                             | Descripción                                                          |
+| --------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `MADRID_STREETS_VIAS_URL`             | URL del CSV de viales (ver módulo)                       | URL del CSV de viales oficiales vigentes.                             |
+| `MADRID_STREETS_CROSSINGS_URL`        | URL del CSV de cruces (ver módulo)                       | URL del CSV de cruces de viales.                                       |
+| `MADRID_STREETS_SAMPLE_SIZE`          | `5`                                                        | Nº de viales (nodos) incluidos en la muestra.                          |
+| `MADRID_STREETS_MAX_CROSSINGS_PER_VIAL` | `8`                                                       | Nº máximo de cruces (aristas) por vial de la muestra.                  |
+| `HTTP_TIMEOUT_SECONDS`                | `30`                                                        | Timeout por request HTTP (más alto que el resto: los CSV pesan varios MB). |
+| `HTTP_MAX_RETRIES`                    | `3`                                                         | Reintentos ante fallo de red (backoff lineal simple).                  |
+| `HTTP_RETRY_BACKOFF_SECONDS`          | `2`                                                         | Base del backoff entre reintentos (segundos * intento).                |
+| `LOG_LEVEL`                           | `INFO`                                                      | Nivel de logging (también configurable con `--log-level`).             |
+
+### Esquema normalizado
+
+Viales (nodos), un registro por vial:
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_callejero_vias",
+  "vial_id": "00000127",
+  "class": "CALLE",
+  "particle": "DE",
+  "name": "ISABEL COLBRAND",
+  "full_name": "CALLE DE ISABEL COLBRAND",
+  "type": "Vía",
+  "situation": "Nivel",
+  "district_codes": ["08"],
+  "postal_code": "28050",
+  "ine_code": "00011704",
+  "address_count": 52,
+  "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+  "start_node": {"lat": 40.515494, "lon": -3.671311, "srid": "EPSG:4326"},
+  "end_node": {"lat": 40.509358, "lon": -3.680669, "srid": "EPSG:4326"}
+}
+```
+
+Cruces (aristas), un registro por cruce de un vial de la muestra con otro:
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_callejero_cruces",
+  "from_vial_id": "00000127",
+  "from_vial_name": "CALLE DE ISABEL COLBRAND",
+  "to_vial_id": "00002792",
+  "to_vial_name": "CALLE DE CASTIELLO DE JACA",
+  "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+  "location": {"lat": 40.510047, "lon": -3.678731, "srid": "EPSG:4326"}
+}
+```
+
+- `vial_id`/`from_vial_id`/`to_vial_id`: código de vía de 8 dígitos, tal
+  como lo publica la fuente (no se convierte a entero, para no perder los
+  ceros a la izquierda ni la capacidad de cruce entre ficheros).
+- `type`: `"Vía"` (calle, plaza... con recorrido) o `"Topónimo"` (un punto
+  singular sin recorrido, p.ej. una plaza sin nombre de calle asociado).
+- `district_codes`: lista de códigos de distrito que atraviesa el vial
+  (puede tener más de uno).
+- `postal_code`: un único código, el literal `"varios"` si el vial tiene
+  más de uno (la fuente no los detalla), o `null` si no consta.
+- `start_node`/`end_node`: coordenadas de inicio/fin del vial (WGS84,
+  decimal), convertidas del formato grados-minutos-segundos de la fuente.
+  Viales sin coordenadas conocidas (p.ej. algunos topónimos) se descartan de
+  la muestra de viales (no aportarían un nodo útil al grafo).
+- `location` (en cruces): coordenada del punto de cruce entre los dos
+  viales (WGS84, decimal).
+- No hay `barrio` (solo `district_codes`, a nivel distrito): ninguno de los
+  dos recursos usados publica el barrio del vial completo (sí lo hacen a
+  nivel de tramo/numeración concreta en otros recursos del dataset, fuera
+  del alcance de esta tarea).
+
+### Nota sobre el acceso desde este entorno (tarea 009)
+
+Se completó una **captura real en vivo**: los fixtures commiteados
+(`ingesta/capturas/samples/callejero_madrid_vias_sample.json` y
+`callejero_madrid_cruces_sample.json`) son 5 viales reales (Isabel Colbrand,
+González Dávila, de la Abada, de los Abades, de la Abadesa) con sus 20
+cruces reales, descargados ejecutando el script tal cual contra ambos
+recursos públicos durante esta sesión — no son datos de ejemplo generados a
+mano. El CSV de viales tenía 10.093 viales vigentes y el de cruces 31.654
+cruces en el momento de la captura; ambos se descargaron completos en
+memoria para poder elegir la muestra (no hay un recurso "solo los primeros
+N"), pero en ningún momento se escribió el dataset completo a disco — solo
+la muestra pequeña final.
 
 ## Tests
 

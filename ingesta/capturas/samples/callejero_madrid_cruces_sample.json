@@ -1,0 +1,282 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000127",
+    "from_vial_name": "CALLE DE ISABEL COLBRAND",
+    "to_vial_id": "00002792",
+    "to_vial_name": "CALLE DE CASTIELLO DE JACA",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.510047,
+      "lon": -3.678731,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000127",
+    "from_vial_name": "CALLE DE ISABEL COLBRAND",
+    "to_vial_id": "00001837",
+    "to_vial_name": "CALLE DE FEDERICO MOMPOU",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.510036,
+      "lon": -3.678731,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000127",
+    "from_vial_name": "CALLE DE ISABEL COLBRAND",
+    "to_vial_id": "00087100",
+    "to_vial_name": "CALLE DE MARÍA TUBAU",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.511383,
+      "lon": -3.675236,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000127",
+    "from_vial_name": "CALLE DE ISABEL COLBRAND",
+    "to_vial_id": "00002793",
+    "to_vial_name": "PASEO DE TIERRA DE MELIDE",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.512836,
+      "lon": -3.671639,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000127",
+    "from_vial_name": "CALLE DE ISABEL COLBRAND",
+    "to_vial_id": "00002794",
+    "to_vial_name": "CALLE DE PORTOMARÍN",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.514675,
+      "lon": -3.671506,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000127",
+    "from_vial_name": "CALLE DE ISABEL COLBRAND",
+    "to_vial_id": "00313425",
+    "to_vial_name": "CARRETERA DE FUENCARRAL A ALCOBENDAS",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.515756,
+      "lon": -3.671433,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000150",
+    "from_vial_name": "CALLE DE GONZÁLEZ DÁVILA",
+    "to_vial_id": "00789500",
+    "to_vial_name": "CARRETERA DE VILLAVERDE A VALLECAS",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.373236,
+      "lon": -3.637669,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000150",
+    "from_vial_name": "CALLE DE GONZÁLEZ DÁVILA",
+    "to_vial_id": "00002275",
+    "to_vial_name": "CALLE DEL GAMONAL",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.374394,
+      "lon": -3.638233,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000150",
+    "from_vial_name": "CALLE DE GONZÁLEZ DÁVILA",
+    "to_vial_id": "00364900",
+    "to_vial_name": "CAMINO DE LAS HORMIGUERAS",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.375725,
+      "lon": -3.638767,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000150",
+    "from_vial_name": "CALLE DE GONZÁLEZ DÁVILA",
+    "to_vial_id": "00319000",
+    "to_vial_name": "CALLE DE LUIS I",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.377019,
+      "lon": -3.639308,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000200",
+    "from_vial_name": "CALLE DE LA ABADA",
+    "to_vial_id": "00656500",
+    "to_vial_name": "CALLE DE LA SALUD",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.418825,
+      "lon": -3.703744,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000200",
+    "from_vial_name": "CALLE DE LA ABADA",
+    "to_vial_id": "00505100",
+    "to_vial_name": "CALLE DE MESONERO ROMANOS",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.419425,
+      "lon": -3.704411,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000200",
+    "from_vial_name": "CALLE DE LA ABADA",
+    "to_vial_id": "00202800",
+    "to_vial_name": "CALLE DE CONCEPCIÓN ARENAL",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.420233,
+      "lon": -3.704856,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000200",
+    "from_vial_name": "CALLE DE LA ABADA",
+    "to_vial_id": "00342950",
+    "to_vial_name": "CALLE GRAN VÍA",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.420233,
+      "lon": -3.704856,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000300",
+    "from_vial_name": "CALLE DE LOS ABADES",
+    "to_vial_id": "00789100",
+    "to_vial_name": "CALLE DE EDUARDO BARREIROS",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.364142,
+      "lon": -3.699169,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000300",
+    "from_vial_name": "CALLE DE LOS ABADES",
+    "to_vial_id": "00262000",
+    "to_vial_name": "CALLE DE EMBAJADORES",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.409719,
+      "lon": -3.706111,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000300",
+    "from_vial_name": "CALLE DE LOS ABADES",
+    "to_vial_id": "00505000",
+    "to_vial_name": "CALLE DEL MESÓN DE PAREDES",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.410325,
+      "lon": -3.704433,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000400",
+    "from_vial_name": "CALLE DE LA ABADESA",
+    "to_vial_id": "00643000",
+    "to_vial_name": "CALLE DE ROBLEDO",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.464489,
+      "lon": -3.704292,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000400",
+    "from_vial_name": "CALLE DE LA ABADESA",
+    "to_vial_id": "00086600",
+    "to_vial_name": "CALLE DE LAS AZUCENAS",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.46485,
+      "lon": -3.704272,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_callejero_cruces",
+    "from_vial_id": "00000400",
+    "from_vial_name": "CALLE DE LA ABADESA",
+    "to_vial_id": "00538100",
+    "to_vial_name": "CALLE DE NUESTRA SEÑORA DE LOS DOLORES",
+    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "location": {
+      "lat": 40.46485,
+      "lon": -3.704272,
+      "srid": "EPSG:4326"
+    }
+  }
+]
