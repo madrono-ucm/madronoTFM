@@ -1,18 +1,18 @@
 ---
 id: 6
 slug: captura-calidad-aire-madrid
-title: "Captura de datos de calidad del aire de Madrid (muestra)"
-status: pending
+title: Captura de datos de calidad del aire de Madrid (muestra)
+status: in_progress
 force: true
-branch: null
+branch: task/006-captura-calidad-aire-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T01:02:26+00:00"
-updated_at: "2026-08-12T01:02:26+00:00"
-started_at: null
+created_at: '2026-08-12T01:02:26+00:00'
+updated_at: '2026-08-12T01:26:18.281677+00:00'
+started_at: '2026-08-12T01:26:18.281653+00:00'
 submitted_at: null
 merged_at: null
 ---
