@@ -2,7 +2,7 @@
 id: 10
 slug: captura-limites-barrios-distritos-madrid
 title: Captura de límites de barrios y distritos de Madrid (muestra, carga puntual)
-status: in_review
+status: done
 force: true
 branch: task/010-captura-limites-barrios-distritos-madrid
 pr_number: 57
@@ -11,10 +11,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T22:19:15+00:00'
-updated_at: '2026-08-12T22:51:54.358101+00:00'
+updated_at: '2026-08-12T22:53:00.697100+00:00'
 started_at: '2026-08-12T22:44:04.443868+00:00'
 submitted_at: '2026-08-12T22:51:54.357953+00:00'
-merged_at: null
+merged_at: '2026-08-12T22:51:57Z'
 ---
 
 ## Contexto
