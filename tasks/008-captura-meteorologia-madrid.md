@@ -1,18 +1,18 @@
 ---
 id: 8
 slug: captura-meteorologia-madrid
-title: "Captura de datos meteorológicos de Madrid (muestra)"
-status: pending
+title: Captura de datos meteorológicos de Madrid (muestra)
+status: in_progress
 force: true
-branch: null
+branch: task/008-captura-meteorologia-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T01:02:26+00:00"
-updated_at: "2026-08-12T01:02:26+00:00"
-started_at: null
+created_at: '2026-08-12T01:02:26+00:00'
+updated_at: '2026-08-12T01:44:18.427939+00:00'
+started_at: '2026-08-12T01:44:18.427912+00:00'
 submitted_at: null
 merged_at: null
 ---
