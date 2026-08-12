@@ -190,6 +190,23 @@ def _handle_in_review(config: Config, task: Task) -> str:
         _save(config, task, f"chore(tasks): mark task {task.id:03d} as failed (PR cerrado)")
         msg = f"tarea {task.id:03d}: PR #{task.pr_number} cerrado sin fusionar, marcada como failed"
         log.warning(msg)
+    elif task.force:
+        # El primer intento de auto-merge (justo tras crear el PR, en
+        # _run_task_attempt) puede fallar por una carrera transitoria con GitHub
+        # ("Base branch was modified" mientras calcula el mergeable state). Sin este
+        # reintento, una tarea force=true que tropieza una vez con esa carrera se
+        # queda esperando merge manual para siempre, anulando el propósito de force.
+        try:
+            gh_git.merge_pr(config.repo_path, task.pr_number, config)
+            gh_git.sync_base_branch(config.repo_path, config.git_base_branch)
+            msg = f"tarea {task.id:03d}: force=true, PR #{task.pr_number} fusionado sin revisión humana (reintento)"
+            log.info(msg)
+        except gh_git.GitError as exc:
+            msg = (
+                f"tarea {task.id:03d}: force=true, PR #{task.pr_number} aún no se pudo "
+                f"auto-fusionar, se reintentará en el próximo ciclo: {exc}"
+            )
+            log.warning(msg)
     else:
         msg = f"tarea {task.id:03d}: PR #{task.pr_number} todavía abierto, esperando merge manual"
         log.info(msg)
@@ -198,6 +215,25 @@ def _handle_in_review(config: Config, task: Task) -> str:
 
 def _run_task_attempt(config: Config, task: Task) -> str:
     branch = task.branch or tasks_store.branch_name_for(task)
+
+    # Red de seguridad: si un intento anterior llegó a crear el PR pero se cayó antes
+    # de persistir pr_number (p.ej. un fallo de red en el propio push de bookkeeping),
+    # no reprocesar la tarea desde cero — recuperar el PR ya existente para esa rama.
+    existing_pr = gh_git.find_pr_for_branch(config.repo_path, branch, config)
+    if existing_pr is not None:
+        task.status = STATUS_IN_REVIEW
+        task.branch = branch
+        task.pr_number = existing_pr.number
+        task.pr_url = existing_pr.url
+        task.submitted_at = task.submitted_at or tasks_store.now_iso()
+        _save(config, task, f"chore(tasks): recovered existing PR for task {task.id:03d}")
+        msg = (
+            f"tarea {task.id:03d}: recuperado PR existente {existing_pr.url} "
+            "(evita reprocesar desde cero tras una interrupción previa)"
+        )
+        log.warning(msg)
+        return msg
+
     task.status = "in_progress"
     task.branch = branch
     task.started_at = task.started_at or tasks_store.now_iso()
@@ -240,11 +276,12 @@ def _run_task_attempt(config: Config, task: Task) -> str:
         if task.force:
             try:
                 gh_git.merge_pr(config.repo_path, pr.number, config)
+                gh_git.sync_base_branch(config.repo_path, config.git_base_branch)
                 log.info("Tarea %03d: force=true, PR #%s fusionado sin revisión humana", task.id, pr.number)
             except gh_git.GitError:
-                log.exception(
-                    "Tarea %03d: force=true pero el auto-merge del PR #%s falló; "
-                    "queda en in_review esperando merge manual",
+                log.warning(
+                    "Tarea %03d: force=true, el auto-merge del PR #%s falló en el primer intento; "
+                    "se reintentará en los próximos ciclos",
                     task.id, pr.number,
                 )
         return f"tarea {task.id:03d}: PR creado {pr.url}"
