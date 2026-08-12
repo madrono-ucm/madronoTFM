@@ -2,20 +2,17 @@
 id: 9
 slug: captura-callejero-madrid
 title: Captura del callejero y grafo viario de Madrid (muestra, carga puntual)
-status: failed
+status: pending
 force: true
-branch: task/009-captura-callejero-madrid
+branch: null
 pr_number: null
 pr_url: null
-attempts: 1
+attempts: 0
 next_retry_at: null
-last_error: 'ens":4203497,"cacheCreationInputTokens":164893,"webSearchRequests":0,"costUSD":2.7437810999999996,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
-  maximum budget ($3)"],"type":"result","duration_ms":372711,"uuid":"2c9c8015-1856-4d86-aa23-42068af3d372"}
-
-  '
+last_error: null
 created_at: '2026-08-12T22:19:15+00:00'
 updated_at: '2026-08-12T22:26:45.133615+00:00'
-started_at: '2026-08-12T22:20:28.715457+00:00'
+started_at: null
 submitted_at: null
 merged_at: null
 ---
@@ -75,3 +72,7 @@ carga completa en el grafo urbano (Neo4j, ver apartado 5.2 de la memoria).
   corriendo ni programado.
 - El esquema normalizado, la fuente elegida, y el hecho de que es una carga puntual
   (no periódica) quedan documentados en `ingesta/README.md` y en el resumen de `doc/`.
+
+## Nota tras un primer intento fallido
+
+Un intento anterior agotó el presupuesto por tarea leyendo el dataset completo directamente en el contexto (varios millones de tokens). El dataset de origen puede ser grande — **no lo leas entero**: inspecciónalo con herramientas de línea de comandos (`curl -o`, `head`, `wc -l`, `jq`, `ogrinfo`, etc.) y trabaja solo con los primeros registros necesarios para la muestra pequeña que pide la tarea.
