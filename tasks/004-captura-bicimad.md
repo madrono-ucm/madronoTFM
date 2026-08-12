@@ -2,18 +2,18 @@
 id: 4
 slug: captura-bicimad
 title: Captura de datos de BiciMAD (bicicleta compartida) (muestra)
-status: in_progress
+status: in_review
 force: true
 branch: task/004-captura-bicimad
-pr_number: null
-pr_url: null
+pr_number: 51
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/51
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T01:02:26+00:00'
-updated_at: '2026-08-12T01:12:08.915790+00:00'
+updated_at: '2026-08-12T01:16:10.239981+00:00'
 started_at: '2026-08-12T01:12:08.915766+00:00'
-submitted_at: null
+submitted_at: '2026-08-12T01:16:10.239843+00:00'
 merged_at: null
 ---
 
