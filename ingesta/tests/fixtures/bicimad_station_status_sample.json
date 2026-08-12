@@ -1,0 +1,66 @@
+{
+  "last_updated": 1786497235,
+  "ttl": 19,
+  "data": {
+    "stations": [
+      {
+        "station_id": "1406",
+        "num_bikes_available": 2,
+        "num_bikes_disabled": 2,
+        "is_charging_station": true,
+        "status": "IN_SERVICE",
+        "traffic": null,
+        "num_bikes_overflow": 0,
+        "num_docks_available": 23,
+        "num_docks_disabled": 0,
+        "last_reported": 1786497180,
+        "is_installed": true,
+        "is_renting": true,
+        "is_returning": true,
+        "vehicle_docks_available": [
+          {
+            "vehicle_type_ids": [
+              "EFIT"
+            ],
+            "count": 23
+          }
+        ],
+        "vehicle_types_available": [
+          {
+            "vehicle_type_id": "EFIT",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "station_id": "1407",
+        "num_bikes_available": 1,
+        "num_bikes_disabled": 1,
+        "is_charging_station": true,
+        "status": "IN_SERVICE",
+        "traffic": null,
+        "num_bikes_overflow": 0,
+        "num_docks_available": 17,
+        "num_docks_disabled": 0,
+        "last_reported": 1786497221,
+        "is_installed": true,
+        "is_renting": true,
+        "is_returning": true,
+        "vehicle_docks_available": [
+          {
+            "vehicle_type_ids": [
+              "EFIT"
+            ],
+            "count": 17
+          }
+        ],
+        "vehicle_types_available": [
+          {
+            "vehicle_type_id": "EFIT",
+            "count": 1
+          }
+        ]
+      }
+    ]
+  }
+}

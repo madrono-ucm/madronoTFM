@@ -12,9 +12,9 @@ Todavía no hay un broker Kafka desplegado (ver tarea 001), así que la mayoría
 de estos productores están pensados para ejecutarse periódicamente (cron,
 systemd timer, o su propio modo `--interval-seconds`) y escriben directamente
 a disco. El punto donde se conectaría un productor Kafka está marcado con
-`TODO(kafka)` en cada módulo. La excepción es `transporte_publico_madrid.py`
-(tarea 003), que a propósito solo hace capturas puntuales de muestra — ver su
-sección más abajo.
+`TODO(kafka)` en cada módulo. Las excepciones son `transporte_publico_madrid.py`
+(tarea 003) y `bicimad.py` (tarea 004), que a propósito solo hacen capturas
+puntuales de muestra — ver sus secciones más abajo.
 
 ## Instalación
 
@@ -209,6 +209,119 @@ complete el registro y verificación de una cuenta EMT real.
   fuente ya usa lon/lat estándar, no UTM).
 - Campos ausentes en la fuente (p.ej. una llegada sin `line`/`bus`/coordenadas)
   se normalizan a `null`, no se descartan.
+
+## `capturas/bicimad.py` — Estado de estaciones de BiciMAD (muestra puntual)
+
+Descarga el estado de las estaciones de BiciMAD (bicis y anclajes
+disponibles) desde el feed público **GBFS** (General Bikeshare Feed
+Specification) que publica la EMT Madrid — catalogado como dataset "Bicimad.
+GBFS" tanto en [datos.madrid.es](https://datos.madrid.es/dataset/900021-0-bicimad-gbfs)
+como en [datos.emtmadrid.es](https://datos.emtmadrid.es/dataset/gbfs-general-bikeshare-feed-specification-de-bicimad).
+Documento de descubrimiento GBFS:
+<https://madrid.publicbikesystem.net/customer/gbfs/v2/gbfs.json>.
+
+Igual que `transporte_publico_madrid.py`, **este productor es solo una
+captura puntual** que genera una muestra pequeña versionada como fixture — no
+admite bucle ni scheduling propio (ver "Alcance reducido" más abajo).
+
+### Sin autenticación: feed GBFS público
+
+A diferencia de `transporte_publico_madrid.py` (API MobilityLabs, que exige
+una cuenta registrada y verificada por email), **el feed GBFS de BiciMAD no
+requiere ninguna API key ni registro**. Se ha verificado en vivo desde este
+entorno que `station_information` y `station_status` responden sin ninguna
+cabecera de autenticación. GBFS es el estándar de facto para sistemas de
+bicicleta/patinete compartidos, y BiciMAD lo publica completo (674
+estaciones a fecha de esta captura), así que se prefirió sobre la
+alternativa de usar la API MobilityLabs de BiciMAD
+(`openapi.emtmadrid.es/v1/transport/bicimad/stations/`), que sí requeriría
+las mismas credenciales que bloquearon la tarea 003.
+
+Este productor combina dos feeds GBFS por `station_id`:
+
+- `station_information`: metadatos fijos de cada estación (nombre,
+  dirección, lat/lon, capacidad total).
+- `station_status`: estado variable (bicis y anclajes disponibles ahora
+  mismo, `last_reported`).
+
+### Alcance reducido respecto a `trafico_madrid.py`
+
+Igual que en la tarea 003, todavía no se ha aplicado la infraestructura AWS
+(tarea 001), así que este productor, a propósito:
+
+- **No** tiene modo `--interval-seconds` ni bucle: cada invocación hace
+  exactamente una captura y termina.
+- **No** escribe en la capa Bronze particionada (`BronzeWriter`): escribe un
+  único fichero de muestra pequeño (como mucho `BICIMAD_SAMPLE_SIZE`, 5 por
+  defecto, de las ~670 estaciones de la red completa) en una ruta fija,
+  pensado para commitearse como fixture, no para acumularse en disco.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.bicimad
+```
+
+Escribe la muestra en `ingesta/capturas/samples/bicimad_sample.json`
+(configurable con `--out`). No requiere ninguna variable de entorno de
+credenciales.
+
+### Variables de entorno
+
+| Variable                          | Por defecto                                                                         | Descripción                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `BICIMAD_STATION_INFORMATION_URL`  | `https://madrid.publicbikesystem.net/customer/gbfs/v2/es/station_information`        | URL del feed GBFS de metadatos de estaciones.           |
+| `BICIMAD_STATION_STATUS_URL`       | `https://madrid.publicbikesystem.net/customer/gbfs/v2/es/station_status`             | URL del feed GBFS de estado de estaciones.              |
+| `BICIMAD_SAMPLE_SIZE`              | `5`                                                                                    | Nº máximo de estaciones que se guardan en la muestra.   |
+| `HTTP_TIMEOUT_SECONDS`             | `15`                                                                                   | Timeout por request HTTP.                               |
+| `HTTP_MAX_RETRIES`                 | `3`                                                                                    | Reintentos ante fallo de red (backoff lineal simple).   |
+| `HTTP_RETRY_BACKOFF_SECONDS`       | `2`                                                                                    | Base del backoff entre reintentos (segundos * intento). |
+| `LOG_LEVEL`                        | `INFO`                                                                                 | Nivel de logging (también configurable con `--log-level`). |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "bicimad_gbfs",
+  "station_id": "1406",
+  "name": "2 - Metro Callao",
+  "address": "Calle Miguel Moya nº 1",
+  "measured_at": "2026-08-12T01:13:00+00:00",
+  "ingested_at": "2026-08-12T01:13:55.697210+00:00",
+  "bikes_available": 2,
+  "bikes_disabled": 2,
+  "docks_available": 23,
+  "docks_disabled": 0,
+  "docks_total": 47,
+  "status": "IN_SERVICE",
+  "is_renting": true,
+  "is_returning": true,
+  "is_installed": true,
+  "location": {"lat": 40.4204, "lon": -3.70569, "srid": "EPSG:4326"}
+}
+```
+
+- `measured_at`: `last_reported` del feed `station_status` (por estación,
+  UTC). Puede ser `null` si una estación de `station_information` no tiene
+  entrada correspondiente en `station_status` (desincronización entre
+  feeds); en ese caso todos los campos de estado se normalizan a `null` en
+  vez de descartar la estación — los metadatos fijos (`name`, `docks_total`,
+  `location`...) siempre están presentes.
+- `ingested_at`: instante en que este productor consultó ambos feeds (UTC).
+- `docks_total`: capacidad total de la estación (`capacity` en
+  `station_information`); `docks_available`/`docks_disabled` son el desglose
+  actual de `station_status`.
+- `location.lat`/`location.lon`: coordenadas tal como las da la fuente
+  (WGS84 estándar, no UTM).
+
+### Nota sobre el acceso desde este entorno (tarea 004)
+
+A diferencia de la tarea 003, aquí sí fue posible completar una captura real
+en vivo: el fixture commiteado en
+`ingesta/capturas/samples/bicimad_sample.json` son 5 estaciones reales,
+descargadas ejecutando el script tal cual contra el feed público durante
+esta sesión — no son datos de ejemplo generados a mano.
 
 ## Tests
 
