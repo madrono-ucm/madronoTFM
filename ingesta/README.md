@@ -13,8 +13,9 @@ de estos productores están pensados para ejecutarse periódicamente (cron,
 systemd timer, o su propio modo `--interval-seconds`) y escriben directamente
 a disco. El punto donde se conectaría un productor Kafka está marcado con
 `TODO(kafka)` en cada módulo. Las excepciones son `transporte_publico_madrid.py`
-(tarea 003) y `bicimad.py` (tarea 004), que a propósito solo hacen capturas
-puntuales de muestra — ver sus secciones más abajo.
+(tarea 003), `bicimad.py` (tarea 004) y `aparcamientos_madrid.py` (tarea 005),
+que a propósito solo hacen capturas puntuales de muestra — ver sus secciones
+más abajo.
 
 ## Instalación
 
@@ -322,6 +323,124 @@ en vivo: el fixture commiteado en
 `ingesta/capturas/samples/bicimad_sample.json` son 5 estaciones reales,
 descargadas ejecutando el script tal cual contra el feed público durante
 esta sesión — no son datos de ejemplo generados a mano.
+
+## `capturas/aparcamientos_madrid.py` — Ocupación de aparcamientos públicos de Madrid (muestra puntual)
+
+Descarga la ocupación en tiempo real (plazas libres, y plazas totales por
+aparcamiento) del dataset "Aparcamientos públicos (rotacionales). Datos de
+ocupación en tiempo real" (id `50027-0-aparcamientosocupacionyservicios`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/50027-0-aparcamientosocupacionyservicios):
+agrega los aparcamientos rotacionales (municipales y privados) que comparten
+voluntariamente su ocupación con el Ayuntamiento — el mismo sistema que
+alimenta la app "Parking Madrid".
+
+Igual que `transporte_publico_madrid.py` y `bicimad.py`, **este productor es
+solo una captura puntual** que genera una muestra pequeña versionada como
+fixture — no admite bucle ni scheduling propio (ver "Alcance reducido" más
+abajo).
+
+### Fuente elegida y por qué: servicio SOAP `infoParking`, sin autenticación
+
+A diferencia de los feeds HTTP simples usados en tareas anteriores (XML de
+Informo en tráfico, JSON GBFS en BiciMAD), este dataset **no publica un
+XML/JSON descargable directamente**: su único recurso de datos es un
+servicio **SOAP** (WSDL "infoParking"), descargable desde:
+
+<https://datos.madrid.es/dataset/50027-0-aparcamientosocupacionyservicios/resource/50027-1-aparcamientosocupacionyservicios/download/50027-1-aparcamientosocupacionyservicios.wsdl>
+
+que apunta al endpoint real `https://servayto.madrid.es/MTPAR_WSINFO/InfoParking`.
+Se ha verificado en vivo desde este entorno que este endpoint SOAP **no
+requiere ninguna autenticación ni API key**. Se descartaron dos alternativas
+encontradas en la investigación:
+
+- **"Aparcamientos EMT"** (datos.emtmadrid.es): subconjunto más pequeño
+  (aparcamientos disuasorios) sin un feed de ocupación en tiempo real tan
+  directo como este.
+- **"Aparcamientos públicos municipales (rotacionales). Histórico de
+  ocupación"** (dataset 300346): es un agregado mensual/histórico, no
+  ocupación en tiempo real.
+
+Este productor usa dos operaciones SOAP:
+
+- `GetListParking`: listado completo de aparcamientos (75 en el momento de
+  esta captura), con nombre, dirección, coordenadas y, para los que
+  comparten su ocupación (es voluntario — no todos la incluyen), plazas
+  libres (`lstOccupation`).
+- `GetDetailParking` (una llamada por aparcamiento de la muestra): plazas
+  totales, en `lstFeatures` como la característica de tipo "Tipo plaza"
+  llamada "Total".
+
+### Alcance reducido respecto a `trafico_madrid.py`
+
+Igual que en las tareas 003/004, todavía no se ha aplicado la infraestructura
+AWS (tarea 001), así que este productor, a propósito:
+
+- **No** tiene modo `--interval-seconds` ni bucle: cada invocación hace
+  exactamente una captura y termina.
+- **No** escribe en la capa Bronze particionada (`BronzeWriter`): escribe un
+  único fichero de muestra pequeño (como mucho `MADRID_PARKING_SAMPLE_SIZE`,
+  5 por defecto, de los aparcamientos con ocupación en tiempo real
+  disponible) en una ruta fija, pensado para commitearse como fixture, no
+  para acumularse en disco.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.aparcamientos_madrid
+```
+
+Escribe la muestra en `ingesta/capturas/samples/aparcamientos_madrid_sample.json`
+(configurable con `--out`). No requiere ninguna variable de entorno de
+credenciales.
+
+### Variables de entorno
+
+| Variable                       | Por defecto                                          | Descripción                                                     |
+| -------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| `MADRID_PARKING_ENDPOINT_URL`   | `https://servayto.madrid.es/MTPAR_WSINFO/InfoParking`  | URL del endpoint SOAP `infoParking`.                              |
+| `MADRID_PARKING_SAMPLE_SIZE`    | `5`                                                      | Nº máximo de aparcamientos que se guardan en la muestra.           |
+| `HTTP_TIMEOUT_SECONDS`          | `15`                                                     | Timeout por request HTTP.                                          |
+| `HTTP_MAX_RETRIES`              | `3`                                                       | Reintentos ante fallo de red (backoff lineal simple).              |
+| `HTTP_RETRY_BACKOFF_SECONDS`    | `2`                                                       | Base del backoff entre reintentos (segundos * intento).            |
+| `LOG_LEVEL`                     | `INFO`                                                    | Nivel de logging (también configurable con `--log-level`).         |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_aparcamientos_rotacionales",
+  "parking_id": "5",
+  "name": "Nuestra Señora del Recuerdo",
+  "address": "Calle de la Hiedra",
+  "measured_at": "2026-08-12T01:19:25+00:00",
+  "ingested_at": "2026-08-12T01:21:22.368415+00:00",
+  "free_spaces": 431,
+  "total_spaces": 832,
+  "location": {"lat": 40.472181, "lon": -3.67916, "srid": "EPSG:4326"}
+}
+```
+
+- `measured_at`: momento de la última actualización de ocupación que reporta
+  la fuente (`lstOccupation.moment`, convertido de hora de Madrid a UTC).
+  `null` si el aparcamiento no comparte ocupación en tiempo real.
+- `ingested_at`: instante en que este productor consultó la fuente (UTC).
+- `free_spaces`: plazas libres ahora mismo (`GetListParking`); `null` si el
+  aparcamiento no comparte ocupación en tiempo real (es voluntario).
+- `total_spaces`: plazas totales (`GetDetailParking`, característica "Total");
+  `null` si no se pudo obtener.
+- `location.lat`/`location.lon`: coordenadas tal como las da la fuente
+  (WGS84 estándar, no UTM).
+
+### Nota sobre el acceso desde este entorno (tarea 005)
+
+Igual que en la tarea 004, fue posible completar una captura real en vivo: el
+fixture commiteado en
+`ingesta/capturas/samples/aparcamientos_madrid_sample.json` son 5
+aparcamientos reales, descargados ejecutando el script tal cual contra el
+servicio SOAP público durante esta sesión (de los 75 aparcamientos del
+listado completo, 24 compartían ocupación en tiempo real en el momento de la
+captura) — no son datos de ejemplo generados a mano.
 
 ## Tests
 

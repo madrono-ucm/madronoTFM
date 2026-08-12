@@ -1,0 +1,82 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "5",
+    "name": "Nuestra Señora del Recuerdo",
+    "address": "Calle de la Hiedra",
+    "measured_at": "2026-08-12T01:19:25+00:00",
+    "ingested_at": "2026-08-12T01:21:22.368415+00:00",
+    "free_spaces": 431,
+    "total_spaces": 832,
+    "location": {
+      "lat": 40.472181,
+      "lon": -3.67916,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "7",
+    "name": "Avenida de Portugal",
+    "address": "Avda. de Portugal, s/n. Frente al nº 51",
+    "measured_at": "2026-08-12T01:19:33+00:00",
+    "ingested_at": "2026-08-12T01:21:22.368415+00:00",
+    "free_spaces": 224,
+    "total_spaces": 432,
+    "location": {
+      "lat": 40.415415,
+      "lon": -3.727515,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "9",
+    "name": "Paseo de Recoletos",
+    "address": "Paseo Recoletos",
+    "measured_at": "2026-08-12T01:19:27+00:00",
+    "ingested_at": "2026-08-12T01:21:22.368415+00:00",
+    "free_spaces": 182,
+    "total_spaces": 281,
+    "location": {
+      "lat": 40.421191,
+      "lon": -3.691953,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "12",
+    "name": "Almagro",
+    "address": "Almagro",
+    "measured_at": "2026-08-12T01:19:50+00:00",
+    "ingested_at": "2026-08-12T01:21:22.368415+00:00",
+    "free_spaces": 341,
+    "total_spaces": 462,
+    "location": {
+      "lat": 40.429801,
+      "lon": -3.693238,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "15",
+    "name": "Jacinto Benavente",
+    "address": "Plaza J. Benavente",
+    "measured_at": "2026-08-12T01:19:45+00:00",
+    "ingested_at": "2026-08-12T01:21:22.368415+00:00",
+    "free_spaces": 0,
+    "total_spaces": 280,
+    "location": {
+      "lat": 40.414267,
+      "lon": -3.703448,
+      "srid": "EPSG:4326"
+    }
+  }
+]
