@@ -2,7 +2,7 @@
 id: 2
 slug: captura-datos-trafico-madrid
 title: Captura de datos de tráfico de Madrid (primer productor de ingesta)
-status: in_review
+status: done
 force: true
 branch: task/002-captura-datos-trafico-madrid
 pr_number: 49
@@ -11,10 +11,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-11T23:03:46+00:00'
-updated_at: '2026-08-12T00:41:41.339055+00:00'
+updated_at: '2026-08-12T00:45:46.924404+00:00'
 started_at: '2026-08-11T23:54:42.845221+00:00'
 submitted_at: '2026-08-12T00:41:40.257777+00:00'
-merged_at: null
+merged_at: '2026-08-12T00:45:34Z'
 ---
 
 ## Contexto
