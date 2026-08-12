@@ -1,18 +1,18 @@
 ---
 id: 10
 slug: captura-limites-barrios-distritos-madrid
-title: "Captura de límites de barrios y distritos de Madrid (muestra, carga puntual)"
-status: pending
+title: Captura de límites de barrios y distritos de Madrid (muestra, carga puntual)
+status: in_progress
 force: true
-branch: null
+branch: task/010-captura-limites-barrios-distritos-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T22:19:15+00:00"
-updated_at: "2026-08-12T22:19:15+00:00"
-started_at: null
+created_at: '2026-08-12T22:19:15+00:00'
+updated_at: '2026-08-12T22:44:04.443893+00:00'
+started_at: '2026-08-12T22:44:04.443868+00:00'
 submitted_at: null
 merged_at: null
 ---
