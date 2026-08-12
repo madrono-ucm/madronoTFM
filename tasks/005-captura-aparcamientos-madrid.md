@@ -2,18 +2,18 @@
 id: 5
 slug: captura-aparcamientos-madrid
 title: Captura de ocupación de aparcamientos públicos de Madrid (muestra)
-status: in_progress
+status: in_review
 force: true
 branch: task/005-captura-aparcamientos-madrid
-pr_number: null
-pr_url: null
+pr_number: 52
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/52
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T01:02:26+00:00'
-updated_at: '2026-08-12T01:18:18.808012+00:00'
+updated_at: '2026-08-12T01:24:09.633560+00:00'
 started_at: '2026-08-12T01:18:18.807988+00:00'
-submitted_at: null
+submitted_at: '2026-08-12T01:24:09.633428+00:00'
 merged_at: null
 ---
 
