@@ -1,0 +1,73 @@
+{
+  "code": "00",
+  "description": "Data recovered successfully",
+  "datetime": "2026-08-12T09:15:00.000000",
+  "data": [
+    {
+      "StopInfo": [
+        {
+          "stopId": "71"
+        }
+      ],
+      "Arrive": [
+        {
+          "line": "27",
+          "stop": "71",
+          "isHead": "False",
+          "destination": "PLAZA CASTILLA",
+          "deviation": 0,
+          "bus": 1234,
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-3.700123, 40.420456]
+          },
+          "estimateArrive": 180,
+          "DistanceBus": 950,
+          "positionTypeBus": "1"
+        },
+        {
+          "line": "27",
+          "stop": "71",
+          "isHead": "False",
+          "destination": "PLAZA CASTILLA",
+          "deviation": 0,
+          "bus": 5678,
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-3.702987, 40.418811]
+          },
+          "estimateArrive": 540,
+          "DistanceBus": 2600,
+          "positionTypeBus": "1"
+        },
+        {
+          "line": "N1",
+          "stop": "71",
+          "isHead": "True",
+          "destination": "PUERTA DEL SOL",
+          "deviation": 0,
+          "bus": 4321,
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-3.699501, 40.421899]
+          },
+          "estimateArrive": 60,
+          "DistanceBus": 300,
+          "positionTypeBus": "0"
+        },
+        {
+          "line": null,
+          "stop": "71",
+          "isHead": "False",
+          "destination": "",
+          "deviation": 0,
+          "bus": null,
+          "geometry": {},
+          "estimateArrive": null,
+          "DistanceBus": null,
+          "positionTypeBus": "0"
+        }
+      ]
+    }
+  ]
+}
