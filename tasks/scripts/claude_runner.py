@@ -34,6 +34,14 @@ dentro de un git worktree aislado en la rama "{branch}" (creada desde {base_bran
   delete/deploy`, llamadas a APIs de pago, etc.). Si la tarea implica infraestructura,
   deja el código (Terraform, scripts...) escrito y listo, pero sin aplicarlo — eso lo
   decide un humano tras revisar el PR.
+- Esta EC2 tiene disco muy limitado (unos pocos GB libres, compartidos con el propio
+  pipeline). NO escribas ni dejes programado (cron, systemd timer, bucles
+  `--interval`/`--daemon`, etc.) nada que escriba datos de forma continua o sin
+  acotar en el disco local — ni durante la tarea ni como resultado de ella. Si la
+  tarea es un productor/captura de datos: una muestra pequeña y de tamaño acotado
+  (unos pocos registros) commiteada como fixture es correcto; un bucle que aterriza
+  lotes sin parar en disco local no lo es. El destino final de datos en volumen
+  (S3, base de datos...) llega con la infraestructura correspondiente, no antes.
 - Además del código, crea (o actualiza) el archivo `doc/{doc_filename}` como parte de
   tus commits: un resumen breve en markdown de qué implementaste, por qué, y cualquier
   decisión relevante para tareas futuras. Este archivo se revisa junto con el resto del
