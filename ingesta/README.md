@@ -8,11 +8,13 @@ compartida, calidad del aire, ruido, meteorología...) es un módulo bajo
 esquema mínimo y consistente -> escribe un lote en Bronze vía
 `ingesta.capturas.bronze.BronzeWriter`.
 
-Todavía no hay un broker Kafka desplegado (ver tarea 001), así que estos
-productores están pensados para ejecutarse periódicamente (cron, systemd
-timer, o su propio modo `--interval-seconds`) y escriben directamente a
-disco. El punto donde se conectaría un productor Kafka está marcado con
-`TODO(kafka)` en cada módulo.
+Todavía no hay un broker Kafka desplegado (ver tarea 001), así que la mayoría
+de estos productores están pensados para ejecutarse periódicamente (cron,
+systemd timer, o su propio modo `--interval-seconds`) y escriben directamente
+a disco. El punto donde se conectaría un productor Kafka está marcado con
+`TODO(kafka)` en cada módulo. La excepción es `transporte_publico_madrid.py`
+(tarea 003), que a propósito solo hace capturas puntuales de muestra — ver su
+sección más abajo.
 
 ## Instalación
 
@@ -95,10 +97,123 @@ $BRONZE_BASE_PATH/trafico/fecha=YYYY-MM-DD/hora=HH/<timestamp>_<sufijo>.json
   normalizan a `null`, no se descartan — Bronze debe conservar el registro
   tal cual llega, errores incluidos.
 
+## `capturas/transporte_publico_madrid.py` — Llegadas de EMT Madrid a una parada (muestra puntual)
+
+Descarga los próximos tiempos de llegada de autobús en una parada concreta
+usando la API REST "MobilityLabs" de la EMT Madrid (Empresa Municipal de
+Transportes), catalogada en [datos.emtmadrid.es](https://datos.emtmadrid.es);
+documentación y registro en
+[mobilitylabs.emtmadrid.es/es/portal/opendata](https://mobilitylabs.emtmadrid.es/es/portal/opendata).
+
+A diferencia de `trafico_madrid.py`, **este productor es solo una captura
+puntual** que genera una muestra pequeña versionada como fixture — no admite
+bucle ni scheduling propio (ver "Alcance reducido" más abajo).
+
+### Autenticación (API key gratuita)
+
+La API no usa una API key simple, sino email + contraseña de una cuenta
+registrada gratis en <https://mobilitylabs.emtmadrid.es> ("Regístrate"). Tras
+el registro, la EMT envía un correo de confirmación que hay que validar antes
+de que la cuenta pueda autenticarse. Una vez verificada, el login es:
+
+```
+GET https://openapi.emtmadrid.es/v1/mobilitylabs/user/login/
+Headers: email: <tu email>, password: <tu contraseña>
+```
+
+que devuelve un `accessToken` (en `data[0].accessToken`) a reenviar en la
+cabecera `accessToken` de la llamada de llegadas
+(`POST /v2/transport/busemtmad/stops/{stop_id}/arrives/`). Las credenciales
+se leen de `EMT_API_EMAIL` / `EMT_API_PASSWORD`, nunca hardcodeadas.
+
+### Alcance reducido respecto a `trafico_madrid.py`
+
+Todavía no se ha aplicado la infraestructura AWS (tarea 001), así que no hay
+S3 ni base de datos donde aterrizar datos en volumen. Este productor, a
+propósito:
+
+- **No** tiene modo `--interval-seconds` ni bucle: cada invocación hace
+  exactamente una captura y termina.
+- **No** escribe en la capa Bronze particionada (`BronzeWriter`): escribe un
+  único fichero de muestra pequeño (como mucho `EMT_SAMPLE_SIZE`, 5 por
+  defecto) en una ruta fija, pensado para commitearse como fixture, no para
+  acumularse en disco.
+
+### Ejecutar
+
+```bash
+export EMT_API_EMAIL="tu-email@ejemplo.com"
+export EMT_API_PASSWORD="tu-contraseña"
+python3 -m ingesta.capturas.transporte_publico_madrid --stop-id 71
+```
+
+Escribe la muestra en `ingesta/capturas/samples/transporte_publico_madrid_sample.json`
+(configurable con `--out`).
+
+### Nota sobre el acceso desde este entorno (tarea 003)
+
+Se verificó en vivo que `https://openapi.emtmadrid.es` es alcanzable desde
+este entorno y que el endpoint de login funciona (probado sin credenciales:
+`{"code": "99", ...}`; con un email/contraseña de prueba sin registrar:
+`{"code": "91", "description": "Error: Email is not verified..."}`). La API
+es accesible, pero requiere una cuenta con email real verificado por
+correo — un paso manual no automatizable de forma autónoma en este pipeline
+(no hay bandeja de correo ni humano disponible durante la sesión para
+completarlo). Por eso, el fixture commiteado en
+`ingesta/capturas/samples/transporte_publico_madrid_sample.json` se generó a
+mano con datos de ejemplo realistas que siguen exactamente el esquema que
+produce `normalize_record` (mismos campos, mismo formato, IDs de
+parada/línea/bus ilustrativos), en vez de descargarse en vivo. El código de
+captura queda completo y listo para ejecutarse tal cual el día que alguien
+complete el registro y verificación de una cuenta EMT real.
+
+### Variables de entorno
+
+| Variable                | Por defecto                    | Descripción                                                  |
+| ------------------------ | -------------------------------- | -------------------------------------------------------------- |
+| `EMT_API_EMAIL`          | *(ninguno, requerido)*           | Email de una cuenta MobilityLabs registrada y verificada.      |
+| `EMT_API_PASSWORD`       | *(ninguno, requerido)*           | Contraseña de esa cuenta.                                       |
+| `EMT_API_BASE_URL`       | `https://openapi.emtmadrid.es`   | URL base de la API.                                              |
+| `EMT_STOP_ID`            | `71`                              | ID de parada EMT a consultar (también con `--stop-id`).         |
+| `EMT_SAMPLE_SIZE`        | `5`                               | Nº máximo de registros que se guardan en la muestra.             |
+| `HTTP_TIMEOUT_SECONDS`   | `15`                              | Timeout por request HTTP.                                        |
+| `HTTP_MAX_RETRIES`       | `3`                               | Reintentos ante fallo de red (backoff lineal simple).            |
+| `HTTP_RETRY_BACKOFF_SECONDS` | `2`                           | Base del backoff entre reintentos (segundos * intento).          |
+| `LOG_LEVEL`              | `INFO`                            | Nivel de logging (también configurable con `--log-level`).       |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_emt_llegadas",
+  "stop_id": "71",
+  "line": "27",
+  "bus_id": 1234,
+  "destination": "PLAZA CASTILLA",
+  "ingested_at": "2026-08-12T09:15:30+00:00",
+  "estimate_arrive_sec": 180,
+  "distance_bus_m": 950,
+  "is_head": false,
+  "deviation_sec": 0,
+  "position_type_bus": "1",
+  "location": {"lon": -3.700123, "lat": 40.420456, "srid": "EPSG:4326"}
+}
+```
+
+- `ingested_at`: instante en que este productor consultó la API (UTC).
+- `estimate_arrive_sec`: segundos estimados hasta la llegada del autobús a la
+  parada (tal como lo da la fuente, sin redondear a minutos).
+- `location.lon`/`location.lat`: coordenadas del autobús tal como las da la
+  fuente (GeoJSON `Point`, WGS84 — a diferencia del feed de tráfico, aquí la
+  fuente ya usa lon/lat estándar, no UTM).
+- Campos ausentes en la fuente (p.ej. una llegada sin `line`/`bus`/coordenadas)
+  se normalizan a `null`, no se descartan.
+
 ## Tests
 
-No dependen de la red: usan un fixture con una copia reducida de una
-respuesta real del feed (`ingesta/tests/fixtures/pm_sample.xml`).
+No dependen de la red: usan fixtures con copias/ejemplos de las respuestas
+reales de cada fuente (`ingesta/tests/fixtures/`).
 
 ```bash
 python3 -m unittest discover -s ingesta/tests -t .
