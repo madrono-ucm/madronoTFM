@@ -2,18 +2,18 @@
 id: 2
 slug: captura-datos-trafico-madrid
 title: Captura de datos de tráfico de Madrid (primer productor de ingesta)
-status: in_progress
+status: in_review
 force: true
 branch: task/002-captura-datos-trafico-madrid
-pr_number: null
-pr_url: null
+pr_number: 49
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/49
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-11T23:03:46+00:00'
-updated_at: '2026-08-12T00:41:10.552592+00:00'
+updated_at: '2026-08-12T00:41:41.339055+00:00'
 started_at: '2026-08-11T23:54:42.845221+00:00'
-submitted_at: null
+submitted_at: '2026-08-12T00:41:40.257777+00:00'
 merged_at: null
 ---
 
