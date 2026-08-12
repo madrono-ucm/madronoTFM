@@ -1,18 +1,18 @@
 ---
 id: 12
 slug: captura-afluencia-lugares-madrid
-title: "Captura de afluencia de lugares (popularidad tipo Google, muestra)"
-status: pending
+title: Captura de afluencia de lugares (popularidad tipo Google, muestra)
+status: in_progress
 force: true
-branch: null
+branch: task/012-captura-afluencia-lugares-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T23:12:29+00:00"
-updated_at: "2026-08-12T23:12:29+00:00"
-started_at: null
+created_at: '2026-08-12T23:12:29+00:00'
+updated_at: '2026-08-12T23:13:47.318272+00:00'
+started_at: '2026-08-12T23:13:47.318249+00:00'
 submitted_at: null
 merged_at: null
 ---
