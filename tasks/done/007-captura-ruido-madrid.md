@@ -2,7 +2,7 @@
 id: 7
 slug: captura-ruido-madrid
 title: Captura de datos de ruido de Madrid (muestra)
-status: in_review
+status: done
 force: true
 branch: task/007-captura-ruido-madrid
 pr_number: 54
@@ -11,10 +11,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T01:02:26+00:00'
-updated_at: '2026-08-12T01:42:08.981671+00:00'
+updated_at: '2026-08-12T01:43:16.044061+00:00'
 started_at: '2026-08-12T01:34:56.349530+00:00'
 submitted_at: '2026-08-12T01:42:08.981537+00:00'
-merged_at: null
+merged_at: '2026-08-12T01:42:12Z'
 ---
 
 ## Contexto
