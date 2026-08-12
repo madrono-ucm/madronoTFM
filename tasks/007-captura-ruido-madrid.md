@@ -1,18 +1,18 @@
 ---
 id: 7
 slug: captura-ruido-madrid
-title: "Captura de datos de ruido de Madrid (muestra)"
-status: pending
+title: Captura de datos de ruido de Madrid (muestra)
+status: in_progress
 force: true
-branch: null
+branch: task/007-captura-ruido-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T01:02:26+00:00"
-updated_at: "2026-08-12T01:02:26+00:00"
-started_at: null
+created_at: '2026-08-12T01:02:26+00:00'
+updated_at: '2026-08-12T01:34:56.349554+00:00'
+started_at: '2026-08-12T01:34:56.349530+00:00'
 submitted_at: null
 merged_at: null
 ---
