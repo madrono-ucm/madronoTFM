@@ -1,0 +1,102 @@
+[
+  {
+    "type": "Feature",
+    "id": 132,
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-3.71, 40.42],
+          [-3.705, 40.421],
+          [-3.70, 40.42],
+          [-3.71, 40.42]
+        ]
+      ]
+    },
+    "properties": {
+      "COD_DIS_TX": "01",
+      "NOMDIS": "Centro",
+      "COD_BAR": "011",
+      "NOMBRE": "Palacio",
+      "Shape.STArea()": 1469905.932620575,
+      "FCH_ALTA": null,
+      "FCH_BAJA": null,
+      "OBJECTID": 132
+    }
+  },
+  {
+    "type": "Feature",
+    "id": 133,
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-3.70, 40.41],
+          [-3.695, 40.411],
+          [-3.69, 40.41],
+          [-3.70, 40.41]
+        ]
+      ]
+    },
+    "properties": {
+      "COD_DIS_TX": "01",
+      "NOMDIS": "Centro",
+      "COD_BAR": "012",
+      "NOMBRE": "Embajadores",
+      "Shape.STArea()": 1033724.48991829,
+      "FCH_ALTA": null,
+      "FCH_BAJA": null,
+      "OBJECTID": 133
+    }
+  },
+  {
+    "type": "Feature",
+    "id": 134,
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-3.69, 40.40],
+          [-3.685, 40.401],
+          [-3.68, 40.40],
+          [-3.69, 40.40]
+        ]
+      ]
+    },
+    "properties": {
+      "COD_DIS_TX": "01",
+      "NOMDIS": "Centro",
+      "COD_BAR": "013",
+      "NOMBRE": "Cortes",
+      "Shape.STArea()": 591874.24433073,
+      "FCH_ALTA": null,
+      "FCH_BAJA": null,
+      "OBJECTID": 134
+    }
+  },
+  {
+    "type": "Feature",
+    "id": 148,
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-3.72, 40.40],
+          [-3.715, 40.401],
+          [-3.71, 40.40],
+          [-3.72, 40.40]
+        ]
+      ]
+    },
+    "properties": {
+      "COD_DIS_TX": "02",
+      "NOMDIS": "Arganzuela",
+      "COD_BAR": "021",
+      "NOMBRE": "Imperial",
+      "Shape.STArea()": 967679.315212,
+      "FCH_ALTA": null,
+      "FCH_BAJA": null,
+      "OBJECTID": 148
+    }
+  }
+]
