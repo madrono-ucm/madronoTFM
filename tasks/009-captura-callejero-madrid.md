@@ -1,18 +1,18 @@
 ---
 id: 9
 slug: captura-callejero-madrid
-title: "Captura del callejero y grafo viario de Madrid (muestra, carga puntual)"
-status: pending
+title: Captura del callejero y grafo viario de Madrid (muestra, carga puntual)
+status: in_progress
 force: true
-branch: null
+branch: task/009-captura-callejero-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T22:19:15+00:00"
-updated_at: "2026-08-12T22:19:15+00:00"
-started_at: null
+created_at: '2026-08-12T22:19:15+00:00'
+updated_at: '2026-08-12T22:20:28.715480+00:00'
+started_at: '2026-08-12T22:20:28.715457+00:00'
 submitted_at: null
 merged_at: null
 ---
