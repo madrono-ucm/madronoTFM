@@ -2,18 +2,18 @@
 id: 9
 slug: captura-callejero-madrid
 title: Captura del callejero y grafo viario de Madrid (muestra, carga puntual)
-status: in_progress
+status: in_review
 force: true
 branch: task/009-captura-callejero-madrid
-pr_number: null
-pr_url: null
+pr_number: 56
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/56
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T22:19:15+00:00'
-updated_at: '2026-08-12T22:32:11.449639+00:00'
+updated_at: '2026-08-12T22:41:53.874084+00:00'
 started_at: '2026-08-12T22:32:11.449599+00:00'
-submitted_at: null
+submitted_at: '2026-08-12T22:41:53.873873+00:00'
 merged_at: null
 ---
 
