@@ -2,7 +2,7 @@
 id: 11
 slug: captura-puntos-interes-madrid
 title: Captura de puntos de interés de Madrid (muestra, carga puntual)
-status: in_review
+status: done
 force: true
 branch: task/011-captura-puntos-interes-madrid
 pr_number: 58
@@ -11,10 +11,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T22:19:15+00:00'
-updated_at: '2026-08-12T23:01:33.074641+00:00'
+updated_at: '2026-08-12T23:02:39.523234+00:00'
 started_at: '2026-08-12T22:54:03.197533+00:00'
 submitted_at: '2026-08-12T23:01:33.074509+00:00'
-merged_at: null
+merged_at: '2026-08-12T23:01:36Z'
 ---
 
 ## Contexto
