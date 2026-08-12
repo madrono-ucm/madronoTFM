@@ -2,18 +2,18 @@
 id: 8
 slug: captura-meteorologia-madrid
 title: Captura de datos meteorológicos de Madrid (muestra)
-status: in_progress
+status: in_review
 force: true
 branch: task/008-captura-meteorologia-madrid
-pr_number: null
-pr_url: null
+pr_number: 55
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/55
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T01:02:26+00:00'
-updated_at: '2026-08-12T01:44:18.427939+00:00'
+updated_at: '2026-08-12T01:51:44.559111+00:00'
 started_at: '2026-08-12T01:44:18.427912+00:00'
-submitted_at: null
+submitted_at: '2026-08-12T01:51:44.558978+00:00'
 merged_at: null
 ---
 
