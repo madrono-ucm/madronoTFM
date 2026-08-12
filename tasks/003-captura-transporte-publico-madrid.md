@@ -2,18 +2,18 @@
 id: 3
 slug: captura-transporte-publico-madrid
 title: Captura de datos de transporte público de Madrid (muestra)
-status: in_progress
+status: in_review
 force: true
 branch: task/003-captura-transporte-publico-madrid
-pr_number: null
-pr_url: null
+pr_number: 50
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/50
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T01:02:26+00:00'
-updated_at: '2026-08-12T01:04:28.486721+00:00'
+updated_at: '2026-08-12T01:09:59.946346+00:00'
 started_at: '2026-08-12T01:04:28.486684+00:00'
-submitted_at: null
+submitted_at: '2026-08-12T01:09:59.946217+00:00'
 merged_at: null
 ---
 
