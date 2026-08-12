@@ -1,18 +1,18 @@
 ---
 id: 5
 slug: captura-aparcamientos-madrid
-title: "Captura de ocupación de aparcamientos públicos de Madrid (muestra)"
-status: pending
+title: Captura de ocupación de aparcamientos públicos de Madrid (muestra)
+status: in_progress
 force: true
-branch: null
+branch: task/005-captura-aparcamientos-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T01:02:26+00:00"
-updated_at: "2026-08-12T01:02:26+00:00"
-started_at: null
+created_at: '2026-08-12T01:02:26+00:00'
+updated_at: '2026-08-12T01:18:18.808012+00:00'
+started_at: '2026-08-12T01:18:18.807988+00:00'
 submitted_at: null
 merged_at: null
 ---
