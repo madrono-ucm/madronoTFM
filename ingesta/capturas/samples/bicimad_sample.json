@@ -1,0 +1,117 @@
+[
+  {
+    "schema_version": 1,
+    "source": "bicimad_gbfs",
+    "station_id": "1406",
+    "name": "2 - Metro Callao",
+    "address": "Calle Miguel Moya nº 1",
+    "measured_at": "2026-08-12T01:13:00+00:00",
+    "ingested_at": "2026-08-12T01:13:55.697210+00:00",
+    "bikes_available": 2,
+    "bikes_disabled": 2,
+    "docks_available": 23,
+    "docks_disabled": 0,
+    "docks_total": 47,
+    "status": "IN_SERVICE",
+    "is_renting": true,
+    "is_returning": true,
+    "is_installed": true,
+    "location": {
+      "lat": 40.4204,
+      "lon": -3.7056899999999997,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "bicimad_gbfs",
+    "station_id": "1407",
+    "name": "3 - Plaza Conde Suchil",
+    "address": "Plaza Conde Surchill, 4 ",
+    "measured_at": "2026-08-12T01:13:41+00:00",
+    "ingested_at": "2026-08-12T01:13:55.697210+00:00",
+    "bikes_available": 1,
+    "bikes_disabled": 1,
+    "docks_available": 17,
+    "docks_disabled": 0,
+    "docks_total": 39,
+    "status": "IN_SERVICE",
+    "is_renting": true,
+    "is_returning": true,
+    "is_installed": true,
+    "location": {
+      "lat": 40.4303223,
+      "lon": -3.7072537000000003,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "bicimad_gbfs",
+    "station_id": "1408",
+    "name": "4 - Malasaña",
+    "address": "Calle Manuela Malasaña nº 3",
+    "measured_at": "2026-08-12T01:13:16+00:00",
+    "ingested_at": "2026-08-12T01:13:55.697210+00:00",
+    "bikes_available": 0,
+    "bikes_disabled": 0,
+    "docks_available": 27,
+    "docks_disabled": 0,
+    "docks_total": 47,
+    "status": "IN_SERVICE",
+    "is_renting": true,
+    "is_returning": true,
+    "is_installed": true,
+    "location": {
+      "lat": 40.4286259,
+      "lon": -3.7025,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "bicimad_gbfs",
+    "station_id": "1409",
+    "name": "5 - Fuencarral",
+    "address": "Calle Fuencarral nº 106",
+    "measured_at": "2026-08-12T01:11:32+00:00",
+    "ingested_at": "2026-08-12T01:13:55.697210+00:00",
+    "bikes_available": 1,
+    "bikes_disabled": 0,
+    "docks_available": 25,
+    "docks_disabled": 0,
+    "docks_total": 47,
+    "status": "IN_SERVICE",
+    "is_renting": true,
+    "is_returning": true,
+    "is_installed": true,
+    "location": {
+      "lat": 40.4285212,
+      "lon": -3.7021354,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "bicimad_gbfs",
+    "station_id": "1410",
+    "name": "6 - Colegio de Arquitectos",
+    "address": "Calle de Hortaleza, 53",
+    "measured_at": "2026-08-12T01:11:41+00:00",
+    "ingested_at": "2026-08-12T01:13:55.697210+00:00",
+    "bikes_available": 0,
+    "bikes_disabled": 2,
+    "docks_available": 17,
+    "docks_disabled": 0,
+    "docks_total": 39,
+    "status": "IN_SERVICE",
+    "is_renting": true,
+    "is_returning": true,
+    "is_installed": true,
+    "location": {
+      "lat": 40.423178,
+      "lon": -3.699023,
+      "srid": "EPSG:4326"
+    }
+  }
+]

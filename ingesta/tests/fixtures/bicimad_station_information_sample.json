@@ -1,0 +1,218 @@
+{
+  "last_updated": 1786497219,
+  "ttl": 3,
+  "data": {
+    "stations": [
+      {
+        "station_id": "1406",
+        "external_id": "bd1293eb-e361-11ef-b60c-0a6335ea8bbb",
+        "name": "2 - Metro Callao",
+        "physical_configuration": "ELECTRICBIKESTATION",
+        "lat": 40.4204,
+        "lon": -3.7056899999999997,
+        "altitude": 0.0,
+        "address": "Calle Miguel Moya nº 1",
+        "capacity": 47,
+        "is_charging_station": true,
+        "geofenced_capacity": 20,
+        "rental_methods": [
+          "key",
+          "transitcard",
+          "creditcard",
+          "phone"
+        ],
+        "is_virtual_station": false,
+        "groups": [
+          "Estaciones Eléctricas"
+        ],
+        "obcn": "2",
+        "short_name": "2",
+        "nearby_distance": 0.0,
+        "station_area": {
+          "type": "MultiPolygon",
+          "coordinates": [
+            [
+              [
+                [
+                  -3.705777098028018,
+                  40.4207645387523
+                ],
+                [
+                  -3.705820013372256,
+                  40.42036022653303
+                ],
+                [
+                  -3.705637623159243,
+                  40.420319386779795
+                ],
+                [
+                  -3.705425728647067,
+                  40.420335722684065
+                ],
+                [
+                  -3.705457915155246,
+                  40.420758412827674
+                ],
+                [
+                  -3.705747593728854,
+                  40.420784958496874
+                ],
+                [
+                  -3.705777098028018,
+                  40.42076045480266
+                ],
+                [
+                  -3.705777098028018,
+                  40.4207645387523
+                ]
+              ]
+            ]
+          ]
+        },
+        "_bluetooth_id": "",
+        "_ride_code_support": true,
+        "rental_uris": {}
+      },
+      {
+        "station_id": "1407",
+        "external_id": "bd12979a-e361-11ef-b60c-0a6335ea8bbb",
+        "name": "3 - Plaza Conde Suchil",
+        "physical_configuration": "ELECTRICBIKESTATION",
+        "lat": 40.4303223,
+        "lon": -3.7072537000000003,
+        "altitude": 0.0,
+        "address": "Plaza Conde Surchill, 4 ",
+        "capacity": 39,
+        "is_charging_station": true,
+        "geofenced_capacity": 20,
+        "rental_methods": [
+          "key",
+          "transitcard",
+          "creditcard",
+          "phone"
+        ],
+        "is_virtual_station": false,
+        "groups": [
+          "Estaciones Eléctricas"
+        ],
+        "obcn": "3",
+        "short_name": "3",
+        "nearby_distance": 0.0,
+        "station_area": {
+          "type": "MultiPolygon",
+          "coordinates": [
+            [
+              [
+                [
+                  -3.708113795163903,
+                  40.42992965830396
+                ],
+                [
+                  -3.708108430745874,
+                  40.42993374169695
+                ],
+                [
+                  -3.706808007114435,
+                  40.42983165679828
+                ],
+                [
+                  -3.706738269680048,
+                  40.4308222543285
+                ],
+                [
+                  -3.7079528626230096,
+                  40.43085492103177
+                ],
+                [
+                  -3.708113795163903,
+                  40.42992965830396
+                ]
+              ]
+            ]
+          ]
+        },
+        "_bluetooth_id": "",
+        "_ride_code_support": true,
+        "rental_uris": {}
+      },
+      {
+        "station_id": "1408",
+        "external_id": "bd129aea-e361-11ef-b60c-0a6335ea8bbb",
+        "name": "4 - Malasaña",
+        "physical_configuration": "ELECTRICBIKESTATION",
+        "lat": 40.4286259,
+        "lon": -3.7025,
+        "altitude": 0.0,
+        "address": "Calle Manuela Malasaña nº 3",
+        "capacity": 47,
+        "is_charging_station": true,
+        "geofenced_capacity": 20,
+        "rental_methods": [
+          "key",
+          "transitcard",
+          "creditcard",
+          "phone"
+        ],
+        "is_virtual_station": false,
+        "groups": [
+          "Estaciones Eléctricas"
+        ],
+        "obcn": "4",
+        "short_name": "4",
+        "nearby_distance": 0.0,
+        "station_area": {
+          "type": "MultiPolygon",
+          "coordinates": [
+            [
+              [
+                [
+                  -3.702459766864772,
+                  40.42886559944428
+                ],
+                [
+                  -3.702550961971278,
+                  40.42887784981629
+                ],
+                [
+                  -3.7026206994056654,
+                  40.428818639664314
+                ],
+                [
+                  -3.702685072422023,
+                  40.4287757633148
+                ],
+                [
+                  -3.702673002481456,
+                  40.42859915330125
+                ],
+                [
+                  -3.7026662969589186,
+                  40.42854913072758
+                ],
+                [
+                  -3.7025160932540846,
+                  40.42855525594269
+                ],
+                [
+                  -3.70231895089149,
+                  40.42855525594271
+                ],
+                [
+                  -3.702357842922206,
+                  40.42877984677784
+                ],
+                [
+                  -3.702459766864772,
+                  40.42886559944428
+                ]
+              ]
+            ]
+          ]
+        },
+        "_bluetooth_id": "",
+        "_ride_code_support": true,
+        "rental_uris": {}
+      }
+    ]
+  }
+}
