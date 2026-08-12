@@ -24,9 +24,10 @@ dato de **referencia** (el callejero y grafo viario de Madrid) que apenas
 varía. Por eso es, a propósito, una **carga batch puntual**, no solo una
 "muestra reducida por falta de infraestructura" — nunca necesitará
 programarse periódicamente, ni siquiera cuando exista infraestructura real.
-`barrios_distritos_madrid.py` (tarea 010) es del mismo tipo: los límites
-administrativos de barrios y distritos de Madrid también son un dato de
-referencia. Ver sus secciones más abajo.
+`barrios_distritos_madrid.py` (tarea 010) y `poi_madrid.py` (tarea 011) son
+del mismo tipo: los límites administrativos de barrios y distritos, y los
+puntos de interés turístico de Madrid, también son datos de referencia. Ver
+sus secciones más abajo.
 
 ## Instalación
 
@@ -1215,6 +1216,176 @@ sesión — no son datos de ejemplo generados a mano. A diferencia de las
 tareas anteriores, en ningún momento se descargó el conjunto completo (ni
 siquiera a memoria): el propio servicio filtra, ordena y limita los
 resultados a petición.
+
+## `capturas/poi_madrid.py` — Puntos de interés turístico de Madrid (carga batch puntual, referencia)
+
+Descarga el catálogo de puntos de interés turístico del Ayuntamiento de
+Madrid y lo normaliza a un esquema mínimo pensado para que el asistente
+conversacional resuelva preguntas como «¿merece la pena ir a X lugar?» (ver
+`documents/Memoria_TFM FV.docx`, apartado 6.1, categoría «Contexto urbano»:
+puntos de interés).
+
+### Esto es una carga puntual de referencia, no una captura periódica
+
+Igual que `callejero_madrid.py` (tarea 009) y `barrios_distritos_madrid.py`
+(tarea 010), la ficha de un monumento o museo es un dato de **referencia**
+que no cambia minuto a minuto. Este módulo, a propósito, **no tiene modo
+`--interval-seconds` ni bucle**, y esta es una decisión permanente, no
+temporal por falta de infraestructura.
+
+### Fuente elegida y por qué: una sola categoría, "Edificios y monumentos"
+
+Dataset "Puntos de interés turístico de la ciudad de Madrid. Qué visitar en
+Madrid (www.esmadrid.com)" (id `300030-0-puntos-interes-turistico`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/300030-0-puntos-interes-turistico),
+publicado por Madrid Destino. Un único XML con 935 fichas (museos,
+monumentos, salas de exposiciones, parques, instalaciones
+culturales/deportivas...), cada una con descripción, geoposición, dirección,
+horario y coste de acceso.
+
+Se descartaron dos alternativas: "Edificios de carácter monumental" (id
+`208844-0-monumentos-edificios`, listado más estrecho, sin descripción
+turística ni horarios/precios) y "Planeamiento Urbanístico. Catálogo de
+Elementos Singulares" (id `300486-0-planeamiento-elemento-singulares`,
+dataset de protección patrimonial, no de contenido turístico).
+
+El XML clasifica cada ficha con una o varias categorías. Sobre las 935
+fichas totales: 395 "Instalaciones culturales", 355 "Edificios y
+monumentos", 63 "Parques y jardines", 40 "Parques y centros de ocio", 31
+"Empresas de guías turísticos", 25 "Otros", 21 "Espacios para eventos", 20
+"Servicios", 13 "Instalaciones deportivas", 11 "Escuelas de cocina y catas
+de vinos y aceites", 8 "Cotrabajo", 4 "Consignas" (una ficha puede tener más
+de una categoría). Se eligió **una única categoría, "Edificios y
+monumentos"** (`idCategoria` `7173`): es la que más directamente encaja con
+"monumentos y lugares de interés turístico" (el ejemplo del objetivo de la
+tarea) y con la pregunta guía «¿merece la pena ir a X lugar?», a diferencia
+de categorías como "Empresas de guías turísticos" o "Servicios" (agencias,
+no lugares que visitar). Todas las categorías comparten el mismo esquema
+XML, así que una tarea futura de carga completa puede iterar sobre el resto
+de categorías reutilizando este módulo sin cambios de esquema.
+
+Se ha verificado en vivo desde este entorno que el recurso es accesible
+**sin ninguna autenticación ni API key**. El servidor `esmadrid.com` sí
+devuelve `403 Forbidden` a peticiones sin cabecera `User-Agent` o con la que
+usan por defecto `requests`/`curl -A` (un filtro básico anti-bot, no una
+restricción de acceso real); este módulo declara un `User-Agent` de
+navegador convencional para evitarlo.
+
+### Licencia: textos libres, fotografías no
+
+El dataset advierte de condiciones de uso específicas: *"Los textos son de
+libre uso pero no así las fotografías"*. Por eso este módulo, a propósito,
+**no incluye las URLs de `<multimedia>` en el esquema normalizado**: solo
+texto y metadatos, que la fuente sí permite reutilizar libremente.
+
+### Formato real encontrado
+
+El PDF de estructura que publica el propio dataset etiqueta
+`latitude`/`longitude` como "UTM", pero los valores reales son grados
+decimales WGS84 (comprobado en vivo) — un error de documentación de la
+fuente. Los campos `name`/`title` traen entidades HTML **doblemente
+escapadas** (p.ej. `&eacute;` literal en vez de `é`, porque la fuente
+escribió `&amp;eacute;` en el XML crudo); `body`, "Horario" y "Servicios de
+pago" traen HTML embebido. `_strip_html`/`_unescape` normalizan ambos casos
+a texto plano.
+
+No hay dato de **distrito ni barrio** en la fuente (solo dirección postal y
+código postal, y un campo `locality` que a veces —no siempre— trae un
+nombre de distrito, p.ej. `"Fuencarral - El Pardo"`, sin que la fuente lo
+declare como tal ni lo rellene de forma consistente): se deja `district` y
+`neighbourhood` a `null` en vez de intentar derivarlo de un campo poco
+fiable. Una derivación fiable requeriría un cruce punto-en-polígono con los
+límites de `barrios_distritos_madrid.py` (tarea 010), fuera del alcance de
+esta captura de muestra.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.poi_madrid
+```
+
+Escribe la muestra en `ingesta/capturas/samples/poi_madrid_sample.json`
+(configurable con `--out`). No requiere ninguna variable de entorno de
+credenciales.
+
+### Variables de entorno
+
+| Variable                  | Por defecto                                       | Descripción                                                |
+| --------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| `MADRID_POI_SOURCE_URL`   | `https://www.esmadrid.com/opendata/turismo_v1_es.xml` | URL del XML de puntos de interés (español).                   |
+| `MADRID_POI_CATEGORY_ID`  | `7173`                                                | `idCategoria` a incluir en la muestra ("Edificios y monumentos"). |
+| `MADRID_POI_SAMPLE_SIZE`  | `5`                                                    | Nº máximo de puntos de interés que se guardan en la muestra.  |
+| `HTTP_TIMEOUT_SECONDS`    | `30`                                                   | Timeout por request HTTP.                                      |
+| `HTTP_MAX_RETRIES`        | `3`                                                     | Reintentos ante fallo de red (backoff lineal simple).          |
+| `HTTP_RETRY_BACKOFF_SECONDS` | `2`                                                  | Base del backoff entre reintentos (segundos * intento).        |
+| `LOG_LEVEL`               | `INFO`                                                  | Nivel de logging (también configurable con `--log-level`).     |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_poi_turismo",
+  "poi_id": "109143",
+  "name": "Comunidad Evangélica de Habla Alemana – Friedenskirche",
+  "category": "Edificios y monumentos",
+  "subcategories": [],
+  "description": "Muy cerca de la Plaza de Colón...",
+  "address": "de la Castellana, 6",
+  "postal_code": "28046",
+  "locality": null,
+  "country": "Spain",
+  "district": null,
+  "neighbourhood": null,
+  "website": "https://www.esmadrid.com/informacion-turistica/comunidad-evangelica-habla-alemana-friedenskirche",
+  "phone": "(+34) 91 435 47 81",
+  "email": "friedenskirche@friedenskirche.es",
+  "schedule": "Oficina: Lun - Vier: 10:00 - 14:00 h ...",
+  "price_info": "--",
+  "last_updated": "2026-06-04",
+  "ingested_at": "2026-08-12T22:58:17.717369+00:00",
+  "location": {"lat": 40.4272094, "lon": -3.6891476, "srid": "EPSG:4326"}
+}
+```
+
+- `poi_id`: identificador del punto de interés dentro de esmadrid.com (`id`
+  del `<service>`).
+- `category`/`subcategories`: nombre de la categoría buscada (siempre
+  "Edificios y monumentos" en esta muestra) y las subcategorías asociadas a
+  esa categoría concreta, si las hay (una ficha con varias categorías puede
+  tener subcategorías bajo una categoría distinta a la buscada; esas no se
+  incluyen).
+- `description`/`schedule`/`price_info`: texto plano, sin HTML (ver "Formato
+  real encontrado" más arriba). `null` si el campo viene vacío en la fuente;
+  el literal `"--"` de la fuente (usado para "no aplica") se conserva tal
+  cual, no se convierte a `null` (es un valor real de la fuente, no una
+  ausencia de dato).
+- `district`/`neighbourhood`: siempre `null` en esta fuente (no la publica;
+  ver "Formato real encontrado").
+- `last_updated`: fecha (`aaaa-mm-dd`, sin hora) de la última actualización
+  de la ficha en el portal esmadrid.com, tal como la da la fuente.
+- `ingested_at`: instante en que este productor descargó el catálogo (UTC).
+- `location.lat`/`location.lon`: WGS84 decimal (pese a que el PDF de la
+  fuente los etiqueta como "UTM", ver más arriba).
+- Puntos sin coordenadas conocidas se descartan de la muestra (no debería
+  ocurrir en la práctica — no se encontró ningún caso así en las 355 fichas
+  de "Edificios y monumentos" durante la investigación de esta tarea — pero
+  se comprueba por robustez).
+- No se incluyen URLs de fotografías (`<multimedia>`): la licencia del
+  dataset restringe su reutilización (ver "Licencia" más arriba).
+
+### Nota sobre el acceso desde este entorno (tarea 011)
+
+Se completó una **captura real en vivo**: el fixture commiteado
+(`ingesta/capturas/samples/poi_madrid_sample.json`) son 5 puntos de interés
+reales de la categoría "Edificios y monumentos" (Comunidad Evangélica de
+Habla Alemana – Friedenskirche, Huerta de la Salud, Quinta del Duque del
+Arco, Fuente del río Lozoya, Refugio antiaéreo del Retiro), descargados
+ejecutando el script tal cual contra el recurso público durante esta
+sesión — no son datos de ejemplo generados a mano. El catálogo completo
+(935 fichas, ~3.6 MB) se descargó en memoria porque la fuente no ofrece
+filtrado remoto por categoría, pero en ningún momento se escribió a disco;
+solo la muestra final de 5 puntos.
 
 ## Tests
 
