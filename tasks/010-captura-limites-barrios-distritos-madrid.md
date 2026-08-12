@@ -2,18 +2,18 @@
 id: 10
 slug: captura-limites-barrios-distritos-madrid
 title: Captura de límites de barrios y distritos de Madrid (muestra, carga puntual)
-status: in_progress
+status: in_review
 force: true
 branch: task/010-captura-limites-barrios-distritos-madrid
-pr_number: null
-pr_url: null
+pr_number: 57
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/57
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-12T22:19:15+00:00'
-updated_at: '2026-08-12T22:44:04.443893+00:00'
+updated_at: '2026-08-12T22:51:54.358101+00:00'
 started_at: '2026-08-12T22:44:04.443868+00:00'
-submitted_at: null
+submitted_at: '2026-08-12T22:51:54.357953+00:00'
 merged_at: null
 ---
 
