@@ -1,18 +1,18 @@
 ---
 id: 3
 slug: captura-transporte-publico-madrid
-title: "Captura de datos de transporte público de Madrid (muestra)"
-status: pending
+title: Captura de datos de transporte público de Madrid (muestra)
+status: in_progress
 force: true
-branch: null
+branch: task/003-captura-transporte-publico-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T01:02:26+00:00"
-updated_at: "2026-08-12T01:02:26+00:00"
-started_at: null
+created_at: '2026-08-12T01:02:26+00:00'
+updated_at: '2026-08-12T01:04:28.486721+00:00'
+started_at: '2026-08-12T01:04:28.486684+00:00'
 submitted_at: null
 merged_at: null
 ---
