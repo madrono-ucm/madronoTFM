@@ -106,3 +106,10 @@ del demonio ya le prohíbe a `claude` ejecutar `terraform apply`/`destroy` o cua
 comando `aws` con efectos reales — solo debe dejar el código escrito y documentado. La
 aplicación real de esos cambios (y las credenciales para hacerlo) es siempre un paso
 manual, fuera de este pipeline.
+
+Del mismo modo, para tareas de captura/ingesta de datos: esta EC2 tiene disco muy
+limitado, así que el system prompt también prohíbe dejar nada programado (cron,
+systemd timer, modos `--interval`/`--daemon`...) ni escribir datos de forma continua
+o sin acotar en disco local. Mientras no exista un destino real (bucket S3, base de
+datos...), estas tareas deben limitarse a producir una muestra pequeña y de tamaño
+acotado, commiteada como fixture — no un productor en bucle.
