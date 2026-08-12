@@ -24,7 +24,9 @@ dato de **referencia** (el callejero y grafo viario de Madrid) que apenas
 varía. Por eso es, a propósito, una **carga batch puntual**, no solo una
 "muestra reducida por falta de infraestructura" — nunca necesitará
 programarse periódicamente, ni siquiera cuando exista infraestructura real.
-Ver su sección más abajo.
+`barrios_distritos_madrid.py` (tarea 010) es del mismo tipo: los límites
+administrativos de barrios y distritos de Madrid también son un dato de
+referencia. Ver sus secciones más abajo.
 
 ## Instalación
 
@@ -1053,6 +1055,166 @@ cruces en el momento de la captura; ambos se descargaron completos en
 memoria para poder elegir la muestra (no hay un recurso "solo los primeros
 N"), pero en ningún momento se escribió el dataset completo a disco — solo
 la muestra pequeña final.
+
+## `capturas/barrios_distritos_madrid.py` — Límites administrativos de barrios y distritos de Madrid (carga batch puntual, referencia)
+
+Descarga los límites (geometría) de los 21 distritos y 131 barrios del
+municipio de Madrid, y los normaliza a un esquema mínimo pensado para
+relacionar el resto de fuentes de este proyecto (tráfico, calidad del aire,
+ruido...) con una unidad geográfica administrativa común.
+
+### Esto es una carga puntual de referencia, no una captura periódica
+
+Igual que `callejero_madrid.py` (tarea 009), los límites administrativos son
+un dato de **referencia** que apenas cambia (una redelimitación de
+barrios/distritos es un evento excepcional). Este módulo, a propósito, **no
+tiene modo `--interval-seconds` ni bucle**, y esta es una decisión
+permanente, no temporal por falta de infraestructura.
+
+### Fuente elegida y por qué
+
+Los datasets "Distritos municipales de Madrid" (id
+`300497-0-distritos-municipales-madrid`) y "Barrios municipales de Madrid"
+(id `300496-0-barrios-madrid`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/300497-0-distritos-municipales-madrid)
+publican varios formatos (KML, XLSX, CSV, ZIP/SHP), pero ninguno es a la vez
+ligero y consultable de forma parcial: el CSV/XLSX no traen geometría (solo
+id, nombre y área); el KML de distritos trae la geometría como `LineString`
+(el contorno, no un polígono relleno) y hay que descargarlo completo; el KML
+de barrios no fue accesible durante esta sesión (`Barrios.kml` redirige a
+`indexServicioNoDisponible.html`, una página de mantenimiento genérica del
+Ayuntamiento — el mismo tipo de problema de disponibilidad puntual del
+portal ya visto en la tarea 009).
+
+En su lugar, uno de los recursos listados del dataset de distritos apunta
+(con el formato mal etiquetado como "CSV" en el catálogo, un error de
+metadatos del propio Ayuntamiento) a un servicio **ArcGIS REST (MapServer)**
+público:
+<https://sigma.madrid.es/hosted/rest/services/CARTOGRAFIA/LIMITES_ADMINISTRATIVOS/MapServer>,
+con capas de polígonos reales ("DISTRITOS" capa 26, "BARRIOS" capa 25, del
+grupo de escalas "10.000-500", el más detallado del servicio). Se prefirió
+a los ficheros KML/ZIP por dos motivos:
+
+1. Devuelve **GeoJSON con polígonos reales**, ya reproyectados a WGS84
+   (`outSR=4326`) con un simple parámetro de query — sin parsear coordenadas
+   DMS (a diferencia del callejero, tarea 009) ni añadir una dependencia de
+   geoprocesado (`pyproj`/`shapely`) para reproyectar desde el CRS nativo del
+   servicio (ETRS89/UTM, EPSG:25830).
+2. Admite **filtrar, ordenar y limitar resultados en el servidor** (`where`,
+   `orderByFields`, `resultRecordCount`): esta captura pide directamente "los
+   N distritos ordenados por código" o "los barrios de estos distritos", sin
+   descargar nunca el conjunto completo (21 distritos / 131 barrios) a este
+   entorno, ni siquiera en memoria — a diferencia de `callejero_madrid.py` o
+   `ruido_madrid.py`, que sí tuvieron que descargar un CSV completo porque su
+   fuente no ofrecía filtrado remoto.
+
+Se ha verificado en vivo desde este entorno que el servicio MapServer es
+accesible **sin ninguna autenticación ni API key**.
+
+### Simplificación de la geometría
+
+Algunos distritos tienen miles de vértices sin simplificar (Fuencarral - El
+Pardo, el mayor, tiene 2.910 puntos en su polígono) — no sería un problema
+para una carga completa real, pero sí inflaría una muestra pensada para ser
+pequeña. Este módulo aplica una simplificación **Douglas-Peucker** (implementación
+propia, sin dependencias adicionales) a cada anillo del polígono, con
+tolerancia configurable (`MADRID_BOUNDARIES_SIMPLIFY_TOLERANCE_DEG`, por
+defecto `0.0001` grados, ~8-11 m en la latitud de Madrid): con este valor,
+Fuencarral - El Pardo pasa de 2.910 a ~450 puntos conservando la forma
+general. Cada registro guarda `simplified`/`simplify_tolerance_deg` para
+dejar explícito que la geometría no es necesariamente bit a bit la de la
+fuente; poner la tolerancia a `0` desactiva la simplificación.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.barrios_distritos_madrid
+```
+
+Escribe dos ficheros de muestra (uno de distritos, otro de barrios) en
+`ingesta/capturas/samples/barrios_distritos_madrid_distritos_sample.json` y
+`ingesta/capturas/samples/barrios_distritos_madrid_barrios_sample.json`
+(configurables con `--out-distritos`/`--out-barrios`). No requiere ninguna
+variable de entorno de credenciales.
+
+### Variables de entorno
+
+| Variable                                     | Por defecto                                 | Descripción                                                          |
+| ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
+| `MADRID_BOUNDARIES_SERVICE_URL`               | URL del MapServer (ver módulo)               | URL base del servicio ArcGIS REST.                                     |
+| `MADRID_BOUNDARIES_DISTRICTS_LAYER_ID`        | `26`                                           | ID de la capa "DISTRITOS" dentro del MapServer.                        |
+| `MADRID_BOUNDARIES_NEIGHBOURHOODS_LAYER_ID`   | `25`                                           | ID de la capa "BARRIOS" dentro del MapServer.                          |
+| `MADRID_BOUNDARIES_DISTRICT_SAMPLE_SIZE`      | `3`                                            | Nº de distritos incluidos en la muestra.                               |
+| `MADRID_BOUNDARIES_MAX_NEIGHBOURHOODS_PER_DISTRICT` | `2`                                      | Nº máximo de barrios por cada distrito de la muestra.                  |
+| `MADRID_BOUNDARIES_SIMPLIFY_TOLERANCE_DEG`    | `0.0001`                                       | Tolerancia (grados) de la simplificación Douglas-Peucker; `0` la desactiva. |
+| `HTTP_TIMEOUT_SECONDS`                        | `15`                                            | Timeout por request HTTP.                                              |
+| `HTTP_MAX_RETRIES`                            | `3`                                              | Reintentos ante fallo de red (backoff lineal simple).                  |
+| `HTTP_RETRY_BACKOFF_SECONDS`                  | `2`                                              | Base del backoff entre reintentos (segundos * intento).                |
+| `LOG_LEVEL`                                   | `INFO`                                           | Nivel de logging (también configurable con `--log-level`).             |
+
+### Esquema normalizado
+
+Distritos, un registro por distrito:
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_distritos",
+  "district_id": "01",
+  "name": "Centro",
+  "area_m2": 5228245.50873203,
+  "ingested_at": "2026-08-12T22:47:59.275940+00:00",
+  "simplified": true,
+  "simplify_tolerance_deg": 0.0001,
+  "geometry": {"type": "Polygon", "coordinates": [[[-3.693, 40.407], ...]], "srid": "EPSG:4326"}
+}
+```
+
+Barrios, un registro por barrio:
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_barrios",
+  "neighbourhood_id": "011",
+  "name": "Palacio",
+  "district_id": "01",
+  "district_name": "Centro",
+  "area_m2": 1469905.932620575,
+  "ingested_at": "2026-08-12T22:47:59.275940+00:00",
+  "simplified": true,
+  "simplify_tolerance_deg": 0.0001,
+  "geometry": {"type": "Polygon", "coordinates": [[[-3.705, 40.420], ...]], "srid": "EPSG:4326"}
+}
+```
+
+- `district_id`/`neighbourhood_id`: códigos oficiales tal como los publica la
+  fuente (`COD_DIS_TX`, dos dígitos; `COD_BAR`, tres dígitos), como cadenas
+  (no se convierten a entero, para no perder ceros a la izquierda).
+- `area_m2`: área del polígono tal como la calcula el propio servicio
+  (`Shape.STArea()`), en metros cuadrados.
+- `geometry`: GeoJSON `Polygon` (o `MultiPolygon` si la fuente alguna vez
+  devolviera un distrito/barrio con varias partes; no ha ocurrido en la
+  investigación de esta tarea — los 21 distritos y 131 barrios actuales son
+  todos `Polygon` simples), ya en WGS84 (`EPSG:4326`), tras la simplificación
+  Douglas-Peucker si `simplify_tolerance_deg` no es `null`.
+- La muestra de barrios está acotada a los distritos que también están en la
+  muestra de distritos (mismo criterio de "grafo padre-hijo coherente" que
+  viales/cruces en `callejero_madrid.py`, tarea 009): no aparecerá un barrio
+  cuyo distrito no esté también en el fixture.
+
+### Nota sobre el acceso desde este entorno (tarea 010)
+
+Se completó una **captura real en vivo**: los fixtures commiteados
+(`ingesta/capturas/samples/barrios_distritos_madrid_distritos_sample.json` y
+`barrios_distritos_madrid_barrios_sample.json`) son 3 distritos reales
+(Centro, Arganzuela, Retiro) con 2 barrios reales cada uno (Palacio,
+Embajadores; Imperial, Acacias; Pacífico, Adelfas), descargados ejecutando
+el script tal cual contra el servicio ArcGIS REST público durante esta
+sesión — no son datos de ejemplo generados a mano. A diferencia de las
+tareas anteriores, en ningún momento se descargó el conjunto completo (ni
+siquiera a memoria): el propio servicio filtra, ordena y limita los
+resultados a petición.
 
 ## Tests
 

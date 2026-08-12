@@ -1,0 +1,54 @@
+[
+  {
+    "type": "Feature",
+    "id": 22,
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [-3.7, 40.40],
+          [-3.6995, 40.4005],
+          [-3.699, 40.401],
+          [-3.65, 40.45],
+          [-3.6, 40.40],
+          [-3.7, 40.40]
+        ]
+      ]
+    },
+    "properties": {
+      "COD_DIS_TX": "01",
+      "NOMBRE": "Centro",
+      "Shape.STArea()": 5228245.50873203,
+      "FCH_ALTA": null,
+      "FCH_BAJA": null,
+      "OBJECTID": 22
+    }
+  },
+  {
+    "type": "Feature",
+    "id": 23,
+    "geometry": {
+      "type": "MultiPolygon",
+      "coordinates": [
+        [
+          [
+            [-3.7, 40.40],
+            [-3.6995, 40.4005],
+            [-3.699, 40.401],
+            [-3.65, 40.45],
+            [-3.6, 40.40],
+            [-3.7, 40.40]
+          ]
+        ]
+      ]
+    },
+    "properties": {
+      "COD_DIS_TX": "02",
+      "NOMBRE": "Arganzuela",
+      "Shape.STArea()": 6462175.91405005,
+      "FCH_ALTA": null,
+      "FCH_BAJA": null,
+      "OBJECTID": 23
+    }
+  }
+]
