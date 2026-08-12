@@ -2,16 +2,16 @@
 id: 12
 slug: captura-afluencia-lugares-madrid
 title: Captura de afluencia de lugares (popularidad tipo Google, muestra)
-status: in_progress
+status: blocked
 force: true
 branch: task/012-captura-afluencia-lugares-madrid
 pr_number: null
 pr_url: null
-attempts: 1
-next_retry_at: '2026-08-12T23:25:54.164296+00:00'
+attempts: 2
+next_retry_at: '2026-08-12T23:37:34.749045+00:00'
 last_error: You've hit your session limit · resets 3:10am (UTC)
 created_at: '2026-08-12T23:12:29+00:00'
-updated_at: '2026-08-12T23:26:08.206402+00:00'
+updated_at: '2026-08-12T23:26:11.877178+00:00'
 started_at: '2026-08-12T23:13:47.318249+00:00'
 submitted_at: null
 merged_at: null
