@@ -2,19 +2,19 @@
 id: 15
 slug: aplicar-infraestructura-lakehouse
 title: Aplicar la infraestructura AWS del lakehouse (terraform apply)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: true
 branch: task/015-aplicar-infraestructura-lakehouse
-pr_number: null
-pr_url: null
+pr_number: 62
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/62
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-13T15:56:54+00:00'
-updated_at: '2026-08-13T16:00:58.505370+00:00'
+updated_at: '2026-08-13T16:04:21.072395+00:00'
 started_at: '2026-08-13T16:00:58.505346+00:00'
-submitted_at: null
+submitted_at: '2026-08-13T16:04:21.072250+00:00'
 merged_at: null
 ---
 
