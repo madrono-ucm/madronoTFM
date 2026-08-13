@@ -15,8 +15,9 @@ a disco. El punto donde se conectaría un productor Kafka está marcado con
 `TODO(kafka)` en cada módulo. Las excepciones son `transporte_publico_madrid.py`
 (tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005),
 `calidad_aire_madrid.py` (tarea 006), `ruido_madrid.py` (tarea 007) y
-`meteorologia_madrid.py` (tarea 008), que a propósito solo hacen capturas
-puntuales de muestra — ver sus secciones más abajo.
+`meteorologia_madrid.py` (tarea 008) y `afluencia_lugares_madrid.py` (tarea
+012), que a propósito solo hacen capturas puntuales de muestra — ver sus
+secciones más abajo.
 
 `callejero_madrid.py` (tarea 009) es un caso distinto de los anteriores: no
 es un dato que cambie con el tiempo (tráfico, calidad del aire...), sino un
@@ -28,6 +29,15 @@ programarse periódicamente, ni siquiera cuando exista infraestructura real.
 del mismo tipo: los límites administrativos de barrios y distritos, y los
 puntos de interés turístico de Madrid, también son datos de referencia. Ver
 sus secciones más abajo.
+
+`afluencia_lugares_madrid.py` (tarea 012) es también un caso especial, pero
+por un motivo distinto: no es un dato de referencia ni le falta
+infraestructura, sino que su fuente (una librería que hace scraping de un
+endpoint no documentado de Google) es una **zona gris** admisible solo en el
+marco académico de este TFM (ver `documents/Memoria_TFM FV.docx`, apartado
+6.8, y la sección propia de este módulo más abajo) — nunca debería escalarse
+a un productor continuo tal cual, ni siquiera cuando exista infraestructura
+real.
 
 ## Instalación
 
@@ -1386,6 +1396,165 @@ sesión — no son datos de ejemplo generados a mano. El catálogo completo
 (935 fichas, ~3.6 MB) se descargó en memoria porque la fuente no ofrece
 filtrado remoto por categoría, pero en ningún momento se escribió a disco;
 solo la muestra final de 5 puntos.
+
+## `capturas/afluencia_lugares_madrid.py` — Afluencia de lugares de Madrid (muestra puntual, zona gris)
+
+**Léase esta sección antes de reutilizar este módulo.** Descarga, para una
+muestra pequeña de lugares conocidos de Madrid (Puerta del Sol, Parque del
+Retiro, Mercado de San Miguel, Museo del Prado, Plaza Mayor), popularidad en
+vivo (`live_pct`) y el patrón típico de afluencia por día de la semana y hora
+(`typical_by_hour`), para que el asistente conversacional pueda responder
+tanto «¿está muy lleno esto ahora?» como «¿un viernes a las 21h suele haber
+mucha gente aquí?» (ver `documents/Memoria_TFM FV.docx`, apartado 6.1
+«Contexto urbano»: afluencia de lugares públicos).
+
+### Origen del dato: API oficial + scraping no documentado (zona gris)
+
+No existe ninguna API oficial que venda este dato concreto. Google no lo
+expone en su API de pago (Places API); la única vía conocida y con algo de
+mantenimiento es la librería
+[`m-wrzr/populartimes`](https://github.com/m-wrzr/populartimes), que combina
+**dos fuentes de naturaleza muy distinta** en una sola consulta:
+
+1. La API oficial "Find Place from Text" de Google Places (de pago, con tier
+   gratuito mensual), usada aquí solo para resolver el nombre de un lugar a
+   su `place_id` (`resolve_place_id`).
+2. Un **endpoint interno no documentado de Google**
+   (`google.*/search?tbm=map...`), al que `populartimes.get_id(...)` hace
+   scraping y del que parsea por posición un JSON sin contrato público, para
+   obtener `current_popularity` y el patrón `populartimes` por día/hora. Es
+   intrínsecamente frágil (puede romperse sin aviso si Google cambia su
+   página) y su issue más comentado en GitHub es, literalmente, sobre
+   posible violación de las condiciones de uso de Google.
+
+Tal y como reconoce explícitamente la memoria de este TFM (**apartado
+6.8**): esta fuente concreta usa «librerías de código abierto» en una «zona
+gris» respecto a las condiciones de uso de terceros, **admisible únicamente
+en el marco académico de este trabajo**. En producción, este productor se
+sustituiría por un **proveedor comercial con licencia** sobre este mismo
+tipo de dato (p.ej. [BestTime.app](https://besttime.app) o similar) — no se
+integra en este repositorio, solo se deja constancia de la alternativa. Por
+eso este módulo, a propósito, **no reimplementa el scraping a mano**: usa
+`populartimes` tal cual como dependencia externa.
+
+`populartimes` no está publicada en PyPI (verificado en vivo durante esta
+sesión: `https://pypi.org/pypi/populartimes/json` devuelve `404`), así que
+`ingesta/requirements.txt` la instala directamente desde GitHub:
+`populartimes @ git+https://github.com/m-wrzr/populartimes`.
+
+### Esto es una captura puntual de muestra, y debe seguir siéndolo
+
+Igual que las tareas 003-008, este módulo **no tiene modo
+`--interval-seconds` ni bucle**, y no escribe en la capa Bronze
+particionada. A diferencia de esas tareas, la razón no es solo "todavía no
+hay infraestructura": raspar Google en bucle agravaría el problema de zona
+gris descrito arriba. Un futuro productor continuo real de este dato debería
+migrar al proveedor comercial mencionado, no escalar esta técnica.
+
+### Autenticación (API key gratuita de Google Cloud)
+
+Se necesita una **API key de Google Maps Platform** con la "Places API"
+habilitada, obtenida gratis (tier mensual gratuito) en
+<https://console.cloud.google.com/google/maps-apis/credentials>: crear un
+proyecto, habilitar "Places API", crear una clave de API. Se lee de
+`GOOGLE_MAPS_API_KEY`, nunca hardcodeada. Los tests no la necesitan (usan una
+respuesta de ejemplo de la librería, no la red).
+
+### Ejecutar
+
+```bash
+export GOOGLE_MAPS_API_KEY="tu-api-key"
+python3 -m ingesta.capturas.afluencia_lugares_madrid
+```
+
+Escribe la muestra en
+`ingesta/capturas/samples/afluencia_lugares_madrid_sample.json`
+(configurable con `--out`).
+
+### Variables de entorno
+
+| Variable                    | Por defecto                                 | Descripción                                                     |
+| ---------------------------- | ---------------------------------------------- | -------------------------------------------------------------------- |
+| `GOOGLE_MAPS_API_KEY`       | *(ninguno, requerido)*                          | API key de Google Maps Platform con Places API habilitada.           |
+| `MADRID_PLACES_QUERIES`     | Sol, Retiro, S. Miguel, Prado, Plaza Mayor      | Lista de búsquedas de texto, separadas por `\|` (ver `DEFAULT_PLACE_QUERIES`). |
+| `MADRID_PLACES_SAMPLE_SIZE` | `5`                                              | Nº máximo de lugares que se capturan (toma los primeros N de la lista). |
+| `HTTP_TIMEOUT_SECONDS`      | `30`                                             | Timeout por request HTTP.                                             |
+| `HTTP_MAX_RETRIES`          | `3`                                              | Reintentos ante fallo de red (backoff lineal simple).                 |
+| `HTTP_RETRY_BACKOFF_SECONDS` | `2`                                             | Base del backoff entre reintentos (segundos * intento).               |
+| `LOG_LEVEL`                 | `INFO`                                           | Nivel de logging (también configurable con `--log-level`).            |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "google_populartimes",
+  "place_id": "ChIJi7xhMz0nQg0RVeMHylTfhY4",
+  "name": "Puerta del Sol",
+  "query": "Puerta del Sol, Madrid",
+  "address": "Puerta del Sol, 28013 Madrid, Spain",
+  "location": {"lat": 40.4169473, "lon": -3.7035285, "srid": "EPSG:4326"},
+  "captured_at": "2026-08-13T12:30:00+00:00",
+  "live_pct": 72,
+  "typical_by_hour": {
+    "lunes": [0, 0, "... 24 valores 0-100 ...", 5],
+    "martes": ["..."],
+    "miercoles": ["..."],
+    "jueves": ["..."],
+    "viernes": ["..."],
+    "sabado": ["..."],
+    "domingo": ["..."]
+  },
+  "is_mock": true
+}
+```
+
+- `query`: la búsqueda de texto usada para resolver el lugar (una de
+  `MADRID_PLACES_QUERIES`), conservada para trazabilidad.
+- `live_pct`: popularidad en vivo en el momento de la captura, 0-100.
+  `null` si Google no tiene datos suficientes para ese lugar en ese
+  instante (ocurre con cierta frecuencia, sobre todo fuera de horario
+  habitual o para lugares poco "comerciales" como un parque).
+- `typical_by_hour`: patrón habitual, `día_en_español -> [24 valores 0-100]`
+  (índice = hora del día, `0`-`23`). `null` si Google no tiene ningún patrón
+  histórico para ese lugar (no todos los lugares lo tienen).
+- `is_mock`: `true` si el registro es un dato de ejemplo escrito a mano (no
+  proviene de una captura real), para que la procedencia quede explícita en
+  el propio dato y no solo en esta documentación — ver nota siguiente.
+
+### Nota sobre el intento de captura real en esta sesión
+
+Este entorno **no tiene configurada ninguna `GOOGLE_MAPS_API_KEY`** (no hay
+forma de completar el alta de una cuenta de Google Cloud de forma autónoma
+en este pipeline, igual que el bloqueo de verificación por email de la tarea
+003 con la EMT). Se verificó igualmente, en vivo y desde este entorno:
+
+- La librería `populartimes` se instala correctamente desde GitHub
+  (`pip install "populartimes @ git+https://github.com/m-wrzr/populartimes"`,
+  sin errores) y expone `populartimes.get_id(api_key, place_id)`.
+- `resolve_place_id` (la llamada oficial "Find Place") funciona de extremo a
+  extremo contra la API real de Google: con una clave de prueba inválida,
+  Google responde `200 OK` con `{"status": "REQUEST_DENIED", ...}`, que este
+  módulo interpreta correctamente como "sin candidato" (se registra un
+  `WARNING` y ese lugar se omite del lote, sin interrumpir la captura del
+  resto).
+- Con esa misma clave inválida, `populartimes.get_id(...)` lanza
+  `populartimes.crawler.PopulartimesException` con el mensaje exacto
+  `('Google Places REQUEST_DENIED', 'Request was denied, the API key is
+  invalid.')` — el fallo esperado por falta de credencial válida, no un
+  error de la librería en sí ni de este módulo.
+
+Es decir: **la librería no falló por sí misma** durante esta sesión (el
+scraping no se llegó a ejercitar por falta de una clave válida, no por
+estar rota); el único bloqueo real es no disponer de una `GOOGLE_MAPS_API_KEY`
+en este entorno. Por eso el fixture commiteado en
+`ingesta/capturas/samples/afluencia_lugares_madrid_sample.json` son 5 lugares
+con datos de ejemplo (mock) escritos a mano —cada uno con `"is_mock": true`—
+que siguen exactamente el esquema que produce `normalize_record` (incluido
+un lugar, Plaza Mayor, con `live_pct`/`typical_by_hour` a `null`, para dejar
+constancia de ese caso realista). El código queda completo y listo para
+ejecutarse tal cual el día que alguien configure una `GOOGLE_MAPS_API_KEY`
+real.
 
 ## Tests
 

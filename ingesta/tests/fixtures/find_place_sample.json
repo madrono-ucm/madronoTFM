@@ -1,0 +1,17 @@
+{
+  "found": {
+    "candidates": [
+      {
+        "place_id": "ChIJi7xhMz0nQg0RVeMHylTfhY4",
+        "name": "Puerta del Sol",
+        "formatted_address": "Puerta del Sol, 28013 Madrid, Spain",
+        "geometry": {"location": {"lat": 40.4169473, "lng": -3.7035285}}
+      }
+    ],
+    "status": "OK"
+  },
+  "not_found": {
+    "candidates": [],
+    "status": "ZERO_RESULTS"
+  }
+}
