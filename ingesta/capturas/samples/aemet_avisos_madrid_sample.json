@@ -1,0 +1,21 @@
+[
+  {
+    "schema_version": 1,
+    "source": "aemet_avisos_cap",
+    "identifier": "es-aemet-CAP-2026-08-14-00-72-01",
+    "sent_at": "2026-08-14T07:45:00+02:00",
+    "zone": "Madrid",
+    "level": "amarillo",
+    "phenomenon": "Altas temperaturas",
+    "probability": "100%",
+    "severity": "Moderate",
+    "urgency": "Expected",
+    "certainty": "Likely",
+    "effective_from": "2026-08-14T13:00:00+02:00",
+    "effective_until": "2026-08-14T21:00:00+02:00",
+    "headline": "Aviso amarillo por altas temperaturas en Madrid",
+    "description": "Temperaturas máximas en torno a 38-39 grados en la Comunidad de Madrid.",
+    "captured_at": "2026-08-13T22:32:05.022443+00:00",
+    "is_mock": true
+  }
+]
