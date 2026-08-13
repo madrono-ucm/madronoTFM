@@ -1,19 +1,19 @@
 ---
 id: 17
 slug: captura-agenda-eventos-madrid
-title: "Captura de la agenda oficial de eventos culturales de Madrid (muestra)"
-status: pending
+title: Captura de la agenda oficial de eventos culturales de Madrid (muestra)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/017-captura-agenda-eventos-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-13T17:10:02+00:00"
-updated_at: "2026-08-13T17:10:02+00:00"
-started_at: null
+created_at: '2026-08-13T17:10:02+00:00'
+updated_at: '2026-08-13T17:22:41.609935+00:00'
+started_at: '2026-08-13T17:22:41.609905+00:00'
 submitted_at: null
 merged_at: null
 ---
