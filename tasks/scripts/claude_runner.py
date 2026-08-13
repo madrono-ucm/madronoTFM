@@ -22,6 +22,24 @@ RATE_LIMIT_KEYWORDS = (
 # que el coste por tarea no crezca sin límite a medida que el proyecto avanza.
 MAX_CONTEXT_CHARS = 40_000
 
+INFRA_APPLY_FORBIDDEN = """\
+- NO ejecutes comandos con efectos reales fuera de este worktree ni con coste
+  económico o difíciles de revertir (`terraform apply`/`destroy`, `aws ... create/
+  delete/deploy`, llamadas a APIs de pago, etc.). Si la tarea implica infraestructura,
+  deja el código (Terraform, scripts...) escrito y listo, pero sin aplicarlo — eso lo
+  decide un humano tras revisar el PR."""
+
+INFRA_APPLY_ALLOWED = """\
+- EXCEPCIÓN explícita para esta tarea concreta (`allow_infra_apply: true` en su
+  front-matter): SÍ puedes ejecutar comandos `aws`/`terraform` con efectos reales
+  (crear recursos, `terraform apply`...), pero ÚNICAMENTE los que el prompt de esta
+  tarea describe explícitamente — no soluciones espontáneas, no incluye
+  `terraform destroy` ni borrar/recrear nada salvo que el prompt lo pida
+  explícitamente. Este permiso NO se extiende a ninguna otra tarea ni a esta misma en
+  un reintento con un alcance distinto al descrito. Deja constancia detallada en
+  `doc/{doc_filename}` de exactamente qué se creó/aplicó en AWS (recursos, nombres,
+  región) para que quede como referencia auditable."""
+
 SYSTEM_PROMPT_ADDENDUM_TEMPLATE = """\
 Estás operando de forma autónoma en un pipeline sin supervisión humana en tiempo real,
 dentro de un git worktree aislado en la rama "{branch}" (creada desde {base_branch}).
@@ -29,11 +47,7 @@ dentro de un git worktree aislado en la rama "{branch}" (creada desde {base_bran
 - Haz commit de tus cambios (uno o varios, con mensajes claros). NO ejecutes `git push`
   ni `gh pr create` bajo ninguna circunstancia: un orquestador externo se encarga de eso
   después de que termines.
-- NO ejecutes comandos con efectos reales fuera de este worktree ni con coste
-  económico o difíciles de revertir (`terraform apply`/`destroy`, `aws ... create/
-  delete/deploy`, llamadas a APIs de pago, etc.). Si la tarea implica infraestructura,
-  deja el código (Terraform, scripts...) escrito y listo, pero sin aplicarlo — eso lo
-  decide un humano tras revisar el PR.
+{infra_apply_policy}
 - Esta EC2 tiene disco muy limitado (unos pocos GB libres, compartidos con el propio
   pipeline). NO escribas ni dejes programado (cron, systemd timer, bucles
   `--interval`/`--daemon`, etc.) nada que escriba datos de forma continua o sin
@@ -131,10 +145,17 @@ def _parse_json_output(stdout: str) -> tuple[bool | None, str | None, float | No
 
 
 def invoke_claude(task, worktree_dir: Path, config) -> ClaudeResult:
+    doc_filename = tasks_store.doc_filename_for(task)
+    infra_apply_policy = (
+        INFRA_APPLY_ALLOWED.format(doc_filename=doc_filename)
+        if task.allow_infra_apply
+        else INFRA_APPLY_FORBIDDEN
+    )
     system_prompt_addendum = SYSTEM_PROMPT_ADDENDUM_TEMPLATE.format(
         branch=task.branch,
         base_branch=config.git_base_branch,
-        doc_filename=tasks_store.doc_filename_for(task),
+        doc_filename=doc_filename,
+        infra_apply_policy=infra_apply_policy,
     )
 
     cmd = [
