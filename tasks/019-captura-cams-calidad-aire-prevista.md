@@ -1,19 +1,19 @@
 ---
 id: 19
 slug: captura-cams-calidad-aire-prevista
-title: "Captura de calidad del aire prevista y validada (Copernicus CAMS) (muestra)"
-status: pending
+title: Captura de calidad del aire prevista y validada (Copernicus CAMS) (muestra)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/019-captura-cams-calidad-aire-prevista
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-13T17:23:43+00:00"
-updated_at: "2026-08-13T17:23:43+00:00"
-started_at: null
+created_at: '2026-08-13T17:23:43+00:00'
+updated_at: '2026-08-13T22:36:46.935202+00:00'
+started_at: '2026-08-13T22:36:46.935180+00:00'
 submitted_at: null
 merged_at: null
 ---
