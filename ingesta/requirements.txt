@@ -1,1 +1,7 @@
 requests>=2.31,<3
+
+# Tarea 012 (afluencia de lugares de Madrid): no está publicada en PyPI
+# (verificado en vivo, https://pypi.org/pypi/populartimes/json devuelve 404),
+# hay que instalarla directamente desde GitHub. Ver docstring de
+# ingesta/capturas/afluencia_lugares_madrid.py para el porqué de esta fuente.
+populartimes @ git+https://github.com/m-wrzr/populartimes
