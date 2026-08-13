@@ -1,0 +1,686 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA01_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-29T22:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 857,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Arenal esquina San Martín",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.417386,
+      "lon": -3.707141,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA01_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-29T23:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 450,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Arenal esquina San Martín",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.417386,
+      "lon": -3.707141,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA01_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T00:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 283,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Arenal esquina San Martín",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.417386,
+      "lon": -3.707141,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA01_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T01:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 151,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Arenal esquina San Martín",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.417386,
+      "lon": -3.707141,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA01_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T02:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 111,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Arenal esquina San Martín",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.417386,
+      "lon": -3.707141,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA01_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T03:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 148,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Arenal esquina San Martín",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.417386,
+      "lon": -3.707141,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA02_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-29T22:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 883,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Fuencarral 22, 28004 Madrid",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.422009,
+      "lon": -3.700892,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA02_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-29T23:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 474,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Fuencarral 22, 28004 Madrid",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.422009,
+      "lon": -3.700892,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA02_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T00:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 273,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Fuencarral 22, 28004 Madrid",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.422009,
+      "lon": -3.700892,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA02_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T01:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 204,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Fuencarral 22, 28004 Madrid",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.422009,
+      "lon": -3.700892,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA02_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T02:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 213,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Fuencarral 22, 28004 Madrid",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.422009,
+      "lon": -3.700892,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA02_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T03:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 128,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle Fuencarral 22, 28004 Madrid",
+    "address_notes": "Calle peatonal",
+    "location": {
+      "lat": 40.422009,
+      "lon": -3.700892,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA03_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-29T22:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 191,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle San Bernardo 36, 28015 Madrid",
+    "address_notes": "Acera Pares",
+    "location": {
+      "lat": 40.423803,
+      "lon": -3.707379,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA03_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-29T23:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 89,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle San Bernardo 36, 28015 Madrid",
+    "address_notes": "Acera Pares",
+    "location": {
+      "lat": 40.423803,
+      "lon": -3.707379,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA03_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T00:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 91,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle San Bernardo 36, 28015 Madrid",
+    "address_notes": "Acera Pares",
+    "location": {
+      "lat": 40.423803,
+      "lon": -3.707379,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA03_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T01:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 72,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle San Bernardo 36, 28015 Madrid",
+    "address_notes": "Acera Pares",
+    "location": {
+      "lat": 40.423803,
+      "lon": -3.707379,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA03_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T02:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 106,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle San Bernardo 36, 28015 Madrid",
+    "address_notes": "Acera Pares",
+    "location": {
+      "lat": 40.423803,
+      "lon": -3.707379,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_PEA03_PM01",
+    "mode": "peatones",
+    "measured_at": "2024-06-30T03:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": 37,
+    "bicycle_count": null,
+    "district_code": "1",
+    "district": "Centro",
+    "address": "Calle San Bernardo 36, 28015 Madrid",
+    "address_notes": "Acera Pares",
+    "location": {
+      "lat": 40.423803,
+      "lon": -3.707379,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI01_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-29T22:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 16,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  133, 28005 Madrid",
+    "address_notes": "Sentido Gta. Pirámides",
+    "location": {
+      "lat": 40.405472,
+      "lon": -3.711961,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI01_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-29T23:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 17,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  133, 28005 Madrid",
+    "address_notes": "Sentido Gta. Pirámides",
+    "location": {
+      "lat": 40.405472,
+      "lon": -3.711961,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI01_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T00:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 7,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  133, 28005 Madrid",
+    "address_notes": "Sentido Gta. Pirámides",
+    "location": {
+      "lat": 40.405472,
+      "lon": -3.711961,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI01_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T01:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 0,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  133, 28005 Madrid",
+    "address_notes": "Sentido Gta. Pirámides",
+    "location": {
+      "lat": 40.405472,
+      "lon": -3.711961,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI01_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T02:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 5,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  133, 28005 Madrid",
+    "address_notes": "Sentido Gta. Pirámides",
+    "location": {
+      "lat": 40.405472,
+      "lon": -3.711961,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI01_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T03:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 0,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  133, 28005 Madrid",
+    "address_notes": "Sentido Gta. Pirámides",
+    "location": {
+      "lat": 40.405472,
+      "lon": -3.711961,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI02_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-29T22:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 13,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  128, 28005 Madrid",
+    "address_notes": "Sentido Puerta de Toledo",
+    "location": {
+      "lat": 40.405434,
+      "lon": -3.712422,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI02_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-29T23:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 20,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  128, 28005 Madrid",
+    "address_notes": "Sentido Puerta de Toledo",
+    "location": {
+      "lat": 40.405434,
+      "lon": -3.712422,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI02_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T00:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 9,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  128, 28005 Madrid",
+    "address_notes": "Sentido Puerta de Toledo",
+    "location": {
+      "lat": 40.405434,
+      "lon": -3.712422,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI02_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T01:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 6,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  128, 28005 Madrid",
+    "address_notes": "Sentido Puerta de Toledo",
+    "location": {
+      "lat": 40.405434,
+      "lon": -3.712422,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI02_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T02:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 2,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  128, 28005 Madrid",
+    "address_notes": "Sentido Puerta de Toledo",
+    "location": {
+      "lat": 40.405434,
+      "lon": -3.712422,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI02_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T03:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 5,
+    "district_code": "2",
+    "district": "Arganzuela",
+    "address": "Calle Toledo  128, 28005 Madrid",
+    "address_notes": "Sentido Puerta de Toledo",
+    "location": {
+      "lat": 40.405434,
+      "lon": -3.712422,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI03_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-29T22:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 13,
+    "district_code": "7",
+    "district": "Chamberí",
+    "address": "Calle de Sta Engracia 49, 28010 Madrid",
+    "address_notes": "Sentido Eloy Gonzalo",
+    "location": {
+      "lat": 40.43325,
+      "lon": -3.698045,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI03_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-29T23:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 17,
+    "district_code": "7",
+    "district": "Chamberí",
+    "address": "Calle de Sta Engracia 49, 28010 Madrid",
+    "address_notes": "Sentido Eloy Gonzalo",
+    "location": {
+      "lat": 40.43325,
+      "lon": -3.698045,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI03_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T00:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 14,
+    "district_code": "7",
+    "district": "Chamberí",
+    "address": "Calle de Sta Engracia 49, 28010 Madrid",
+    "address_notes": "Sentido Eloy Gonzalo",
+    "location": {
+      "lat": 40.43325,
+      "lon": -3.698045,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI03_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T01:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 3,
+    "district_code": "7",
+    "district": "Chamberí",
+    "address": "Calle de Sta Engracia 49, 28010 Madrid",
+    "address_notes": "Sentido Eloy Gonzalo",
+    "location": {
+      "lat": 40.43325,
+      "lon": -3.698045,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI03_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T02:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 6,
+    "district_code": "7",
+    "district": "Chamberí",
+    "address": "Calle de Sta Engracia 49, 28010 Madrid",
+    "address_notes": "Sentido Eloy Gonzalo",
+    "location": {
+      "lat": 40.43325,
+      "lon": -3.698045,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aforos_peatones_bicicletas",
+    "station_id": "PERM_BICI03_PM01",
+    "mode": "bicicletas",
+    "measured_at": "2024-06-30T03:00:00+00:00",
+    "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+    "pedestrian_count": null,
+    "bicycle_count": 10,
+    "district_code": "7",
+    "district": "Chamberí",
+    "address": "Calle de Sta Engracia 49, 28010 Madrid",
+    "address_notes": "Sentido Eloy Gonzalo",
+    "location": {
+      "lat": 40.43325,
+      "lon": -3.698045,
+      "srid": "EPSG:4326"
+    }
+  }
+]
