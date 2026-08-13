@@ -1,0 +1,67 @@
+{
+  "posts": [
+    {
+      "uri": "at://did:plc:examplefakeplaceholder1/app.bsky.feed.post/exampleplaceholder1",
+      "cid": "bafyreiexampleplaceholderfakecid0000000000000000000000000001",
+      "author": {
+        "did": "did:plc:examplefakeplaceholder1",
+        "handle": "example-user-1.bsky.social",
+        "displayName": "Usuario de ejemplo 1",
+        "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:examplefakeplaceholder1/fake.jpg"
+      },
+      "record": {
+        "$type": "app.bsky.feed.post",
+        "createdAt": "2026-08-13T10:22:02.727Z",
+        "langs": ["es"],
+        "text": "El Ayuntamiento activa la alerta amarilla en El Retiro por el calor de esta tarde."
+      },
+      "indexedAt": "2026-08-13T10:22:04.111Z",
+      "likeCount": 12,
+      "repostCount": 3,
+      "replyCount": 1,
+      "quoteCount": 0
+    },
+    {
+      "uri": "at://did:plc:examplefakeplaceholder2/app.bsky.feed.post/exampleplaceholder2",
+      "cid": "bafyreiexampleplaceholderfakecid0000000000000000000000000002",
+      "author": {
+        "did": "did:plc:examplefakeplaceholder2",
+        "handle": "example-user-2.bsky.social",
+        "displayName": "Usuario de ejemplo 2",
+        "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:examplefakeplaceholder2/fake.jpg"
+      },
+      "record": {
+        "$type": "app.bsky.feed.post",
+        "createdAt": "2026-08-10T06:34:07.555Z",
+        "langs": ["es"],
+        "text": "Menudo agobio de gente en Malasaña esta noche, imposible andar por la calle."
+      },
+      "indexedAt": "2026-08-10T06:34:08.970Z",
+      "likeCount": 0,
+      "repostCount": 0,
+      "replyCount": 2,
+      "quoteCount": 0
+    },
+    {
+      "uri": "at://did:plc:examplefakeplaceholder3/app.bsky.feed.post/exampleplaceholder3",
+      "cid": "bafyreiexampleplaceholderfakecid0000000000000000000000000003",
+      "author": {
+        "did": "did:plc:examplefakeplaceholder3",
+        "handle": "example-user-3.bsky.social",
+        "displayName": "Usuario de ejemplo 3",
+        "avatar": "https://cdn.bsky.app/img/avatar/plain/did:plc:examplefakeplaceholder3/fake.jpg"
+      },
+      "record": {
+        "$type": "app.bsky.feed.post",
+        "createdAt": "2026-08-09T20:10:00.000Z",
+        "langs": ["en"],
+        "text": "No text in Spanish, langs should be picked from the first entry only."
+      },
+      "indexedAt": "2026-08-09T20:10:01.500Z",
+      "likeCount": 5,
+      "repostCount": 1,
+      "replyCount": 0,
+      "quoteCount": 1
+    }
+  ]
+}
