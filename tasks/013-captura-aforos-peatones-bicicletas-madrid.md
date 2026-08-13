@@ -1,18 +1,19 @@
 ---
 id: 13
 slug: captura-aforos-peatones-bicicletas-madrid
-title: "Captura de aforos de peatones y bicicletas de Madrid (muestra)"
-status: pending
+title: Captura de aforos de peatones y bicicletas de Madrid (muestra)
+status: in_progress
 force: true
-branch: null
+allow_infra_apply: false
+branch: task/013-captura-aforos-peatones-bicicletas-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-12T23:12:29+00:00"
-updated_at: "2026-08-12T23:12:29+00:00"
-started_at: null
+created_at: '2026-08-12T23:12:29+00:00'
+updated_at: '2026-08-13T15:39:18.651055+00:00'
+started_at: '2026-08-13T15:39:18.651031+00:00'
 submitted_at: null
 merged_at: null
 ---
