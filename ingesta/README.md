@@ -16,10 +16,10 @@ a disco. El punto donde se conectaría un productor Kafka está marcado con
 (tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005),
 `calidad_aire_madrid.py` (tarea 006), `ruido_madrid.py` (tarea 007) y
 `meteorologia_madrid.py` (tarea 008), `afluencia_lugares_madrid.py` (tarea
-012), `aforos_peatones_bicicletas_madrid.py` (tarea 013) y
-`bluesky_menciones_madrid.py` (tarea 016) y `agenda_eventos_madrid.py`
-(tarea 017), que a propósito solo hacen capturas puntuales de muestra — ver
-sus secciones más abajo.
+012), `aforos_peatones_bicicletas_madrid.py` (tarea 013),
+`bluesky_menciones_madrid.py` (tarea 016), `agenda_eventos_madrid.py`
+(tarea 017) y `aemet_prevision_avisos.py` (tarea 018), que a propósito solo
+hacen capturas puntuales de muestra — ver sus secciones más abajo.
 
 `callejero_madrid.py` (tarea 009) es un caso distinto de los anteriores: no
 es un dato que cambie con el tiempo (tráfico, calidad del aire...), sino un
@@ -2069,6 +2069,229 @@ normalidad una vez resuelto el bloqueo de WAF de esmadrid.com descrito
 arriba; no hubo ningún problema de acceso persistente que documentar (a
 diferencia de otras tareas de este proyecto con fuentes bloqueadas o sin
 credenciales disponibles en este entorno).
+
+## `capturas/aemet_prevision_avisos.py` — Previsión meteorológica y avisos de AEMET (muestra puntual, bloqueada)
+
+Complementa a `meteorologia_madrid.py` (tarea 008, tiempo **actual**) con
+**previsión** a varios días y **avisos oficiales** de fenómenos
+meteorológicos adversos, la fuente oficial española para ambas cosas:
+[AEMET OpenData](https://opendata.aemet.es). Dos funciones:
+
+- `fetch_prediccion(config, municipio_code="28079")`: previsión diaria (7
+  días) para el municipio dado (código INE; `28079` = Madrid capital).
+- `fetch_avisos(config, area_code="72")`: avisos vigentes para el área dada
+  (código CCAA de AEMET; `72` = "Madrid, Comunidad de").
+
+### Bloqueo de registro: la API key exige resolver un reCAPTCHA
+
+Se investigó en vivo, durante esta sesión, el formulario de alta de usuario
+(<https://opendata.aemet.es/centrodedescargas/altaUsuario>): pide un email y,
+antes de poder enviarlo, **obliga a resolver un reCAPTCHA de Google**
+(comprobado leyendo el JS del propio formulario). No hay ninguna vía de alta
+alternativa sin CAPTCHA. Es un bloqueo manual no automatizable en este
+pipeline, de la misma naturaleza que el de la verificación de correo de la
+EMT (tarea 003) y el de la cuenta de Google Cloud (tarea 012). Se verificó
+también, sin key, que el servicio exige un `api_key` con forma de JWT
+(`?api_key=test` → `401`, `"JWT strings must contain exactly 2 period
+characters. Found: 0"`) — no existe ninguna clave de prueba pública.
+
+El código queda completo y listo para ejecutarse tal cual el día que alguien
+complete el alta manualmente y configure `AEMET_API_KEY` (nunca hardcodeada);
+se verificó en vivo, con una clave con forma de JWT pero inválida, que la
+petición llega correctamente construida hasta AEMET y falla solo por
+autenticación (`401`), no por ningún error de este módulo. `main()` falla
+explícitamente si la variable no está definida.
+
+### El esquema sí se obtuvo, sin necesidad de una key válida
+
+AEMET publica su especificación OpenAPI completa **sin autenticación** en
+<https://opendata.aemet.es/AEMET_OpenData_specification.json> (verificado en
+vivo). De ahí se tomaron los dos endpoints, sus parámetros (incluida la
+tabla de códigos de área CCAA) y el envoltorio de respuesta en dos pasos que
+usa toda la API de AEMET OpenData: la llamada con `api_key` no trae el dato,
+trae `{"descripcion", "estado", "datos", "metadatos"}`, donde `datos` es la
+URL real del payload.
+
+El esquema del payload de previsión diaria (nombres de campo camelCase:
+`probPrecipitacion`, `estadoCielo`, `viento`, `rachaMax`, `temperatura`,
+`sensTermica`, `humedadRelativa`, `uvMax`...) se contrastó además con **datos
+reales y en vivo** de Madrid capital, obtenidos sin ninguna autenticación del
+feed público legado que la propia web de AEMET usa para pintar la ficha de
+cada municipio
+(`https://www.aemet.es/xml/municipios/localidad_28079.xml`, verificado en
+vivo: `200 OK`, mismos campos que OpenData en `snake_case`/atributos XML,
+codificación `ISO-8859-15`). Los valores numéricos de la muestra commiteada
+son esos valores reales de esa consulta en vivo (Madrid, 13 de agosto de
+2026), reestructurados a mano al esquema JSON documentado de OpenData.
+
+**Quirk documentado:** el payload de `datos` de OpenData se sirve realmente
+en `ISO-8859-15`, no en UTF-8, con independencia de la cabecera
+`Content-Type`; `fetch_prediccion_raw` decodifica explícitamente con ese
+códec.
+
+Solo se implementa la previsión **diaria**, no la horaria: comparten el
+envoltorio de dos pasos, pero el payload horario tiene una forma distinta
+que no se ha podido contrastar con datos reales en esta sesión (no hay un
+feed legado sin key equivalente para horaria — las URLs candidatas
+devuelven `404`, verificado en vivo). Se prefiere dejarla fuera antes que
+una implementación sin verificar.
+
+El esquema de avisos (documentos CAP 1.2 dentro de un `.tar.gz`) sigue el
+estándar CAP y el patrón documentado por la propia
+[página de ayuda de AEMET](https://www.aemet.es/es/eltiempo/prediccion/avisos/ayuda)
+(niveles amarillo/naranja/rojo, parámetros `AEMET-Meteoalerta
+nivel`/`fenomeno`/`zona`), pero **no se ha podido contrastar contra un
+documento CAP real** (no se ha encontrado un feed público equivalente sin
+key) — menor confianza que la previsión diaria, explícita aquí y en el
+docstring del módulo.
+
+### Ejecutar
+
+```bash
+export AEMET_API_KEY=...  # ver "Bloqueo de registro" arriba
+python3 -m ingesta.capturas.aemet_prevision_avisos
+```
+
+Escribe dos muestras: `ingesta/capturas/samples/aemet_prevision_madrid_sample.json`
+(previsión, todos los días que traiga la fuente) y
+`ingesta/capturas/samples/aemet_avisos_madrid_sample.json` (avisos vigentes,
+puede quedar vacía sin error si no hay ninguno).
+
+### Variables de entorno
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `AEMET_API_KEY` | API key de AEMET OpenData (obligatoria) | *(vacío)* |
+| `AEMET_MUNICIPIO_CODE` | Código INE de municipio para la previsión | `28079` (Madrid capital) |
+| `AEMET_AREA_CODE` | Código de área CCAA de AEMET para los avisos | `72` (Madrid) |
+| `AEMET_PREDICCION_URL_TEMPLATE` | Plantilla de URL del endpoint de previsión diaria | recurso oficial de OpenData |
+| `AEMET_AVISOS_URL_TEMPLATE` | Plantilla de URL del endpoint de avisos | recurso oficial de OpenData |
+| `HTTP_TIMEOUT_SECONDS` | Timeout de cada petición HTTP | `15.0` |
+| `HTTP_MAX_RETRIES` | Reintentos por petición (no se reintenta un `429` de cuota) | `3` |
+| `HTTP_RETRY_BACKOFF_SECONDS` | Backoff lineal entre reintentos | `2.0` |
+
+### Límite de cuota del tier gratuito
+
+AEMET OpenData es un tier gratuito con límite de peticiones (la propia
+especificación documenta una respuesta `429`, *"petición que sobrepasa los
+límites del servicio"*, para ambos endpoints). Este módulo, a propósito, no
+reintenta un `429` (`_get_with_retries` lo detecta y falla explícitamente en
+vez de agotar reintentos contra un límite que no se va a levantar
+reintentando). No se ha podido determinar el número exacto de peticiones
+permitidas por día/minuto sin una key real con la que probarlo; queda como
+nota para quien complete el alta.
+
+### Esquema normalizado: previsión (por día)
+
+```json
+{
+  "schema_version": 1,
+  "source": "aemet_prediccion_municipio",
+  "municipio_code": "28079",
+  "municipio_name": "Madrid",
+  "province": "Madrid",
+  "elaborated_at": "2026-08-13T21:19:10",
+  "valid_date": "2026-08-15",
+  "sky_state": "Intervalos nubosos con lluvia",
+  "sky_state_code": "23",
+  "precipitation_probability_pct": "95",
+  "temperature_max_c": 34,
+  "temperature_min_c": 22,
+  "thermal_sensation_max_c": 31,
+  "thermal_sensation_min_c": 21,
+  "humidity_max_pct": 65,
+  "humidity_min_pct": 25,
+  "wind_direction": "SE",
+  "wind_speed_kmh": "20",
+  "wind_gust_max_kmh": "40",
+  "uv_max": 8,
+  "captured_at": "2026-08-13T22:32:05.022443+00:00",
+  "is_mock": true
+}
+```
+
+- Cada registro es el resumen del **día completo** (periodo `"00-24"`) de
+  una de las magnitudes que AEMET repite por sub-periodo (mañana/tarde,
+  franjas de 6h); no se desglosan los sub-periodos en el esquema
+  normalizado. `temperature_*`/`thermal_sensation_*`/`humidity_*` sí son
+  directamente el máximo/mínimo del día que da la fuente (no están
+  troceados por periodo).
+- `wind_gust_max_kmh` puede ser `null`: no todos los días traen racha
+  máxima para el periodo `"00-24"` (ocurre incluso en datos reales, ver
+  fixture de test).
+- Los tipos siguen tal cual a la fuente (algunos campos numéricos vienen
+  como string en el JSON real de AEMET, p.ej. `precipitation_probability_pct`/
+  `wind_speed_kmh`; no se fuerza su conversión a número para no enmascarar
+  el dato tal como lo publica AEMET).
+- `is_mock: true` en la muestra commiteada (ver "Bloqueo de registro").
+
+### Esquema normalizado: avisos
+
+```json
+{
+  "schema_version": 1,
+  "source": "aemet_avisos_cap",
+  "identifier": "es-aemet-CAP-2026-08-14-00-72-01",
+  "sent_at": "2026-08-14T07:45:00+02:00",
+  "zone": "Madrid",
+  "level": "amarillo",
+  "phenomenon": "Altas temperaturas",
+  "probability": "100%",
+  "severity": "Moderate",
+  "urgency": "Expected",
+  "certainty": "Likely",
+  "effective_from": "2026-08-14T13:00:00+02:00",
+  "effective_until": "2026-08-14T21:00:00+02:00",
+  "headline": "Aviso amarillo por altas temperaturas en Madrid",
+  "description": "Temperaturas máximas en torno a 38-39 grados en la Comunidad de Madrid.",
+  "captured_at": "2026-08-13T22:32:05.022443+00:00",
+  "is_mock": true
+}
+```
+
+- `level`: `"amarillo"` / `"naranja"` / `"rojo"` (ver significado de cada
+  uno más abajo, en "Cadencia real de publicación").
+- `effective_from`/`effective_until`: ámbito temporal del aviso (`onset`/
+  `expires` del documento CAP de origen).
+- Solo se conservan los bloques en español (`language` empieza por `"es"`)
+  cuando un mismo aviso trae varios idiomas.
+- Una lista vacía (sin error) es el resultado normal cuando no hay ningún
+  aviso vigente para el área en el momento de la captura.
+
+### Cadencia real de publicación (investigada en vivo)
+
+- **Previsión diaria**: la propia especificación OpenAPI la documenta como
+  *"Periodicidad de actualización: continuamente"* — no hay un número fijo
+  de veces al día, AEMET la recalcula y publica de forma continua según van
+  llegando nuevos modelos/observaciones. Para un scheduling real, sondear
+  cada 1-3 horas sería más que suficiente sin sobrecargar el servicio ni
+  perderse actualizaciones relevantes para "¿voy esta noche?".
+- **Avisos**: la [página de ayuda de AEMET](https://www.aemet.es/es/eltiempo/prediccion/avisos/ayuda)
+  documenta explícitamente los periodos preferentes de emisión (hora
+  peninsular): **07:30-09:00** (avisos para hoy, D), **10:30-11:30**
+  (avisos para D+1 y D+2), **17:00-19:00** (revisión de todos los avisos) y
+  **23:50** (avance para D+3). Fuera de esos huecos solo se emiten avisos
+  si hay un cambio significativo que lo justifique. Un scheduling real
+  debería sondear en esos 4 momentos, no en un intervalo fijo arbitrario.
+- Niveles de aviso (misma página): **amarillo** (peligro bajo, "esté
+  atento"), **naranja** (peligro importante, "esté preparado"), **rojo**
+  (peligro extraordinario, "actúe" según indicaciones de las autoridades).
+
+### Nota sobre la captura real en esta sesión (tarea 018)
+
+No se pudo completar una captura real en vivo contra la API de AEMET
+OpenData: el registro de la API key está bloqueado (ver "Bloqueo de
+registro"). Se verificó en vivo, con una clave con forma de JWT pero
+inválida, que ambos endpoints (`/prediccion/especifica/municipio/diaria/28079`
+y `/avisos_cap/ultimoelaborado/area/72`) responden `401` de forma esperada
+(la petición llega bien construida hasta AEMET). Las muestras commiteadas en
+`ingesta/capturas/samples/aemet_prevision_madrid_sample.json` y
+`aemet_avisos_madrid_sample.json` se generaron a mano ejecutando las propias
+funciones `normalize_prediccion_dia`/`normalize_aviso` de este módulo sobre
+datos de ejemplo (los de previsión, con valores reales de Madrid capturados
+en vivo del feed legado sin key; los de avisos, un único escenario
+verosímil pero inventado, dado que no hay forma de saber si hay algún aviso
+realmente vigente sin la key), con `"is_mock": true` en cada registro.
 
 ## Tests
 
