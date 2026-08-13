@@ -18,8 +18,9 @@ a disco. El punto donde se conectaría un productor Kafka está marcado con
 `meteorologia_madrid.py` (tarea 008), `afluencia_lugares_madrid.py` (tarea
 012), `aforos_peatones_bicicletas_madrid.py` (tarea 013),
 `bluesky_menciones_madrid.py` (tarea 016), `agenda_eventos_madrid.py`
-(tarea 017) y `aemet_prevision_avisos.py` (tarea 018), que a propósito solo
-hacen capturas puntuales de muestra — ver sus secciones más abajo.
+(tarea 017), `aemet_prevision_avisos.py` (tarea 018) y
+`cams_calidad_aire_madrid.py` (tarea 019), que a propósito solo hacen
+capturas puntuales de muestra — ver sus secciones más abajo.
 
 `callejero_madrid.py` (tarea 009) es un caso distinto de los anteriores: no
 es un dato que cambie con el tiempo (tráfico, calidad del aire...), sino un
@@ -2292,6 +2293,188 @@ datos de ejemplo (los de previsión, con valores reales de Madrid capturados
 en vivo del feed legado sin key; los de avisos, un único escenario
 verosímil pero inventado, dado que no hay forma de saber si hay algún aviso
 realmente vigente sin la key), con `"is_mock": true` en cada registro.
+
+## `capturas/cams_calidad_aire_madrid.py` — Previsión de calidad del aire de Copernicus CAMS (muestra puntual, bloqueada)
+
+Complementa a `calidad_aire_madrid.py` (tarea 006, mediciones **en tiempo
+real** de la red municipal, solo Madrid) con una **previsión** horaria a 4
+días vista, validada contra observaciones oficiales a escala europea:
+[Copernicus Atmosphere Monitoring Service (CAMS)](https://ads.atmosphere.copernicus.eu/datasets/cams-europe-air-quality-forecasts),
+dataset `cams-europe-air-quality-forecasts` del Atmosphere Data Store (ADS).
+Una única función: `fetch_forecast(config, run_date=None)` descarga y
+normaliza la previsión de NO2/O3/PM2.5/PM10 para un recorte geográfico
+pequeño alrededor de Madrid capital.
+
+### Bloqueo de registro: cuenta real ligada a identidad, no un CAPTCHA
+
+A diferencia de AEMET (tarea 018) o la EMT (tarea 003), el formulario de
+alta de la ADS API (`accounts.ecmwf.int/.../registrations?client_id=cds...`,
+investigado en vivo durante esta sesión) **no tiene reCAPTCHA ni ningún
+otro CAPTCHA**: solo pide nombre, apellidos, email, contraseña y su
+confirmación. Aun así se trata como el mismo tipo de bloqueo que en esas
+tareas: completar el alta implica **crear una cuenta real, persistente y
+ligada a la identidad de quien la crea** en un servicio de terceros, con
+una contraseña elegida en el momento y, muy probablemente, una confirmación
+por email (patrón estándar del sistema de identidad que usa
+`accounts.ecmwf.int`, Keycloak/EU Login) — un paso para el que esta sesión
+no tiene acceso a ningún buzón de correo. Elegir una contraseña y registrar
+una cuenta a nombre de un tercero sin que haya un humano confirmando esa
+acción en el momento no es algo que este pipeline autónomo deba hacer por
+iniciativa propia. El código queda completo y listo para ejecutarse tal
+cual el día que alguien complete el alta manualmente y configure
+`CAMS_ADS_API_KEY` (nunca hardcodeada); `capture_sample`/`main()` fallan
+explícitamente si la variable no está definida.
+
+La [página oficial "How to use the CDS/ADS API"](https://ads.atmosphere.copernicus.eu/how-to-api)
+(consultada en vivo) confirma además que, antes de poder descargar
+`cams-europe-air-quality-forecasts`, hay que aceptar sus "Terms of Use"
+desde su página en el ADS con la cuenta ya logueada — otro paso manual
+explícitamente no automatizable, documentado también ahí.
+
+### Autenticación real: un "personal access token", no una API key clásica
+
+El token de acceso personal se obtiene del perfil del usuario tras el alta
+y se usa junto con la URL base del servicio
+(`https://ads.atmosphere.copernicus.eu/api`); el cliente oficial `cdsapi`
+normalmente los lee de `$HOME/.cdsapirc`. Este módulo, para no depender de
+un fichero fuera del repositorio y seguir la norma del proyecto de
+"credenciales por variable de entorno", construye
+`cdsapi.Client(url=CAMS_ADS_URL, key=CAMS_ADS_API_KEY)` explícitamente, sin
+tocar `~/.cdsapirc`.
+
+### El esquema de la petición y de los datos sí se obtuvo, sin necesidad de un token válido
+
+El ADS expone públicamente, sin autenticación, la descripción del proceso
+de cada dataset
+(`GET /api/retrieve/v1/processes/cams-europe-air-quality-forecasts`,
+verificado en vivo: `200 OK`). De ahí salen, con certeza, todos los
+parámetros válidos de la petición: contaminante (`variable`), modelo
+(`model`), nivel vertical (`level`), tipo (`type`), hora de previsión
+(`leadtime_hour`), formato de salida (`data_format`, por defecto real
+`"netcdf_zip"` — un `.zip` con uno o varios `.nc` dentro, no un `.nc`
+suelto) y recorte geográfico (`area`, `[norte, oeste, sur, este]`).
+
+**Contaminantes validados (restricción explícita de esta tarea):** la
+documentación pública del dataset confirma que solo NO, NO2, SO2, O3, PM2.5,
+PM10 y polvo se validan regularmente contra observaciones in situ; el resto
+(polen, COVs, amoniaco...) se declara explícitamente "experimental, sin
+validar". `POLLUTANT_VARIABLES` solo incluye esos 7.
+
+Los nombres cortos de variable **dentro** de cada NetCDF (distintos del
+nombre de la petición ADS, p.ej. `nitrogen_dioxide` en la petición frente a
+`no2_conc` dentro del fichero) se contrastaron con varias fuentes públicas
+que citan explícitamente `no2_conc`/`o3_conc`/`pm10_conc`/`pm2p5_conc`/
+`so2_conc` para este mismo dataset. Para `nitrogen_monoxide`/`dust` no se
+encontró ninguna fuente que citara su nombre corto exacto: se mapean como
+`no_conc`/`dust_conc` por el mismo patrón que las cinco anteriores, pero
+**sin poder contrastarlo contra un fichero real** (mismo tipo de aviso de
+menor confianza que el esquema de avisos CAP de la tarea 018).
+`normalize_forecast_file` es indiferente a qué subconjunto de
+`POLLUTANT_VARIABLES` esté realmente presente en un fichero: solo procesa
+las que encuentra, así que un nombre equivocado no rompe la captura, solo
+deja sin registros a ese contaminante.
+
+### Área geográfica: un recorte pequeño alrededor de Madrid
+
+El dataset cubre toda Europa (25°O-45°E, 30°N-72°N) a 0.1°×0.1°. El
+parámetro `area` de la propia API permite recortar la petición en origen:
+`DEFAULT_AREA` es una caja estrecha alrededor de Madrid capital, y
+`normalize_forecast_file` se queda con el punto de rejilla más cercano al
+centro de Madrid (40.4168, -3.7038) dentro de ese recorte.
+
+### Ejecutar
+
+```bash
+export CAMS_ADS_API_KEY=...  # ver "Bloqueo de registro" arriba
+python3 -m ingesta.capturas.cams_calidad_aire_madrid
+```
+
+Escribe una única muestra:
+`ingesta/capturas/samples/cams_calidad_aire_madrid_sample.json`.
+
+### Variables de entorno
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `CAMS_ADS_API_KEY` | Personal access token de la ADS API (obligatoria) | *(vacío)* |
+| `CAMS_ADS_URL` | URL base de la ADS API | `https://ads.atmosphere.copernicus.eu/api` |
+| `CAMS_POLLUTANTS` | Contaminantes a pedir, separados por comas (deben estar en `POLLUTANT_VARIABLES`) | `nitrogen_dioxide,ozone,particulate_matter_2.5um,particulate_matter_10um` |
+| `CAMS_AREA` | Recorte geográfico `norte,oeste,sur,este`, separado por comas | caja alrededor de Madrid |
+| `CAMS_MODEL` | Modelo/ensemble a pedir | `ensemble` |
+| `CAMS_LEVEL` | Nivel vertical (`"0"` = superficie) | `0` |
+| `CAMS_LEADTIME_HOURS` | Horas de previsión a pedir, separadas por comas | `0,1,2,3` |
+| `CAMS_RUN_TIME` | Hora de la corrida a pedir (CAMS solo publica la de `00:00` UTC) | `00:00` |
+
+### Por qué el modelo `ensemble` y no un modelo individual
+
+CAMS combina la salida de once sistemas de previsión europeos en una
+mediana de conjunto (`ensemble`), que la propia documentación señala como
+de mejor rendimiento que cualquier modelo individual y además da una
+estimación de incertidumbre por la dispersión entre modelos. Por eso es el
+valor por defecto de `CAMS_MODEL`; `_build_request` admite pedir cualquiera
+de los once modelos individuales (`chimere`, `dehm`, `emep`...) vía esa
+misma variable si una tarea futura lo necesitara.
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "cams",
+  "pollutant": "O3",
+  "pollutant_code": "ozone",
+  "value": 112.5,
+  "unit": "µg m-3",
+  "valid_datetime": "2026-08-13T12:00:00+00:00",
+  "forecast_issued_at": "2026-08-13T00:00:00+00:00",
+  "leadtime_hour": 12,
+  "model": "ensemble",
+  "latitude": 40.4,
+  "longitude": -3.7,
+  "captured_at": "2026-08-13T09:00:00+00:00",
+  "is_mock": true
+}
+```
+
+- `pollutant`/`pollutant_code`: etiqueta corta legible (`"O3"`) y nombre de
+  variable de la petición ADS (`"ozone"`).
+- `valid_datetime`: instante al que corresponde la previsión (`forecast_issued_at`
+  + `leadtime_hour` horas).
+- `forecast_issued_at`: instante de la corrida que generó la previsión
+  (siempre `00:00` UTC del día de la corrida — CAMS solo publica una
+  corrida diaria, ver cadencia más abajo).
+- `latitude`/`longitude`: coordenadas reales del punto de rejilla de 0.1°
+  más cercano al centro de Madrid dentro del `area` pedido (no
+  necesariamente 40.4168/-3.7038 exactos).
+- `is_mock: true` en la muestra commiteada (ver "Bloqueo de registro").
+
+### Cadencia real de publicación (investigada en vivo, confirma "una vez al día" con matiz)
+
+La documentación pública del dataset confirma **una única corrida diaria**
+(`type=forecast`), a partir de las 00:00 UTC, publicada en **dos tandas**:
+horas de previsión 0-48 disponibles a partir de las **06:45 UTC**, y horas
+49-96 a partir de las **08:30 UTC**. "Una vez al día" es correcto como
+resumen, pero conviene precisar que la previsión completa (hasta 96h) no
+está íntegra hasta la segunda tanda del mismo día. Un scheduling real
+debería sondear una vez tras cada tanda (p.ej. 07:00 y 09:00 UTC), no en un
+intervalo arbitrario.
+
+### Nota sobre la captura real en esta sesión (tarea 019)
+
+No se pudo completar una captura real contra la ADS API: el registro de la
+cuenta está bloqueado (ver "Bloqueo de registro" arriba). La muestra
+commiteada en `ingesta/capturas/samples/cams_calidad_aire_madrid_sample.json`
+se generó a mano, siguiendo el esquema real documentado arriba, con valores
+verosímiles para Madrid en un día de agosto (NO2 con pico de mañana, O3 con
+pico de tarde propio de una ola de calor, PM2.5/PM10 moderados), marcada
+`"is_mock": true` en cada registro. El test de flujo completo
+(`FetchForecastTests` en `ingesta/tests/test_cams_calidad_aire_madrid.py`)
+sí ejercita `fetch_forecast` de principio a fin (construcción de la
+petición, descarga vía `cdsapi.Client.retrieve`, descompresión del `.zip`,
+parseo del NetCDF y normalización) sustituyendo `cdsapi.Client` por un
+doble que sirve un NetCDF sintético con la estructura real del dataset
+(`ingesta/tests/fixtures/cams_forecast_sample.nc`), en vez de solo probar la
+normalización de forma aislada.
 
 ## Tests
 
