@@ -2,7 +2,7 @@
 id: 17
 slug: captura-agenda-eventos-madrid
 title: Captura de la agenda oficial de eventos culturales de Madrid (muestra)
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/017-captura-agenda-eventos-madrid
@@ -12,10 +12,10 @@ attempts: 6
 next_retry_at: '2026-08-13T22:13:26.074025+00:00'
 last_error: You've hit your session limit · resets 8:30pm (UTC)
 created_at: '2026-08-13T17:10:02+00:00'
-updated_at: '2026-08-13T22:21:04.837005+00:00'
+updated_at: '2026-08-13T22:22:11.684905+00:00'
 started_at: '2026-08-13T17:22:41.609905+00:00'
 submitted_at: '2026-08-13T22:21:04.836868+00:00'
-merged_at: null
+merged_at: '2026-08-13T22:21:08Z'
 ---
 
 ## Contexto
