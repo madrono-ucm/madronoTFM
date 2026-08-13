@@ -28,10 +28,11 @@ dato de **referencia** (el callejero y grafo viario de Madrid) que apenas
 varía. Por eso es, a propósito, una **carga batch puntual**, no solo una
 "muestra reducida por falta de infraestructura" — nunca necesitará
 programarse periódicamente, ni siquiera cuando exista infraestructura real.
-`barrios_distritos_madrid.py` (tarea 010) y `poi_madrid.py` (tarea 011) son
-del mismo tipo: los límites administrativos de barrios y distritos, y los
-puntos de interés turístico de Madrid, también son datos de referencia. Ver
-sus secciones más abajo.
+`barrios_distritos_madrid.py` (tarea 010), `poi_madrid.py` (tarea 011) y
+`calendario_laboral_madrid.py` (tarea 020) son del mismo tipo: los límites
+administrativos de barrios y distritos, los puntos de interés turístico de
+Madrid, y el calendario laboral y festivos de Madrid, también son datos de
+referencia. Ver sus secciones más abajo.
 
 `afluencia_lugares_madrid.py` (tarea 012) es también un caso especial, pero
 por un motivo distinto: no es un dato de referencia ni le falta
@@ -2475,6 +2476,120 @@ parseo del NetCDF y normalización) sustituyendo `cdsapi.Client` por un
 doble que sirve un NetCDF sintético con la estructura real del dataset
 (`ingesta/tests/fixtures/cams_forecast_sample.nc`), en vez de solo probar la
 normalización de forma aislada.
+
+## `capturas/calendario_laboral_madrid.py` — Calendario laboral y festivos de Madrid (muestra, carga puntual de referencia)
+
+Décimo productor de carga puntual de referencia (tras `callejero_madrid.py`,
+tarea 009; `barrios_distritos_madrid.py`, tarea 010; y `poi_madrid.py`, tarea
+011): el calendario laboral de Madrid apenas cambia (el Ayuntamiento lo
+publica de una vez con años completos de antelación), así que este módulo
+**no tiene modo `--interval-seconds` ni bucle**, igual que esas tres. No es
+una serie temporal ni necesita scheduling frecuente ni siquiera en
+producción.
+
+### Fuente elegida y por qué
+
+Dataset "Calendario laboral" (id `300082-0-calendario_laboral`) de
+[datos.madrid.es](https://datos.madrid.es/egob/catalogo/300082-0-calendario_laboral),
+recurso **CSV**
+(`.../resource/300082-1-calendario_laboral-csv/download/300082-1-calendario_laboral-csv.csv`).
+El dataset también publica ICS y XLS/PDF; se descartó el ICS porque solo
+lista los días **festivos** de un único año (verificado en vivo: 14 eventos
+para 2025), sin el resto del calendario (laborable/sábado/domingo) que pide
+esta tarea. El CSV, en cambio, trae **un registro por cada día natural desde
+el 01/01/2013 hasta el 31/12/2026** (5.112 filas, verificado en vivo), con
+la clasificación de jornada y, en los días festivos, su tipo y nombre.
+Accesible **sin ninguna autenticación ni API key**.
+
+### Dos problemas de calidad de datos de la propia fuente (documentados, no corregidos)
+
+Detectados en vivo recorriendo las 5.112 filas reales del CSV:
+
+1. **Falta el 29/02/2016**: 2016 fue bisiesto, pero el CSV salta del
+   28/02/2016 al 01/03/2016 (el único hueco en toda la serie 2013-2026, por
+   lo demás contigua día a día). No se rellena con un valor inventado.
+2. **Dos días marcados `festivo` con `Tipo de Festivo` vacío**
+   (`15/05/2016` y `02/05/2023`): `normalize_day_record` deja
+   `holiday_type`/`holiday_type_raw` a `None` en esos casos en vez de
+   inferir un valor.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.calendario_laboral_madrid
+```
+
+Sin autenticación. Descarga el CSV completo (2013-2026), lo normaliza
+entero y escribe solo el año más reciente disponible (o
+`MADRID_CALENDAR_SAMPLE_YEAR` si se fija) en
+`ingesta/capturas/samples/calendario_laboral_madrid_sample.json`.
+
+### Variables de entorno
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `MADRID_CALENDAR_CSV_URL` | URL del recurso CSV | recurso oficial de datos.madrid.es |
+| `MADRID_CALENDAR_SAMPLE_YEAR` | Año a incluir en la muestra | año más reciente presente en el CSV |
+| `HTTP_TIMEOUT_SECONDS` | Timeout de la petición HTTP | `30.0` |
+| `HTTP_MAX_RETRIES` | Reintentos de la petición | `3` |
+| `HTTP_RETRY_BACKOFF_SECONDS` | Backoff lineal entre reintentos | `2.0` |
+
+### Esquema normalizado (por registro, un registro = un día natural)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_calendario_laboral",
+  "date": "2026-01-01",
+  "weekday": "jueves",
+  "day_type": "festivo",
+  "is_holiday": true,
+  "holiday_type": "nacional",
+  "holiday_type_raw": "Festivo nacional",
+  "holiday_name": "Año Nuevo",
+  "ingested_at": "2026-08-13T22:56:10.507314+00:00"
+}
+```
+
+- `day_type`: `"laborable"` / `"festivo"` / `"sabado"` / `"domingo"`, tal
+  cual clasifica la fuente (los sábados y domingos no festivos no se marcan
+  `"laborable"`).
+- `is_holiday`: derivado (`day_type == "festivo"`) — el campo pensado para
+  que el modelo de afluencia trate un día festivo entre semana como un
+  domingo sin tener que interpretar `day_type` cada vez.
+- `holiday_type`: ámbito del festivo normalizado a `"nacional"` /
+  `"regional"` / `"local"` (mapeado desde `holiday_type_raw` vía
+  `HOLIDAY_TYPE_MAP`); `null` si el día no es festivo o si la fuente no trae
+  tipo (ver "Dos problemas de calidad de datos" arriba).
+- `holiday_type_raw`: texto original de la columna `Tipo de Festivo` de la
+  fuente (p.ej. distingue un "Traslado de la fiesta de la Comunidad de
+  Madrid" del festivo regional original, ambos mapeados a `"regional"` en
+  `holiday_type`); `null` en las mismas condiciones que `holiday_type`.
+- `holiday_name`: nombre del festivo (columna `Festividad`); `null` si no es
+  festivo, o si lo es pero la fuente no trae nombre (ocurre en algún
+  traslado, ver módulo).
+
+### Muestra: un único año completo (2026), no todo 2013-2026
+
+El dataset entero no es grande (5.112 filas, ~150 KB), pero se optó por
+commitear solo **un año natural completo** (2026, el más reciente
+disponible en el momento de esta captura — 365 días, con festivos de los
+tres ámbitos: nacional, regional y local) en vez del histórico 2013-2026
+completo: un año ya demuestra el esquema y cubre un ciclo completo de
+laborables/fines de semana/festivos, y es más legible como fixture que un
+JSON de 5.112 registros. Si una tarea futura necesita el histórico completo
+para el modelo (p.ej. para entrenar con años pasados), la carga real hacia
+S3/lakehouse no tiene ese límite — es una decisión solo del tamaño de la
+*muestra* commiteada, no de lo que la fuente ofrece.
+
+### Nota sobre la captura real en esta sesión (tarea 020)
+
+Se completó una **captura real en vivo**: la muestra commiteada en
+`ingesta/capturas/samples/calendario_laboral_madrid_sample.json` son los 365
+días reales de 2026, descargados ejecutando
+`python3 -m ingesta.capturas.calendario_laboral_madrid` tal cual contra el
+CSV público durante esta sesión — no son datos de ejemplo generados a mano.
+No hubo ningún bloqueo de acceso que documentar.
 
 ## Tests
 
