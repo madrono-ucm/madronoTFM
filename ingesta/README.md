@@ -15,9 +15,9 @@ a disco. El punto donde se conectaría un productor Kafka está marcado con
 `TODO(kafka)` en cada módulo. Las excepciones son `transporte_publico_madrid.py`
 (tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005),
 `calidad_aire_madrid.py` (tarea 006), `ruido_madrid.py` (tarea 007) y
-`meteorologia_madrid.py` (tarea 008) y `afluencia_lugares_madrid.py` (tarea
-012), que a propósito solo hacen capturas puntuales de muestra — ver sus
-secciones más abajo.
+`meteorologia_madrid.py` (tarea 008), `afluencia_lugares_madrid.py` (tarea
+012) y `aforos_peatones_bicicletas_madrid.py` (tarea 013), que a propósito
+solo hacen capturas puntuales de muestra — ver sus secciones más abajo.
 
 `callejero_madrid.py` (tarea 009) es un caso distinto de los anteriores: no
 es un dato que cambie con el tiempo (tráfico, calidad del aire...), sino un
@@ -1555,6 +1555,152 @@ un lugar, Plaza Mayor, con `live_pct`/`typical_by_hour` a `null`, para dejar
 constancia de ese caso realista). El código queda completo y listo para
 ejecutarse tal cual el día que alguien configure una `GOOGLE_MAPS_API_KEY`
 real.
+
+## `capturas/aforos_peatones_bicicletas_madrid.py` — Aforos de peatones y bicicletas de Madrid (muestra puntual)
+
+Descarga los conteos horarios de peatones y bicicletas de la red de
+estaciones permanentes de aforo del Ayuntamiento de Madrid (cámaras de
+visión artificial, tecnología Data From Sky) y los normaliza a un esquema
+mínimo y consistente. Complementa a `afluencia_lugares_madrid.py` (tarea
+012): donde esa fuente estima popularidad tipo Google para un lugar
+concreto vía una librería en zona gris académica, esta usa un **dato
+oficial del Ayuntamiento, sin ningún problema de condiciones de uso**
+(licencia CC BY 4.0) — conteos reales en puntos y calles fijas, no una
+estimación de un tercero.
+
+### Fuente elegida y formato real encontrado
+
+Dataset ["Aforos de peatones y bicicletas"](https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas)
+(id `300321-0-aforos-peatones-bicicletas`), publicado por la Dirección
+General de Planificación e Infraestructuras de Movilidad. Publica **un CSV
+independiente por año y por modo** (peatones / bicicletas), verificado en
+vivo vía la API CKAN del portal: 6 CSV de peatones y 6 de bicicletas
+(2019-2024). Las notas internas del propio dataset explican por qué solo
+hay un recurso por año en vez de uno por trimestre: se recopila
+trimestralmente pero se publica como un único CSV anual acumulado, que se
+sustituye trimestre a trimestre a medida que llegan datos nuevos.
+
+A fecha de esta captura (2026-08-13), pese a que los metadatos del dataset
+figuran como modificados el 2026-07-24, **el recurso más reciente sigue
+siendo el de 2024** (verificado en vivo: no existe ningún recurso 2025 ni
+2026), y ese propio CSV de 2024 solo cubre enero-junio (hasta el 30/06/2024
+inclusive) — es un dataset con un desfase de publicación notable. Se usan
+esos dos recursos (2024, uno por modo) como fuente por defecto; si en el
+futuro hay un recurso más reciente, basta con apuntar
+`MADRID_COUNTERS_PEDESTRIAN_URL`/`MADRID_COUNTERS_BICYCLE_URL` a la nueva
+URL, sin tocar código (mismo criterio que la nota equivalente sobre
+`callejero_madrid.py`, tarea 009).
+
+Cada CSV (~17 MB peatones, ~34 MB bicicletas para 2024) trae una fila por
+estación y hora, separador `;`, UTF-8 con BOM. Columnas relevantes:
+`fecha` (fecha+hora local `DD/MM/YYYY H:MM`; `hora` repite solo el tramo
+horario y se descarta por redundante), `identificador` (id de estación,
+siempre idéntico a `device_id`, verificado sobre el fichero completo),
+`peatones`/`bicicletas` (el conteo, según el fichero), `Número_distrito` y
+`distrito` (vacíos en algunas estaciones, p.ej. pedanías como Barajas),
+`direccion`, `observaciones_direccion`, y `latitude`/`longitude` en el
+mismo formato "agrupado por puntos" que `ruido_madrid.py` (p.ej.
+`"40.417.386"` → `40.417386`, no un decimal simple).
+
+**El fichero está agrupado por estación, no por fecha** (todo el histórico
+de una estación seguido, luego el de la siguiente) — a diferencia del CSV
+diario de `ruido_madrid.py`, que sí es cronológico de forma global. Por eso
+`parse_latest_day_rows` no puede limitarse a "cortar cuando cambia la
+fecha" (el patrón usado en `ruido_madrid.py`): hace un primer recorrido
+para hallar la fecha máxima real de todo el fichero y un segundo filtrado
+por esa fecha. Se verificó en vivo que las 30 estaciones de peatones y las
+53 de bicicletas comparten la misma última fecha (30/06/2024), así que el
+resultado sigue siendo "el último día, todas las estaciones".
+
+Ninguno de los dos CSV ofrece un recurso más pequeño ni filtrado remoto, así
+que hace falta traer cada CSV completo a memoria para elegir la muestra; en
+ningún momento se escribe el dataset completo en el disco de esta EC2, solo
+la muestra final pequeña. Se ha verificado en vivo que ambos recursos son
+accesibles **sin ninguna autenticación ni API key**.
+
+### Dos redes de estaciones distintas, no un único punto con dos columnas
+
+Peatones y bicicletas se miden en redes de estaciones físicamente distintas
+(30 puntos permanentes de peatones, id `PERM_PEA##`; 53 de bicicletas,
+`PERM_BICI##`), casi siempre en calles diferentes. Por eso cada registro
+normalizado trae ambos campos `pedestrian_count`/`bicycle_count` (tal como
+pedía el objetivo de la tarea), pero **solo uno de los dos está relleno por
+registro** (`mode` indica cuál) — forzar un cruce por ubicación/hora para
+rellenar ambos a la vez habría inventado una relación que la fuente no da.
+Ambos modos comparten el mismo esquema, así que un consumidor puede tratar
+la muestra como un único dataset y filtrar por `mode` si necesita solo uno.
+
+### Esto es una captura puntual de muestra
+
+Igual que las tareas 003-008, este módulo **no tiene modo
+`--interval-seconds` ni bucle**, y no escribe en la capa Bronze
+particionada: escribe una única muestra pequeña en un fichero fijo,
+pensado para commitearse como fixture.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.aforos_peatones_bicicletas_madrid
+```
+
+Escribe la muestra en
+`ingesta/capturas/samples/aforos_peatones_bicicletas_madrid_sample.json`
+(configurable con `--out`).
+
+### Variables de entorno
+
+| Variable                                  | Por defecto                                   | Descripción                                                              |
+| ------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------- |
+| `MADRID_COUNTERS_PEDESTRIAN_URL`          | CSV de peatones 2024 (ver `DEFAULT_PEDESTRIAN_URL`) | URL del recurso CSV de conteos de peatones.                         |
+| `MADRID_COUNTERS_BICYCLE_URL`             | CSV de bicicletas 2024 (ver `DEFAULT_BICYCLE_URL`)  | URL del recurso CSV de conteos de bicicletas.                       |
+| `MADRID_COUNTERS_SAMPLE_STATIONS`         | `3`                                             | Nº máximo de estaciones distintas por modo en la muestra.                |
+| `MADRID_COUNTERS_SAMPLE_HOURS_PER_STATION` | `6`                                             | Nº máximo de horas del último día disponible que se toman de cada estación. |
+| `HTTP_TIMEOUT_SECONDS`                    | `30`                                             | Timeout por request HTTP.                                                |
+| `HTTP_MAX_RETRIES`                        | `3`                                              | Reintentos ante fallo de red (backoff lineal simple).                    |
+| `HTTP_RETRY_BACKOFF_SECONDS`              | `2`                                              | Base del backoff entre reintentos (segundos * intento).                  |
+| `LOG_LEVEL`                                | `INFO`                                           | Nivel de logging (también configurable con `--log-level`).               |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_aforos_peatones_bicicletas",
+  "station_id": "PERM_PEA01_PM01",
+  "mode": "peatones",
+  "measured_at": "2024-06-29T22:00:00+00:00",
+  "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+  "pedestrian_count": 857,
+  "bicycle_count": null,
+  "district_code": "1",
+  "district": "Centro",
+  "address": "Calle Arenal esquina San Martín",
+  "address_notes": "Calle peatonal",
+  "location": {"lat": 40.417386, "lon": -3.707141, "srid": "EPSG:4326"}
+}
+```
+
+- `mode`: `"peatones"` o `"bicicletas"`, según la red de estaciones de
+  origen del registro.
+- `pedestrian_count`/`bicycle_count`: solo uno de los dos está relleno por
+  registro (ver "Dos redes de estaciones distintas" más arriba).
+- `district_code`/`district`: `null` en las estaciones sin distrito asignado
+  en la fuente (p.ej. pedanías como Barajas).
+- `location.lat`/`location.lon`: WGS84 decimal, convertidas desde el
+  formato "agrupado por puntos" de la fuente.
+
+### Nota sobre el acceso desde este entorno (tarea 013)
+
+Se completó una **captura real en vivo**: el fixture commiteado
+(`ingesta/capturas/samples/aforos_peatones_bicicletas_madrid_sample.json`)
+son 36 registros reales (3 estaciones de peatones × 6 horas + 3 estaciones
+de bicicletas × 6 horas, del último día disponible en cada CSV,
+30/06/2024), descargados ejecutando el script tal cual contra ambos
+recursos públicos durante esta sesión — no son datos de ejemplo generados a
+mano. Ambos CSV completos (~17 MB y ~34 MB) se descargaron en memoria
+porque la fuente no ofrece filtrado remoto ni un recurso más pequeño, pero
+en ningún momento se escribieron a disco; solo la muestra final de 36
+registros.
 
 ## Tests
 
