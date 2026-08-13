@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>es-aemet-CAP-2026-08-14-00-72-01</identifier>
+  <sender>avisos.cap@aemet.es</sender>
+  <sent>2026-08-14T07:45:00+02:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>es-ES</language>
+    <category>Met</category>
+    <event>Altas temperaturas</event>
+    <responseType>Monitor</responseType>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-08-14T13:00:00+02:00</onset>
+    <expires>2026-08-14T21:00:00+02:00</expires>
+    <senderName>AEMET. Agencia Estatal de Meteorología</senderName>
+    <headline>Aviso amarillo por altas temperaturas en Madrid</headline>
+    <description>Temperaturas máximas en torno a 38-39 grados en la Comunidad de Madrid.</description>
+    <web>https://www.aemet.es/es/eltiempo/prediccion/avisos</web>
+    <parameter>
+      <valueName>AEMET-Meteoalerta nivel</valueName>
+      <value>amarillo</value>
+    </parameter>
+    <parameter>
+      <valueName>AEMET-Meteoalerta fenomeno</valueName>
+      <value>Altas temperaturas</value>
+    </parameter>
+    <parameter>
+      <valueName>AEMET-Meteoalerta zona</valueName>
+      <value>Madrid</value>
+    </parameter>
+    <parameter>
+      <valueName>AEMET-Meteoalerta probabilidad</valueName>
+      <value>100%</value>
+    </parameter>
+    <area>
+      <areaDesc>Madrid</areaDesc>
+      <geocode>
+        <valueName>AEMET-Meteoalerta zona</valueName>
+        <value>id728001</value>
+      </geocode>
+    </area>
+  </info>
+  <info>
+    <language>en-GB</language>
+    <category>Met</category>
+    <event>High temperatures</event>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-08-14T13:00:00+02:00</onset>
+    <expires>2026-08-14T21:00:00+02:00</expires>
+    <headline>Yellow warning for high temperatures in Madrid</headline>
+    <description>Maximum temperatures around 38-39 degrees in the Community of Madrid.</description>
+    <parameter>
+      <valueName>AEMET-Meteoalerta nivel</valueName>
+      <value>amarillo</value>
+    </parameter>
+    <area>
+      <areaDesc>Madrid</areaDesc>
+    </area>
+  </info>
+</alert>
