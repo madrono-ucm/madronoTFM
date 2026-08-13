@@ -1,0 +1,110 @@
+{
+  "@graph": [
+    {
+      "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50369523-35-edicion-festival-cine-madrid.json",
+      "@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+      "id": "50369523",
+      "title": "35 edición del Festival de Cine de Madrid",
+      "description": "",
+      "free": 0,
+      "price": "",
+      "dtstart": "2026-09-15 00:00:00.0",
+      "dtend": "2026-09-20 23:59:00.0",
+      "time": "",
+      "excluded-days": "",
+      "recurrence": {
+        "days": "MO,TU,WE,TH,FR,SA,SU",
+        "frequency": "WEEKLY",
+        "interval": 1
+      },
+      "uid": "50369523",
+      "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=180ad70f882af910VgnVCM200000f921e388RCRD",
+      "event-location": "Cineteca Madrid",
+      "references": {
+        "@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=44264212372af910VgnVCM200000f921e388RCRD"
+      },
+      "relation": {
+        "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/6963310-cineteca-madrid.json"
+      },
+      "address": {
+        "district": {
+          "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela"
+        },
+        "area": {
+          "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela/Barrio/Chopera",
+          "locality": "MADRID",
+          "postal-code": "28045",
+          "street-address": "PLAZA LEGAZPI 8"
+        }
+      },
+      "location": {
+        "latitude": 40.39130985242181,
+        "longitude": -3.6958028442054074
+      },
+      "organization": {
+        "organization-name": "Cineteca Madrid",
+        "accesibility": "1"
+      }
+    },
+    {
+      "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50324218-actividades-infantiles.json",
+      "id": "50324218",
+      "title": "Actividades infantiles",
+      "description": "FIESTA DE INICIO DE CURSO DE CHAMBERÍ   Viernes 11 de septiembre   De 17 a 20 h.   Plaza de Chamberí      ¡Fiesta de Vuelta al Cole en Chamberí! El verano llega a su fin, pero… ¡la diversión continúa! Te invitamos a celebrar el inicio del nuevo curso con una tarde inolvidable en la Fiesta de Vuelta al Cole, un evento pensado con mucho cariño para los más pequeños de la casa y para disfrutar en familia.",
+      "free": 1,
+      "price": "",
+      "dtstart": "2026-09-11 17:00:00.0",
+      "dtend": "2026-09-11 23:59:00.0",
+      "time": "17:00",
+      "excluded-days": "",
+      "audience": "Niños",
+      "uid": "50324218",
+      "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=4f7b52a777e6e910VgnVCM100000891ecb1aRCRD",
+      "event-location": "",
+      "references": {
+        "@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=5ea6daba65bc4910VgnVCM1000001d4a900aRCRD"
+      }
+    },
+    {
+      "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50377946-ti-no-te-muerdo-loco.json",
+      "@type": "https://datos.madrid.es/egob/kos/actividades/TeatroPerformance/ComediaMonologo",
+      "id": "50377946",
+      "title": "A ti no te muerdo ni loco",
+      "description": "En 'A ti no te muerdo ni loco', Toño Balach presenta un monólogo lleno de humor, ironía y situaciones disparatadas, en el que el carismático Conde Menor se convierte en uno de los grandes protagonistas. Con un estilo cercano y una constante interacción con el público, el espectáculo ofrece un ritmo trepidante y un sinfín de carcajadas, convirtiéndose en una propuesta perfecta para disfrutar de una noche de comedia.",
+      "free": 1,
+      "price": "",
+      "dtstart": "2026-09-12 20:30:00.0",
+      "dtend": "2026-09-12 23:59:00.0",
+      "time": "20:30",
+      "excluded-days": "",
+      "uid": "50377946",
+      "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=ef1a56066dbdf910VgnVCM100000891ecb1aRCRD",
+      "event-location": "Jardín del Bulevar de Peña Gorbea",
+      "references": {
+        "@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=f51520c295abb710VgnVCM1000001d4a900aRCRD"
+      },
+      "relation": {
+        "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/5978923-jardin-bulevar-pena-gorbea.json"
+      },
+      "address": {
+        "district": {
+          "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/PuenteDeVallecas"
+        },
+        "area": {
+          "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/PuenteDeVallecas/Barrio/SanDiego",
+          "locality": "MADRID",
+          "postal-code": "28053",
+          "street-address": "CALLE PEÑA GORBEA 17"
+        }
+      },
+      "location": {
+        "latitude": 40.3957812018463,
+        "longitude": -3.6670346724676173
+      },
+      "organization": {
+        "organization-name": "Jardín del Bulevar de Peña Gorbea",
+        "accesibility": "2"
+      }
+    }
+  ]
+}

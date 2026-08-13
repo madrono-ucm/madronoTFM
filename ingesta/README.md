@@ -17,8 +17,9 @@ a disco. El punto donde se conectaría un productor Kafka está marcado con
 `calidad_aire_madrid.py` (tarea 006), `ruido_madrid.py` (tarea 007) y
 `meteorologia_madrid.py` (tarea 008), `afluencia_lugares_madrid.py` (tarea
 012), `aforos_peatones_bicicletas_madrid.py` (tarea 013) y
-`bluesky_menciones_madrid.py` (tarea 016), que a propósito solo hacen
-capturas puntuales de muestra — ver sus secciones más abajo.
+`bluesky_menciones_madrid.py` (tarea 016) y `agenda_eventos_madrid.py`
+(tarea 017), que a propósito solo hacen capturas puntuales de muestra — ver
+sus secciones más abajo.
 
 `callejero_madrid.py` (tarea 009) es un caso distinto de los anteriores: no
 es un dato que cambie con el tiempo (tráfico, calidad del aire...), sino un
@@ -1904,6 +1905,170 @@ inventados en vez de reales, a propósito: no hace falta preservar
 identificadores reales de terceros en un fixture de test, y evita dejar en
 el repositorio datos de personas reales vinculados a un texto concreto
 (aunque `normalize_post` los descarte de todas formas al normalizar).
+
+## `capturas/agenda_eventos_madrid.py` — Agenda de eventos culturales de Madrid (dos fuentes, muestra puntual)
+
+Complementa a `bluesky_menciones_madrid.py` (tarea 016, opiniones/menciones
+informales) con una fuente de mayor calidad para "eventos" en concreto: dato
+oficial y programado (conciertos, exposiciones, actividades en
+bibliotecas/centros culturales/juveniles/de mayores...), sin scraping ni
+zona gris, a diferencia de la tarea 012 y de intentar inferir eventos solo
+de redes sociales. Se investigaron y descartaron dos alternativas antes de
+esta tarea: Eventbrite (su búsqueda pública de eventos está descontinuada,
+la API solo gestiona eventos propios) y Foursquare (reseñas/tips detrás de
+un tier de pago).
+
+### Dos fuentes en un único dataset, con campo `source`
+
+- **`agenda_eventos_madrid_municipal`**: dataset "Actividades culturales y
+  de ocio municipal en los próximos 100 días" del portal de datos abiertos
+  del Ayuntamiento de Madrid (id `206974-0-agenda-eventos-culturales-100`,
+  licencia CC-BY 4.0). Cubre únicamente actividades en centros
+  **municipales**.
+- **`agenda_turismo_esmadrid`**: dataset "Agenda de la ciudad de Madrid" (id
+  `300028-0-agenda-turismo`), gestionado por Madrid Destino (`esmadrid.com`,
+  el portal de promoción turística de la ciudad). Se investigó, tal como
+  pedía el enunciado de la tarea, si aportaba cobertura relevante que la
+  agenda municipal no tiene: **sí** — conciertos y espectáculos en
+  salas/teatros privados (verificado en vivo: p.ej. "Zucchero (Madrid Live
+  Experience 2026)", "Real Madrid - Ajax Vrouwen (UEFA Women's Champions
+  League)"), ferias, exposiciones y grandes eventos de ciudad que no se
+  celebran en centros municipales. Por eso se decidió **incluirla en esta
+  misma tarea**, no dejarla anotada para el futuro: el esfuerzo extra (un
+  segundo `fetch_*`/`normalize_*` que parsea XML) fue moderado y el esquema
+  normalizado absorbe ambas fuentes con los mismos campos.
+
+Ambas se combinan en un único fichero de muestra con el campo `source` para
+distinguirlas (mismo patrón que `mode` en `bluesky_menciones_madrid.py`,
+tarea 016), no en dos ficheros separados: quien consuma la agenda para
+responder "¿qué hay hoy en Malasaña?" quiere ambas fuentes juntas.
+
+**Licencia de `agenda_turismo_esmadrid`**: `package_show` la marca como
+`"isopen": false` (licencia `madrid-destino`, distinta de la CC-BY del
+dataset municipal). Se leyó la licencia completa (consultada en vivo,
+<https://datos.madrid.es/pages/condiciones-reutilizacion-informacion-madrid-destino>):
+permite expresamente la reutilización de "documentos textuales y datos"
+para fines comerciales y no comerciales, pero **limita la reutilización de
+fotografías y material gráfico**. Por eso `normalize_esmadrid_event` no
+incluye ninguna URL de imagen del bloque `<multimedia>` del XML de origen,
+aunque el dato esté disponible — solo texto/geolocalización/fechas.
+
+### Fuente elegida para cada dataset, y por qué
+
+- **Municipal**: el endpoint CKAN `datastore_search`
+  (`https://datos.madrid.es/api/action/datastore_search?resource_id=...`)
+  que sugería el enunciado de la tarea **respondió con una página HTML de
+  mantenimiento** ("Ayuntamiento de Madrid - En mantenimiento", verificado
+  en vivo durante esta sesión) en vez de JSON. En su lugar se usa
+  directamente el recurso JSON-LD del propio catálogo
+  (`https://datos.madrid.es/egob/catalogo/206974-0-agenda-eventos-culturales-100.json`),
+  que respondió con normalidad (669 eventos en el momento de la captura) y
+  es, de hecho, más simple de consumir que CKAN: una lista `@graph` de
+  objetos ya tipados, sin paginación que gestionar para una muestra pequeña.
+- **esMadrid**: el dataset solo ofrece recursos XML (uno por idioma). Se usa
+  el recurso en español (`https://www.esmadrid.com/opendata/agenda_v1_es.xml`).
+  Este host **devuelve `403 Forbidden` (bloqueo de WAF) con el User-Agent
+  por defecto de `requests`**, verificado en vivo durante esta sesión; con
+  un User-Agent de navegador responde `200` con normalidad. El módulo envía
+  un User-Agent de navegador en ambas peticiones (a `datos.madrid.es` y a
+  `esmadrid.com`) por simplicidad, sin efecto adverso en el primero.
+
+### Simplificación deliberada: solo el primer rango de fechas de esMadrid
+
+El dato municipal ya viene con un único `dtstart`/`dtend` por evento. El de
+esMadrid modela recurrencia real (`<fechas><rango>` con `inicio`/`fin`/
+`dias`, más `<exclusion>`/`<inclusion>` para sesiones sueltas que se saltan
+o añaden al patrón). Modelar esa recurrencia completa excede el alcance de
+"esquema mínimo y consistente" de esta tarea: `normalize_esmadrid_event`
+solo toma el `inicio`/`fin` del primer `<rango>` como `start_datetime`/
+`end_datetime` (el periodo en que el evento está activo, sin desglosar cada
+sesión concreta) y conserva el texto libre de `<item name="Horario">` en
+`schedule_text`, para que quien lo necesite pueda leer el patrón exacto. Si
+una tarea futura necesita fechas de sesión individuales exactas, debería
+parsear ese texto o `dias`/`exclusion`/`inclusion` explícitamente.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.agenda_eventos_madrid
+```
+
+Sin autenticación. Escribe la muestra combinada (por defecto 5 eventos de
+cada fuente) en `ingesta/capturas/samples/agenda_eventos_madrid_sample.json`.
+
+### Variables de entorno
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `AGENDA_MADRID_MUNICIPAL_URL` | URL del recurso JSON-LD municipal | recurso oficial de datos.madrid.es |
+| `AGENDA_MADRID_ESMADRID_URL` | URL del XML de esMadrid (español) | recurso oficial de esmadrid.com |
+| `AGENDA_MADRID_MUNICIPAL_SAMPLE_SIZE` | Nº de eventos municipales en la muestra | `5` |
+| `AGENDA_MADRID_ESMADRID_SAMPLE_SIZE` | Nº de eventos de esMadrid en la muestra | `5` |
+| `AGENDA_MADRID_DESCRIPTION_MAX_LENGTH` | Longitud máxima de `description` (recorte con `...`) | `400` |
+| `HTTP_TIMEOUT_SECONDS` | Timeout de cada petición HTTP | `30.0` |
+| `HTTP_MAX_RETRIES` | Reintentos por petición | `3` |
+| `HTTP_RETRY_BACKOFF_SECONDS` | Backoff lineal entre reintentos | `2.0` |
+
+### Esquema normalizado (por registro, común a ambas fuentes)
+
+```json
+{
+  "schema_version": 1,
+  "source": "agenda_eventos_madrid_municipal",
+  "event_id": "50369523",
+  "title": "35 edición del Festival de Cine de Madrid",
+  "description": "...",
+  "category": "ProgramacionDestacadaAgendaCultura",
+  "start_datetime": "2026-09-15T00:00:00",
+  "end_datetime": "2026-09-20T23:59:00",
+  "schedule_text": null,
+  "free": false,
+  "price_info": null,
+  "location": {
+    "venue_name": "Cineteca Madrid",
+    "address": "PLAZA LEGAZPI 8",
+    "district": "Arganzuela",
+    "neighborhood": "Chopera",
+    "postal_code": "28045",
+    "lat": 40.39130985242181,
+    "lon": -3.6958028442054074,
+    "srid": "EPSG:4326"
+  },
+  "url": "http://www.madrid.es/...",
+  "captured_at": "2026-08-13T22:18:01.293752+00:00"
+}
+```
+
+- `source`: `"agenda_eventos_madrid_municipal"` o `"agenda_turismo_esmadrid"`.
+- `category`: para el dataset municipal, el último segmento del `@type`
+  (URI del vocabulario de datos.madrid.es, p.ej.
+  `.../TeatroPerformance/ComediaMonologo` -> `"ComediaMonologo"`); para
+  esMadrid, la ruta `"Tipo > Categoría > Subcategoría"` unida con `" > "`
+  (p.ej. `"Eventos > Teatro y danza > Humor"`). `null` si la fuente no la da
+  (ocurre en el dataset municipal, no todos los eventos tienen `@type`).
+- `start_datetime`/`end_datetime`: ISO-8601 sin zona horaria (el dato de
+  origen no la especifica). Para esMadrid, solo fecha (`"YYYY-MM-DD"`, sin
+  hora) — el horario real va en `schedule_text` como texto libre.
+- `free`: `true`/`false` para el dataset municipal (campo `free` de origen);
+  siempre `null` para esMadrid, que no lo distingue de forma estructurada
+  (solo texto libre en `price_info`).
+- `location.district`/`location.neighborhood`: solo el dataset municipal los
+  da (extraídos del último segmento de las URIs `address.district`/
+  `address.area` del vocabulario administrativo de Madrid); siempre `null`
+  para esMadrid.
+- `location.srid`: `"EPSG:4326"` si hay coordenadas, `null` si no.
+
+### Nota sobre la captura real en esta sesión (tarea 017)
+
+Se completó una **captura real en vivo** de ambas fuentes: el fixture
+commiteado en `ingesta/capturas/samples/agenda_eventos_madrid_sample.json`
+son 10 eventos reales (5 de datos.madrid.es, 5 de esmadrid.com),
+descargados ejecutando el script tal cual durante esta sesión — no son
+datos de ejemplo generados a mano. Ambas fuentes respondieron con
+normalidad una vez resuelto el bloqueo de WAF de esmadrid.com descrito
+arriba; no hubo ningún problema de acceso persistente que documentar (a
+diferencia de otras tareas de este proyecto con fuentes bloqueadas o sin
+credenciales disponibles en este entorno).
 
 ## Tests
 
