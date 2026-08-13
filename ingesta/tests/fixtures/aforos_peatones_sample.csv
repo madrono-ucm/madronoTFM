@@ -1,0 +1,5 @@
+fecha;hora;identificador;peatones;device_id;Número_distrito;distrito;direccion;observaciones_direccion;latitude;longitude
+29/06/2024 23:00;23:00;PERM_PEA01_PM01;861;PERM_PEA01_PM01;1;Centro;Calle Arenal esquina San Martín;Calle peatonal;40.417.386;-3.707.141
+30/06/2024 0:00;0:00;PERM_PEA01_PM01;857;PERM_PEA01_PM01;1;Centro;Calle Arenal esquina San Martín;Calle peatonal;40.417.386;-3.707.141
+30/06/2024 1:00;1:00;PERM_PEA01_PM01;450;PERM_PEA01_PM01;1;Centro;Calle Arenal esquina San Martín;Calle peatonal;40.417.386;-3.707.141
+30/06/2024 0:00;0:00;PERM_PEA21_PM01;2;PERM_PEA21_PM01;;;Fuencarral - C.  Nuestra Señora de Valverde  61;;40.494.945;-3.687.718
