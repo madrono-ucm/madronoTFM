@@ -2,7 +2,7 @@
 id: 18
 slug: captura-aemet-prevision-avisos
 title: Captura de previsión meteorológica y avisos de AEMET (muestra)
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/018-captura-aemet-prevision-avisos
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-13T17:23:43+00:00'
-updated_at: '2026-08-13T22:34:37.290675+00:00'
+updated_at: '2026-08-13T22:35:44.484831+00:00'
 started_at: '2026-08-13T22:23:14.065325+00:00'
 submitted_at: '2026-08-13T22:34:37.290544+00:00'
-merged_at: null
+merged_at: '2026-08-13T22:34:41Z'
 ---
 
 ## Contexto
