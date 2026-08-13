@@ -1,19 +1,19 @@
 ---
 id: 14
 slug: bootstrap-terraform-state-y-plan
-title: "Bootstrap del backend de Terraform y plan de la infraestructura AWS"
-status: pending
+title: Bootstrap del backend de Terraform y plan de la infraestructura AWS
+status: in_progress
 force: true
 allow_infra_apply: true
-branch: null
+branch: task/014-bootstrap-terraform-state-y-plan
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-13T15:38:51+00:00"
-updated_at: "2026-08-13T15:38:51+00:00"
-started_at: null
+created_at: '2026-08-13T15:38:51+00:00'
+updated_at: '2026-08-13T15:50:28.878278+00:00'
+started_at: '2026-08-13T15:50:28.878255+00:00'
 submitted_at: null
 merged_at: null
 ---
