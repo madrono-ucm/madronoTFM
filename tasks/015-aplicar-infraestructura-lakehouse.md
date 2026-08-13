@@ -1,19 +1,19 @@
 ---
 id: 15
 slug: aplicar-infraestructura-lakehouse
-title: "Aplicar la infraestructura AWS del lakehouse (terraform apply)"
-status: pending
+title: Aplicar la infraestructura AWS del lakehouse (terraform apply)
+status: in_progress
 force: true
 allow_infra_apply: true
-branch: null
+branch: task/015-aplicar-infraestructura-lakehouse
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-13T15:56:54+00:00"
-updated_at: "2026-08-13T15:56:54+00:00"
-started_at: null
+created_at: '2026-08-13T15:56:54+00:00'
+updated_at: '2026-08-13T16:00:58.505370+00:00'
+started_at: '2026-08-13T16:00:58.505346+00:00'
 submitted_at: null
 merged_at: null
 ---
