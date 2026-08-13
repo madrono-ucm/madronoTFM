@@ -9,7 +9,7 @@ branch: task/017-captura-agenda-eventos-madrid
 pr_number: null
 pr_url: null
 attempts: 6
-next_retry_at: '2026-08-13T23:25:11.339591+00:00'
+next_retry_at: '2026-08-13T22:13:26.074025+00:00'
 last_error: You've hit your session limit · resets 8:30pm (UTC)
 created_at: '2026-08-13T17:10:02+00:00'
 updated_at: '2026-08-13T20:15:47.333110+00:00'
