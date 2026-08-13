@@ -16,8 +16,9 @@ a disco. El punto donde se conectaría un productor Kafka está marcado con
 (tarea 003), `bicimad.py` (tarea 004), `aparcamientos_madrid.py` (tarea 005),
 `calidad_aire_madrid.py` (tarea 006), `ruido_madrid.py` (tarea 007) y
 `meteorologia_madrid.py` (tarea 008), `afluencia_lugares_madrid.py` (tarea
-012) y `aforos_peatones_bicicletas_madrid.py` (tarea 013), que a propósito
-solo hacen capturas puntuales de muestra — ver sus secciones más abajo.
+012), `aforos_peatones_bicicletas_madrid.py` (tarea 013) y
+`bluesky_menciones_madrid.py` (tarea 016), que a propósito solo hacen
+capturas puntuales de muestra — ver sus secciones más abajo.
 
 `callejero_madrid.py` (tarea 009) es un caso distinto de los anteriores: no
 es un dato que cambie con el tiempo (tráfico, calidad del aire...), sino un
@@ -1701,6 +1702,208 @@ mano. Ambos CSV completos (~17 MB y ~34 MB) se descargaron en memoria
 porque la fuente no ofrece filtrado remoto ni un recurso más pequeño, pero
 en ningún momento se escribieron a disco; solo la muestra final de 36
 registros.
+
+## `capturas/bluesky_menciones_madrid.py` — Menciones de lugares de Madrid en Bluesky (dos modos, muestra puntual)
+
+Captura menciones/opiniones públicas recientes sobre lugares de Madrid en
+[Bluesky](https://bsky.app), como señal de "qué se dice ahora mismo (o en la
+última hora/día) de un sitio" para el asistente conversacional (ver
+`documents/Memoria_TFM FV.docx`, apartado 6.7: «¿voy al centro a las nueve
+de la noche del viernes?»).
+
+### Por qué Bluesky (y no Twitter/X, Mastodon o datos de operadora)
+
+Twitter/X se descartó por no tener API de lectura gratuita viable. Se
+investigaron y descartaron dos alternativas antes de elegir Bluesky:
+
+- **Mastodon/Fediverso**: sin búsqueda unificada (cada instancia es un
+  servidor independiente), muy fragmentado, y con mucha menor cobertura en
+  español que Bluesky para contenido sobre Madrid.
+- **CAMARA/Telefónica Population Density Data**: API de operadora móvil
+  todavía "under review" en el catálogo CAMARA, exige un partner comercial y
+  consentimiento por usuario final — no es autoservicio, incompatible con
+  un productor de captura autónomo como los de este proyecto.
+
+**Bluesky** tiene una API pública de lectura
+(`app.bsky.feed.searchPosts`), gratis, **sin API key ni registro**, sin
+límite de rate documentado para lectura pública — la fuente elegida.
+
+### Dos modos, un mismo esquema normalizado
+
+- **`search_place(config, query, tags=None, lang="es", since=None, ...)`**:
+  búsqueda puntual por lugar/hashtag concretos (`mode="bajo_demanda"` en el
+  registro resultante). Pensada para que el **asistente conversacional** la
+  invoque en tiempo de consulta cuando no tenga información de un lugar que
+  el usuario menciona — esta tarea implementa la función reutilizable, **no
+  la despliega como servicio**.
+- **`search_district_sweep(config, districts, lang="es", since=None, ...)`**:
+  recorre una lista de distritos de Madrid con una búsqueda por cada uno,
+  más una tanda de búsquedas genéricas de "eventos Madrid" con términos
+  positivos y negativos (`concierto`, `fiesta`, `recomendación`, `queja`,
+  `aglomeración`, `incidencia` — `mode="distrito_sweep"`). Pensada para un
+  **productor programado cada hora** (cuando exista scheduling) que nutra
+  una serie histórica agregada por zona y hora para entrenamiento del
+  modelo, no para responder una pregunta puntual del asistente.
+
+Los 21 distritos por defecto (`DEFAULT_DISTRICTS`) se obtuvieron en vivo del
+mismo servicio ArcGIS que usa `barrios_distritos_madrid.py` (tarea 010),
+para no adivinar la grafía oficial (p.ej. `"Fuencarral - El Pardo"`, con
+espacios alrededor del guion).
+
+Ambas funciones reciben `config: CaptureConfig` como primer argumento (igual
+que `resolve_place_id`/`fetch_populartimes` en `afluencia_lugares_madrid.py`),
+para mantener el mismo patrón que el resto de `ingesta/capturas/` en vez de
+leer variables de entorno dentro de la propia función.
+
+### Privacidad: sin identificadores de autor
+
+La memoria del proyecto (apartado 6.8) exige que «las señales de discurso
+social se tratan de forma agregada, sin almacenar identificadores». Por eso
+`normalize_post` **descarta explícitamente** todo el bloque `author` de la
+respuesta (`did`, `handle`, `displayName`, `avatar`...) y también `uri`/`cid`
+del post — el `uri` de Bluesky (`at://did:plc:.../app.bsky.feed.post/...`)
+**incluye el DID del autor**, así que conservarlo equivaldría casi a
+conservar el identificador directamente.
+
+Se decidió conservar el **texto literal** del post (`text`), no un hash: es
+contenido ya público (visible para cualquiera en la app), y es la señal que
+hará falta para una futura clasificación de sentimiento en Silver/Gold
+(fuera del alcance de esta tarea). Lo que se excluye es todo lo que
+identifique a quién lo escribió, no el contenido en sí. Se añade
+`post_hash` (SHA-256 truncado a 16 caracteres del texto) como clave de
+deduplicación barata entre términos de búsqueda solapados (p.ej. un mismo
+post puede aparecer tanto en la búsqueda de un distrito como en la de un
+término de evento), sin depender del `uri` real del post.
+
+### Sin clasificación de sentimiento
+
+Este módulo solo captura y normaliza: no etiqueta "bueno"/"malo" ni hace
+ningún análisis de sentimiento — es una transformación de Silver/Gold, fuera
+de alcance de un productor de Bronze (mismo criterio que el resto de
+`ingesta/capturas/`).
+
+### Host real usado: `api.bsky.app`, no `public.api.bsky.app`
+
+El host documentado por el AT Protocol para lectura pública sin
+autenticación es `https://public.api.bsky.app`. Se verificó en vivo desde
+este entorno que **ese host bloquea con un 403 (WAF de BunnyCDN, página
+HTML, no JSON) específicamente la llamada `app.bsky.feed.searchPosts`**,
+mientras que otros métodos de solo lectura en el mismo host
+(`app.bsky.actor.searchActors`, `app.bsky.unspecced.getPopularFeedGenerators`,
+`/xrpc/_health`) responden `200` con normalidad. El bloqueo persistió
+cambiando `User-Agent` y añadiendo cabeceras de navegador (`Accept`,
+`Origin`, `Referer`) — apunta a un bloqueo específico de esa ruta para el
+rango de IP de esta EC2 (probablemente porque `searchPosts` es el endpoint
+más costoso de servir y el más atractivo para scraping masivo). En cambio,
+`https://api.bsky.app` — el mismo host que usa la propia web `bsky.app` para
+sus peticiones al AppView — expone la **misma operación, con la misma
+respuesta**, y sí responde `200` desde este entorno, verificado en vivo
+repetidamente durante esta sesión. Por eso este módulo usa
+`https://api.bsky.app` como valor por defecto de `BLUESKY_API_BASE_URL`,
+configurable por si en otro entorno (p.ej. la máquina donde corra el
+asistente en producción) `public.api.bsky.app` sí funciona.
+
+### Sin autenticación
+
+No requiere ninguna variable de entorno de credenciales: `searchPosts` es un
+endpoint de lectura pública sin API key ni registro.
+
+### Sin despliegue: ni cron, ni bucle, ni servicio
+
+Igual que las tareas 003-008, 012 y 013, este módulo **no tiene modo
+`--interval-seconds` ni bucle**. A diferencia de esas tareas, aquí ninguno
+de los dos modos se despliega tampoco como lo que serían en producción
+(cron/scheduler para `search_district_sweep`, servicio del asistente para
+`search_place`): esta tarea solo implementa y prueba ambas funciones, y
+genera una muestra puntual (`capture_sample`, invocado por `main()`)
+ejecutando ambos modos una vez.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.bluesky_menciones_madrid
+```
+
+Escribe la muestra en
+`ingesta/capturas/samples/bluesky_menciones_madrid_sample.json`
+(configurable con `--out`). No requiere ninguna variable de entorno de
+credenciales.
+
+### Variables de entorno
+
+| Variable                     | Por defecto                       | Descripción                                                                 |
+| ------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------ |
+| `BLUESKY_API_BASE_URL`        | `https://api.bsky.app`              | Host del AppView de Bluesky (ver nota sobre `public.api.bsky.app` arriba).     |
+| `BLUESKY_LANG`                 | `es`                                 | Idioma (`lang`) usado en las búsquedas de la muestra.                         |
+| `BLUESKY_LIMIT_PER_QUERY`      | `5`                                  | Nº máximo de posts por búsqueda individual (`limit` de la API).               |
+| `BLUESKY_SAMPLE_PLACES`        | `Puerta del Sol\|Parque del Retiro\|Malasaña` | Lugares de ejemplo para el modo `search_place` (separados por `\|`).          |
+| `BLUESKY_SAMPLE_DISTRICTS`     | 3 primeros de `DEFAULT_DISTRICTS`   | Distritos de ejemplo para `search_district_sweep` (separados por `\|`).       |
+| `BLUESKY_EVENT_TERMS`          | 2 primeros de `DEFAULT_EVENT_TERMS` | Términos de eventos de ejemplo para `search_district_sweep` (separados por `\|`). |
+| `HTTP_TIMEOUT_SECONDS`        | `15`                                  | Timeout por request HTTP.                                                      |
+| `HTTP_MAX_RETRIES`            | `3`                                   | Reintentos ante fallo de red (backoff lineal simple).                          |
+| `HTTP_RETRY_BACKOFF_SECONDS`  | `2`                                   | Base del backoff entre reintentos (segundos * intento).                        |
+| `LOG_LEVEL`                   | `INFO`                                | Nivel de logging (también configurable con `--log-level`).                     |
+
+Los valores por defecto de `BLUESKY_SAMPLE_DISTRICTS`/`BLUESKY_EVENT_TERMS`
+se recortan a 3/2 elementos (de los 21 distritos y 6 términos completos que
+sí usaría un barrido real) precisamente para que la muestra de esta tarea
+sea pequeña; un futuro productor programado real pasaría la lista completa.
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "bluesky_menciones_madrid",
+  "mode": "bajo_demanda",
+  "match_term": "Puerta del Sol",
+  "post_hash": "ab508899abd85c6d",
+  "text": "📣No podemos seguir tolerando esta barbarie financiada...",
+  "lang": "es",
+  "created_at": "2026-08-13T11:26:39.707Z",
+  "indexed_at": "2026-08-13T11:26:41.312Z",
+  "like_count": 1,
+  "repost_count": 0,
+  "reply_count": 1,
+  "quote_count": 0,
+  "captured_at": "2026-08-13T17:16:57.338443+00:00"
+}
+```
+
+- `mode`: `"bajo_demanda"` (de `search_place`) o `"distrito_sweep"` (de
+  `search_district_sweep`) — un único dataset con ambos modos mezclados,
+  igual que el patrón ya usado en `aforos_peatones_bicicletas_madrid.py`
+  (tarea 013, campo `mode` análogo); quien solo necesite un modo filtra por
+  este campo.
+- `match_term`: el lugar/hashtag (`search_place`) o el distrito/término de
+  evento con el prefijo `"eventos:"` (`search_district_sweep`) que produjo
+  el resultado — no hay ninguna clasificación geográfica más fina que esto.
+- `text`/`post_hash`: ver sección de privacidad arriba.
+- `created_at`: fecha de creación del post según su propio registro AT
+  Protocol (tal cual la publica Bluesky, con milisegundos y `Z`).
+  `indexed_at`: cuándo lo indexó el AppView de Bluesky. `captured_at`:
+  cuándo lo capturó este productor (UTC, ISO-8601).
+- `like_count`/`repost_count`/`reply_count`/`quote_count`: contadores
+  públicos del post en el momento de la captura.
+- No hay `location`/coordenadas: Bluesky no da geolocalización de los
+  posts; la "ubicación" de un registro es puramente textual (`match_term`).
+
+### Nota sobre la captura real en esta sesión (tarea 016)
+
+Se completó una **captura real en vivo** con ambos modos: el fixture
+commiteado en
+`ingesta/capturas/samples/bluesky_menciones_madrid_sample.json` son 40
+posts reales (15 de `search_place` sobre "Puerta del Sol", "Parque del
+Retiro" y "Malasaña"; 25 de `search_district_sweep` sobre los distritos
+Centro/Arganzuela/Retiro y los términos de eventos "concierto"/"fiesta"),
+descargados ejecutando el script tal cual contra `https://api.bsky.app`
+durante esta sesión — no son datos de ejemplo generados a mano. El fixture
+de test (`ingesta/tests/fixtures/bluesky_search_posts_sample.json`, usado
+solo para probar `normalize_post` sin red) sí usa autores/`uri`/`cid`
+inventados en vez de reales, a propósito: no hace falta preservar
+identificadores reales de terceros en un fixture de test, y evita dejar en
+el repositorio datos de personas reales vinculados a un texto concreto
+(aunque `normalize_post` los descarte de todas formas al normalizar).
 
 ## Tests
 
