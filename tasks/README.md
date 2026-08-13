@@ -36,7 +36,8 @@ slug: slug-descriptivo
 title: "Título legible de la tarea"
 status: pending           # pending | in_progress | in_review | blocked | failed | done
 force: false               # true = fusiona el PR sin revisión humana (ver más abajo)
-branch: null                 # rama creada por el demonio, p.ej. task/001-slug-descriptivo
+allow_infra_apply: false     # true = EXCEPCIÓN: permite terraform apply / aws create reales (ver más abajo)
+branch: null                   # rama creada por el demonio, p.ej. task/001-slug-descriptivo
 pr_number: null
 pr_url: null
 attempts: 0                 # nº de intentos fallidos registrados (se usa para el backoff)
@@ -106,6 +107,23 @@ del demonio ya le prohíbe a `claude` ejecutar `terraform apply`/`destroy` o cua
 comando `aws` con efectos reales — solo debe dejar el código escrito y documentado. La
 aplicación real de esos cambios (y las credenciales para hacerlo) es siempre un paso
 manual, fuera de este pipeline.
+
+### `allow_infra_apply` — la única excepción a lo anterior
+
+Con `allow_infra_apply: true`, **esa tarea concreta** sí puede ejecutar comandos
+`aws`/`terraform` con efectos reales (crear recursos, `terraform apply`...), limitado
+estrictamente a lo que su propio prompt describa. Es una vía de escape deliberada y
+acotada: cámbialo con conocimiento de causa, tarea por tarea, nunca como ajuste
+global — el resto de tareas (presentes y futuras) siguen bloqueadas por defecto.
+
+Esto significa que, a diferencia de todo lo demás en este pipeline, la
+infraestructura real puede crearse **sin que ningún humano la revise antes**: el gate
+de PR solo protege el código que llega a `main`, no una acción que ya ocurrió en AWS
+antes de que el PR exista. Si vas a usarlo, la única forma real de mantener un punto
+de control humano es partir el trabajo en varias tareas secuenciales (p.ej. una que
+solo prepare y muestre un `terraform plan`, sin aplicar nada, y **otra tarea
+posterior, creada aparte y solo después de revisar ese plan**, que ya sí aplique) —
+nunca crear de una vez la tarea que aplica antes de haber visto qué se aplicaría.
 
 Del mismo modo, para tareas de captura/ingesta de datos: esta EC2 tiene disco muy
 limitado, así que el system prompt también prohíbe dejar nada programado (cron,

@@ -27,6 +27,7 @@ FRONT_MATTER_FIELDS = (
     "title",
     "status",
     "force",
+    "allow_infra_apply",
     "branch",
     "pr_number",
     "pr_url",
@@ -60,6 +61,7 @@ class Task:
     title: str
     status: str = STATUS_PENDING
     force: bool = False
+    allow_infra_apply: bool = False
     branch: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None

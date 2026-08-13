@@ -4,6 +4,7 @@ slug: slug-descriptivo
 title: "Título legible de la tarea"
 status: pending
 force: false  # true = el PR se fusiona automáticamente, sin revisión humana
+allow_infra_apply: false  # true = EXCEPCIÓN: permite terraform apply / aws create reales
 branch: null
 pr_number: null
 pr_url: null
