@@ -2,19 +2,19 @@
 id: 20
 slug: captura-calendario-laboral-madrid
 title: Captura del calendario laboral y festivos de Madrid (carga puntual)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/020-captura-calendario-laboral-madrid
-pr_number: null
-pr_url: null
+pr_number: 67
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/67
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-13T17:23:43+00:00'
-updated_at: '2026-08-13T22:52:32.321552+00:00'
+updated_at: '2026-08-13T22:59:05.220844+00:00'
 started_at: '2026-08-13T22:52:32.321530+00:00'
-submitted_at: null
+submitted_at: '2026-08-13T22:59:05.220691+00:00'
 merged_at: null
 ---
 
