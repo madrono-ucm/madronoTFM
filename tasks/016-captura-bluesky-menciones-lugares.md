@@ -1,19 +1,19 @@
 ---
 id: 16
 slug: captura-bluesky-menciones-lugares
-title: "Captura de menciones/opiniones de Bluesky sobre lugares de Madrid (muestra)"
-status: pending
+title: Captura de menciones/opiniones de Bluesky sobre lugares de Madrid (muestra)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/016-captura-bluesky-menciones-lugares
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-13T17:10:02+00:00"
-updated_at: "2026-08-13T17:10:02+00:00"
-started_at: null
+created_at: '2026-08-13T17:10:02+00:00'
+updated_at: '2026-08-13T17:12:05.344969+00:00'
+started_at: '2026-08-13T17:12:05.344938+00:00'
 submitted_at: null
 merged_at: null
 ---
