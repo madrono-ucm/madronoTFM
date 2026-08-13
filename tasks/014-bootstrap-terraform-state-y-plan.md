@@ -2,19 +2,19 @@
 id: 14
 slug: bootstrap-terraform-state-y-plan
 title: Bootstrap del backend de Terraform y plan de la infraestructura AWS
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: true
 branch: task/014-bootstrap-terraform-state-y-plan
-pr_number: null
-pr_url: null
+pr_number: 61
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/61
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-13T15:38:51+00:00'
-updated_at: '2026-08-13T15:50:28.878278+00:00'
+updated_at: '2026-08-13T15:53:46.219963+00:00'
 started_at: '2026-08-13T15:50:28.878255+00:00'
-submitted_at: null
+submitted_at: '2026-08-13T15:53:46.219804+00:00'
 merged_at: null
 ---
 
