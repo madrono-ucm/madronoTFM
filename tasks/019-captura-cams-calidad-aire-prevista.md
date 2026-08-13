@@ -2,19 +2,19 @@
 id: 19
 slug: captura-cams-calidad-aire-prevista
 title: Captura de calidad del aire prevista y validada (Copernicus CAMS) (muestra)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/019-captura-cams-calidad-aire-prevista
-pr_number: null
-pr_url: null
+pr_number: 66
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/66
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-13T17:23:43+00:00'
-updated_at: '2026-08-13T22:36:46.935202+00:00'
+updated_at: '2026-08-13T22:50:23.808559+00:00'
 started_at: '2026-08-13T22:36:46.935180+00:00'
-submitted_at: null
+submitted_at: '2026-08-13T22:50:23.808418+00:00'
 merged_at: null
 ---
 
