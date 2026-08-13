@@ -2,19 +2,19 @@
 id: 18
 slug: captura-aemet-prevision-avisos
 title: Captura de previsión meteorológica y avisos de AEMET (muestra)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/018-captura-aemet-prevision-avisos
-pr_number: null
-pr_url: null
+pr_number: 65
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/65
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-13T17:23:43+00:00'
-updated_at: '2026-08-13T22:23:14.065349+00:00'
+updated_at: '2026-08-13T22:34:37.290675+00:00'
 started_at: '2026-08-13T22:23:14.065325+00:00'
-submitted_at: null
+submitted_at: '2026-08-13T22:34:37.290544+00:00'
 merged_at: null
 ---
 
