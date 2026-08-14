@@ -101,6 +101,17 @@ TODO(kafka): igual que el resto de productores de muestra, el punto donde
 se conectaría un productor Kafka para un futuro barrido diario real
 (`sweep_premieres`, o un barrido de `CINEMAS` completo) está marcado aquí
 por consistencia, aunque no se despliega ningún scheduling en esta tarea.
+
+## Handler Lambda (tarea 028): solo `sweep_premieres`, no `fetch_cinema_showtimes`
+
+`lambda_handler` envuelve únicamente `sweep_premieres` (sin límite, no los
+`DEFAULT_PREMIERES_LIMIT` de la muestra), pensado para el barrido diario
+ligero que ya anticipaba su docstring. `fetch_cinema_showtimes` no tiene
+handler propio: queda para que lo invoque bajo demanda el futuro servicio
+conversacional (mismo criterio que `search_place` en
+`bluesky_menciones_madrid.py` o `fetch_venue_agenda` en
+`agenda_recintos_madrid.py`), no un schedule — la cartelera horaria de un
+cine concreto solo tiene sentido cuando alguien pregunta por ese cine.
 """
 
 from __future__ import annotations
@@ -120,9 +131,12 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "cartelera_cines_madrid"
+DATASET_NAME = "cartelera_cines_estrenos"
 
 DEFAULT_BASE_URL = "https://www.sensacine.com"
 
@@ -505,6 +519,17 @@ def capture_sample(
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s (%d registros)", out_path, len(records))
     return out_path
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 028): estrenos de la semana completos a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = sweep_premieres(config=config)
+    logger.info("Estrenos capturados (captura completa): %d", len(records))
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:
