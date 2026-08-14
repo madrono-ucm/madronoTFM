@@ -2987,6 +2987,171 @@ recinto sin cobertura es WiZink Center, documentado arriba en
 `UNAVAILABLE_VENUES` con el motivo (es el mismo recinto que `movistar_arena`
 bajo un nombre comercial anterior, no un recinto distinto sin capturar).
 
+## `capturas/cartelera_cines_madrid.py` — Cartelera y horarios de cines de Madrid (muestra puntual)
+
+Ir al cine es uno de los "planes alternativos" que Madroño podría recomendar
+(ver `documents/Memoria_TFM FV.docx`). Complementa a `agenda_recintos_madrid.py`
+(tarea 022): a diferencia de un partido en el Bernabéu, no hay una API
+oficial de las grandes cadenas de cines (Cinesa, Yelmo Cines).
+
+### Investigación de la fuente: JSON-LD sí, pero no `ScreeningEvent`
+
+Antes de escribir ningún scraper se investigó, tal como pedía el enunciado,
+si las páginas de cartelera exponen `schema.org/ScreeningEvent` en JSON-LD:
+
+- **`cinesa.es`**: bloqueado por Cloudflare a nivel de dominio completo
+  (`403` con página de challenge incluso en `/robots.txt`, con cualquier
+  User-Agent probado, verificado en vivo) — mismo tipo de bloqueo de WAF ya
+  documentado para `wizinkcenter.es` en la tarea 022.
+- **`yelmocines.es`**: no bloqueado, pero aplicación ASP.NET clásica sin
+  URLs de cartelera adivinables ni JSON-LD; forzar su scraping habría
+  exigido primero mapear a mano su navegación (selector de ciudad/cine),
+  con el riesgo de fragilidad que el enunciado pedía evitar.
+- **SensaCine** (`sensacine.com`, Webedia/AlloCiné): agrega la cartelera de
+  **todas** las cadenas de España, Cinesa y Yelmo incluidas, en una única
+  web. Verificado en vivo: sí publica JSON-LD, pero solo
+  `schema.org/MovieTheater` (nombre, dirección, aforo de salas) e
+  `ItemList` (enlaces a fichas de película); **no publica
+  `ScreeningEvent`** en ningún JSON-LD — los horarios concretos no están en
+  el bloque estructurado.
+
+Sí se encontró algo casi tan bueno: los horarios están en el HTML servido
+(sin necesidad de ejecutar JavaScript — `curl` sin cabecera de navegador ya
+devuelve el HTML completo, servido del lado del servidor) como
+**atributos `data-*` explícitos y ya tipados** en cada franja horaria
+(`data-showtime-time="2026-08-13T22:10:00+02:00"`, `data-showtime-id`,
+`data-experiences` con la versión/formato en JSON), pensados por el propio
+sitio para que su JavaScript de reserva los lea — no texto libre que haya
+que interpretar. Se eligió SensaCine como fuente única para ambas cadenas.
+
+### Términos de uso de SensaCine: zona gris, igual que la tarea 012
+
+Se leyeron en vivo los términos legales
+(`https://www.sensacine.com/servicios/terminos/`): reservan expresamente la
+reproducción/distribución del sitio y limitan su uso a "privado y
+personal", prohibiendo cualquier fin comercial sin consentimiento escrito
+de SensaCine. Es el mismo tipo de zona gris ya documentado en la tarea 012
+(`afluencia_lugares_madrid.py`, apartado 6.8 de la memoria): admisible como
+muestra pequeña en el marco académico de este TFM, **no** apto para
+escalar a scraping masivo o uso comercial sin revisar antes esos términos
+con la propia SensaCine. `robots.txt` no añade restricción adicional
+relevante (solo excluye rutas de utilidades internas y algunos bots de
+entrenamiento de IA por nombre; ninguno coincide con este cliente,
+verificado en vivo — a diferencia de la tarea 022, aquí no hay ninguna
+señal `Disallow: /` dirigida a un User-Agent de Claude). El `User-Agent` de
+este módulo se identifica honestamente
+(`madrono-tfm-ingesta/0.1 (+madrono.ucm@gmail.com; academic research)`,
+mismo patrón que `bluesky_menciones_madrid.py`), sin suplantar un
+navegador.
+
+### Deduplicación por `data-showtime-id`: un defecto real de la fuente
+
+Se descubrió en vivo, inspeccionando el HTML real de Cinesa Proyecciones,
+que algunas versiones de idioma aparecen **duplicadas byte a byte en el
+propio HTML de origen** (mismo bloque "En V.O.S.E.", mismo
+`data-showtime-id`, repetido dos veces seguidas) — un defecto de plantilla
+de SensaCine, no un error de este parser. `fetch_cinema_showtimes` deduplica
+por `data-showtime-id` dentro de cada cine para no producir horarios
+repetidos.
+
+### Dos modos
+
+- `fetch_cinema_showtimes(cinema_id, ...)`: cartelera completa de un cine
+  concreto (película + horario + versión de idioma) — modo bajo demanda
+  para el asistente conversacional.
+- `sweep_premieres(...)`: estrenos destacados de la semana en España (no
+  hay estrenos "solo Madrid": SensaCine publica una única lista nacional) —
+  pensado para una futura captura programada ligera y diaria, ya que la
+  cartelera cambia semanalmente pero puede haber cambios/cancelaciones
+  puntuales de un día para otro.
+
+### Cines cubiertos
+
+`CINEMAS` registra 4 cines (2 Cinesa + 2 Yelmo) verificados en vivo
+mediante su identificador interno de SensaCine (`E0xxx`, visible en la URL
+de la ficha de cada cine); `DEFAULT_CINEMA_IDS` (los usados por la muestra
+por defecto) se limita a **uno de cada cadena**, tal como pedía el
+objetivo de la tarea:
+
+| `cinema_id` | Cadena | `sensacine_id` | Nombre |
+|---|---|---|---|
+| `cinesa_proyecciones` (por defecto) | Cinesa | `E0402` | Cinesa Proyecciones |
+| `cinesa_mendez_alvaro` | Cinesa | `E0247` | Cinesa Méndez Álvaro |
+| `yelmo_ideal` (por defecto) | Yelmo | `E0621` | Yelmo Cines Ideal |
+| `yelmo_la_vaguada` | Yelmo | `E0459` | Yelmo Cines La Vaguada |
+
+### Esto es una captura puntual de muestra
+
+Igual que el resto de tareas 003-022, no tiene modo `--interval-seconds` ni
+bucle, y no escribe en la capa Bronze particionada.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.cartelera_cines_madrid
+```
+
+### Variables de entorno
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `SENSACINE_BASE_URL` | URL base de SensaCine | `https://www.sensacine.com` |
+| `CARTELERA_CINES_MADRID_CINEMA_IDS` | Cines a capturar en la muestra (lista separada por comas, claves de `CINEMAS`) | `cinesa_proyecciones,yelmo_ideal` |
+| `CARTELERA_CINES_MADRID_SHOWTIMES_LIMIT` | Máximo de horarios por cine en la muestra | `6` |
+| `CARTELERA_CINES_MADRID_PREMIERES_LIMIT` | Máximo de estrenos en la muestra | `6` |
+| `HTTP_TIMEOUT_SECONDS` / `HTTP_MAX_RETRIES` / `HTTP_RETRY_BACKOFF_SECONDS` | Igual que el resto de productores del proyecto | `15.0` / `3` / `2.0` |
+
+### Esquema normalizado — horario de sesión (`fetch_cinema_showtimes`)
+
+```json
+{
+  "schema_version": 1,
+  "source": "cartelera_cines_madrid",
+  "cinema_id": "cinesa_proyecciones",
+  "chain": "cinesa",
+  "cinema_name": "Cinesa Proyecciones",
+  "address": "Calle de Fuencarral 136",
+  "postal_code": "28001",
+  "locality": "Madrid",
+  "screen_count": 8,
+  "movie_title": "Spider-Man: Brand New Day",
+  "movie_url": "https://www.sensacine.com/peliculas/pelicula-276608/",
+  "language_version": "En Versión doblada",
+  "experiences": ["Format.Projection.Digital"],
+  "showtime_datetime": "2026-08-14T15:50:00+02:00",
+  "showtime_id": "80287958721",
+  "captured_at": "2026-08-14T04:17:48.423713+00:00"
+}
+```
+
+### Esquema normalizado — estreno de la semana (`sweep_premieres`)
+
+```json
+{
+  "schema_version": 1,
+  "source": "cartelera_cines_madrid",
+  "record_type": "estreno_semana",
+  "movie_title": "Cuentra atrás",
+  "movie_url": "https://www.sensacine.com/peliculas/pelicula-326598/",
+  "release_date": "2026-08-14",
+  "duration_minutes": 97,
+  "genres": ["Acción", "Suspense"],
+  "captured_at": "2026-08-14T04:17:48.423713+00:00"
+}
+```
+
+### Nota sobre la captura real en esta sesión (tarea 023)
+
+Se completó una **captura real en vivo**: la muestra commiteada en
+`ingesta/capturas/samples/cartelera_cines_madrid_sample.json` son 18
+registros reales (6 horarios de Cinesa Proyecciones + 6 de Yelmo Cines
+Ideal + 6 estrenos de la semana), obtenidos ejecutando
+`python3 -m ingesta.capturas.cartelera_cines_madrid` tal cual durante esta
+sesión — no son datos de ejemplo generados a mano. No hubo ningún bloqueo
+de acceso que documentar para la fuente elegida (SensaCine); el único
+bloqueo encontrado fue el de `cinesa.es` como dominio propio, descartado a
+favor de SensaCine (ver arriba).
+
 ## Tests
 
 No dependen de la red: usan fixtures con copias/ejemplos de las respuestas
