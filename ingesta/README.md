@@ -2795,6 +2795,198 @@ esta tarea para inspeccionar su estructura con herramientas de línea de
 comandos, y se borraron inmediatamente después; en ningún momento se
 commiteó ni se dejó en disco ningún GTFS completo.
 
+## `capturas/agenda_recintos_madrid.py` — Agenda de grandes recintos de Madrid (deporte, conciertos, ferias; muestra puntual)
+
+Captura la agenda de próximos eventos de los grandes recintos de Madrid que
+generan picos de afluencia conocidos con antelación: un partido en el
+Bernabéu, un concierto en el WiZink Center/Movistar Arena, una feria en
+IFEMA... En vez de una fuente distinta por tipo de evento, captura **por
+recinto**: cada gran recinto tiene su propia agenda con todo lo que allí
+ocurre.
+
+### Hallazgo clave: reutiliza la agenda de esMadrid, no scrapea cada recinto
+
+Antes de escribir un scraper por recinto se investigó, para cada uno, si
+existía una fuente estructurada propia. El hallazgo principal es que **la
+agenda de esMadrid ya capturada en `agenda_eventos_madrid.py` (tarea 017,
+dataset `agenda_turismo_esmadrid`) incluye, con nombre de recinto explícito
+(`nombrert`), eventos reales de 6 de los 7 recintos objetivo** — verificado
+en vivo descargando el feed completo (~4,4 MB, 1.050 eventos) durante esta
+sesión:
+
+| `venue_id`           | Recinto (enunciado)            | `nombrert` en esMadrid                          | eventos reales |
+|-----------------------|----------------------------------|---------------------------------------------------|-----------------|
+| `bernabeu`            | Estadio Santiago Bernabéu        | `Estadio Bernabéu`                                 | 12 |
+| `metropolitano`       | Estadio Cívitas Metropolitano    | `Estadio Riyadh Air Metropolitano`                  | 15 |
+| `movistar_arena`      | WiZink Center / Movistar Arena   | `Movistar Arena`                                    | 89 |
+| `ifema_madrid`        | IFEMA Madrid                     | `IFEMA MADRID`, `IFEMA Palacio Municipal`           | 51 + 1 |
+| `hipodromo_zarzuela`  | Hipódromo de la Zarzuela         | `Hipódromo de la Zarzuela` (espacio inicial en la fuente) | 2 |
+| `caja_magica`         | Caja Mágica                      | `Caja Mágica`                                       | 4 |
+
+Por eso este módulo **no hace ninguna petición HTTP nueva**: filtra por
+nombre de recinto el mismo feed XML que ya descarga
+`agenda_eventos_madrid.fetch_esmadrid_services_raw`, y reutiliza
+`normalize_esmadrid_event` para el parseo de cada `<service>`. Es la fuente
+más estructurada, estable y ya verificada disponible para estos recintos —
+reutilizarla evita mantener un scraper HTML frágil por cada sitio web.
+
+### Corrección sobre la lista de recintos del enunciado: solo 6 recintos físicos, no 7
+
+Se investigó en vivo (varias webs de venta de entradas independientes,
+contrastadas entre sí) y se confirmó que **"WiZink Center" y "Movistar
+Arena" son el mismo recinto físico** (el Palacio de Deportes de la
+Comunidad de Madrid, Av. de Felipe II): cambió de nombre comercial el 1 de
+enero de 2025 al renovarse el patrocinio, no son dos recintos distintos. El
+"Palacio de Vistalegre" que el enunciado asocia entre paréntesis a Movistar
+Arena ("antiguo Palacio de Vistalegre") es en realidad **un edificio
+distinto, en Carabanchel** — la propia agenda de esMadrid lo confirma con
+una entrada separada, `"Palacio Vistalegre Arena"` (20 eventos reales),
+distinta de `"Movistar Arena"` (89 eventos reales). De los 7 nombres del
+enunciado solo hay 6 recintos físicos distintos: se implementa un único
+`movistar_arena` que cubre lo que el enunciado listaba como "WiZink Center"
+y "Movistar Arena" a la vez.
+
+Los dos estadios de fútbol también han cambiado de nombre comercial por
+patrocinio (el Cívitas Metropolitano del enunciado pasó a llamarse "Estadio
+Riyadh Air Metropolitano" en 2025); `VENUES` documenta ambos nombres pero el
+filtrado hace *match* por el nombre exacto que usa la fuente en el momento
+de esta captura — si vuelve a cambiar el patrocinador, habrá que actualizar
+`esmadrid_names`.
+
+### WiZink Center como dominio propio: bloqueado, y ya no hace falta
+
+Se investigó `wizinkcenter.es` de forma independiente, antes de descubrir
+que es el mismo recinto que Movistar Arena: devuelve `403 Forbidden` en
+**toda petición, incluido `/robots.txt`**, con cualquier User-Agent
+probado — un bloqueo de WAF a nivel de dominio completo (a diferencia del
+bloqueo de esmadrid.com en la tarea 017, que sí se resolvía con un
+User-Agent de navegador). No se investigó más porque, una vez confirmado
+que es el dominio heredado de un recinto ya cubierto vía esMadrid como
+`movistar_arena`, forzar ese scraping no aporta cobertura nueva.
+
+### Otras fuentes investigadas y descartadas
+
+- **IFEMA Madrid tiene su propia agenda con JSON-LD `schema.org/Event`**
+  (`https://www.ifema.es/calendario`, verificado en vivo: 43 bloques
+  `Event` reales con `name`/`startDate`/`endDate`/`location`) — una fuente
+  excelente, descartada a favor de esMadrid solo por simplicidad (un único
+  mecanismo de captura para los 6 recintos). Queda anotada por si una
+  tarea futura prefiere esta fuente directa para IFEMA en concreto.
+- **Calendario oficial de Real Madrid / Atlético de Madrid**
+  (`realmadrid.com`, `atleticodemadrid.com`): aplicaciones Angular pesadas
+  sin datos embebidos en el HTML servido (todo vía APIs internas no
+  documentadas) — descartado por ser scraping frágil de una API privada.
+- **`fixturedownload.com`** publica el calendario 2026/27 de LaLiga en
+  JSON sin autenticación, con el estadio incluido (`Location`) — la fuente
+  más rica encontrada para fútbol. **Se descartó explícitamente**: su
+  `robots.txt` incluye `User-agent: ClaudeBot` / `Disallow: /` (bloqueo
+  dirigido específicamente a los rastreadores de Claude, además de
+  `Content-Signal: ai-train=no` a nivel de sitio) — se respeta esa señal
+  aunque el acceso fuera técnicamente posible.
+- **`openfootball/football.json`** (GitHub, datos abiertos de dominio
+  público): tiene el calendario completo de LaLiga por temporada, pero no
+  incluye el estadio y, verificado en vivo, la temporada 2026-27 aún no
+  estaba publicada en la fecha de esta captura (solo llega hasta 2025-26,
+  finalizada).
+
+### Aforo: campo presente pero siempre `null`, deliberadamente
+
+El esquema incluye `capacity`, pero se deja siempre a `null`: esMadrid no
+publica aforo por evento, y las cifras de aforo "oficiales" investigadas en
+vivo (en particular el nuevo Bernabéu tras su reforma) están contradichas
+entre sí por distintas fuentes de prensa (entre 78.297 y 85.500, sin cifra
+oficial pública del club) — se prefirió dejar el campo vacío antes que
+incrustar un número no verificable.
+
+### Hallazgo colateral: título con entidades HTML sin decodificar en `agenda_eventos_madrid.py`
+
+Al inspeccionar eventos reales de fútbol (`"Real Madrid - M&aacute;laga
+CF"`) se descubrió que algunas entradas del feed de esMadrid traen el
+título con entidades HTML sin decodificar dentro de su propio `CDATA` de
+origen, a diferencia del resto del feed que usa UTF-8 directo. Es un
+problema de calidad de datos de la fuente, no de este proyecto, pero
+`agenda_eventos_madrid.normalize_esmadrid_event` no lo corregía (sí lo
+hacía ya para `description`/`schedule_text`, pero no para `title`). Se
+corrigió en esa función como parte de esta tarea (aplicando
+`html.unescape` también al título), ya que este módulo construye sus
+registros sobre ella.
+
+### Dos modos, mismo patrón que `bluesky_menciones_madrid.py` (tarea 016)
+
+- `fetch_venue_agenda(venue_id, ...)`: agenda de un recinto concreto —
+  modo bajo demanda, para cuando el asistente conversacional necesite
+  responder sobre un recinto concreto.
+- `sweep_all_venues(...)`: agenda de todos los recintos de `VENUES` —
+  descarga el feed de esMadrid una sola vez y filtra en memoria para cada
+  recinto, pensado para un futuro barrido programado a diario.
+
+### Esto es una captura puntual de muestra
+
+Igual que `agenda_eventos_madrid.py` y el resto de tareas 003-021, no tiene
+modo `--interval-seconds` ni bucle, y no escribe en la capa Bronze
+particionada.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.agenda_recintos_madrid
+```
+
+### Variables de entorno
+
+Reutiliza las mismas variables que `agenda_eventos_madrid.py` para el
+acceso al feed de esMadrid (`AGENDA_MADRID_ESMADRID_URL`,
+`HTTP_TIMEOUT_SECONDS`, `HTTP_MAX_RETRIES`, `HTTP_RETRY_BACKOFF_SECONDS`),
+más:
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `AGENDA_RECINTOS_SAMPLE_SIZE_PER_VENUE` | Máximo de eventos por recinto en la muestra | `3` |
+
+### Esquema normalizado (por registro)
+
+```json
+{
+  "schema_version": 1,
+  "source": "agenda_recintos_madrid",
+  "upstream_source": "agenda_turismo_esmadrid",
+  "venue_id": "bernabeu",
+  "venue_name": "Estadio Santiago Bernabéu (Real Madrid)",
+  "event_id": "109312",
+  "title": "Real Madrid - Málaga CF (LALIGA EA SPORTS)",
+  "event_type": "deporte",
+  "category": "Eventos > Deporte > Fútbol",
+  "start_datetime": "2026-08-30",
+  "end_datetime": "2026-08-30",
+  "schedule_text": "17:00 h",
+  "capacity": null,
+  "url": "https://www.esmadrid.com/agenda/real-madrid-malaga-cf-laliga-ea-sports-estadio-bernabeu",
+  "captured_at": "2026-08-14T04:05:07.219305+00:00"
+}
+```
+
+- `venue_id`/`venue_name`: recinto normalizado (clave de `VENUES` y nombre
+  legible); `upstream_source` indica de qué captura ya existente procede
+  el dato (siempre `agenda_turismo_esmadrid` en esta versión).
+- `event_type`: `"deporte"`/`"concierto"`/`"otro"`, inferido del segundo
+  nivel de `category` (ver `_infer_event_type`); `null` si la fuente no
+  trae categoría.
+- `capacity`: siempre `null` en esta versión (ver "Aforo" arriba).
+
+### Nota sobre la captura real en esta sesión (tarea 022)
+
+Se completó una **captura real en vivo**: la muestra commiteada en
+`ingesta/capturas/samples/agenda_recintos_madrid_sample.json` son 17
+eventos reales (3 por recinto, salvo el Hipódromo de la Zarzuela con 2,
+todos los que había en el feed) de los 6 recintos cubiertos, obtenidos
+ejecutando `python3 -m ingesta.capturas.agenda_recintos_madrid` tal cual
+durante esta sesión — no son datos de ejemplo generados a mano. No hubo
+ningún bloqueo de acceso que documentar para el mecanismo de captura en sí
+(reutiliza el acceso a esMadrid ya verificado en la tarea 017); el único
+recinto sin cobertura es WiZink Center, documentado arriba en
+`UNAVAILABLE_VENUES` con el motivo (es el mismo recinto que `movistar_arena`
+bajo un nombre comercial anterior, no un recinto distinto sin capturar).
+
 ## Tests
 
 No dependen de la red: usan fixtures con copias/ejemplos de las respuestas
