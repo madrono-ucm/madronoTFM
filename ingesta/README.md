@@ -90,15 +90,15 @@ todavía en el bucket real — activar `BRONZE_BASE_PATH=s3://...` en
 producción (cron/systemd timer de cada productor) es una decisión de
 despliegue posterior, fuera del alcance de esta tarea.
 
-## Handlers Lambda (tarea 026, lote 1/3): captura completa lista para desplegar
+## Handlers Lambda (tareas 026/027, lotes 1/3 y 2/3): captura completa lista para desplegar
 
-Los 5 productores de la tabla siguiente ya tienen un
+Los 10 productores de la tabla siguiente ya tienen un
 `lambda_handler(event, context)`: hace la captura **completa** (no la
 muestra pequeña de `capture_sample`), y la aterriza en Bronze real vía
 `BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=...)` — funciona con
 `BRONZE_BASE_PATH` local (pruebas) o `s3://...` (producción, tarea 025).
-Esta tarea no despliega nada en AWS: deja el código listo y probado con
-dobles (`ingesta/tests/test_lambda_handlers.py`), a falta de la
+Ninguna de las dos tareas despliega nada en AWS: dejan el código listo y
+probado con dobles (`ingesta/tests/test_lambda_handlers.py`), a falta de la
 infraestructura Lambda/EventBridge de una tarea futura.
 
 | Módulo | Dataset Bronze | Notas |
@@ -108,11 +108,15 @@ infraestructura Lambda/EventBridge de una tarea futura.
 | `bicimad.py` | `bicimad` | `capture_all`: las ~670 estaciones de la red |
 | `aparcamientos_madrid.py` | `aparcamientos` | `capture_all`: todos los aparcamientos con ocupación en tiempo real |
 | `calidad_aire_madrid.py` | `calidad_aire` | `capture_all`: todas las lecturas estación+magnitud del día |
+| `meteorologia_madrid.py` | `meteorologia` | `capture_all`: las ~25 estaciones de la red completa |
+| `ruido_madrid.py` | `ruido` | `capture_all`: las 31 estaciones del último día disponible (hasta 4 periodos cada una) |
+| `afluencia_lugares_madrid.py` | `afluencia_lugares_patron_tipico` | `capture_typical_patterns`: solo el patrón típico por hora/día, `live_pct` siempre `null` (ver docstring del módulo, "Handler Lambda") |
+| `aforos_peatones_bicicletas_madrid.py` | `aforos_peatones_bicicletas` | `capture_all`, precedido de `check_for_newer_resources` (aviso en logs, sin bloquear, si el catálogo CKAN ya tiene un recurso más reciente) |
+| `bluesky_menciones_madrid.py` | `bluesky_menciones` | `search_district_sweep` con la lista completa de distritos (21) y términos de evento (6), no la muestra truncada; `search_place` (modo bajo demanda) queda para el asistente conversacional |
 
-El resto de productores programados (meteorología, ruido, afluencia,
-aforos, Bluesky, agenda de eventos, AEMET, CAMS, cartelera de cines) quedan
-fuera del alcance de esta tarea — se cubren en las tareas 027/028, mismo
-patrón.
+El resto de productores programados (agenda de eventos, AEMET, CAMS,
+cartelera de cines) quedan fuera del alcance de estas dos tareas — se
+cubren en la tarea 028, mismo patrón.
 
 ## `capturas/trafico_madrid.py` — Intensidad de tráfico de Madrid
 
