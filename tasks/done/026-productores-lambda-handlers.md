@@ -3,7 +3,7 @@ id: 26
 slug: productores-lambda-handlers
 title: Handlers Lambda de captura completa — lote 1/3 (tráfico, EMT, BiciMAD, aparcamientos,
   aire)
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/026-productores-lambda-handlers
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T15:41:31+00:00'
-updated_at: '2026-08-14T16:14:50.586748+00:00'
+updated_at: '2026-08-14T16:15:56.994648+00:00'
 started_at: '2026-08-14T16:11:58.347634+00:00'
 submitted_at: '2026-08-14T16:14:50.586610+00:00'
-merged_at: null
+merged_at: '2026-08-14T16:14:53Z'
 ---
 
 ## Contexto
