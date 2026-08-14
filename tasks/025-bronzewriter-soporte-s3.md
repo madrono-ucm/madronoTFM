@@ -1,19 +1,19 @@
 ---
 id: 25
 slug: bronzewriter-soporte-s3
-title: "BronzeWriter: soporte de escritura real en S3"
-status: pending
+title: 'BronzeWriter: soporte de escritura real en S3'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/025-bronzewriter-soporte-s3
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-14T15:41:31+00:00"
-updated_at: "2026-08-14T15:41:31+00:00"
-started_at: null
+created_at: '2026-08-14T15:41:31+00:00'
+updated_at: '2026-08-14T15:43:53.198924+00:00'
+started_at: '2026-08-14T15:43:53.198899+00:00'
 submitted_at: null
 merged_at: null
 ---
