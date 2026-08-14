@@ -2,7 +2,7 @@
 id: 24
 slug: desbloquear-transporte-publico-emt
 title: 'Desbloquear tarea 003: nueva autenticación EMT (v1.1, x-ClientId/passKey)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/024-desbloquear-transporte-publico-emt
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T15:24:12+00:00'
-updated_at: '2026-08-14T15:31:38.417835+00:00'
+updated_at: '2026-08-14T15:32:45.183419+00:00'
 started_at: '2026-08-14T15:26:08.016439+00:00'
 submitted_at: '2026-08-14T15:31:38.417677+00:00'
-merged_at: null
+merged_at: '2026-08-14T15:31:42Z'
 ---
 
 ## Contexto
