@@ -300,21 +300,43 @@ locals {
     for key, producer in local.producers :
     key => "${var.project_name}-${var.environment}-${key}"
   }
+
+  # Ruta absoluta a `ingesta/` y lista de sus ficheros (relativos a esa
+  # ruta), excluyendo `tests/` y `capturas/samples/` (fixtures/datos de
+  # prueba, no código de producción). `fileset` solo devuelve ficheros, no
+  # directorios.
+  ingesta_source_root = "${path.module}/../../ingesta"
+  ingesta_source_files = [
+    for f in fileset(local.ingesta_source_root, "**") :
+    f
+    if !startswith(f, "tests/") && !startswith(f, "capturas/samples/")
+  ]
 }
 
 # ---------------------------------------------------------------------------
 # Paquete de código fuente (compartido por las 14 funciones)
+#
+# `source_dir` (usado hasta la tarea 030) empaqueta el *contenido* de
+# `ingesta/` en la raíz del .zip, no el directorio `ingesta/` en sí, así que
+# el `handler` de cada función (`ingesta.capturas.<módulo>.lambda_handler`)
+# no encontraba el paquete `ingesta` al arrancar (`No module named
+# 'ingesta'`, diagnosticado por la tarea 030 con una invocación real).
+# Se sustituye por bloques `source` explícitos, uno por fichero, con
+# `filename = "ingesta/<ruta-relativa>"`, para que `ingesta/` exista como
+# carpeta de nivel superior dentro del .zip.
 # ---------------------------------------------------------------------------
 
 data "archive_file" "ingesta_source" {
   type        = "zip"
-  source_dir  = "${path.module}/../../ingesta"
   output_path = "${path.module}/build/ingesta_source.zip"
 
-  excludes = [
-    "tests",
-    "capturas/samples",
-  ]
+  dynamic "source" {
+    for_each = local.ingesta_source_files
+    content {
+      filename = "ingesta/${source.value}"
+      content  = file("${local.ingesta_source_root}/${source.value}")
+    }
+  }
 }
 
 # ---------------------------------------------------------------------------
