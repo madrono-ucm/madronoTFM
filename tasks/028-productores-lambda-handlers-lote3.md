@@ -3,19 +3,19 @@ id: 28
 slug: productores-lambda-handlers-lote3
 title: Handlers Lambda de captura completa — lote 3/3 (agenda eventos, AEMET, CAMS,
   cines)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/028-productores-lambda-handlers-lote3
-pr_number: null
-pr_url: null
+pr_number: 75
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/75
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T16:15:00+00:00'
-updated_at: '2026-08-14T21:10:50.940619+00:00'
+updated_at: '2026-08-14T21:14:46.379860+00:00'
 started_at: '2026-08-14T21:10:50.940591+00:00'
-submitted_at: null
+submitted_at: '2026-08-14T21:14:46.379697+00:00'
 merged_at: null
 ---
 
