@@ -3,7 +3,7 @@ id: 31
 slug: arreglo-empaquetado-lambda
 title: Arreglar el empaquetado del .zip de Lambda (falta el paquete ingesta/ de nivel
   superior)
-status: in_review
+status: done
 force: true
 allow_infra_apply: true
 branch: task/031-arreglo-empaquetado-lambda
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T21:39:17+00:00'
-updated_at: '2026-08-14T21:48:40.584307+00:00'
+updated_at: '2026-08-14T21:49:44.110662+00:00'
 started_at: '2026-08-14T21:40:44.922300+00:00'
 submitted_at: '2026-08-14T21:48:40.584285+00:00'
-merged_at: null
+merged_at: '2026-08-14T21:48:22Z'
 ---
 
 ## Contexto
