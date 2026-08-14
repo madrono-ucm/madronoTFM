@@ -2,19 +2,19 @@
 id: 30
 slug: aplicar-lambda-eventbridge
 title: Aplicar el despliegue de Lambda + EventBridge Scheduler (terraform apply)
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: true
 branch: task/030-aplicar-lambda-eventbridge
-pr_number: null
-pr_url: null
+pr_number: 77
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/77
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T15:41:31+00:00'
-updated_at: '2026-08-14T21:28:51.843323+00:00'
+updated_at: '2026-08-14T21:34:37.149703+00:00'
 started_at: '2026-08-14T21:28:51.843301+00:00'
-submitted_at: null
+submitted_at: '2026-08-14T21:34:37.149565+00:00'
 merged_at: null
 ---
 
