@@ -64,6 +64,8 @@ from typing import Optional
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_DAILY_URL = (
@@ -76,6 +78,7 @@ DEFAULT_STATIONS_URL = (
 )
 
 SOURCE_NAME = "madrid_ruido_diario"
+DATASET_NAME = "ruido"
 DEFAULT_SAMPLE_PATH = Path(__file__).parent / "samples" / "ruido_madrid_sample.json"
 # A diferencia de las otras capturas de muestra (5 *registros*), aquí se
 # cuenta en *estaciones*: cada estación aporta hasta 4 registros (uno por
@@ -338,6 +341,38 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
 
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza el último día disponible, TODAS las estaciones (31 x hasta 4 periodos).
+
+    A diferencia de `capture_sample` (que corta a `config.sample_stations`
+    estaciones), esto es la captura completa pensada para el handler Lambda
+    (tarea 026): el último día ya es, de por sí, el recorte necesario (el
+    CSV de origen es un histórico completo desde 2014, ver docstring del
+    módulo) — "completa" aquí es "todas las estaciones de ese último día".
+    """
+    ingested_at = datetime.now(timezone.utc)
+
+    stations_csv = fetch_raw_stations(config)
+    stations = parse_stations(stations_csv)
+
+    daily_csv = fetch_raw_daily(config)
+    latest_entries = parse_latest_day_entries(daily_csv)
+
+    records = [normalize_record(entry, stations, ingested_at) for entry in latest_entries]
+    logger.info("Normalizadas %d lecturas de ruido del último día (captura completa)", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

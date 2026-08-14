@@ -88,6 +88,8 @@ from zoneinfo import ZoneInfo
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_REALTIME_URL = (
@@ -100,6 +102,7 @@ DEFAULT_STATIONS_URL = (
 )
 
 SOURCE_NAME = "madrid_meteorologia"
+DATASET_NAME = "meteorologia"
 DEFAULT_SAMPLE_PATH = Path(__file__).parent / "samples" / "meteorologia_madrid_sample.json"
 DEFAULT_SAMPLE_SIZE = 5
 
@@ -363,6 +366,44 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
 
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza TODAS las estaciones meteorológicas (sin recorte de muestra).
+
+    A diferencia de `capture_sample` (que corta a `config.sample_size`),
+    esto es la captura completa pensada para el handler Lambda (tarea 026):
+    las ~25 estaciones de la red completa.
+    """
+    ingested_at = datetime.now(timezone.utc)
+
+    stations_csv = fetch_raw_stations(config)
+    stations = parse_stations(stations_csv)
+
+    realtime_json = fetch_raw_realtime(config)
+    entries = parse_realtime_entries(realtime_json)
+    groups = group_by_station(entries)
+
+    records = [
+        record
+        for record in (
+            normalize_station_record(code, station_entries, stations, ingested_at)
+            for code, station_entries in groups.items()
+        )
+        if record is not None
+    ]
+    logger.info("Normalizadas %d estaciones meteorológicas (captura completa)", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

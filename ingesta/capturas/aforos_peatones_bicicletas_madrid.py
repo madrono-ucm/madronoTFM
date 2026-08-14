@@ -118,7 +118,17 @@ from zoneinfo import ZoneInfo
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
+
+# Dataset CKAN de origen (ver docstring del módulo, "Formato real encontrado"):
+# se usa para comprobar en vivo si ha aparecido un recurso CSV más reciente
+# que el configurado por defecto, ya que este dataset se actualiza solo
+# trimestralmente (a diferencia del resto de productores del proyecto, cuyos
+# recursos son fijos o de tiempo real).
+CKAN_PACKAGE_SHOW_URL = "https://datos.madrid.es/api/action/package_show"
+CKAN_DATASET_ID = "300321-0-aforos-peatones-bicicletas"
 
 DEFAULT_PEDESTRIAN_URL = (
     "https://datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas/resource/"
@@ -130,6 +140,7 @@ DEFAULT_BICYCLE_URL = (
 )
 
 SOURCE_NAME = "madrid_aforos_peatones_bicicletas"
+DATASET_NAME = "aforos_peatones_bicicletas"
 MODE_PEDESTRIAN = "peatones"
 MODE_BICYCLE = "bicicletas"
 
@@ -217,6 +228,60 @@ def fetch_raw_pedestrians(config: CaptureConfig) -> str:
 def fetch_raw_bicycles(config: CaptureConfig) -> str:
     """Descarga el CSV completo de conteos horarios de bicicletas."""
     return _fetch_with_retries(config, config.bicycle_url).decode(SOURCE_ENCODING)
+
+
+def _latest_csv_resource_url(resources: "list[dict]", keyword: str) -> Optional[str]:
+    """Del catálogo CKAN, la URL del recurso CSV más reciente cuyo nombre contiene `keyword`."""
+    candidates = [
+        r
+        for r in resources
+        if (r.get("format") or "").upper() == "CSV" and keyword in (r.get("name") or "").lower()
+    ]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda r: r.get("last_modified") or r.get("created") or "", reverse=True)
+    return candidates[0].get("url")
+
+
+def check_for_newer_resources(config: CaptureConfig) -> None:
+    """Avisa (log, sin fallar ni cambiar nada) si el catálogo CKAN ya tiene un recurso
+    CSV más reciente que el configurado por defecto, para cada modo.
+
+    Este dataset se actualiza solo trimestralmente (ver docstring del
+    módulo), así que un handler Lambda programado (p.ej. semanal) puede
+    pasar mucho tiempo re-descargando el mismo último día ya capturado
+    antes. Esta comprobación no bloquea la captura real (que siempre usa
+    `config.pedestrian_url`/`config.bicycle_url`, tal como los resolvió
+    `CaptureConfig.from_env`): solo deja constancia en los logs de cuándo
+    conviene actualizar esas variables de entorno a una URL más reciente,
+    ya que este código no cambia la fuente configurada por su cuenta.
+    """
+    try:
+        response = requests.get(
+            CKAN_PACKAGE_SHOW_URL,
+            params={"id": CKAN_DATASET_ID},
+            timeout=config.timeout_seconds,
+        )
+        response.raise_for_status()
+        resources = (response.json().get("result") or {}).get("resources") or []
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning("No se pudo comprobar el catálogo CKAN de aforos: %s", exc)
+        return
+
+    latest_pedestrian = _latest_csv_resource_url(resources, "peatones")
+    if latest_pedestrian and latest_pedestrian != config.pedestrian_url:
+        logger.warning(
+            "Hay un recurso de peatones más reciente que el configurado: %s (actual: %s)",
+            latest_pedestrian,
+            config.pedestrian_url,
+        )
+    latest_bicycle = _latest_csv_resource_url(resources, "bicicletas")
+    if latest_bicycle and latest_bicycle != config.bicycle_url:
+        logger.warning(
+            "Hay un recurso de bicicletas más reciente que el configurado: %s (actual: %s)",
+            latest_bicycle,
+            config.bicycle_url,
+        )
 
 
 def _clean(raw: Optional[str]) -> Optional[str]:
@@ -404,6 +469,50 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza el último día disponible, TODAS las estaciones, ambos modos.
+
+    A diferencia de `capture_sample` (que corta a `config.sample_stations` x
+    `config.sample_hours_per_station`), esto es la captura completa pensada
+    para el handler Lambda (tarea 026): las 30 estaciones de peatones y las
+    53 de bicicletas, con todas las horas del último día disponible en cada
+    CSV de origen.
+    """
+    ingested_at = datetime.now(timezone.utc)
+    records: "list[dict]" = []
+
+    pedestrian_csv = fetch_raw_pedestrians(config)
+    pedestrian_rows = parse_latest_day_rows(pedestrian_csv)
+    records.extend(normalize_record(row, MODE_PEDESTRIAN, ingested_at) for row in pedestrian_rows)
+
+    bicycle_csv = fetch_raw_bicycles(config)
+    bicycle_rows = parse_latest_day_rows(bicycle_csv)
+    records.extend(normalize_record(row, MODE_BICYCLE, ingested_at) for row in bicycle_rows)
+
+    logger.info("Normalizados %d registros de aforos (captura completa)", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): comprobación de recurso + captura completa.
+
+    Antes de capturar, avisa (sin bloquear) si el catálogo CKAN ya tiene un
+    recurso más reciente que el configurado (ver `check_for_newer_resources`
+    y el docstring del módulo, "Formato real encontrado"): este dataset solo
+    se actualiza trimestralmente, así que vale la pena dejar constancia en
+    los logs de cuándo conviene actualizar `MADRID_COUNTERS_PEDESTRIAN_URL`/
+    `MADRID_COUNTERS_BICYCLE_URL`. La captura en sí ("si aplica") siempre
+    procede con la fuente configurada.
+    """
+    config = CaptureConfig.from_env()
+    check_for_newer_resources(config)
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

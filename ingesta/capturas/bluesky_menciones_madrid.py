@@ -96,6 +96,18 @@ asistente ni el barrido programado cada hora se despliegan aquí — quedan
 implementados y probados, listos para que un futuro `EnterWorktree`/tarea de
 scheduling real (y, para el modo asistente, el propio servicio conversacional)
 los invoque.
+
+## Handler Lambda (tarea 026): solo `search_district_sweep`, no `search_place`
+
+`lambda_handler` envuelve únicamente el modo "barrido programado"
+(`search_district_sweep`), con **todos** los distritos (`DEFAULT_DISTRICTS`,
+21) y **todos** los términos de evento (`DEFAULT_EVENT_TERMS`, 6) — no los
+subconjuntos truncados que usa `CaptureConfig.from_env()` por defecto para
+la muestra pequeña (`BLUESKY_SAMPLE_DISTRICTS`/`BLUESKY_EVENT_TERMS`, ambas
+pensadas solo para el fixture versionado). `search_place` (modo "bajo
+demanda") no tiene handler propio: como dice el nombre, está pensado para
+que lo invoque el futuro servicio conversacional en tiempo de consulta, no
+un schedule.
 """
 
 from __future__ import annotations
@@ -106,16 +118,19 @@ import json
 import logging
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "bluesky_menciones_madrid"
+DATASET_NAME = "bluesky_menciones"
 
 SEARCH_POSTS_PATH = "/xrpc/app.bsky.feed.searchPosts"
 
@@ -411,6 +426,24 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): barrido completo por distrito a Bronze real.
+
+    Solo el modo `search_district_sweep`, con la lista completa de distritos
+    y términos de evento (ver docstring del módulo, "Handler Lambda"), no la
+    muestra truncada que usa `CaptureConfig.from_env()` por defecto.
+    """
+    config = replace(CaptureConfig.from_env(), districts=DEFAULT_DISTRICTS, event_terms=DEFAULT_EVENT_TERMS)
+    records = search_district_sweep(
+        config, config.districts, lang=config.lang, event_terms=config.event_terms
+    )
+    logger.info("Menciones capturadas (barrido completo por distrito): %d", len(records))
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

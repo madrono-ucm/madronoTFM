@@ -66,6 +66,8 @@ from typing import Iterator, Optional
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_ENDPOINT_URL = "https://servayto.madrid.es/MTPAR_WSINFO/InfoParking"
@@ -76,6 +78,7 @@ TEMPURI_NS = "http://tempuri.org/"
 DATA_NS = "http://schemas.datacontract.org/2004/07/InfoParking"
 
 SOURCE_NAME = "madrid_aparcamientos_rotacionales"
+DATASET_NAME = "aparcamientos"
 DEFAULT_SAMPLE_PATH = Path(__file__).parent / "samples" / "aparcamientos_madrid_sample.json"
 DEFAULT_SAMPLE_SIZE = 5
 
@@ -328,6 +331,50 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
 
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza TODOS los aparcamientos con ocupación en tiempo real.
+
+    A diferencia de `capture_sample` (que corta a `config.sample_size` y usa
+    los primeros aparcamientos del listado), esto es la captura completa
+    pensada para el handler Lambda (tarea 026): pide `GetDetailParking` (una
+    llamada SOAP por aparcamiento) para todos los que comparten ocupación en
+    tiempo real, no solo la muestra.
+    """
+    ingested_at = datetime.now(timezone.utc)
+
+    list_xml = fetch_raw_list_parking(config)
+    entries = [e for e in parse_list_parking(list_xml) if e["free_spaces"] is not None]
+    logger.info(
+        "Listado descargado: %d aparcamientos con ocupación en tiempo real (captura completa)",
+        len(entries),
+    )
+
+    records = []
+    for entry in entries:
+        total_spaces = None
+        try:
+            detail_xml = fetch_raw_detail_parking(config, entry["parking_id"])
+            total_spaces = parse_total_spaces(detail_xml)
+        except RuntimeError:
+            logger.warning(
+                "No se pudieron obtener las plazas totales del aparcamiento %s", entry["parking_id"]
+            )
+        records.append(normalize_record(entry, total_spaces, ingested_at))
+
+    logger.info("Descargados %d aparcamientos (captura completa)", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

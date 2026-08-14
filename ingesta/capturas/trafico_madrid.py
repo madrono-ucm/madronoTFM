@@ -193,6 +193,21 @@ def capture_once(config: CaptureConfig) -> Path:
     return writer.write_batch(records, moment=ingested_at)
 
 
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): una captura completa a Bronze real.
+
+    Reutiliza `capture_once` tal cual (ya escribe el lote completo, sin
+    recorte de muestra, desde la tarea 002): solo falta este wrapper para
+    poder desplegarlo como función Lambda programada. `BRONZE_BASE_PATH`
+    puede apuntar a una ruta local (pruebas) o a `s3://...` (producción,
+    ver `bronze.BronzeWriter`).
+    """
+    config = CaptureConfig.from_env()
+    out_path = capture_once(config)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "location": str(out_path)}
+
+
 def run_loop(config: CaptureConfig, interval_seconds: float) -> None:
     """Ejecuta `capture_once` indefinidamente, sin abortar el bucle ante fallos."""
     logger.info("Iniciando captura periódica cada %.0fs", interval_seconds)

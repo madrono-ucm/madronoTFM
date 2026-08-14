@@ -98,6 +98,21 @@ quede explícito en el propio dato, no solo en esta nota, que no proviene de
 una captura en vivo). El código queda completo y listo para ejecutarse tal
 cual el día que alguien configure una `GOOGLE_MAPS_API_KEY` real.
 
+## Handler Lambda (tarea 026): solo el patrón típico, no la popularidad "en vivo"
+
+`lambda_handler`/`capture_typical_patterns` implementan el productor
+programado que pedía la tabla de la tarea 026, pero **deliberadamente
+excluyen `live_pct`** (siempre `None` en sus registros, vía
+`normalize_record(..., include_live=False)`): la popularidad "en vivo" solo
+tiene sentido en el instante exacto en que alguien pregunta "¿está muy
+lleno esto ahora?" — capturarla en un barrido programado (p.ej. cada hora)
+produciría un dato ya obsoleto para cuando el asistente lo necesite. Esa
+pregunta puntual sigue siendo responsabilidad de una futura invocación bajo
+demanda (mismo patrón que `search_place` en `bluesky_menciones_madrid.py`,
+tarea 016), no de este handler. El patrón típico por hora/día, en cambio,
+cambia poco de una semana a otra, así que sí encaja con una captura
+programada periódica (p.ej. semanal) que lo mantenga fresco en Bronze.
+
 TODO(kafka): igual que el resto de productores de muestra (tareas 003-008),
 el punto donde se conectaría un productor Kafka está marcado aquí por
 consistencia, aunque dado el carácter de zona gris de esta fuente (ver
@@ -119,9 +134,12 @@ from typing import Optional
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 SOURCE_NAME = "google_populartimes"
+DATASET_NAME = "afluencia_lugares_patron_tipico"
 
 FIND_PLACE_URL = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
 
@@ -280,9 +298,15 @@ def _typical_by_hour(raw_populartimes: Optional[list]) -> Optional[dict]:
 
 
 def normalize_record(
-    raw: dict, query: str, captured_at: datetime, is_mock: bool = False
+    raw: dict, query: str, captured_at: datetime, is_mock: bool = False, include_live: bool = True
 ) -> dict:
-    """Normaliza la respuesta combinada (Find Place + `populartimes.get_id`) al esquema mínimo."""
+    """Normaliza la respuesta combinada (Find Place + `populartimes.get_id`) al esquema mínimo.
+
+    `include_live=False` fuerza `live_pct` a `None`: lo usa `capture_typical_patterns`
+    (handler Lambda, tarea 026), que solo captura el patrón habitual programado, no
+    la popularidad "en vivo" del instante de la captura (ver docstring del módulo,
+    sección "Handler Lambda").
+    """
     coordinates = raw.get("coordinates") or {}
     return {
         "schema_version": 1,
@@ -297,7 +321,7 @@ def normalize_record(
             "srid": "EPSG:4326",
         },
         "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
-        "live_pct": raw.get("current_popularity"),
+        "live_pct": raw.get("current_popularity") if include_live else None,
         "typical_by_hour": _typical_by_hour(raw.get("populartimes")),
         "is_mock": is_mock,
     }
@@ -341,6 +365,45 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_typical_patterns(config: CaptureConfig) -> "list[dict]":
+    """Captura el patrón típico (no la popularidad en vivo) de TODOS `config.place_queries`.
+
+    A diferencia de `capture_sample` (que corta a `config.sample_size` y
+    conserva `live_pct`), esto es la captura completa pensada para el
+    handler Lambda (tarea 026): recorre todos los lugares configurados y
+    fuerza `live_pct` a `None` en cada registro (ver docstring del módulo,
+    sección "Handler Lambda").
+    """
+    if not config.api_key:
+        raise RuntimeError(
+            "GOOGLE_MAPS_API_KEY no está configurada. Ver docstring del módulo, "
+            "sección 'Autenticación', para obtener una clave gratuita."
+        )
+
+    captured_at = datetime.now(timezone.utc)
+    records = []
+    for query in config.place_queries:
+        candidate = resolve_place_id(config, query)
+        if candidate is None:
+            logger.warning("Sin place_id para %r, se omite del lote", query)
+            continue
+        place_id = candidate["place_id"]
+        raw = fetch_populartimes(config, place_id)
+        records.append(normalize_record(raw, query, captured_at, include_live=False))
+    logger.info("Patrones típicos capturados (captura completa): %d", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_typical_patterns(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:
