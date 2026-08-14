@@ -2,7 +2,7 @@
 id: 33
 slug: conectar-lambda-layer-verificar
 title: Conectar la Lambda Layer a las 14 funciones y verificar escritura real en Bronze
-status: in_review
+status: done
 force: false
 allow_infra_apply: true
 branch: task/033-conectar-lambda-layer-verificar
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T21:41:18+00:00'
-updated_at: '2026-08-14T22:15:59.793449+00:00'
+updated_at: '2026-08-14T22:18:03.904172+00:00'
 started_at: '2026-08-14T22:06:31.585611+00:00'
 submitted_at: '2026-08-14T22:15:59.793304+00:00'
-merged_at: null
+merged_at: '2026-08-14T22:17:30Z'
 ---
 
 ## Contexto
