@@ -11,3 +11,9 @@ populartimes @ git+https://github.com/m-wrzr/populartimes
 # devuelve. Ver docstring de ingesta/capturas/cams_calidad_aire_madrid.py.
 cdsapi>=0.7,<1
 netCDF4>=1.6,<2
+
+# Tarea 023 (cartelera de cines de Madrid): SensaCine no publica horarios en
+# JSON-LD (solo datos de cine y lista de películas, ver docstring de
+# ingesta/capturas/cartelera_cines_madrid.py), hace falta parsear HTML real
+# con selectores CSS de forma robusta.
+beautifulsoup4>=4.12,<5

@@ -1,0 +1,124 @@
+<!--
+Extracto real (recortado a mano a lo mínimo necesario) de
+https://www.sensacine.com/cines/cine/E0402/ (Cinesa Proyecciones, Madrid),
+descargado en vivo durante la sesión de la tarea 023. Conserva la
+estructura real de clases CSS/atributos `data-*` que usa el parser
+(`fetch_cinema_showtimes`), con solo 2 de las 8 películas reales de la
+cartelera capturada:
+
+  - "El último mono": caso simple, una única versión con 2 horarios.
+  - "Spider-Man: Brand New Day": incluye la versión "En V.O.S.E." tal como
+    aparece DOS VECES en el HTML real de origen (mismo `data-showtime-id`
+    en ambas), un defecto de la propia fuente documentado en el módulo —
+    este fixture reproduce esa duplicación real para probar la
+    deduplicación por `data-showtime-id`.
+
+Todos los títulos, URLs, fechas/horas ISO y `data-showtime-id` son reales,
+tal como los devolvió sensacine.com en el momento de la captura.
+-->
+<html>
+<head>
+<script type="application/ld+json">
+{
+    "@context":"http://schema.org",
+    "@type":"MovieTheater",
+    "name": "Cinesa Proyecciones",
+    "screenCount":"8",
+    "image":"https://es.web.img3.acsta.net/r_234_234/commons/v9/sensacine/logos/cinemachains/10043.jpg",
+    "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Calle de Fuencarral 136",
+        "postalCode": "28001",
+        "addressLocality": "Madrid"
+    }
+}
+</script>
+</head>
+<body>
+<section class="section loading movies-list">
+
+<div class="card entity-card entity-card-list movie-card-theater cf hred">
+    <div class="meta">
+        <h2 class="meta-title">
+            <a class="meta-title-link" href="/peliculas/pelicula-1000038525/">El último mono</a>
+        </h2>
+    </div>
+    <div class="showtimes-anchor">
+        <div class="showtimes-versions-holder">
+            <div class="showtimes-version">
+                <div class="text">
+                    13 de agosto de 2026 -
+                    En Versión doblada
+                </div>
+                <div class="hours">
+                    <div class="showtimes-hour-block">
+                        <span class="showtimes-hour-item bookable" data-experiences="[&quot;Format.Projection.Digital&quot;]" data-showtime-id="80141063219" data-showtime-time="2026-08-13T22:00:00+02:00" rel="noopener" target="_blank" title="Compra tu Entrada">
+                            <span class="showtimes-hour-item-value">22:00</span>
+                        </span>
+                    </div>
+                    <div class="showtimes-hour-block">
+                        <span class="showtimes-hour-item bookable" data-experiences="[&quot;Format.Projection.Digital&quot;]" data-showtime-id="80287958726" data-showtime-time="2026-08-14T16:20:00+02:00" rel="noopener" target="_blank" title="Compra tu Entrada">
+                            <span class="showtimes-hour-item-value">16:20</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card entity-card entity-card-list movie-card-theater cf hred">
+    <div class="meta">
+        <h2 class="meta-title">
+            <a class="meta-title-link" href="/peliculas/pelicula-276608/">Spider-Man: Brand New Day</a>
+        </h2>
+    </div>
+    <div class="showtimes-anchor">
+        <div class="showtimes-versions-holder">
+            <div class="showtimes-version">
+                <div class="text">
+                    13 de agosto de 2026 -
+                    En Versión doblada
+                </div>
+                <div class="hours">
+                    <div class="showtimes-hour-block">
+                        <span class="showtimes-hour-item bookable" data-experiences="[&quot;Format.Projection.Digital&quot;]" data-showtime-id="78986207436" data-showtime-time="2026-08-13T22:10:00+02:00" rel="noopener" target="_blank" title="Compra tu Entrada">
+                            <span class="showtimes-hour-item-value">22:10</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="showtimes-version">
+                <div class="text">
+                    13 de agosto de 2026 -
+                    En V.O.S.E.
+                </div>
+                <div class="hours">
+                    <div class="showtimes-hour-block">
+                        <span class="showtimes-hour-item bookable" data-experiences="[&quot;Localization.Version.Original&quot;,&quot;Localization.Subtitle.Spanish&quot;,&quot;Format.Projection.Digital&quot;]" data-showtime-id="78986207474" data-showtime-time="2026-08-13T21:10:00+02:00" rel="noopener" target="_blank" title="Compra tu Entrada">
+                            <span class="showtimes-hour-item-value">21:10</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <!-- Duplicado real de la fuente: mismo bloque V.O.S.E., mismo data-showtime-id -->
+            <div class="showtimes-version">
+                <div class="text">
+                    13 de agosto de 2026 -
+                    En V.O.S.E.
+                </div>
+                <div class="hours">
+                    <div class="showtimes-hour-block">
+                        <span class="showtimes-hour-item bookable" data-experiences="[&quot;Localization.Version.Original&quot;,&quot;Localization.Subtitle.Spanish&quot;,&quot;Format.Projection.Digital&quot;]" data-showtime-id="78986207474" data-showtime-time="2026-08-13T21:10:00+02:00" rel="noopener" target="_blank" title="Compra tu Entrada">
+                            <span class="showtimes-hour-item-value">21:10</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</section>
+</body>
+</html>

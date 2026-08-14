@@ -1,0 +1,340 @@
+[
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "cinesa_proyecciones",
+    "chain": "cinesa",
+    "cinema_name": "Cinesa Proyecciones",
+    "address": "Calle de Fuencarral 136",
+    "postal_code": "28001",
+    "locality": "Madrid",
+    "screen_count": 8,
+    "movie_title": "Minions & Monsters",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-315380/",
+    "language_version": "En Versión doblada",
+    "experiences": [
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T15:45:00+02:00",
+    "showtime_id": "80287958677",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "cinesa_proyecciones",
+    "chain": "cinesa",
+    "cinema_name": "Cinesa Proyecciones",
+    "address": "Calle de Fuencarral 136",
+    "postal_code": "28001",
+    "locality": "Madrid",
+    "screen_count": 8,
+    "movie_title": "Spider-Man: Brand New Day",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-276608/",
+    "language_version": "En Versión doblada",
+    "experiences": [
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T15:50:00+02:00",
+    "showtime_id": "80287958721",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "cinesa_proyecciones",
+    "chain": "cinesa",
+    "cinema_name": "Cinesa Proyecciones",
+    "address": "Calle de Fuencarral 136",
+    "postal_code": "28001",
+    "locality": "Madrid",
+    "screen_count": 8,
+    "movie_title": "La Patrulla Canina: La Dino película",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-320681/",
+    "language_version": "En Versión doblada",
+    "experiences": [
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:00:00+02:00",
+    "showtime_id": "80287958809",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "cinesa_proyecciones",
+    "chain": "cinesa",
+    "cinema_name": "Cinesa Proyecciones",
+    "address": "Calle de Fuencarral 136",
+    "postal_code": "28001",
+    "locality": "Madrid",
+    "screen_count": 8,
+    "movie_title": "Toy Story 5",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-313256/",
+    "language_version": "En Versión doblada",
+    "experiences": [
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:15:00+02:00",
+    "showtime_id": "80287958759",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "cinesa_proyecciones",
+    "chain": "cinesa",
+    "cinema_name": "Cinesa Proyecciones",
+    "address": "Calle de Fuencarral 136",
+    "postal_code": "28001",
+    "locality": "Madrid",
+    "screen_count": 8,
+    "movie_title": "El último mono",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-1000038525/",
+    "language_version": "En Versión doblada",
+    "experiences": [
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:20:00+02:00",
+    "showtime_id": "80287958726",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "cinesa_proyecciones",
+    "chain": "cinesa",
+    "cinema_name": "Cinesa Proyecciones",
+    "address": "Calle de Fuencarral 136",
+    "postal_code": "28001",
+    "locality": "Madrid",
+    "screen_count": 8,
+    "movie_title": "La Odisea",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-1000013045/",
+    "language_version": "En Versión doblada",
+    "experiences": [
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:30:00+02:00",
+    "showtime_id": "80287958732",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "yelmo_ideal",
+    "chain": "yelmo",
+    "cinema_name": "Yelmo Cines Ideal",
+    "address": "Calle Doctor Cortezo 6 Plaza de Jacinto Benavente",
+    "postal_code": "28012",
+    "locality": "Madrid",
+    "screen_count": 9,
+    "movie_title": "La Odisea",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-1000013045/",
+    "language_version": "En V.O.S.E.",
+    "experiences": [
+      "Localization.Language.English",
+      "Localization.Subtitle.Spanish",
+      "Localization.Version.Original",
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T15:45:00+02:00",
+    "showtime_id": "80292179683",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "yelmo_ideal",
+    "chain": "yelmo",
+    "cinema_name": "Yelmo Cines Ideal",
+    "address": "Calle Doctor Cortezo 6 Plaza de Jacinto Benavente",
+    "postal_code": "28012",
+    "locality": "Madrid",
+    "screen_count": 9,
+    "movie_title": "La Patrulla Canina: La Dino película",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-320681/",
+    "language_version": "En V.O.S.E.",
+    "experiences": [
+      "Localization.Language.English",
+      "Localization.Subtitle.Spanish",
+      "Localization.Version.Original",
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:00:00+02:00",
+    "showtime_id": "80292179614",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "yelmo_ideal",
+    "chain": "yelmo",
+    "cinema_name": "Yelmo Cines Ideal",
+    "address": "Calle Doctor Cortezo 6 Plaza de Jacinto Benavente",
+    "postal_code": "28012",
+    "locality": "Madrid",
+    "screen_count": 9,
+    "movie_title": "Toy Story 5",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-313256/",
+    "language_version": "En V.O.S.E.",
+    "experiences": [
+      "Localization.Language.English",
+      "Localization.Subtitle.Spanish",
+      "Localization.Version.Original",
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:00:00+02:00",
+    "showtime_id": "80292179650",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "yelmo_ideal",
+    "chain": "yelmo",
+    "cinema_name": "Yelmo Cines Ideal",
+    "address": "Calle Doctor Cortezo 6 Plaza de Jacinto Benavente",
+    "postal_code": "28012",
+    "locality": "Madrid",
+    "screen_count": 9,
+    "movie_title": "El último mono",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-1000038525/",
+    "language_version": "En Versión Española",
+    "experiences": [
+      "Localization.Language.Spanish",
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:00:00+02:00",
+    "showtime_id": "80292179612",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "yelmo_ideal",
+    "chain": "yelmo",
+    "cinema_name": "Yelmo Cines Ideal",
+    "address": "Calle Doctor Cortezo 6 Plaza de Jacinto Benavente",
+    "postal_code": "28012",
+    "locality": "Madrid",
+    "screen_count": 9,
+    "movie_title": "El final de Oak Street",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-314503/",
+    "language_version": "En V.O.S.E.",
+    "experiences": [
+      "Localization.Language.English",
+      "Localization.Subtitle.Spanish",
+      "Localization.Version.Original",
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:10:00+02:00",
+    "showtime_id": "79414032776",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "cinema_id": "yelmo_ideal",
+    "chain": "yelmo",
+    "cinema_name": "Yelmo Cines Ideal",
+    "address": "Calle Doctor Cortezo 6 Plaza de Jacinto Benavente",
+    "postal_code": "28012",
+    "locality": "Madrid",
+    "screen_count": 9,
+    "movie_title": "Spider-Man: Brand New Day",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-276608/",
+    "language_version": "En V.O.S.E.",
+    "experiences": [
+      "Localization.Language.English",
+      "Localization.Subtitle.Spanish",
+      "Localization.Version.Original",
+      "Format.Projection.Digital"
+    ],
+    "showtime_datetime": "2026-08-14T16:10:00+02:00",
+    "showtime_id": "80292179637",
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "record_type": "estreno_semana",
+    "movie_title": "El final de Oak Street",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-314503/",
+    "release_date": "2026-08-14",
+    "duration_minutes": 100,
+    "genres": [
+      "Acción",
+      "Aventura",
+      "Ciencia ficción"
+    ],
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "record_type": "estreno_semana",
+    "movie_title": "Cuentra atrás",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-326598/",
+    "release_date": "2026-08-14",
+    "duration_minutes": 97,
+    "genres": [
+      "Acción",
+      "Suspense"
+    ],
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "record_type": "estreno_semana",
+    "movie_title": "Días de agosto",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-1000029974/",
+    "release_date": "2026-08-14",
+    "duration_minutes": 95,
+    "genres": [
+      "Drama",
+      "Romántico"
+    ],
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "record_type": "estreno_semana",
+    "movie_title": "Palestina 36",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-1000022541/",
+    "release_date": "2026-08-14",
+    "duration_minutes": 119,
+    "genres": [
+      "Drama"
+    ],
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "record_type": "estreno_semana",
+    "movie_title": "Este / Oeste",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-315205/",
+    "release_date": "2026-08-14",
+    "duration_minutes": 116,
+    "genres": [
+      "Comedia"
+    ],
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "cartelera_cines_madrid",
+    "record_type": "estreno_semana",
+    "movie_title": "Vivir la tierra",
+    "movie_url": "https://www.sensacine.com/peliculas/pelicula-1000018564/",
+    "release_date": "2026-08-14",
+    "duration_minutes": 135,
+    "genres": [
+      "Drama"
+    ],
+    "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  }
+]
