@@ -2,7 +2,7 @@
 id: 21
 slug: captura-crtm-red-transporte
 title: Captura de la red estructural de transporte de Madrid (GTFS, CRTM) (muestra)
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/021-captura-crtm-red-transporte
@@ -12,10 +12,10 @@ attempts: 6
 next_retry_at: '2026-08-14T03:39:56.832109+00:00'
 last_error: You've hit your session limit · resets 3:10am (UTC)
 created_at: '2026-08-13T17:23:43+00:00'
-updated_at: '2026-08-14T03:50:24.221395+00:00'
+updated_at: '2026-08-14T03:51:30.788524+00:00'
 started_at: '2026-08-13T23:01:14.418477+00:00'
 submitted_at: '2026-08-14T03:50:24.221262+00:00'
-merged_at: null
+merged_at: '2026-08-14T03:50:27Z'
 ---
 
 ## Contexto
