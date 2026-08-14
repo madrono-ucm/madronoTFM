@@ -2,7 +2,7 @@
 id: 30
 slug: aplicar-lambda-eventbridge
 title: Aplicar el despliegue de Lambda + EventBridge Scheduler (terraform apply)
-status: in_review
+status: done
 force: false
 allow_infra_apply: true
 branch: task/030-aplicar-lambda-eventbridge
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T15:41:31+00:00'
-updated_at: '2026-08-14T21:34:37.149703+00:00'
+updated_at: '2026-08-14T21:36:40.669257+00:00'
 started_at: '2026-08-14T21:28:51.843301+00:00'
 submitted_at: '2026-08-14T21:34:37.149565+00:00'
-merged_at: null
+merged_at: '2026-08-14T21:36:23Z'
 ---
 
 ## Contexto
