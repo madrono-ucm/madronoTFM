@@ -90,16 +90,16 @@ todavía en el bucket real — activar `BRONZE_BASE_PATH=s3://...` en
 producción (cron/systemd timer de cada productor) es una decisión de
 despliegue posterior, fuera del alcance de esta tarea.
 
-## Handlers Lambda (tareas 026/027, lotes 1/3 y 2/3): captura completa lista para desplegar
+## Handlers Lambda (tareas 026/027/028, lotes 1/3, 2/3 y 3/3): captura completa lista para desplegar
 
-Los 10 productores de la tabla siguiente ya tienen un
+Los 14 productores programados de la tabla siguiente ya tienen un
 `lambda_handler(event, context)`: hace la captura **completa** (no la
 muestra pequeña de `capture_sample`), y la aterriza en Bronze real vía
 `BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=...)` — funciona con
 `BRONZE_BASE_PATH` local (pruebas) o `s3://...` (producción, tarea 025).
-Ninguna de las dos tareas despliega nada en AWS: dejan el código listo y
+Ninguna de las tres tareas despliega nada en AWS: dejan el código listo y
 probado con dobles (`ingesta/tests/test_lambda_handlers.py`), a falta de la
-infraestructura Lambda/EventBridge de una tarea futura.
+infraestructura Lambda/EventBridge de una tarea futura (029).
 
 | Módulo | Dataset Bronze | Notas |
 |---|---|---|
@@ -113,10 +113,15 @@ infraestructura Lambda/EventBridge de una tarea futura.
 | `afluencia_lugares_madrid.py` | `afluencia_lugares_patron_tipico` | `capture_typical_patterns`: solo el patrón típico por hora/día, `live_pct` siempre `null` (ver docstring del módulo, "Handler Lambda") |
 | `aforos_peatones_bicicletas_madrid.py` | `aforos_peatones_bicicletas` | `capture_all`, precedido de `check_for_newer_resources` (aviso en logs, sin bloquear, si el catálogo CKAN ya tiene un recurso más reciente) |
 | `bluesky_menciones_madrid.py` | `bluesky_menciones` | `search_district_sweep` con la lista completa de distritos (21) y términos de evento (6), no la muestra truncada; `search_place` (modo bajo demanda) queda para el asistente conversacional |
+| `agenda_eventos_madrid.py` | `agenda_eventos` | `capture_all`: todos los eventos municipales + toda la agenda de esMadrid, sin recorte de muestra |
+| `aemet_prevision_avisos.py` | `aemet_prevision` / `aemet_avisos` | **un único** `lambda_handler`, elige `fetch_prediccion`/`fetch_avisos` según `event.get("tipo")` (`"prevision"` por defecto o `"avisos"`) — pensado para que dos EventBridge rules con distinta cadencia (ver notas de AEMET más abajo) apunten al mismo Lambda sin duplicar función/rol IAM |
+| `cams_calidad_aire_madrid.py` | `cams_calidad_aire` | wrapper sobre `fetch_forecast` (previsión completa configurada, sin recorte adicional) |
+| `cartelera_cines_madrid.py` | `cartelera_cines_estrenos` | solo `sweep_premieres` (sin límite); `fetch_cinema_showtimes` no tiene handler propio, queda para el asistente conversacional bajo demanda |
 
-El resto de productores programados (agenda de eventos, AEMET, CAMS,
-cartelera de cines) quedan fuera del alcance de estas dos tareas — se
-cubren en la tarea 028, mismo patrón.
+`agenda_recintos_madrid.py` (tarea 022) no tiene `lambda_handler` propio:
+reutiliza por completo el feed que ya descarga `agenda_eventos_madrid.py`
+(filtrando por recinto), así que no hay ninguna captura que duplicar con un
+handler aparte — ver docstring del propio módulo.
 
 ## `capturas/trafico_madrid.py` — Intensidad de tráfico de Madrid
 
