@@ -2591,6 +2591,210 @@ días reales de 2026, descargados ejecutando
 CSV público durante esta sesión — no son datos de ejemplo generados a mano.
 No hubo ningún bloqueo de acceso que documentar.
 
+## `capturas/crtm_red_transporte_madrid.py` — Red estructural de transporte de Madrid (GTFS, CRTM; carga batch puntual, referencia)
+
+Descarga los feeds GTFS estáticos que publica el Consorcio Regional de
+Transportes de Madrid (CRTM) y los normaliza a un esquema mínimo de
+**líneas con las paradas de un viaje representativo** (no el grafo
+completo de horarios). Es contexto estructural de red (qué líneas existen,
+por dónde pasan) — no llegadas en vivo: eso sigue bloqueado en la tarea
+003 (EMT, registro con email sin verificar) y no se ha encontrado ninguna
+alternativa abierta (ver "GTFS-RT" más abajo).
+
+### Esto es una carga puntual de referencia, no una captura periódica
+
+Igual que `callejero_madrid.py` (tarea 009), `barrios_distritos_madrid.py`
+(tarea 010), `poi_madrid.py` (tarea 011) y `calendario_laboral_madrid.py`
+(tarea 020), la red de líneas y paradas es un dato de **referencia**: CRTM
+publica "cambios de servicio" unas pocas veces al año, no minuto a minuto.
+Este módulo, a propósito, no tiene modo `--interval-seconds` ni bucle.
+
+### Fuente elegida y por qué
+
+Portal de datos abiertos del CRTM (`datos.crtm.es`, un sitio ArcGIS Hub).
+Su buscador web (`/search`) es una SPA que no devuelve resultados por HTTP
+directo; el catálogo completo sí es accesible sin autenticación a través
+del feed DCAT-US 1.1 que expone todo portal ArcGIS Hub
+(`https://datos.crtm.es/api/feed/dcat-us/1.1.json`, ~700 KB). Filtrando ese
+catálogo por "gtfs" aparecen **6 feeds GTFS estáticos**, uno por
+red/operador:
+
+| `mode` (este módulo) | Red                                              | Tamaño del ZIP | ¿En la muestra? |
+|-----------------------|--------------------------------------------------|----------------|------------------|
+| `metro`               | Metro de Madrid                                  | 1.5 MB         | Sí |
+| `emt`                  | Autobuses urbanos EMT Madrid                     | 18 MB          | Sí |
+| `metro_ligero`         | Metro Ligero / Tranvía                           | 0.4 MB         | Sí |
+| `cercanias`            | Cercanías Renfe (ámbito CRTM)                    | 6 KB           | Sí |
+| `urbano_cm`            | Autobuses urbanos de la Comunidad de Madrid      | 8 MB           | No (soportado) |
+| `interurbano_cm`       | Autobuses interurbanos de la Comunidad de Madrid | 72 MB          | No (soportado) |
+
+Cada item se descarga sin autenticación desde el endpoint estándar de
+contenido de ArcGIS Online
+`https://www.arcgis.com/sharing/rest/content/items/{item_id}/data`
+(verificado en vivo para los 6 feeds; es el mismo endpoint que usa el botón
+"Download" de la página de cada dataset en `datos.crtm.es`). `MODE_FEEDS`
+mapea cada `mode` a su `item_id`.
+
+`DEFAULT_MODES` incluye `metro`, `emt` y `metro_ligero` (los tres que pedía
+investigar explícitamente el enunciado de esta tarea) más `cercanias` (por
+el hallazgo de calidad de datos que se documenta abajo). Se excluyen de la
+muestra por defecto, aunque quedan soportados vía `CRTM_GTFS_MODES`,
+`urbano_cm` e `interurbano_cm`: cubren la red de autobuses de la
+**Comunidad de Madrid** (municipios fuera de la capital), no la red
+estructural de la ciudad de Madrid que es el objeto de esta tarea, y el
+segundo es, con diferencia, el feed más pesado del catálogo (72 MB) sin
+aportar variedad de esquema sobre `emt`.
+
+### GTFS-RT: no existe abierto (hallazgo relevante para la tarea 003)
+
+Se ha buscado explícitamente, en vivo, un feed GTFS-RT (alertas de
+servicio, posición de vehículos, retrasos) del CRTM, sin encontrar ninguno
+accesible sin cuenta:
+
+- El catálogo DCAT completo del portal solo contiene los 6 GTFS estáticos
+  de la tabla anterior; una búsqueda por `gtfs-rt`, `tiempo real`,
+  `realtime`, `alertas`, `incidencias`, `protobuf`, `vehicle`,
+  `trip update` en el buscador del propio portal
+  (`/api/search/v1/collections/dataset/items?q=...`) no devuelve ningún
+  resultado adicional — ni en `datos.crtm.es` ni en su portal hermano
+  `datos-movilidad.crtm.es` ("Portal de movilidad multimodal" del propio
+  CRTM).
+- [Transitland](https://www.transit.land/feeds/f-ezjm-consorcioregionaldetransportesdemadrid),
+  el catálogo independiente de feeds GTFS/GTFS-RT más usado a nivel
+  mundial, solo tiene registrado el feed GTFS estático de CRTM (23
+  versiones históricas archivadas desde 2017); no hay feed GTFS-RT
+  asociado.
+- No existe un host `api.crtm.es` ni `opendata.crtm.es` accesible (fallo de
+  conexión TLS en ambos, verificado en vivo).
+
+**Conclusión**: CRTM no publica alertas/incidencias/retrasos en tiempo real
+de forma abierta a nivel de toda la red multimodal. Esto **no desbloquea**
+la tarea 003 — la única fuente de llegadas en vivo verificada sigue siendo
+la API MobilityLabs de la EMT (`transporte_publico_madrid.py`), bloqueada
+por su registro con email sin verificar — pero es un hallazgo negativo que
+queda documentado para no repetir esta misma búsqueda en el futuro.
+
+### Formato real encontrado
+
+Los 6 feeds son GTFS estándar (`agency.txt`, `routes.txt`, `stops.txt`,
+`trips.txt`, `stop_times.txt`, `calendar(_dates).txt`, `shapes.txt`,
+`frequencies.txt`, `fare_attributes.txt`, `fare_rules.txt`, `feed_info.txt`),
+con `route_type` según la especificación GTFS (`0`=tranvía, `1`=metro,
+`2`=cercanías/tren, `3`=autobús — los cuatro valores presentes en los
+modos de la muestra). `stops.txt` incluye, junto a las paradas reales
+(`location_type` vacío o `"0"`), elementos de accesibilidad con prefijo
+`acc_` en el `stop_id` (ascensores, accesos de superficie...,
+`location_type="2"`) que este módulo filtra al construir las paradas de
+cada línea.
+
+**Dos hallazgos de calidad de datos, documentados y no corregidos:**
+
+1. El feed de `cercanias` publica `routes.txt` y `stops.txt` completos (las
+   10 líneas de Cercanías con sus estaciones), pero `trips.txt` y
+   `stop_times.txt` están **vacíos** (solo la cabecera, verificado en
+   vivo) — CRTM no modela el servicio programado de Cercanías en su GTFS
+   (es Renfe quien opera esa red). Por eso las líneas de `cercanias` en la
+   muestra tienen `"stops": []`.
+2. Dentro de `metro`, la línea 3 (`route_id="4__3___"`, incluida en la
+   muestra por ser una de las primeras del fichero) tampoco tiene ningún
+   `trip_id` en `trips.txt`, a diferencia de las líneas 1, 2, 4-12 y R del
+   mismo feed — otro hueco real de la fuente. También aparece con
+   `"stops": []` en la muestra commiteada.
+
+### Esquema mínimo elegido: líneas con su secuencia de paradas de un viaje representativo
+
+No hace falta modelar el grafo completo de horarios (calendarios,
+frecuencias, todos los viajes). Para cada línea de muestra se elige un
+único `trip_id` representativo (el primero con `direction_id="0"`, o el
+primero disponible si no hay ninguno en ese sentido) y se usa su
+`stop_times.txt` para obtener la secuencia ordenada real de paradas de esa
+línea en ese sentido. `stop_times.txt` es, con diferencia, el fichero más
+grande de un GTFS (84 MB sin comprimir en el feed de `emt` usado en esta
+captura): se recorre en **streaming** directamente desde el ZIP,
+descartando cada fila que no pertenezca a uno de los pocos `trip_id` de la
+muestra, sin cargarlo entero en memoria ni escribirlo a disco — igual
+criterio que "no leer el fichero completo en el contexto de la sesión" que
+ya aplicaron `callejero_madrid.py`/`barrios_distritos_madrid.py` con sus
+CSV completos.
+
+### Un único dataset con campo `mode`, no un fichero por red
+
+Sigue el patrón ya establecido en las tareas 013, 016 y 017: la muestra
+combina los modos de `DEFAULT_MODES` en
+`crtm_red_transporte_madrid_sample.json` con un campo `mode` que distingue
+la red de origen de cada línea.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.crtm_red_transporte_madrid
+```
+
+### Variables de entorno
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `CRTM_GTFS_MODES` | Lista de modos a capturar, separados por comas (claves de `MODE_FEEDS`: `metro`, `emt`, `metro_ligero`, `cercanias`, `urbano_cm`, `interurbano_cm`) | `metro,emt,metro_ligero,cercanias` |
+| `CRTM_GTFS_ROUTES_PER_MODE` | Líneas de muestra a normalizar por cada modo | `3` |
+| `HTTP_TIMEOUT_SECONDS` | Timeout de las peticiones HTTP | `60.0` |
+| `HTTP_MAX_RETRIES` | Reintentos ante fallo de red | `3` |
+| `HTTP_RETRY_BACKOFF_SECONDS` | Backoff lineal entre reintentos | `2.0` |
+
+### Esquema normalizado (por línea)
+
+```json
+{
+  "schema_version": 1,
+  "source": "crtm_red_transporte",
+  "mode": "metro",
+  "route_id": "4__1___",
+  "short_name": "1",
+  "long_name": "Pinar de Chamartín-Valdecarros",
+  "route_type": "metro",
+  "color": "2DBEF0",
+  "url": "https://www.crtm.es/4__1___.aspx",
+  "ingested_at": "2026-08-14T03:46:26.613022+00:00",
+  "stops": [
+    {
+      "stop_id": "par_4_263",
+      "name": "PINAR DE CHAMARTIN",
+      "sequence": 0,
+      "location": {"lat": 40.48014, "lon": -3.6668, "srid": "EPSG:4326"}
+    }
+  ]
+}
+```
+
+- `mode`: red de origen (`metro`/`emt`/`metro_ligero`/`cercanias` en la
+  muestra por defecto).
+- `route_id`/`short_name`/`long_name`: identificador GTFS, número/código
+  corto de línea, y descripción origen-destino, tal cual la fuente.
+- `route_type`: etiqueta legible del `route_type` GTFS (`tranvia`, `metro`,
+  `cercanias`, `autobus`; ver `ROUTE_TYPE_LABELS`).
+- `color`: color hexadecimal de la línea (`route_color` de la fuente, sin
+  `#`); `null` si la fuente no lo trae.
+- `stops`: secuencia ordenada de paradas de un único viaje representativo
+  de la línea (no todos los viajes ni el calendario completo); `[]` si la
+  línea no tiene ningún viaje en la fuente (ver "hallazgos de calidad de
+  datos" arriba). Cada parada excluye elementos de accesibilidad
+  (ascensores, accesos...) — solo puntos de embarque reales.
+
+### Nota sobre la captura real en esta sesión (tarea 021)
+
+Se completó una **captura real en vivo**: la muestra commiteada en
+`ingesta/capturas/samples/crtm_red_transporte_madrid_sample.json` son 12
+líneas reales (3 de metro, 3 de EMT, 3 de metro ligero, 3 de cercanías,
+con sus paradas reales donde la fuente las tiene), descargadas ejecutando
+`python3 -m ingesta.capturas.crtm_red_transporte_madrid` tal cual contra
+los feeds públicos de CRTM durante esta sesión — no son datos de ejemplo
+generados a mano. No hubo ningún bloqueo de acceso que documentar: los 6
+feeds GTFS son de lectura pública sin autenticación. Los ZIP completos
+(hasta 72 MB el de `interurbano_cm`, no usado en la muestra por defecto)
+se descargaron en memoria/disco temporal solo durante la investigación de
+esta tarea para inspeccionar su estructura con herramientas de línea de
+comandos, y se borraron inmediatamente después; en ningún momento se
+commiteó ni se dejó en disco ningún GTFS completo.
+
 ## Tests
 
 No dependen de la red: usan fixtures con copias/ejemplos de las respuestas
