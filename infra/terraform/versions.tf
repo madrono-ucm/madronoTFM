@@ -6,6 +6,13 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+
+    # Tarea 029 (Lambda + EventBridge Scheduler): construye el .zip de
+    # despliegue de cada función a partir del código fuente de `ingesta/`.
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.4"
+    }
   }
 
   # Backend remoto (S3 + bloqueo por DynamoDB). Un bloque `backend` no admite
