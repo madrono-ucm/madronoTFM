@@ -2,19 +2,19 @@
 id: 23
 slug: captura-cartelera-cines-madrid
 title: Captura de cartelera y horarios de cines de Madrid (muestra)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/023-captura-cartelera-cines-madrid
-pr_number: null
-pr_url: null
+pr_number: 70
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/70
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-13T17:23:43+00:00'
-updated_at: '2026-08-14T04:09:48.178667+00:00'
+updated_at: '2026-08-14T04:20:07.916523+00:00'
 started_at: '2026-08-14T04:09:48.178644+00:00'
-submitted_at: null
+submitted_at: '2026-08-14T04:20:07.916384+00:00'
 merged_at: null
 ---
 
