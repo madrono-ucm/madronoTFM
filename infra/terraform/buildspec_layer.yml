@@ -1,0 +1,31 @@
+version: 0.2
+
+# Tarea 032: construye una Lambda Layer de Python 3.13 con las dependencias
+# de terceros de ingesta/requirements.txt (requests, boto3, populartimes,
+# cdsapi, netCDF4, beautifulsoup4). Se ejecuta en la imagen CodeBuild
+# gestionada por AWS "amazonlinux-x86_64-lambda-standard:python3.13"
+# (ver aws_codebuild_project.lambda_dependencies_layer en
+# lambda_layer_build.tf), que usa el mismo Python/glibc que el runtime real
+# de Lambda python3.13 x86_64 -- necesario para que paquetes con extensiones
+# nativas (netCDF4) resuelvan una wheel binariamente compatible con Lambda,
+# no solo "instalable en la imagen de build".
+#
+# El "source" de este proyecto CodeBuild (ver aws_s3_object.layer_build_source)
+# es un .zip que contiene únicamente ingesta/requirements.txt, aplanado a
+# "requirements.txt" en la raíz -- de ahí que aquí se referencie sin el
+# prefijo "ingesta/".
+
+phases:
+  install:
+    commands:
+      - python3 --version
+      - command -v git >/dev/null 2>&1 || yum install -y git
+      - pip3 install --upgrade pip
+  build:
+    commands:
+      - mkdir -p /tmp/layer/python
+      - pip3 install -r requirements.txt --target /tmp/layer/python
+  post_build:
+    commands:
+      - cd /tmp/layer && python3 -c "import shutil; shutil.make_archive('/tmp/layer_archive', 'zip', '.')"
+      - aws s3 cp /tmp/layer_archive.zip "s3://${ARTIFACT_BUCKET}/${ARTIFACT_KEY}"
