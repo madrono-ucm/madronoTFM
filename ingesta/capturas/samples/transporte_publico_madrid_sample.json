@@ -2,57 +2,95 @@
   {
     "schema_version": 1,
     "source": "madrid_emt_llegadas",
-    "stop_id": "71",
-    "line": "27",
-    "bus_id": 1234,
-    "destination": "PLAZA CASTILLA",
-    "ingested_at": "2026-08-12T09:15:30+00:00",
-    "estimate_arrive_sec": 180,
-    "distance_bus_m": 950,
+    "stop_id": "70",
+    "line": "146",
+    "bus_id": 2560,
+    "destination": "LOS MOLINOS",
+    "ingested_at": "2026-08-14T15:28:19.484749+00:00",
+    "estimate_arrive_sec": 35,
+    "distance_bus_m": 97,
     "is_head": false,
-    "deviation_sec": 0,
-    "position_type_bus": "1",
-    "location": {
-      "lon": -3.700123,
-      "lat": 40.420456,
-      "srid": "EPSG:4326"
-    }
-  },
-  {
-    "schema_version": 1,
-    "source": "madrid_emt_llegadas",
-    "stop_id": "71",
-    "line": "27",
-    "bus_id": 5678,
-    "destination": "PLAZA CASTILLA",
-    "ingested_at": "2026-08-12T09:15:30+00:00",
-    "estimate_arrive_sec": 540,
-    "distance_bus_m": 2600,
-    "is_head": false,
-    "deviation_sec": 0,
-    "position_type_bus": "1",
-    "location": {
-      "lon": -3.702987,
-      "lat": 40.418811,
-      "srid": "EPSG:4326"
-    }
-  },
-  {
-    "schema_version": 1,
-    "source": "madrid_emt_llegadas",
-    "stop_id": "71",
-    "line": "N1",
-    "bus_id": 4321,
-    "destination": "PUERTA DEL SOL",
-    "ingested_at": "2026-08-12T09:15:30+00:00",
-    "estimate_arrive_sec": 60,
-    "distance_bus_m": 300,
-    "is_head": true,
     "deviation_sec": 0,
     "position_type_bus": "0",
     "location": {
-      "lon": -3.699501,
-      "lat": 40.421899,
+      "lon": -3.700751246989758,
+      "lat": 40.41991321776696,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_llegadas",
+    "stop_id": "70",
+    "line": "51",
+    "bus_id": 5445,
+    "destination": "PLAZA PERU",
+    "ingested_at": "2026-08-14T15:28:19.484749+00:00",
+    "estimate_arrive_sec": 217,
+    "distance_bus_m": 612,
+    "is_head": false,
+    "deviation_sec": 0,
+    "position_type_bus": "0",
+    "location": {
+      "lon": -3.698381629303202,
+      "lat": 40.41817080964149,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_llegadas",
+    "stop_id": "70",
+    "line": "74",
+    "bus_id": 3261,
+    "destination": "PARQUE AVENIDAS",
+    "ingested_at": "2026-08-14T15:28:19.484749+00:00",
+    "estimate_arrive_sec": 431,
+    "distance_bus_m": 1170,
+    "is_head": false,
+    "deviation_sec": 0,
+    "position_type_bus": "0",
+    "location": {
+      "lon": -3.713272688761528,
+      "lat": 40.42690866066192,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_llegadas",
+    "stop_id": "70",
+    "line": "9",
+    "bus_id": 2101,
+    "destination": "HORTALEZA",
+    "ingested_at": "2026-08-14T15:28:19.484749+00:00",
+    "estimate_arrive_sec": 443,
+    "distance_bus_m": 777,
+    "is_head": false,
+    "deviation_sec": 0,
+    "position_type_bus": "0",
+    "location": {
+      "lon": -3.697976488804809,
+      "lat": 40.41831740082151,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_llegadas",
+    "stop_id": "70",
+    "line": "20",
+    "bus_id": 3461,
+    "destination": "PAVONES",
+    "ingested_at": "2026-08-14T15:28:19.484749+00:00",
+    "estimate_arrive_sec": 531,
+    "distance_bus_m": 521,
+    "is_head": false,
+    "deviation_sec": 0,
+    "position_type_bus": "0",
+    "location": {
+      "lon": -3.6983911085612324,
+      "lat": 40.417377961763684,
       "srid": "EPSG:4326"
     }
   }
