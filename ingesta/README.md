@@ -50,6 +50,46 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r ingesta/requirements.txt
 ```
 
+## `capturas/bronze.py` — `BronzeWriter`: escritura en la capa Bronze (local o S3)
+
+Todos los productores que escriben a Bronze (hoy, `trafico_madrid.py`) lo
+hacen a través de esta clase común, para no repetir la lógica de
+particionado en cada uno. `BronzeWriter(base_path, dataset)` elige backend
+según la forma de `base_path`:
+
+- **Local (por defecto)**: cualquier ruta que no empiece por `s3://`.
+  Escribe en disco con `Path.open()`, sin cambios desde la tarea 002 — el
+  modo usado en desarrollo y en todos los tests del proyecto.
+- **S3** (tarea 025): rutas `s3://<bucket>/<prefijo-opcional>`. Escribe con
+  `boto3` (`put_object`), usando las credenciales por defecto que resuelve
+  `boto3` automáticamente — en la EC2 de ingesta, las del rol de instancia
+  `madrono-tfm-dev-ingestion-role` (tarea 015), sin necesidad de configurar
+  ninguna credencial explícita ni tocar código de los productores.
+
+En ambos casos la partición es la misma:
+
+```
+<base>/<dataset>/fecha=YYYY-MM-DD/hora=HH/<timestamp>_<sufijo>.json
+```
+
+`write_batch(...)` devuelve la ubicación del objeto escrito: un `Path` en
+modo local (sin cambios), o un `str` con la URI `s3://bucket/key` en modo
+S3.
+
+Para apuntar una captura al bucket Bronze real del lakehouse (tarea 001,
+aplicado en la tarea 015):
+
+```bash
+export BRONZE_BASE_PATH=s3://madrono-tfm-dev-bronze-222234418587/
+python3 -m ingesta.capturas.trafico_madrid
+```
+
+Esta tarea (025) deja el código de escritura en S3 listo y probado con un
+doble de `boto3` (`ingesta/tests/test_bronze.py`), pero **no** ha escrito
+todavía en el bucket real — activar `BRONZE_BASE_PATH=s3://...` en
+producción (cron/systemd timer de cada productor) es una decisión de
+despliegue posterior, fuera del alcance de esta tarea.
+
 ## `capturas/trafico_madrid.py` — Intensidad de tráfico de Madrid
 
 Descarga el feed en tiempo real de intensidad de tráfico del Ayuntamiento de
@@ -80,7 +120,7 @@ $BRONZE_BASE_PATH/trafico/fecha=YYYY-MM-DD/hora=HH/<timestamp>_<sufijo>.json
 
 | Variable                     | Por defecto                                       | Descripción                                                       |
 | ----------------------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
-| `BRONZE_BASE_PATH`            | `./bronze`                                          | Ruta base de la capa Bronze. Local por ahora; el día que exista el bucket S3 de la tarea 001, apuntar aquí a un punto de montaje S3 sin tocar código. |
+| `BRONZE_BASE_PATH`            | `./bronze`                                          | Ruta base de la capa Bronze. Local (disco) por defecto; con una URI `s3://<bucket>/<prefijo>` escribe en S3 vía `boto3` — ver sección `capturas/bronze.py` más arriba. |
 | `MADRID_TRAFFIC_SOURCE_URL`   | `https://informo.madrid.es/informo/tmadrid/pm.xml`  | URL del feed de tráfico.                                            |
 | `HTTP_TIMEOUT_SECONDS`        | `15`                                                 | Timeout por request HTTP.                                          |
 | `HTTP_MAX_RETRIES`            | `3`                                                  | Reintentos ante fallo de red (backoff lineal simple).              |

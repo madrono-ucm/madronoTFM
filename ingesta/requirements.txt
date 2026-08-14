@@ -1,5 +1,11 @@
 requests>=2.31,<3
 
+# Tarea 025 (BronzeWriter, soporte de escritura real en S3): cliente oficial
+# de AWS. En la EC2 de ingesta usa las credenciales del rol de instancia
+# (`madrono-tfm-dev-ingestion-role`, tarea 015) automáticamente, sin
+# configuración adicional. Ver docstring de ingesta/capturas/bronze.py.
+boto3>=1.34,<2
+
 # Tarea 012 (afluencia de lugares de Madrid): no está publicada en PyPI
 # (verificado en vivo, https://pypi.org/pypi/populartimes/json devuelve 404),
 # hay que instalarla directamente desde GitHub. Ver docstring de
