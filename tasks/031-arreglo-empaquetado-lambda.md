@@ -3,19 +3,19 @@ id: 31
 slug: arreglo-empaquetado-lambda
 title: Arreglar el empaquetado del .zip de Lambda (falta el paquete ingesta/ de nivel
   superior)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: true
 branch: task/031-arreglo-empaquetado-lambda
-pr_number: null
-pr_url: null
+pr_number: 78
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/78
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T21:39:17+00:00'
-updated_at: '2026-08-14T21:40:44.922323+00:00'
+updated_at: '2026-08-14T21:48:40.584307+00:00'
 started_at: '2026-08-14T21:40:44.922300+00:00'
-submitted_at: null
+submitted_at: '2026-08-14T21:48:40.584285+00:00'
 merged_at: null
 ---
 
