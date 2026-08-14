@@ -3,7 +3,7 @@ id: 28
 slug: productores-lambda-handlers-lote3
 title: Handlers Lambda de captura completa — lote 3/3 (agenda eventos, AEMET, CAMS,
   cines)
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/028-productores-lambda-handlers-lote3
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T16:15:00+00:00'
-updated_at: '2026-08-14T21:14:46.379860+00:00'
+updated_at: '2026-08-14T21:15:53.060013+00:00'
 started_at: '2026-08-14T21:10:50.940591+00:00'
 submitted_at: '2026-08-14T21:14:46.379697+00:00'
-merged_at: null
+merged_at: '2026-08-14T21:14:49Z'
 ---
 
 ## Contexto
