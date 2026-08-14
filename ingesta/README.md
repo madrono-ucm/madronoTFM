@@ -90,6 +90,30 @@ todavía en el bucket real — activar `BRONZE_BASE_PATH=s3://...` en
 producción (cron/systemd timer de cada productor) es una decisión de
 despliegue posterior, fuera del alcance de esta tarea.
 
+## Handlers Lambda (tarea 026, lote 1/3): captura completa lista para desplegar
+
+Los 5 productores de la tabla siguiente ya tienen un
+`lambda_handler(event, context)`: hace la captura **completa** (no la
+muestra pequeña de `capture_sample`), y la aterriza en Bronze real vía
+`BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=...)` — funciona con
+`BRONZE_BASE_PATH` local (pruebas) o `s3://...` (producción, tarea 025).
+Esta tarea no despliega nada en AWS: deja el código listo y probado con
+dobles (`ingesta/tests/test_lambda_handlers.py`), a falta de la
+infraestructura Lambda/EventBridge de una tarea futura.
+
+| Módulo | Dataset Bronze | Notas |
+|---|---|---|
+| `trafico_madrid.py` | `trafico` | wrapper sobre `capture_once`, sin cambios de captura |
+| `transporte_publico_madrid.py` | `transporte_publico_emt` | `capture_all`: llegadas completas a `EMT_STOP_ID`, sin recorte de muestra |
+| `bicimad.py` | `bicimad` | `capture_all`: las ~670 estaciones de la red |
+| `aparcamientos_madrid.py` | `aparcamientos` | `capture_all`: todos los aparcamientos con ocupación en tiempo real |
+| `calidad_aire_madrid.py` | `calidad_aire` | `capture_all`: todas las lecturas estación+magnitud del día |
+
+El resto de productores programados (meteorología, ruido, afluencia,
+aforos, Bluesky, agenda de eventos, AEMET, CAMS, cartelera de cines) quedan
+fuera del alcance de esta tarea — se cubren en las tareas 027/028, mismo
+patrón.
+
 ## `capturas/trafico_madrid.py` — Intensidad de tráfico de Madrid
 
 Descarga el feed en tiempo real de intensidad de tráfico del Ayuntamiento de

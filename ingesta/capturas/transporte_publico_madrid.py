@@ -57,12 +57,15 @@ from typing import Iterator, Optional
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://openapi.emtmadrid.es"
 LOGIN_PATH = "/v1.1/mobilitylabs/user/login/"
 ARRIVALS_PATH = "/v2/transport/busemtmad/stops/{stop_id}/arrives/"
 SOURCE_NAME = "madrid_emt_llegadas"
+DATASET_NAME = "transporte_publico_emt"
 DEFAULT_STOP_ID = "71"
 DEFAULT_SAMPLE_PATH = Path(__file__).parent / "samples" / "transporte_publico_madrid_sample.json"
 DEFAULT_SAMPLE_SIZE = 5
@@ -247,6 +250,33 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
 
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza TODAS las llegadas a `config.stop_id` (sin recorte de muestra).
+
+    A diferencia de `capture_sample` (que corta a `config.sample_size` para
+    el fixture versionado), esto es la captura completa pensada para el
+    handler Lambda (tarea 026): la API ya devuelve todas las llegadas
+    vigentes de una única parada, así que "completa" aquí significa "sin el
+    slicing `[:sample_size]`", no una fuente distinta.
+    """
+    ingested_at = datetime.now(timezone.utc)
+    access_token = fetch_access_token(config)
+    response_json = fetch_raw_arrivals(config, access_token)
+    records = list(parse_records(response_json, config.stop_id, ingested_at))
+    logger.info("Descargadas %d llegadas (captura completa) para la parada %s", len(records), config.stop_id)
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 026): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:
