@@ -12,12 +12,34 @@ humano con las credenciales adecuadas.
 
 | Fichero | Contenido |
 |---|---|
-| `versions.tf` | Versión mínima de Terraform y del provider `aws`, declaración del backend remoto. |
-| `variables.tf` | Todas las variables de entrada (región, nombre de proyecto, ciclo de vida, principals de ingesta...). |
+| `versions.tf` | Versión mínima de Terraform y de los providers `aws`/`archive`, declaración del backend remoto. |
+| `variables.tf` | Todas las variables de entrada (región, nombre de proyecto, ciclo de vida, principals de ingesta, runtime/timeout/memoria de Lambda, placeholder de secretos...). |
 | `main.tf` | Provider, buckets S3 del lakehouse, y el rol/policy IAM de ingesta. |
-| `outputs.tf` | Nombres/ARNs de los buckets y del rol de ingesta. |
+| `lambda.tf` | Tarea 029: una función Lambda + un schedule de EventBridge Scheduler por productor de `ingesta/capturas/`, parámetros SSM placeholder para sus credenciales, y el rol IAM que EventBridge Scheduler usa para invocarlas. |
+| `outputs.tf` | Nombres/ARNs de los buckets, del rol de ingesta, de las funciones Lambda de productor y de sus schedules. |
 | `backend.hcl.example` | Plantilla de configuración del backend S3 (bucket de estado, tabla de lock). |
 | `terraform.tfvars.example` | Plantilla de valores de variables. |
+
+## Lambda + EventBridge Scheduler de los productores (tarea 029, plan sin aplicar)
+
+`lambda.tf` despliega los 14 productores de `ingesta/capturas/` que ya tienen
+`lambda_handler` (tareas 026/027/028) como funciones Lambda con su propio
+schedule real de EventBridge Scheduler, vía `for_each` sobre dos mapas
+(`local.producers`, 14 entradas; `local.schedules`, 20 entradas — más
+schedules que productores porque `aemet_prevision_avisos` reparte 6 schedules
+sobre una única función y `cams_calidad_aire` reparte 2). Detalle completo de
+cadencias, empaquetado, secretos vía SSM Parameter Store y el `plan` real
+generado (58 recursos a añadir, 0 a cambiar, 0 a destruir) en
+`doc/029-terraform-lambda-eventbridge-plan.md`. **No se ha aplicado**: es
+plan-only, igual que el resto de `infra/terraform/` a fecha de esta tarea
+(salvo el propio lakehouse, aplicado en la tarea 015).
+
+Dos cosas quedan pendientes, documentadas allí, antes de que un futuro
+`terraform apply` (tarea 030) despliegue algo realmente funcional: construir
+una Lambda Layer real con las dependencias de `ingesta/requirements.txt`
+(`var.lambda_dependencies_layer_arn`, `null` por ahora) y fijar a mano el
+valor real de los 5 parámetros SSM placeholder que hoy solo tienen
+`"CHANGEME-SET-MANUALLY-OUTSIDE-TERRAFORM"`.
 
 ## Recursos que crea
 

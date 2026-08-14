@@ -22,3 +22,28 @@ output "aws_account_id" {
   description = "ID de la cuenta AWS en la que se ha desplegado la infraestructura."
   value       = data.aws_caller_identity.current.account_id
 }
+
+output "producer_lambda_function_names" {
+  description = "Nombre de cada función Lambda de productor, por clave de local.producers (tarea 029)."
+  value       = { for key, fn in aws_lambda_function.producer : key => fn.function_name }
+}
+
+output "producer_lambda_function_arns" {
+  description = "ARN de cada función Lambda de productor, por clave de local.producers (tarea 029)."
+  value       = { for key, fn in aws_lambda_function.producer : key => fn.arn }
+}
+
+output "producer_schedule_names" {
+  description = "Nombre de cada schedule de EventBridge Scheduler, por clave de local.schedules (tarea 029)."
+  value       = { for key, sch in aws_scheduler_schedule.producer : key => sch.name }
+}
+
+output "scheduler_role_arn" {
+  description = "ARN del rol IAM que EventBridge Scheduler asume para invocar las funciones Lambda de productores (tarea 029)."
+  value       = aws_iam_role.scheduler.arn
+}
+
+output "secret_ssm_parameter_names" {
+  description = "Nombre (no valor) de cada parámetro SSM SecureString placeholder que debe rellenarse a mano con la credencial real (tarea 029)."
+  value       = { for key, param in aws_ssm_parameter.secrets : key => param.name }
+}

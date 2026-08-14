@@ -88,3 +88,62 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# ---------------------------------------------------------------------------
+# Tarea 029: Lambda + EventBridge Scheduler para los productores de ingesta.
+# ---------------------------------------------------------------------------
+
+variable "lambda_runtime" {
+  description = "Runtime de Lambda para todas las funciones de productores. python3.13 es, a fecha de esta tarea, la versión de Python 3 más reciente soportada por Lambda."
+  type        = string
+  default     = "python3.13"
+}
+
+variable "lambda_default_timeout_seconds" {
+  description = "Timeout por defecto (segundos) de cada función Lambda de productor. Se puede sobrescribir por productor en `local.producers` (ver lambda.tf) cuando una fuente concreta lo necesite (p.ej. CAMS, que descarga un NetCDF de Copernicus)."
+  type        = number
+  default     = 60
+}
+
+variable "lambda_default_memory_mb" {
+  description = "Memoria por defecto (MB) de cada función Lambda de productor. Se puede sobrescribir por productor en `local.producers`."
+  type        = number
+  default     = 256
+}
+
+variable "lambda_log_retention_days" {
+  description = "Días de retención de los logs de CloudWatch de cada función Lambda de productor. Acotado (no indefinido) por coste mínimo."
+  type        = number
+  default     = 14
+}
+
+variable "lambda_dependencies_layer_arn" {
+  description = <<-EOT
+    ARN (con versión) de una Lambda Layer que contenga las dependencias de
+    terceros de `ingesta/requirements.txt` (requests, beautifulsoup4,
+    cdsapi, netCDF4, populartimes...), construida fuera de esta tarea con
+    herramientas de build compatibles con el runtime de Lambda (Docker/
+    manylinux, no esta EC2 de disco limitado). Ver doc/029 para el porqué:
+    no se ha construido ninguna layer real en esta tarea, así que se deja
+    en `null` (ninguna función lleva layer todavía) hasta que exista ese
+    ARN real, momento en el que basta con fijarlo en `terraform.tfvars` sin
+    tocar ningún `.tf`.
+  EOT
+  type        = string
+  default     = null
+}
+
+variable "ssm_secret_placeholder_value" {
+  description = <<-EOT
+    Valor placeholder (NO un secreto real) con el que Terraform crea cada
+    parámetro SecureString de SSM la primera vez (ver `local.secrets` en
+    lambda.tf). Cada parámetro tiene `lifecycle.ignore_changes = [value]`,
+    así que este placeholder solo se escribe una vez, en el primer
+    `terraform apply`; el valor real se fija después a mano
+    (`aws ssm put-parameter --overwrite`), fuera de git y fuera del control
+    de Terraform.
+  EOT
+  type        = string
+  default     = "CHANGEME-SET-MANUALLY-OUTSIDE-TERRAFORM"
+  sensitive   = true
+}
