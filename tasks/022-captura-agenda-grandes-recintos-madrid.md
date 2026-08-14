@@ -1,19 +1,20 @@
 ---
 id: 22
 slug: captura-agenda-grandes-recintos-madrid
-title: "Captura de la agenda de grandes recintos de Madrid (deporte, conciertos, eventos) (muestra)"
-status: pending
+title: Captura de la agenda de grandes recintos de Madrid (deporte, conciertos, eventos)
+  (muestra)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/022-captura-agenda-grandes-recintos-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-13T17:23:43+00:00"
-updated_at: "2026-08-13T17:23:43+00:00"
-started_at: null
+created_at: '2026-08-13T17:23:43+00:00'
+updated_at: '2026-08-14T03:52:33.374982+00:00'
+started_at: '2026-08-14T03:52:33.374959+00:00'
 submitted_at: null
 merged_at: null
 ---
