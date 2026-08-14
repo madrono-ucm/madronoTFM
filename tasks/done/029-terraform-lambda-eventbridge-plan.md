@@ -3,7 +3,7 @@ id: 29
 slug: terraform-lambda-eventbridge-plan
 title: 'Terraform: Lambda + EventBridge Scheduler para los productores (plan, sin
   aplicar)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: true
 branch: task/029-terraform-lambda-eventbridge-plan
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T15:41:31+00:00'
-updated_at: '2026-08-14T21:26:41.728925+00:00'
+updated_at: '2026-08-14T21:27:49.214563+00:00'
 started_at: '2026-08-14T21:16:55.600286+00:00'
 submitted_at: '2026-08-14T21:26:41.728763+00:00'
-merged_at: null
+merged_at: '2026-08-14T21:26:45Z'
 ---
 
 ## Contexto
