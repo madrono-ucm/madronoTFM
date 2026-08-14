@@ -47,3 +47,13 @@ output "secret_ssm_parameter_names" {
   description = "Nombre (no valor) de cada parámetro SSM SecureString placeholder que debe rellenarse a mano con la credencial real (tarea 029)."
   value       = { for key, param in aws_ssm_parameter.secrets : key => param.name }
 }
+
+output "lambda_layer_codebuild_project_name" {
+  description = "Nombre del proyecto CodeBuild que construye la Lambda Layer de dependencias de terceros (tarea 032). Dispara un build con `aws codebuild start-build --project-name <este-valor>`."
+  value       = aws_codebuild_project.lambda_dependencies_layer.name
+}
+
+output "lambda_dependencies_layer_arn" {
+  description = "ARN (con versión) de la Lambda Layer de dependencias de terceros publicada por la tarea 032. Todavía NO conectada a las 14 funciones de productores (var.lambda_dependencies_layer_arn sigue en null en terraform.tfvars) -- eso es la tarea 033."
+  value       = aws_lambda_layer_version.ingesta_dependencies.arn
+}
