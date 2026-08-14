@@ -377,7 +377,11 @@ def normalize_esmadrid_event(service: ET.Element, captured_at: datetime) -> dict
         "schema_version": 1,
         "source": SOURCE_ESMADRID,
         "event_id": service.get("id"),
-        "title": _element_text(service, "basicData/name"),
+        # Algunos eventos (p.ej. partidos de LALIGA) traen el título con entidades
+        # HTML sin decodificar dentro del propio CDATA de origen (`"M&aacute;laga"`
+        # en vez de `"Málaga"`), a diferencia del resto del feed que sí usa UTF-8
+        # directo; se decodifica igual que ya se hacía para `description`/`schedule_text`.
+        "title": html.unescape(_element_text(service, "basicData/name") or "") or None,
         "description": _truncate(_strip_html(_element_text(service, "basicData/body"))),
         "category": category,
         "start_datetime": _parse_esmadrid_date(start_raw),
