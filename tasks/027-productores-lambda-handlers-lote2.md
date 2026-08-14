@@ -3,19 +3,19 @@ id: 27
 slug: productores-lambda-handlers-lote2
 title: Handlers Lambda de captura completa — lote 2/3 (meteorología, ruido, afluencia,
   aforos, Bluesky)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/027-productores-lambda-handlers-lote2
-pr_number: null
-pr_url: null
+pr_number: 74
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/74
 attempts: 6
 next_retry_at: '2026-08-14T21:03:11.810392+00:00'
 last_error: You've hit your session limit · resets 8:10pm (UTC)
 created_at: '2026-08-14T16:15:00+00:00'
-updated_at: '2026-08-14T21:04:08.664897+00:00'
+updated_at: '2026-08-14T21:08:41.586067+00:00'
 started_at: '2026-08-14T16:16:59.442638+00:00'
-submitted_at: null
+submitted_at: '2026-08-14T21:08:41.585905+00:00'
 merged_at: null
 ---
 
