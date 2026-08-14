@@ -2,17 +2,20 @@
 id: 26
 slug: productores-lambda-handlers
 title: Envolver cada productor programado en un handler Lambda de captura completa
-status: in_progress
+status: failed
 force: true
 allow_infra_apply: false
 branch: task/026-productores-lambda-handlers
 pr_number: null
 pr_url: null
-attempts: 0
+attempts: 1
 next_retry_at: null
-last_error: null
+last_error: 'InputTokens":12544435,"cacheCreationInputTokens":224231,"webSearchRequests":0,"costUSD":6.0018735,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
+  maximum budget ($6)"],"type":"result","duration_ms":602271,"uuid":"7236a122-066c-46aa-8755-2c346182d4c6"}
+
+  '
 created_at: '2026-08-14T15:41:31+00:00'
-updated_at: '2026-08-14T15:48:43.802136+00:00'
+updated_at: '2026-08-14T15:58:49.708321+00:00'
 started_at: '2026-08-14T15:48:43.802111+00:00'
 submitted_at: null
 merged_at: null
