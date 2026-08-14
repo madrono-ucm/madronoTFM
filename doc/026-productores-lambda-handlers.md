@@ -1,138 +1,151 @@
-# 026 — Handlers Lambda de captura completa para los productores programados
+# 026 — Handlers Lambda de captura completa, lote 1/3 (tráfico, EMT, BiciMAD, aparcamientos, aire)
 
 ## Qué se implementó
 
-Se añadió `lambda_handler(event, context)` a los 13 productores de la tabla
-del enunciado (más el wrapper trivial de `trafico_madrid.py`, que ya hacía
-captura completa desde la tarea 002). Cada handler: llama a la función de
-captura **completa** del módulo (no la muestra truncada de `capture_sample`),
-y escribe el resultado en Bronze real vía
-`BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=...)` — funciona igual
-con `BRONZE_BASE_PATH` local (probado en esta EC2) o `s3://...` (tarea 025).
-No se despliega nada en AWS: es solo código, verificado con dobles.
+Se añadió `lambda_handler(event, context)` a los 5 productores de la tabla
+del enunciado: `trafico_madrid.py`, `transporte_publico_madrid.py`,
+`bicimad.py`, `aparcamientos_madrid.py`, `calidad_aire_madrid.py`. Cada
+handler llama a la función de captura **completa** del módulo (no la
+muestra truncada de `capture_sample`) y escribe el resultado en Bronze real
+vía `BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=...)` — funciona
+igual con `BRONZE_BASE_PATH` local (probado en esta EC2) o `s3://...`
+(tarea 025). No se despliega nada en AWS: es solo código, verificado con
+dobles.
 
 Tabla completa de datasets y handler por módulo en `ingesta/README.md`,
-sección "Handlers Lambda (tarea 026)".
+sección "Handlers Lambda (tarea 026, lote 1/3)".
 
-## Refactors para separar "captura completa" de "captura muestra"
+## Refactor para separar "captura completa" de "captura muestra"
 
-La mayoría de productores 003-019/023 solo tenían `capture_sample`, que
-mezclaba fetch+normalize con el recorte a unos pocos registros para el
-fixture versionado. Se añadió una función `capture_all` (o se reutilizó una
-ya sin recorte) en cada uno, que hace el mismo fetch+normalize sin el
-`[:sample_size]`: `transporte_publico_madrid.py`, `bicimad.py`,
-`aparcamientos_madrid.py`, `calidad_aire_madrid.py`, `meteorologia_madrid.py`,
-`ruido_madrid.py`, `aforos_peatones_bicicletas_madrid.py`,
-`agenda_eventos_madrid.py`. `aemet_prevision_avisos.py` y
-`cams_calidad_aire_madrid.py` ya tenían `fetch_prediccion`/`fetch_avisos`/
-`fetch_forecast` sin recorte por defecto (el recorte solo vivía en
-`capture_sample`), así que no hizo falta ningún refactor ahí: el handler
-solo envuelve la función existente.
+`trafico_madrid.py` ya hacía captura completa desde la tarea 002
+(`capture_once`, sin recorte de muestra): su handler es un wrapper trivial.
+Los otros 4 solo tenían `capture_sample`, que mezclaba fetch+normalize con
+el recorte `[:sample_size]` para el fixture versionado. Se añadió una
+función `capture_all` en cada uno (mismo fetch+normalize, sin el recorte):
+`transporte_publico_madrid.py`, `bicimad.py`, `aparcamientos_madrid.py`,
+`calidad_aire_madrid.py`.
+
+## Corrección de alcance: un intento previo en esta misma rama ya cubría los 13 productores
+
+Al empezar esta tarea, el worktree ya tenía un commit (`3e3a112`) que
+implementaba `lambda_handler` para los **13 productores** de la tabla
+completa del enunciado original (incluyendo meteorología, ruido, afluencia,
+aforos, Bluesky, agenda de eventos, AEMET, CAMS y cartelera de cines) — el
+mismo patrón de sobre-alcance que el propio enunciado de esta tarea advierte
+explícitamente que ya falló una vez por agotar el presupuesto sin comitear
+nada. Aquí sí llegó a comitearse, pero se sale del alcance que pide esta
+tarea concreta (solo 5 productores; el resto está repartido en las tareas
+027/028).
+
+Se corrigió revirtiendo los cambios de `lambda_handler`/`capture_all` en los
+8 módulos fuera de alcance (`meteorologia_madrid.py`, `ruido_madrid.py`,
+`afluencia_lugares_madrid.py`, `aforos_peatones_bicicletas_madrid.py`,
+`bluesky_menciones_madrid.py`, `agenda_eventos_madrid.py`,
+`aemet_prevision_avisos.py`, `cams_calidad_aire_madrid.py`,
+`cartelera_cines_madrid.py`) a su estado previo al commit `3e3a112`, y
+recortando `ingesta/tests/test_lambda_handlers.py` y la sección nueva de
+`ingesta/README.md` a los 5 módulos que sí corresponden a esta tarea. Los
+cambios de los 5 módulos en alcance no se tocaron, ya estaban correctos.
+Las tareas 027/028 pueden reimplementar el resto desde cero con su propio
+presupuesto — no hace falta reutilizar ni recordar el trabajo revertido
+aquí, que ya no existe en el árbol de trabajo.
 
 ## Decisiones específicas por módulo
 
-- **`afluencia_lugares_madrid.py`**: el handler (`capture_typical_patterns`)
-  captura **solo el patrón típico**, no la popularidad "en vivo": se añadió
-  el parámetro `include_live` a `normalize_record` para forzar `live_pct` a
-  `None` en este modo. Razonamiento: la popularidad en vivo solo tiene
-  sentido en el instante exacto de una pregunta del usuario ("¿está lleno
-  ahora?"), no en un barrido programado que ya estaría obsoleto para cuando
-  se consulte; esa pregunta puntual sigue siendo responsabilidad de una
-  futura invocación bajo demanda, no de este handler.
-- **`aforos_peatones_bicicletas_madrid.py`**: el handler primero llama a
-  `check_for_newer_resources` (nueva función), que consulta el catálogo CKAN
-  del dataset y **avisa por log** si ya existe un recurso CSV más reciente
-  que el configurado por defecto — sin bloquear ni cambiar la URL usada. Se
-  eligió este diseño porque el dataset se actualiza solo trimestralmente
-  (ver docstring del módulo, tarea 013): sin este aviso, un schedule
-  periódico (semanal) podría pasar meses re-descargando el mismo último día
-  ya capturado antes sin que nadie note que hay una URL más reciente
-  disponible. La captura en sí ("si aplica") siempre procede con la fuente
-  configurada.
-- **`bluesky_menciones_madrid.py`**: el handler usa solo
-  `search_district_sweep`, con las listas **completas** de distritos (21) y
-  términos de evento (6) — no los subconjuntos truncados que
-  `CaptureConfig.from_env()` usa por defecto para la muestra pequeña
-  (`BLUESKY_SAMPLE_DISTRICTS`/`BLUESKY_EVENT_TERMS`). `search_place` (modo
-  "bajo demanda") no tiene handler, tal como pedía el enunciado.
-- **`aemet_prevision_avisos.py`**: **un único** `lambda_handler`, que decide
-  qué capturar según `event.get("tipo")` (`"prevision"` por defecto, o
-  `"avisos"`), en vez de dos funciones separadas. Motivo: ambas capturas
-  comparten `CaptureConfig`/`AEMET_API_KEY`; dos EventBridge rules (una por
-  cada cadencia real — la previsión se actualiza "continuamente", los avisos
-  en franjas horarias concretas) pueden invocar el mismo Lambda con un
-  `input` distinto, sin duplicar despliegue de función/rol IAM.
-- **`cartelera_cines_madrid.py`**: el handler usa solo `sweep_premieres`
-  (estrenos de la semana, sin límite); `fetch_cinema_showtimes` no tiene
-  handler, queda para uso bajo demanda del asistente, tal como pedía el
-  enunciado.
-- **`agenda_recintos_madrid.py`** (tarea 022) no tiene handler propio: como
-  ya documentó su propia tarea, reutiliza el mismo feed que descarga
-  `agenda_eventos_madrid.py` sin hacer ninguna petición HTTP nueva, así que
-  capturar `agenda_eventos_madrid.py` ya cubre esos eventos.
+- **`trafico_madrid.py`**: sin refactor, solo el wrapper `lambda_handler`
+  sobre `capture_once` (ya escribía el lote completo en Bronze desde la
+  tarea 002).
+- **`transporte_publico_madrid.py`**: `capture_all` reutiliza
+  `fetch_access_token`/`fetch_raw_arrivals`/`parse_records` sin cambios; la
+  API ya devuelve todas las llegadas vigentes de una única parada
+  (`EMT_STOP_ID`), así que "completa" aquí significa "sin el slicing
+  `[:sample_size]`", no una fuente de datos distinta.
+- **`bicimad.py`**: `capture_all` descarga las ~670 estaciones de la red
+  completa (GBFS), sin recorte.
+- **`aparcamientos_madrid.py`**: `capture_all` pide `GetDetailParking`
+  (una llamada SOAP por aparcamiento) para todos los aparcamientos con
+  ocupación en tiempo real del listado, no solo los primeros de la
+  muestra; si una llamada de detalle falla, el registro se conserva con
+  `total_spaces=None` en vez de descartarse (mismo criterio de tolerancia a
+  fallos parciales que ya usaba `capture_sample`).
+- **`calidad_aire_madrid.py`**: `capture_all` normaliza todos los registros
+  estación+magnitud con lectura horaria válida ese día (24 estaciones x
+  hasta ~18 magnitudes), sin recorte.
 
 ## Nombres de dataset Bronze
 
-Cada módulo obtiene una constante `DATASET_NAME` nueva (o, para
-`aemet_prevision_avisos.py`, `DATASET_PREDICCION`/`DATASET_AVISOS`) que no
-existía antes de esta tarea, porque hasta ahora ningún handler escribía en
-Bronze particionado salvo `trafico_madrid.py`. Ver la tabla completa en
-`ingesta/README.md`.
+Cada uno de los 5 módulos obtiene una constante `DATASET_NAME` nueva
+(`trafico_madrid.py` ya la tenía desde la tarea 002): `trafico`,
+`transporte_publico_emt`, `bicimad`, `aparcamientos`, `calidad_aire`. Ver la
+tabla completa en `ingesta/README.md`.
 
 ## Restricciones respetadas
 
 - Ningún test hace una llamada de red real ni escribe en S3: cada test de
   `ingesta/tests/test_lambda_handlers.py` sustituye la función de captura de
-  más alto nivel del módulo (`capture_all`, `fetch_forecast`,
-  `sweep_premieres`...) por un doble en memoria — esa función ya está
-  probada por el `test_<módulo>.py` correspondiente, así que estos tests
-  solo verifican el código nuevo: que el handler llama a la captura
-  correcta, escribe en Bronze (modo local, directorio temporal) con el
-  dataset esperado, y devuelve un `dict` coherente.
+  más alto nivel del módulo (`capture_once`/`capture_all`) por un doble en
+  memoria — esa función ya está probada por el `test_<módulo>.py`
+  correspondiente, así que estos tests solo verifican el código nuevo: que
+  el handler llama a la captura correcta, escribe en Bronze (modo local,
+  directorio temporal) con el dataset esperado, y devuelve un `dict`
+  coherente.
 - No se ejecutó ninguna captura completa real contra las fuentes en vivo
-  (tráfico, ruido, aforos... podrían producir volumen grande); la lógica se
+  (tráfico en particular podría producir volumen grande); la lógica se
   verificó con dobles, no con una ejecución de producción.
-- No se tocó ningún productor fuera de la tabla del enunciado
-  (009-011, 020, 021 quedan como carga de referencia estática;
-  `agenda_recintos_madrid.py` como se explica arriba).
+- No se tocó ningún productor fuera de los 5 de esta tarea — los 8
+  revertidos (ver arriba) y el resto de la tabla original (009-011, 020,
+  021 como carga de referencia estática; `agenda_recintos_madrid.py`) quedan
+  intactos.
 
 ## Sin bloqueos pendientes
 
-A diferencia de otras tareas de este proyecto (018, 019, 012), esta tarea no
-dependía de ninguna credencial nueva ni de resolver ningún registro: los
-handlers de `aemet_prevision_avisos.py`/`cams_calidad_aire_madrid.py`/
-`afluencia_lugares_madrid.py` heredan los mismos bloqueos ya documentados
-por sus tareas originales (018, 019, 012 respectivamente) — el código queda
-listo para ejecutarse el día que alguien complete esos registros, tal como
-ya ocurría con `capture_sample`. Ningún módulo de la tabla quedó sin
-resolver por esta tarea.
+Ninguno de los 5 productores de esta tarea dependía de ninguna credencial
+nueva ni de resolver ningún registro: los 5 ya tenían sus fuentes
+desbloqueadas por tareas anteriores (002-006/024). Ningún módulo de esta
+tarea quedó sin resolver.
 
 ## Suite de tests
 
-`ingesta/tests/test_lambda_handlers.py` (nuevo, 20 tests) cubre los 14
-handlers. Suite completa del proyecto verificada tras el cambio: **250
-tests** (230 previos + 20 nuevos), todos en verde.
+`ingesta/tests/test_lambda_handlers.py` (nuevo, 5 tests) cubre los 5
+handlers de este lote. Suite completa del proyecto verificada tras el
+cambio: **235 tests** (230 previos + 5 nuevos), todos en verde
+(`python3 -m unittest discover -s ingesta/tests -p "test_*.py"`).
 
 ## Relevante para tareas futuras
 
-- El siguiente paso natural (fuera de esta tarea, mencionado como 027/028 en
-  el enunciado) es escribir el Terraform que despliegue cada `lambda_handler`
-  como función Lambda real con su EventBridge rule (cadencia por productor:
-  ver notas de cadencia ya documentadas en `ingesta/README.md` para AEMET/
-  CAMS) y el rol IAM con permisos de escritura sobre el bucket Bronze
-  (reutilizando `madrono-tfm-dev-ingestion-role` de la tarea 015 si aplica).
+- Las tareas 027/028 deben implementar `lambda_handler` para el resto de
+  productores programados (meteorología, ruido, afluencia, aforos, Bluesky,
+  agenda de eventos, AEMET, CAMS, cartelera de cines) siguiendo el mismo
+  patrón que aquí: `capture_all` sin recorte + `BronzeWriter` +
+  `DATASET_NAME`. El commit `3e3a112` de esta misma rama (ya revertido para
+  los módulos fuera de alcance, pero visible en `git log`/`git show
+  3e3a112`) contiene una implementación completa de referencia para los 9
+  módulos restantes, incluyendo decisiones ya pensadas para casos no
+  triviales: `afluencia_lugares_madrid.py` (handler que captura solo el
+  patrón típico, `live_pct` siempre `None`, vía un nuevo parámetro
+  `include_live` en `normalize_record`), `aforos_peatones_bicicletas_madrid.py`
+  (aviso best-effort de recurso CSV más reciente antes de capturar),
+  `bluesky_menciones_madrid.py` (listas completas de distritos/términos, no
+  la muestra truncada), `aemet_prevision_avisos.py` (un único handler que
+  decide `prevision`/`avisos` por `event["tipo"]`, para no duplicar
+  despliegue de función/rol IAM entre las dos cadencias reales de esa
+  fuente) y `cartelera_cines_madrid.py` (solo `sweep_premieres`, sin
+  límite). No es necesario partir de cero ni volver a investigar estas
+  decisiones — sí conviene revisar cada diff con criterio antes de
+  reaplicarlo, en vez de copiarlo a ciegas.
+- El siguiente paso natural tras completar 027/028 (fuera de esta tarea) es
+  escribir el Terraform que despliegue cada `lambda_handler` como función
+  Lambda real con su EventBridge rule (cadencia por productor: ver notas de
+  cadencia ya documentadas en `ingesta/README.md` para AEMET/CAMS) y el rol
+  IAM con permisos de escritura sobre el bucket Bronze (reutilizando
+  `madrono-tfm-dev-ingestion-role` de la tarea 015 si aplica).
 - Los nombres de dataset (`DATASET_NAME` por módulo) son ahora la clave de
   partición real en Bronze (`<bucket>/<dataset>/fecha=.../hora=...`): una
   tarea futura de transformación Silver debe usarlos tal cual, no
   reinventar un nombre distinto por dataset.
-- `afluencia_lugares_madrid.py` ahora produce dos "sabores" de captura desde
-  el mismo módulo: `capture_sample` (fixture, con `live_pct`) y
-  `capture_typical_patterns` (Lambda, sin `live_pct`). Si una tarea futura
-  añade el servicio conversacional con la parte "bajo demanda" de esta
-  fuente, debe usar `resolve_place_id`/`fetch_populartimes`/
-  `normalize_record(..., include_live=True)` directamente, no este handler.
-- `check_for_newer_resources` en `aforos_peatones_bicicletas_madrid.py` es
-  best-effort (un log, no una alerta real): si una tarea futura quiere que
-  esto dispare una notificación de verdad cuando aparezca un recurso nuevo,
-  necesitaría un canal de alerta (SNS, etc.) que hoy no existe en el
-  proyecto.
+- Lección de proceso para 027/028: antes de dar por buena la implementación,
+  vale la pena comprobar que el alcance tocado en el árbol de trabajo
+  coincide exactamente con la tabla de productores de la tarea concreta —
+  un commit previo en la misma rama puede haberse pasado de alcance (como
+  ocurrió aquí) y hace falta revertir la parte sobrante antes de continuar,
+  no solo añadir lo que falta.

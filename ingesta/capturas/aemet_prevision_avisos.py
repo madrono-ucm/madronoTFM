@@ -131,17 +131,6 @@ diaria se actualiza "continuamente" según su propia documentación, y los
 avisos tienen periodos de emisión preferentes conocidos (07:30-09:00,
 10:30-11:30, 17:00-19:00, 23:50), así que no hace falta sondear con más
 frecuencia que esos huecos.
-
-## Handler Lambda (tarea 026): un único handler, elegido por `event["tipo"]`
-
-Se implementa **un único** `lambda_handler`, no dos funciones separadas,
-que decide qué capturar según `event.get("tipo")` (`"prevision"` por
-defecto, o `"avisos"`): ambas capturas comparten `CaptureConfig.from_env()`
-y la misma `AEMET_API_KEY`, así que dos EventBridge rules distintas —una
-por cada cadencia real, ver el TODO anterior— pueden apuntar al mismo
-Lambda pasando un `tipo` distinto en su `input` configurado, sin duplicar
-el despliegue de función/rol IAM para algo que en el fondo es la misma
-integración con la misma credencial.
 """
 
 from __future__ import annotations
@@ -161,14 +150,10 @@ from typing import Optional
 
 import requests
 
-from .bronze import BronzeWriter
-
 logger = logging.getLogger(__name__)
 
 SOURCE_PREDICCION = "aemet_prediccion_municipio"
 SOURCE_AVISOS = "aemet_avisos_cap"
-DATASET_PREDICCION = "aemet_prevision"
-DATASET_AVISOS = "aemet_avisos"
 
 OPENDATA_BASE_URL = "https://opendata.aemet.es/opendata"
 DEFAULT_PREDICCION_DIARIA_URL_TEMPLATE = (
@@ -539,39 +524,6 @@ def capture_sample(
     _write_json(avisos_records, avisos_out_path)
 
     return prediccion_out_path, avisos_out_path
-
-
-def lambda_handler(event, context):
-    """Punto de entrada AWS Lambda (tarea 026): previsión o avisos, según `event["tipo"]`.
-
-    `event.get("tipo")`: `"prevision"` (por defecto) o `"avisos"` — ver
-    docstring del módulo, "Handler Lambda", para por qué es un único
-    handler y no dos funciones separadas.
-    """
-    tipo = (event or {}).get("tipo", "prevision")
-    config = CaptureConfig.from_env()
-    if not config.api_key:
-        raise RuntimeError(
-            "AEMET_API_KEY no está configurada. Ver docstring del módulo, sección "
-            "'Bloqueo de registro', para completar el alta (manual, requiere resolver "
-            "un reCAPTCHA) en https://opendata.aemet.es/centrodedescargas/altaUsuario."
-        )
-
-    if tipo == "avisos":
-        records = fetch_avisos(config)
-        dataset_name = DATASET_AVISOS
-        logger.info("Avisos capturados (captura completa): %d", len(records))
-    elif tipo == "prevision":
-        records = fetch_prediccion(config)
-        dataset_name = DATASET_PREDICCION
-        logger.info("Previsión capturada (captura completa): %d días", len(records))
-    else:
-        raise ValueError(f"event['tipo'] desconocido: {tipo!r} (valores válidos: 'prevision', 'avisos')")
-
-    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=dataset_name)
-    out_path = writer.write_batch(records)
-    logger.info("Captura Lambda completada: %s", out_path)
-    return {"dataset": dataset_name, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

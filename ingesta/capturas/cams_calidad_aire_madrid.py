@@ -144,13 +144,10 @@ from typing import Optional
 
 import netCDF4
 
-from .bronze import BronzeWriter
-
 logger = logging.getLogger(__name__)
 
 SOURCE = "cams"
 DATASET_ID = "cams-europe-air-quality-forecasts"
-DATASET_NAME = "cams_calidad_aire"
 
 DEFAULT_ADS_URL = "https://ads.atmosphere.copernicus.eu/api"
 
@@ -428,29 +425,6 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     logger.info("Previsión de calidad del aire de muestra capturada: %d registros", len(records))
     _write_json(records, out_path)
     return out_path
-
-
-def lambda_handler(event, context):
-    """Punto de entrada AWS Lambda (tarea 026): captura completa a Bronze real.
-
-    Reutiliza `fetch_forecast` tal cual: ya descarga y normaliza la
-    previsión completa configurada (`config.pollutants` x
-    `config.leadtime_hours`, no un recorte de muestra adicional).
-    """
-    config = CaptureConfig.from_env()
-    if not config.api_key:
-        raise RuntimeError(
-            "CAMS_ADS_API_KEY no está configurada. Ver docstring del módulo, sección "
-            "'Bloqueo de registro', para completar el alta (manual, cuenta ligada a "
-            "identidad real) en https://ads.atmosphere.copernicus.eu/."
-        )
-
-    records = fetch_forecast(config)
-    logger.info("Previsión de calidad del aire capturada (captura completa): %d registros", len(records))
-    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
-    out_path = writer.write_batch(records)
-    logger.info("Captura Lambda completada: %s", out_path)
-    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

@@ -90,9 +90,9 @@ todavía en el bucket real — activar `BRONZE_BASE_PATH=s3://...` en
 producción (cron/systemd timer de cada productor) es una decisión de
 despliegue posterior, fuera del alcance de esta tarea.
 
-## Handlers Lambda (tarea 026): captura completa lista para desplegar
+## Handlers Lambda (tarea 026, lote 1/3): captura completa lista para desplegar
 
-Los productores programados de la lista siguiente ya tienen un
+Los 5 productores de la tabla siguiente ya tienen un
 `lambda_handler(event, context)`: hace la captura **completa** (no la
 muestra pequeña de `capture_sample`), y la aterriza en Bronze real vía
 `BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=...)` — funciona con
@@ -108,21 +108,11 @@ infraestructura Lambda/EventBridge de una tarea futura.
 | `bicimad.py` | `bicimad` | `capture_all`: las ~670 estaciones de la red |
 | `aparcamientos_madrid.py` | `aparcamientos` | `capture_all`: todos los aparcamientos con ocupación en tiempo real |
 | `calidad_aire_madrid.py` | `calidad_aire` | `capture_all`: todas las lecturas estación+magnitud del día |
-| `meteorologia_madrid.py` | `meteorologia` | `capture_all`: las ~25 estaciones de la red |
-| `ruido_madrid.py` | `ruido` | `capture_all`: último día disponible, todas las estaciones |
-| `afluencia_lugares_madrid.py` | `afluencia_lugares_patron_tipico` | `capture_typical_patterns`: solo patrón típico, `live_pct` siempre `None` (ver docstring del módulo) |
-| `aforos_peatones_bicicletas_madrid.py` | `aforos_peatones_bicicletas` | `check_for_newer_resources` (aviso, no bloquea) + `capture_all` |
-| `bluesky_menciones_madrid.py` | `bluesky_menciones` | solo `search_district_sweep`, distritos/términos completos (no la muestra truncada) |
-| `agenda_eventos_madrid.py` | `agenda_eventos` | `capture_all`: ambas fuentes completas |
-| `aemet_prevision_avisos.py` | `aemet_prevision` / `aemet_avisos` | un único handler, elegido por `event["tipo"]` |
-| `cams_calidad_aire_madrid.py` | `cams_calidad_aire` | wrapper sobre `fetch_forecast`, ya sin recorte |
-| `cartelera_cines_madrid.py` | `cartelera_cines_estrenos` | solo `sweep_premieres`, sin límite |
 
-`agenda_recintos_madrid.py` (tarea 022) no tiene handler propio: reutiliza
-el feed que ya descarga `agenda_eventos_madrid.py`, así que capturar este
-último ya cubre esos eventos. `search_place`/`fetch_venue_agenda`/
-`fetch_cinema_showtimes` tampoco tienen handler: quedan para que los invoque
-bajo demanda el futuro servicio conversacional, no un schedule.
+El resto de productores programados (meteorología, ruido, afluencia,
+aforos, Bluesky, agenda de eventos, AEMET, CAMS, cartelera de cines) quedan
+fuera del alcance de esta tarea — se cubren en las tareas 027/028, mismo
+patrón.
 
 ## `capturas/trafico_madrid.py` — Intensidad de tráfico de Madrid
 
