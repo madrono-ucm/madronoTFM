@@ -1,19 +1,19 @@
 ---
 id: 26
 slug: productores-lambda-handlers
-title: "Envolver cada productor programado en un handler Lambda de captura completa"
-status: pending
+title: Envolver cada productor programado en un handler Lambda de captura completa
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/026-productores-lambda-handlers
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-14T15:41:31+00:00"
-updated_at: "2026-08-14T15:41:31+00:00"
-started_at: null
+created_at: '2026-08-14T15:41:31+00:00'
+updated_at: '2026-08-14T15:48:43.802136+00:00'
+started_at: '2026-08-14T15:48:43.802111+00:00'
 submitted_at: null
 merged_at: null
 ---
