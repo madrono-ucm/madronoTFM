@@ -1,7 +1,8 @@
 """Tests de los `lambda_handler` añadidos en la tarea 026 (lote 1/3: tráfico,
-transporte público EMT, BiciMAD, aparcamientos, calidad del aire) y la tarea
+transporte público EMT, BiciMAD, aparcamientos, calidad del aire), la tarea
 027 (lote 2/3: meteorología, ruido, afluencia de lugares, aforos de peatones
-y bicicletas, Bluesky).
+y bicicletas, Bluesky) y la tarea 028 (lote 3/3: agenda de eventos, AEMET,
+CAMS, cartelera de cines).
 
 Cada handler delega la captura real en una función ya existente y probada
 por su propio módulo (`capture_once`/`capture_all`/`capture_typical_patterns`/
@@ -22,12 +23,16 @@ from pathlib import Path
 from unittest.mock import patch
 
 from ingesta.capturas import (
+    aemet_prevision_avisos,
     aforos_peatones_bicicletas_madrid,
     afluencia_lugares_madrid,
+    agenda_eventos_madrid,
     aparcamientos_madrid,
     bicimad,
     bluesky_menciones_madrid,
     calidad_aire_madrid,
+    cams_calidad_aire_madrid,
+    cartelera_cines_madrid,
     meteorologia_madrid,
     ruido_madrid,
     trafico_madrid,
@@ -190,6 +195,83 @@ class BlueskyLambdaHandlerTests(unittest.TestCase):
         self.assertEqual(districts_arg, bluesky_menciones_madrid.DEFAULT_DISTRICTS)
         self.assertEqual(call_args.kwargs.get("event_terms"), bluesky_menciones_madrid.DEFAULT_EVENT_TERMS)
         self.assertEqual(result["dataset"], "bluesky_menciones")
+
+
+class AgendaEventosLambdaHandlerTests(unittest.TestCase):
+    def test_writes_full_capture_to_bronze(self):
+        records = [{"source": "agenda_eventos_madrid_municipal"}, {"source": "agenda_turismo_esmadrid"}]
+        result, written, mock_fn = _run_handler_writing_records(
+            agenda_eventos_madrid, "capture_all", records
+        )
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "agenda_eventos")
+        self.assertEqual(written, records)
+
+
+class AemetLambdaHandlerTests(unittest.TestCase):
+    def _run(self, event, patch_target):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp, "AEMET_API_KEY": "fake-key"}):
+                with patch.object(aemet_prevision_avisos, patch_target) as mock_fn:
+                    mock_fn.return_value = [{"dummy": True}]
+                    result = aemet_prevision_avisos.lambda_handler(event, None)
+        return result, mock_fn
+
+    def test_default_tipo_captures_prediccion(self):
+        result, mock_fn = self._run({}, "fetch_prediccion")
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "aemet_prevision")
+
+    def test_tipo_avisos_captures_avisos(self):
+        result, mock_fn = self._run({"tipo": "avisos"}, "fetch_avisos")
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "aemet_avisos")
+
+    def test_unknown_tipo_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp, "AEMET_API_KEY": "fake-key"}):
+                with self.assertRaises(ValueError):
+                    aemet_prevision_avisos.lambda_handler({"tipo": "algo-raro"}, None)
+
+    def test_missing_api_key_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp, "AEMET_API_KEY": ""}):
+                with self.assertRaises(RuntimeError):
+                    aemet_prevision_avisos.lambda_handler({}, None)
+
+
+class CamsLambdaHandlerTests(unittest.TestCase):
+    def test_writes_full_capture_to_bronze(self):
+        records = [{"pollutant": "NO2"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(
+                "os.environ", {"BRONZE_BASE_PATH": tmp, "CAMS_ADS_API_KEY": "fake-token"}
+            ):
+                with patch.object(cams_calidad_aire_madrid, "fetch_forecast") as mock_fn:
+                    mock_fn.return_value = records
+                    result = cams_calidad_aire_madrid.lambda_handler({}, None)
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "cams_calidad_aire")
+
+    def test_missing_api_key_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp, "CAMS_ADS_API_KEY": ""}):
+                with self.assertRaises(RuntimeError):
+                    cams_calidad_aire_madrid.lambda_handler({}, None)
+
+
+class CarteleraLambdaHandlerTests(unittest.TestCase):
+    def test_uses_sweep_premieres_without_limit(self):
+        records = [{"record_type": "estreno_semana"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp}):
+                with patch.object(cartelera_cines_madrid, "sweep_premieres") as mock_fn:
+                    mock_fn.return_value = records
+                    result = cartelera_cines_madrid.lambda_handler({}, None)
+        mock_fn.assert_called_once()
+        _, kwargs = mock_fn.call_args
+        self.assertNotIn("limit", kwargs)
+        self.assertEqual(result["dataset"], "cartelera_cines_estrenos")
 
 
 if __name__ == "__main__":

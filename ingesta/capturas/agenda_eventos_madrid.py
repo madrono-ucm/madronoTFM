@@ -129,10 +129,13 @@ from urllib.parse import unquote
 
 import requests
 
+from .bronze import BronzeWriter
+
 logger = logging.getLogger(__name__)
 
 SOURCE_MUNICIPAL = "agenda_eventos_madrid_municipal"
 SOURCE_ESMADRID = "agenda_turismo_esmadrid"
+DATASET_NAME = "agenda_eventos"
 
 DEFAULT_MUNICIPAL_URL = (
     "https://datos.madrid.es/egob/catalogo/206974-0-agenda-eventos-culturales-100.json"
@@ -442,6 +445,31 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza TODOS los eventos de ambas fuentes (sin recorte de muestra).
+
+    A diferencia de `fetch_municipal_events`/`fetch_esmadrid_events` (que
+    cortan a `municipal_sample_size`/`esmadrid_sample_size`), esto es la
+    captura completa pensada para el handler Lambda (tarea 028): los ~669
+    eventos municipales y todos los `<service>` de la agenda de esMadrid.
+    """
+    captured_at = datetime.now(timezone.utc)
+    records = [normalize_municipal_event(raw, captured_at) for raw in fetch_municipal_events_raw(config)]
+    records += [normalize_esmadrid_event(s, captured_at) for s in fetch_esmadrid_services_raw(config)]
+    logger.info("Normalizados %d eventos de la agenda (captura completa)", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (tarea 028): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:
