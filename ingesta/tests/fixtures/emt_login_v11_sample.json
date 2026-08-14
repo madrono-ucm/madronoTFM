@@ -1,0 +1,25 @@
+{
+  "code": "00",
+  "description": "Register user: exampleuser with token: 00000000-0000-4000-8000-000000000000  Data recovered OK",
+  "datetime": "2026-08-14T15:00:00.000000",
+  "data": [
+    {
+      "nameApp": "example-app",
+      "updatedAt": "2026-08-14T15:00:00.000000",
+      "userName": "exampleuser",
+      "lastUpdate": "2026-08-14T15:00:00.000000",
+      "idUser": "0",
+      "priv": "3",
+      "tokenSecExpiration": "86399",
+      "email": "example@example.com",
+      "tokenDteExpiration": "2026-08-15T14:59:59.000000",
+      "flagAdvise": "0",
+      "deviceId": "",
+      "modeSession": "1",
+      "deviceModel": "",
+      "accessToken": "FAKE-ACCESS-TOKEN-NOT-A-REAL-CREDENTIAL",
+      "apiCounter": "1",
+      "username": "exampleuser"
+    }
+  ]
+}

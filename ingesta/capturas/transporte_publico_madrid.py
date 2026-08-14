@@ -10,42 +10,33 @@ Fuente: https://openapi.emtmadrid.es — API MobilityLabs de la EMT, catalogada
 en https://datos.emtmadrid.es. Documentación / registro:
 https://mobilitylabs.emtmadrid.es/es/portal/opendata.
 
-## Autenticación (API key gratuita, no incluida en el repo)
+## Autenticación (credenciales de aplicación, v1.1)
 
-La API MobilityLabs no usa una API key simple, sino email + contraseña de una
-cuenta registrada gratis en https://mobilitylabs.emtmadrid.es (enlace
-"Regístrate"): tras rellenar el formulario, la EMT envía un correo de
-confirmación que hay que validar antes de que la cuenta pueda autenticarse.
-Una vez verificada la cuenta, el login se hace con:
+La tarea 003 asumió que la API se autentica con email+contraseña de una
+cuenta personal verificada por correo (endpoint v1). Esa asunción era
+incorrecta y bloqueó la captura: el mecanismo real (verificado en vivo en la
+tarea 024) es un login **v1.1** con credenciales de **aplicación**
+(`x-ClientId` / `passKey`), no de usuario:
 
-    GET https://openapi.emtmadrid.es/v1/mobilitylabs/user/login/
-    Headers: email: <tu email>, password: <tu contraseña>
+    GET https://openapi.emtmadrid.es/v1.1/mobilitylabs/user/login/
+    Headers: x-ClientId: <client id>, passKey: <pass key>, Content-Type: application/json
 
-que devuelve (si `code == "01"`) un `accessToken` en
-`data[0].accessToken`, válido ~24h y que hay que reenviar en la cabecera
-`accessToken` de las siguientes llamadas (aquí, la de llegadas a una parada).
+que devuelve (si `code == "00"`) un `accessToken` en `data[0].accessToken`,
+a reenviar en la cabecera `accessToken` de las siguientes llamadas (aquí, la
+de llegadas a una parada, sin cambios respecto a la tarea 003). Este script
+lee las credenciales de las variables de entorno `EMT_CLIENT_ID` /
+`EMT_PASS_KEY` — nunca hardcodeadas, y nunca registradas en logs (solo se
+registra el código de estado HTTP de la respuesta de login).
 
-Este script lee las credenciales de las variables de entorno
-`EMT_API_EMAIL` / `EMT_API_PASSWORD` — nunca hardcodeadas.
+## Captura real completada (tarea 024)
 
-## Nota sobre el acceso desde este entorno (sesión de la tarea 003)
-
-Se ha verificado en vivo que `https://openapi.emtmadrid.es` es alcanzable
-desde este entorno y que el endpoint de login funciona (probado sin
-credenciales: `{"code": "99", ...}`; probado con un email/contraseña de
-prueba: `{"code": "91", "description": "Error: Email is not verified..."}`).
-Es decir, la API es accesible, pero requiere una cuenta registrada con un
-email real y verificado por correo — un paso manual que no es automatizable
-de forma autónoma en este pipeline (no hay bandeja de correo ni humano
-disponible para completar el registro). Por eso, siguiendo la salvedad
-prevista para este caso, el fixture de muestra commiteado en
-`ingesta/capturas/samples/transporte_publico_madrid_sample.json` se ha
-generado a mano con datos de ejemplo realistas (mismo esquema exacto que
-produce `normalize_record`, IDs de parada/línea/bus ilustrativos), no
-descargado en vivo. El código de captura (`fetch_access_token`,
-`fetch_raw_arrivals`, `capture_sample`) queda completo y listo para
-ejecutarse tal cual el día que alguien complete el registro y exporte
-`EMT_API_EMAIL`/`EMT_API_PASSWORD`.
+Con `EMT_CLIENT_ID`/`EMT_PASS_KEY` ya configurados en el entorno de esta
+sesión, el flujo completo (login v1.1 -> llegadas a la parada 71) se
+verificó en vivo y funciona: login `200`/`code=00`, llegadas `200`/`code=00`.
+El fixture de muestra commiteado en
+`ingesta/capturas/samples/transporte_publico_madrid_sample.json` son datos
+reales descargados con `capture_sample`, no inventados a mano (a diferencia
+de la muestra original de la tarea 003).
 
 TODO(kafka): igual que en `trafico_madrid.py`, cuando exista un broker Kafka
 (tarea 001), `normalize_record` es la única fuente de verdad del esquema a
@@ -69,7 +60,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://openapi.emtmadrid.es"
-LOGIN_PATH = "/v1/mobilitylabs/user/login/"
+LOGIN_PATH = "/v1.1/mobilitylabs/user/login/"
 ARRIVALS_PATH = "/v2/transport/busemtmad/stops/{stop_id}/arrives/"
 SOURCE_NAME = "madrid_emt_llegadas"
 DEFAULT_STOP_ID = "71"
@@ -93,8 +84,8 @@ class CaptureConfig:
 
     base_url: str
     stop_id: str
-    api_email: Optional[str]
-    api_password: Optional[str]
+    client_id: Optional[str]
+    pass_key: Optional[str]
     timeout_seconds: float
     max_retries: int
     retry_backoff_seconds: float
@@ -105,8 +96,8 @@ class CaptureConfig:
         return cls(
             base_url=os.environ.get("EMT_API_BASE_URL", DEFAULT_BASE_URL),
             stop_id=stop_id or os.environ.get("EMT_STOP_ID", DEFAULT_STOP_ID),
-            api_email=os.environ.get("EMT_API_EMAIL"),
-            api_password=os.environ.get("EMT_API_PASSWORD"),
+            client_id=os.environ.get("EMT_CLIENT_ID"),
+            pass_key=os.environ.get("EMT_PASS_KEY"),
             timeout_seconds=_env_float("HTTP_TIMEOUT_SECONDS", 15.0),
             max_retries=_env_int("HTTP_MAX_RETRIES", 3),
             retry_backoff_seconds=_env_float("HTTP_RETRY_BACKOFF_SECONDS", 2.0),
@@ -138,18 +129,19 @@ def _request_with_retries(config: CaptureConfig, request_fn) -> dict:
 
 
 def fetch_access_token(config: CaptureConfig) -> str:
-    """Hace login en la API EMT y devuelve el `accessToken`.
+    """Hace login en la API EMT (v1.1, credenciales de aplicación) y devuelve el `accessToken`.
 
-    Requiere `EMT_API_EMAIL`/`EMT_API_PASSWORD` de una cuenta registrada y
-    verificada en https://mobilitylabs.emtmadrid.es (ver docstring del
-    módulo). Lanza `RuntimeError` si faltan credenciales o si la API
-    responde con un código de error.
+    Requiere `EMT_CLIENT_ID`/`EMT_PASS_KEY` (credenciales de aplicación, no de
+    una cuenta de usuario personal — ver docstring del módulo). Lanza
+    `RuntimeError` si faltan credenciales o si la API responde con un código
+    de error. Nunca registra las credenciales ni el `accessToken` obtenido en
+    los logs.
     """
-    if not config.api_email or not config.api_password:
+    if not config.client_id or not config.pass_key:
         raise RuntimeError(
-            "Faltan credenciales EMT: define EMT_API_EMAIL y EMT_API_PASSWORD "
-            "con una cuenta registrada y verificada en "
-            "https://mobilitylabs.emtmadrid.es (ver docstring del módulo)."
+            "Faltan credenciales EMT: define EMT_CLIENT_ID y EMT_PASS_KEY "
+            "con las credenciales de aplicación de MobilityLabs (ver "
+            "docstring del módulo)."
         )
 
     url = config.base_url.rstrip("/") + LOGIN_PATH
@@ -157,15 +149,24 @@ def fetch_access_token(config: CaptureConfig) -> str:
         config,
         lambda: requests.get(
             url,
-            headers={"email": config.api_email, "password": config.api_password},
+            headers={
+                "x-ClientId": config.client_id,
+                "passKey": config.pass_key,
+                "Content-Type": "application/json",
+            },
             timeout=config.timeout_seconds,
         ),
     )
 
-    if body.get("code") != "01":
-        raise RuntimeError(
-            f"Login EMT fallido (code={body.get('code')}): {body.get('description')}"
-        )
+    # code="00": login nuevo ("Register user..."). code="01": la API ya
+    # tenía una sesión reciente en caché para estas credenciales y devuelve
+    # el token extendido ("Token extend...") en vez de crear uno nuevo.
+    # Ambos traen un `accessToken` válido en `data[0]`; solo el resto de
+    # códigos son error (verificado en vivo: "99" sin credenciales, "91"
+    # email no verificado en el flujo v1 anterior).
+    if body.get("code") not in ("00", "01"):
+        raise RuntimeError(f"Login EMT fallido (code={body.get('code')})")
+    logger.info("Login EMT correcto (code=%s)", body.get("code"))
     return body["data"][0]["accessToken"]
 
 
