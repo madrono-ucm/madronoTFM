@@ -54,6 +54,6 @@ output "lambda_layer_codebuild_project_name" {
 }
 
 output "lambda_dependencies_layer_arn" {
-  description = "ARN (con versión) de la Lambda Layer de dependencias de terceros publicada por la tarea 032. Todavía NO conectada a las 14 funciones de productores (var.lambda_dependencies_layer_arn sigue en null en terraform.tfvars) -- eso es la tarea 033."
+  description = "ARN (con versión) de la Lambda Layer de dependencias de terceros publicada por la tarea 032 y conectada a las 14 funciones de productores por la tarea 033 (var.lambda_dependencies_layer_arn en terraform.tfvars)."
   value       = aws_lambda_layer_version.ingesta_dependencies.arn
 }
