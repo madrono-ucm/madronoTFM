@@ -1,19 +1,20 @@
 ---
 id: 27
 slug: productores-lambda-handlers-lote2
-title: "Handlers Lambda de captura completa — lote 2/3 (meteorología, ruido, afluencia, aforos, Bluesky)"
-status: pending
+title: Handlers Lambda de captura completa — lote 2/3 (meteorología, ruido, afluencia,
+  aforos, Bluesky)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/027-productores-lambda-handlers-lote2
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-14T16:15:00+00:00"
-updated_at: "2026-08-14T16:15:00+00:00"
-started_at: null
+created_at: '2026-08-14T16:15:00+00:00'
+updated_at: '2026-08-14T16:16:59.442661+00:00'
+started_at: '2026-08-14T16:16:59.442638+00:00'
 submitted_at: null
 merged_at: null
 ---
