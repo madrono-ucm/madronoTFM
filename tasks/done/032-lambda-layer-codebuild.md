@@ -2,7 +2,7 @@
 id: 32
 slug: lambda-layer-codebuild
 title: Lambda Layer de dependencias de terceros vía AWS CodeBuild
-status: in_review
+status: done
 force: true
 allow_infra_apply: true
 branch: task/032-lambda-layer-codebuild
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T21:41:18+00:00'
-updated_at: '2026-08-14T22:04:22.498237+00:00'
+updated_at: '2026-08-14T22:05:28.980204+00:00'
 started_at: '2026-08-14T21:50:46.842325+00:00'
 submitted_at: '2026-08-14T22:04:22.498092+00:00'
-merged_at: null
+merged_at: '2026-08-14T22:04:25Z'
 ---
 
 ## Contexto
