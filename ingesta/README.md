@@ -136,22 +136,31 @@ A diferencia de `trafico_madrid.py`, **este productor es solo una captura
 puntual** que genera una muestra pequeña versionada como fixture — no admite
 bucle ni scheduling propio (ver "Alcance reducido" más abajo).
 
-### Autenticación (API key gratuita)
+### Autenticación (credenciales de aplicación, v1.1)
 
-La API no usa una API key simple, sino email + contraseña de una cuenta
-registrada gratis en <https://mobilitylabs.emtmadrid.es> ("Regístrate"). Tras
-el registro, la EMT envía un correo de confirmación que hay que validar antes
-de que la cuenta pueda autenticarse. Una vez verificada, el login es:
+La tarea 003 asumió que la API se autentica con email + contraseña de una
+cuenta personal verificada por correo (endpoint v1). Esa asunción era
+incorrecta y dejó la captura bloqueada. El mecanismo real, verificado en vivo
+en la tarea 024, es un login **v1.1** con credenciales de **aplicación**
+(`x-ClientId` / `passKey`), no de un usuario individual — no hace falta
+registrar ni verificar ninguna cuenta personal:
 
 ```
-GET https://openapi.emtmadrid.es/v1/mobilitylabs/user/login/
-Headers: email: <tu email>, password: <tu contraseña>
+GET https://openapi.emtmadrid.es/v1.1/mobilitylabs/user/login/
+Headers: x-ClientId: <client id>, passKey: <pass key>, Content-Type: application/json
 ```
 
 que devuelve un `accessToken` (en `data[0].accessToken`) a reenviar en la
 cabecera `accessToken` de la llamada de llegadas
-(`POST /v2/transport/busemtmad/stops/{stop_id}/arrives/`). Las credenciales
-se leen de `EMT_API_EMAIL` / `EMT_API_PASSWORD`, nunca hardcodeadas.
+(`POST /v2/transport/busemtmad/stops/{stop_id}/arrives/`, sin cambios). Las
+credenciales se leen de `EMT_CLIENT_ID` / `EMT_PASS_KEY`, nunca hardcodeadas
+ni registradas en logs.
+
+La API responde con dos códigos de éxito distintos, ambos con un
+`accessToken` válido en `data[0]` (verificado en vivo): `code="00"` en un
+login nuevo ("Register user...") y `code="01"` cuando ya había una sesión
+reciente en caché para esas credenciales y devuelve el token extendido
+("Token extend..."). `fetch_access_token` acepta ambos.
 
 ### Alcance reducido respecto a `trafico_madrid.py`
 
@@ -169,37 +178,34 @@ propósito:
 ### Ejecutar
 
 ```bash
-export EMT_API_EMAIL="tu-email@ejemplo.com"
-export EMT_API_PASSWORD="tu-contraseña"
-python3 -m ingesta.capturas.transporte_publico_madrid --stop-id 71
+export EMT_CLIENT_ID="tu-client-id-de-aplicación"
+export EMT_PASS_KEY="tu-pass-key-de-aplicación"
+python3 -m ingesta.capturas.transporte_publico_madrid --stop-id 70
 ```
 
 Escribe la muestra en `ingesta/capturas/samples/transporte_publico_madrid_sample.json`
 (configurable con `--out`).
 
-### Nota sobre el acceso desde este entorno (tarea 003)
+### Captura real completada (tarea 024)
 
-Se verificó en vivo que `https://openapi.emtmadrid.es` es alcanzable desde
-este entorno y que el endpoint de login funciona (probado sin credenciales:
-`{"code": "99", ...}`; con un email/contraseña de prueba sin registrar:
-`{"code": "91", "description": "Error: Email is not verified..."}`). La API
-es accesible, pero requiere una cuenta con email real verificado por
-correo — un paso manual no automatizable de forma autónoma en este pipeline
-(no hay bandeja de correo ni humano disponible durante la sesión para
-completarlo). Por eso, el fixture commiteado en
-`ingesta/capturas/samples/transporte_publico_madrid_sample.json` se generó a
-mano con datos de ejemplo realistas que siguen exactamente el esquema que
-produce `normalize_record` (mismos campos, mismo formato, IDs de
-parada/línea/bus ilustrativos), en vez de descargarse en vivo. El código de
-captura queda completo y listo para ejecutarse tal cual el día que alguien
-complete el registro y verificación de una cuenta EMT real.
+La tarea 003 dejó esta fuente bloqueada porque asumió el flujo v1
+(email/contraseña de una cuenta personal sin verificar). La tarea 024
+corrigió esa asunción: con `EMT_CLIENT_ID`/`EMT_PASS_KEY` (credenciales de
+aplicación, ya provisionadas fuera del repositorio) se verificó en vivo el
+flujo completo — login v1.1 y consulta de llegadas — y ambos funcionan
+(`200`/`code` de éxito en los dos pasos). El fixture commiteado en
+`ingesta/capturas/samples/transporte_publico_madrid_sample.json` son 5
+llegadas reales descargadas con `capture_sample` a la parada 70 (elegida por
+tener más líneas en servicio simultáneo que la 71 en el momento de la
+captura, para una muestra más representativa), no datos inventados a mano
+como en la tarea 003.
 
 ### Variables de entorno
 
 | Variable                | Por defecto                    | Descripción                                                  |
 | ------------------------ | -------------------------------- | -------------------------------------------------------------- |
-| `EMT_API_EMAIL`          | *(ninguno, requerido)*           | Email de una cuenta MobilityLabs registrada y verificada.      |
-| `EMT_API_PASSWORD`       | *(ninguno, requerido)*           | Contraseña de esa cuenta.                                       |
+| `EMT_CLIENT_ID`          | *(ninguno, requerido)*           | Client ID de aplicación MobilityLabs (credencial de app, no de usuario). |
+| `EMT_PASS_KEY`           | *(ninguno, requerido)*           | Pass key de esa aplicación.                                     |
 | `EMT_API_BASE_URL`       | `https://openapi.emtmadrid.es`   | URL base de la API.                                              |
 | `EMT_STOP_ID`            | `71`                              | ID de parada EMT a consultar (también con `--stop-id`).         |
 | `EMT_SAMPLE_SIZE`        | `5`                               | Nº máximo de registros que se guardan en la muestra.             |
@@ -254,15 +260,16 @@ admite bucle ni scheduling propio (ver "Alcance reducido" más abajo).
 ### Sin autenticación: feed GBFS público
 
 A diferencia de `transporte_publico_madrid.py` (API MobilityLabs, que exige
-una cuenta registrada y verificada por email), **el feed GBFS de BiciMAD no
-requiere ninguna API key ni registro**. Se ha verificado en vivo desde este
-entorno que `station_information` y `station_status` responden sin ninguna
-cabecera de autenticación. GBFS es el estándar de facto para sistemas de
+credenciales), **el feed GBFS de BiciMAD no requiere ninguna API key ni
+registro**. Se ha verificado en vivo desde este entorno que
+`station_information` y `station_status` responden sin ninguna cabecera de
+autenticación. GBFS es el estándar de facto para sistemas de
 bicicleta/patinete compartidos, y BiciMAD lo publica completo (674
 estaciones a fecha de esta captura), así que se prefirió sobre la
 alternativa de usar la API MobilityLabs de BiciMAD
 (`openapi.emtmadrid.es/v1/transport/bicimad/stations/`), que sí requeriría
-las mismas credenciales que bloquearon la tarea 003.
+las mismas credenciales de aplicación que la tarea 003 asumió erróneamente
+como bloqueo permanente (ver tarea 024).
 
 Este productor combina dos feeds GBFS por `station_id`:
 
@@ -2668,11 +2675,15 @@ accesible sin cuenta:
   conexión TLS en ambos, verificado en vivo).
 
 **Conclusión**: CRTM no publica alertas/incidencias/retrasos en tiempo real
-de forma abierta a nivel de toda la red multimodal. Esto **no desbloquea**
-la tarea 003 — la única fuente de llegadas en vivo verificada sigue siendo
-la API MobilityLabs de la EMT (`transporte_publico_madrid.py`), bloqueada
-por su registro con email sin verificar — pero es un hallazgo negativo que
-queda documentado para no repetir esta misma búsqueda en el futuro.
+de forma abierta a nivel de toda la red multimodal, así que sigue sin haber
+una alternativa multimodal a la API MobilityLabs de la EMT
+(`transporte_publico_madrid.py`) para llegadas en vivo — es un hallazgo
+negativo que queda documentado para no repetir esta misma búsqueda en el
+futuro. *(Nota añadida en la tarea 024: la EMT se desbloqueó después por otra
+vía — la tarea 003 había asumido incorrectamente que el login requería una
+cuenta personal con email verificado; el mecanismo real es un login v1.1
+con credenciales de aplicación `x-ClientId`/`passKey`, sin registro de
+usuario. Ver la sección de `transporte_publico_madrid.py` más arriba.)*
 
 ### Formato real encontrado
 

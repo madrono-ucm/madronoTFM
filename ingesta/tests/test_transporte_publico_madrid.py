@@ -1,21 +1,50 @@
 """Tests del productor de transporte público (EMT Madrid).
 
-No hacen ninguna llamada de red: usan el fixture
-`fixtures/emt_arrivals_sample.json`, una respuesta de ejemplo con la misma
-forma exacta que devuelve el endpoint real de llegadas de la API MobilityLabs
-(`v2/transport/busemtmad/stops/{stop_id}/arrives/`), verificada contra el
-esquema real de la API (ver docstring de `transporte_publico_madrid.py`),
-para poder verificar el parseo/normalización sin depender de credenciales.
+No hacen ninguna llamada de red: usan los fixtures `fixtures/emt_arrivals_sample.json`
+(respuesta del endpoint de llegadas) y `fixtures/emt_login_v11_sample.json`
+(respuesta del login v1.1, con un `accessToken` de ejemplo claramente falso,
+no una credencial real), ambos con la misma forma exacta que devuelve la API
+MobilityLabs real (ver docstring de `transporte_publico_madrid.py`), para
+poder verificar el parseo/normalización y el flujo de login sin depender de
+red ni de credenciales reales.
 """
 
 import json
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
-from ingesta.capturas.transporte_publico_madrid import parse_records
+from ingesta.capturas.transporte_publico_madrid import (
+    CaptureConfig,
+    fetch_access_token,
+    parse_records,
+)
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "emt_arrivals_sample.json"
+LOGIN_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "emt_login_v11_sample.json"
+
+
+def _make_config(**overrides) -> CaptureConfig:
+    defaults = dict(
+        base_url="https://openapi.emtmadrid.es",
+        stop_id="70",
+        client_id="fake-client-id",
+        pass_key="fake-pass-key",
+        timeout_seconds=5.0,
+        max_retries=1,
+        retry_backoff_seconds=0.0,
+        sample_size=5,
+    )
+    defaults.update(overrides)
+    return CaptureConfig(**defaults)
+
+
+def _fake_response(body: dict):
+    response = mock.Mock()
+    response.raise_for_status = mock.Mock()
+    response.json = mock.Mock(return_value=body)
+    return response
 
 
 class ParseRecordsTests(unittest.TestCase):
@@ -62,6 +91,70 @@ class ParseRecordsTests(unittest.TestCase):
 
     def test_records_are_json_serializable(self):
         json.dumps(self.records)
+
+
+class FetchAccessTokenTests(unittest.TestCase):
+    """Prueba el login v1.1 (x-ClientId/passKey), sustituyendo `requests.get`."""
+
+    def setUp(self):
+        self.login_body = json.loads(LOGIN_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+    def test_sends_client_id_and_pass_key_headers_not_email_password(self):
+        config = _make_config()
+        with mock.patch(
+            "ingesta.capturas.transporte_publico_madrid.requests.get",
+            return_value=_fake_response(self.login_body),
+        ) as fake_get:
+            token = fetch_access_token(config)
+
+        self.assertEqual(token, "FAKE-ACCESS-TOKEN-NOT-A-REAL-CREDENTIAL")
+        fake_get.assert_called_once()
+        _, kwargs = fake_get.call_args
+        self.assertEqual(kwargs["headers"]["x-ClientId"], "fake-client-id")
+        self.assertEqual(kwargs["headers"]["passKey"], "fake-pass-key")
+        self.assertNotIn("email", kwargs["headers"])
+        self.assertNotIn("password", kwargs["headers"])
+
+    def test_calls_v1_1_login_endpoint(self):
+        config = _make_config()
+        with mock.patch(
+            "ingesta.capturas.transporte_publico_madrid.requests.get",
+            return_value=_fake_response(self.login_body),
+        ) as fake_get:
+            fetch_access_token(config)
+
+        args, _ = fake_get.call_args
+        self.assertIn("/v1.1/mobilitylabs/user/login/", args[0])
+
+    def test_accepts_code_01_token_extend_as_success(self):
+        # La API puede devolver code="01" ("Token extend...") en vez de "00"
+        # ("Register user...") si ya había una sesión reciente en caché para
+        # estas credenciales; ambos traen un accessToken válido (verificado
+        # en vivo, ver docstring del módulo).
+        body = dict(self.login_body, code="01", description="Token extend into control-cache")
+        config = _make_config()
+        with mock.patch(
+            "ingesta.capturas.transporte_publico_madrid.requests.get",
+            return_value=_fake_response(body),
+        ):
+            token = fetch_access_token(config)
+
+        self.assertEqual(token, "FAKE-ACCESS-TOKEN-NOT-A-REAL-CREDENTIAL")
+
+    def test_raises_on_error_code(self):
+        body = {"code": "99", "description": "Error", "data": []}
+        config = _make_config()
+        with mock.patch(
+            "ingesta.capturas.transporte_publico_madrid.requests.get",
+            return_value=_fake_response(body),
+        ):
+            with self.assertRaises(RuntimeError):
+                fetch_access_token(config)
+
+    def test_raises_when_credentials_missing(self):
+        config = _make_config(client_id=None, pass_key=None)
+        with self.assertRaises(RuntimeError):
+            fetch_access_token(config)
 
 
 class SampleFixtureTests(unittest.TestCase):
