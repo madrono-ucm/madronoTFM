@@ -1,0 +1,413 @@
+<?xml version='1.0' encoding='utf-8'?>
+<serviceList>
+<service fechaActualizacion="2026-08-11" id="109456">
+<basicData>
+<language>es</language>
+<name>Bailar al gallo: m&amp;uacute;sica y danza para la generaci&amp;oacute;n del 27</name>
+<email />
+<phone />
+<fax />
+<title>Bailar al gallo: m&amp;uacute;sica y danza para la generaci&amp;oacute;n del 27</title>
+<body>&lt;p&gt;&lt;strong&gt;&lt;strong&gt;El Teatro de la Zarzuela estrena los días 17 y 18 de diciembre una nueva producción flamenca que propone una recuperación del espíritu de la Generación del 27 a través de la música y la danza. &lt;/strong&gt;&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Un montaje está protagonizado por Olga Pericet y Marco Flores y parte del diálogo entre tradición y vanguardia que marcó a una generación decidida a explorar nuevos caminos sin renunciar a sus raíces. España aparece en el espectáculo como un país situado entre dos tiempos. Por un lado, la tradición, el cante antiguo y las formas heredadas, y por otro la necesidad de experimentar con nuevos lenguajes, sonidos y formas de expresión corporal. En ese espacio de transición surge la Generación del 27, que convirtió el encuentro entre pasado y modernidad en uno de los motores de su creación artística.&lt;/p&gt;&lt;p&gt;La función explora precisamente dicho espíritu de búsqueda y renovación. La música y la danza se convierten en los lenguajes para adentrarse en una época en la que artistas de distintas disciplinas compartieron la voluntad de transformar la cultura española y de establecer un diálogo entre lo popular y las corrientes artísticas contemporáneas.&lt;/p&gt;&lt;p&gt;Olga Pericet es una bailaora y coreógrafa cordobesa, una de las figuras más destacadas del flamenco moderno. Ha desarrollado una carrera marcada por la investigación y la renovación del lenguaje flamenco. En 2018 recibió el Premio Nacional de Danza en la modalidad de Interpretación.&lt;/p&gt;&lt;p&gt;Marco Flores es un bailaor, coreógrafo y director cordobés. Su trayectoria combina tradición y creación contemporánea, ha trabajado tanto en solitario como con grandes figuras del flamenco y en 2012 recibió el Premio Nacional de Flamenco de la Cátedra de Flamencología de Jerez.&lt;/p&gt;&lt;p class="heading-2"&gt;&lt;strong&gt;Ficha artística:&lt;/strong&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Dirección artística y coreografía - &lt;/em&gt;&lt;/em&gt;Olga Pericet y Marco Flores&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Dirección de escena - &lt;/em&gt;&lt;/em&gt;Rita Consentino&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Vestuario - &lt;/em&gt;&lt;/em&gt;Yaiza Pinillos&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Iluminación - &lt;/em&gt;&lt;/em&gt;David Bofarull&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Baile - &lt;/em&gt;&lt;/em&gt;Olga Pericet, Marco Flores, Marina Paje, Lucía López Enrique, Jesús Hinojosa, Joel Vargas&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Piano - &lt;/em&gt;&lt;/em&gt;Ramón Grau&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Voz - &lt;/em&gt;&lt;/em&gt;Israel Moro y Lucía López Enrique&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Guitarra - &lt;/em&gt;&lt;/em&gt;Alfredo Mesa&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Bajo - &lt;/em&gt;&lt;/em&gt;Juanfe Pérez&lt;/li&gt;&lt;li&gt;&lt;em&gt;&lt;em&gt;Percusión - &lt;/em&gt;&lt;/em&gt;Birja Barrueta&lt;/li&gt;&lt;/ul&gt;</body>
+<web>https://www.esmadrid.com/agenda/bailar-gallo-musica-danza-generacion-27-teatro-zarzuela</web>
+<idrt>69490</idrt>
+<nombrert>Teatro de la Zarzuela</nombrert>
+</basicData>
+<geoData>
+<address>de Jovellanos, 4</address>
+<zipcode>28014</zipcode>
+<locality />
+<country>Spain</country>
+<latitude>40.417129000000</latitude>
+<longitude>-3.697372400000</longitude>
+<subAdministrativeArea>Madrid</subAdministrativeArea>
+</geoData>
+<multimedia>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/Cia0nUJIukzoTDw5XlcVNb-rJBoyvj6ol2l15aEvWSQ/mtime:1786429967/sites/default/files/eventos/eventos/bailar-al-gallo-musica-y-danza-para-la-generacion-del-27.jpg</url>
+</media>
+</multimedia>
+<extradata>
+<item name="idTipo">6</item>
+<item name="Tipo">Eventos</item>
+<categorias>
+<categoria>
+<item name="idCategoria">6486</item>
+<item name="Categoria">Teatro y danza</item>
+<subcategorias>
+<subcategoria>
+<item name="idSubCategoria">6490</item>
+<item name="SubCategoria">Danza moderna</item>
+</subcategoria>
+<subcategoria>
+<item name="idSubCategoria">6492</item>
+<item name="SubCategoria">Flamenco</item>
+</subcategoria>
+</subcategorias>
+</categoria>
+</categorias>
+<item name="Servicios de pago">&lt;p&gt;25-40€&lt;/p&gt;</item>
+<item name="Horario">&lt;p&gt;19:30 h&lt;/p&gt;</item>
+<fechas>
+<rango>
+<inicio>17/12/2026</inicio>
+<dias>4,5</dias>
+<fin>18/12/2026</fin>
+</rango>
+</fechas>
+</extradata>
+</service>
+<service fechaActualizacion="2026-08-04" id="109442">
+<basicData>
+<language>es</language>
+<name>Fich (Festival Internacional de Comedia Hispanoamericana)</name>
+<email />
+<phone />
+<fax />
+<title>Fich (Festival Internacional de Comedia Hispanoamericana)</title>
+<body>&lt;p&gt;&lt;strong&gt;El Movistar Arena vivirá el 5 de diciembre una noche histórica con la Edición 0 de Fich, el Festival Internacional de Comedia Hispanoamericana. Por primera vez en la historia, los máximos exponentes del stand-up en español como Goyo Jiménez, Luis Piedrahita, Connie Ballarini, Galder Varas o George Harris cruzan fronteras para unirse en un mismo escenario.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Esta primera cita del festival cuenta con un cartel de auténtico lujo que reúne el ingenio y la maestría escénica de &lt;strong&gt;Goyo Jiménez&lt;/strong&gt;, la frescura y la capacidad de improvisación arrolladora de &lt;strong&gt;Galder Varas&lt;/strong&gt;, y el fenómeno sociológico del &lt;em&gt;stand-up&lt;/em&gt; venezolano encarnado por &lt;strong&gt;George Harris&lt;/strong&gt;.&lt;/p&gt;&lt;p&gt;A este trío&amp;nbsp;se sumarán nuevas estrellas internacionales hasta completar una unión de talento no vista hasta ahora como es el caso de&amp;nbsp;&lt;strong&gt;Connie Ballarini&lt;/strong&gt;&amp;nbsp;con su humor argentino, mirada afilada y una conexión inmediata con el público o&amp;nbsp;&lt;strong&gt;Luis Piedrahita,&lt;/strong&gt;&amp;nbsp;con su ingenio, precisión y humor para descubrir lo extraordinario en lo cotidiano.&lt;/p&gt;&lt;p&gt;Esta esperada &lt;em&gt;Edición 0&lt;/em&gt; no solo ofrecerá una velada memorable, sino que supondrá el gran pistoletazo de salida del FICH. Producido por DeComedia, este macroevento de carácter anual se desplegará a partir de 2027 por los teatros y recintos más singulares para posicionar la ciudad como la gran capital de referencia mundial del humor en español.&lt;/p&gt;&lt;p class="heading-2"&gt;&lt;a href="https://fichmadrid.com/" target="_blank"&gt;Consultar programación completa&lt;/a&gt;&lt;/p&gt;</body>
+<web>https://www.esmadrid.com/agenda/fich-festival-internacional-comedia-hispanoamericana-movistar-arena</web>
+<idrt>69691</idrt>
+<nombrert>Movistar Arena</nombrert>
+</basicData>
+<geoData>
+<address>de Felipe II, s/n</address>
+<zipcode>28009</zipcode>
+<locality />
+<country>Spain</country>
+<latitude>40.424137100000</latitude>
+<longitude>-3.674975600000</longitude>
+<subAdministrativeArea>Madrid</subAdministrativeArea>
+</geoData>
+<multimedia>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/0kJlntnEdct7FqaayHjWkq9X0DZJEUHZ3UXeyJcgvQ0/mtime:1785846526/sites/default/files/eventos/eventos/fich.png</url>
+</media>
+</multimedia>
+<extradata>
+<item name="idTipo">6</item>
+<item name="Tipo">Eventos</item>
+<categorias>
+<categoria>
+<item name="idCategoria">6486</item>
+<item name="Categoria">Teatro y danza</item>
+<subcategorias>
+<subcategoria>
+<item name="idSubCategoria">6488</item>
+<item name="SubCategoria">Comedia</item>
+</subcategoria>
+<subcategoria>
+<item name="idSubCategoria">6493</item>
+<item name="SubCategoria">Humor</item>
+</subcategoria>
+</subcategorias>
+</categoria>
+</categorias>
+<item name="Servicios de pago">&lt;p&gt;Desde&amp;nbsp;47,30 €&lt;/p&gt;</item>
+<item name="Horario">&lt;p&gt;Apertura de puertas: 19:00 h&lt;/p&gt;&lt;p&gt;Inicio: 20:30 h&lt;/p&gt;</item>
+<fechas>
+<rango>
+<inicio>05/12/2026</inicio>
+<dias>6</dias>
+<fin>05/12/2026</fin>
+</rango>
+</fechas>
+</extradata>
+</service>
+<service fechaActualizacion="2026-07-14" id="109313">
+<basicData>
+<language>es</language>
+<name>Atl&amp;eacute;tico de Madrid - M&amp;aacute;laga CF (LALIGA EA SPORTS)</name>
+<email />
+<phone />
+<fax />
+<title>Atl&amp;eacute;tico de Madrid - M&amp;aacute;laga CF (LALIGA EA SPORTS)</title>
+<body>&lt;p&gt;Los colchoneros disputan el primer partido de la temporada en casa contra el recién ascendido equipo malagueño, que regresa a la máxima categoría después de ocho años.&lt;/p&gt;</body>
+<web>https://www.esmadrid.com/agenda/atletico-madrid-malaga-cf-laliga-ea-sports-estadio-riyadh-air-metropolitano</web>
+<idrt>85185</idrt>
+<nombrert>Estadio Riyadh Air Metropolitano</nombrert>
+</basicData>
+<geoData>
+<address>de Luis Aragonés, s/n</address>
+<zipcode>28022</zipcode>
+<locality />
+<country>Spain</country>
+<latitude>40.442204500000</latitude>
+<longitude>-3.602975900000</longitude>
+<subAdministrativeArea>Madrid</subAdministrativeArea>
+</geoData>
+<multimedia>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/JZMzsMwjPx-4KrOy6DD9k9NaLBaqJf3UDl4KhXeln7s/mtime:1782990381/sites/default/files/eventos/eventos/atletico_de_madrid_-_malaga_cf_laliga_ea_sports.jpg</url>
+</media>
+</multimedia>
+<extradata>
+<item name="idTipo">6</item>
+<item name="Tipo">Eventos</item>
+<categorias>
+<categoria>
+<item name="idCategoria">6517</item>
+<item name="Categoria">Deporte</item>
+<subcategorias>
+<subcategoria>
+<item name="idSubCategoria">6521</item>
+<item name="SubCategoria">Fútbol</item>
+</subcategoria>
+</subcategorias>
+</categoria>
+</categorias>
+<item name="Servicios de pago">&lt;p&gt;Consultar &lt;a href="https://www.atleticodemadrid.com/avisame-de-entradas/atletico-de-madrid-malaga-11" target="_blank"&gt;página oficial&lt;/a&gt;&lt;/p&gt;</item>
+<item name="Horario">&lt;p&gt;21:00 h&lt;/p&gt;</item>
+<fechas>
+<rango>
+<inicio>19/08/2026</inicio>
+<dias>3</dias>
+<fin>19/08/2026</fin>
+</rango>
+</fechas>
+</extradata>
+</service>
+<service fechaActualizacion="2026-07-29" id="109312">
+<basicData>
+<language>es</language>
+<name>Real Madrid - M&amp;aacute;laga CF (LALIGA EA SPORTS)</name>
+<email />
+<phone />
+<fax />
+<title>Real Madrid - M&amp;aacute;laga CF (LALIGA EA SPORTS)</title>
+<body>&lt;p&gt;Los blancos reciben al conjunto malagueño que esta temporada ha regresado a la máxima categoría&amp;nbsp;ocho años después.&lt;/p&gt;</body>
+<web>https://www.esmadrid.com/agenda/real-madrid-malaga-cf-laliga-ea-sports-estadio-bernabeu</web>
+<idrt>69349</idrt>
+<nombrert>Estadio Bernabéu</nombrert>
+</basicData>
+<geoData>
+<address>de Concha Espina, 1</address>
+<zipcode>28036</zipcode>
+<locality />
+<country>Spain</country>
+<latitude>40.453041700000</latitude>
+<longitude>-3.688354900000</longitude>
+<subAdministrativeArea>Madrid</subAdministrativeArea>
+</geoData>
+<multimedia>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/huQOlC6OJ2dLaYqYFnVAvYw10qUfMYh_bepLXSbbK7s/mtime:1782989797/sites/default/files/eventos/eventos/real_madrid_-_malaga_cf_laliga_ea_sports.jpg</url>
+</media>
+</multimedia>
+<extradata>
+<item name="idTipo">6</item>
+<item name="Tipo">Eventos</item>
+<categorias>
+<categoria>
+<item name="idCategoria">6517</item>
+<item name="Categoria">Deporte</item>
+<subcategorias>
+<subcategoria>
+<item name="idSubCategoria">6521</item>
+<item name="SubCategoria">Fútbol</item>
+</subcategoria>
+</subcategorias>
+</categoria>
+</categorias>
+<item name="Servicios de pago">&lt;p&gt;Consultar&amp;nbsp;&lt;a href="https://www.realmadrid.com/es-ES/entradas?filter-tickets=vip;general&amp;amp;filter-football=primer-equipo-masculino" target="_blank"&gt;página oficial&lt;/a&gt;&lt;/p&gt;</item>
+<item name="Horario">&lt;p&gt;17:00 h&lt;/p&gt;</item>
+<fechas>
+<rango>
+<inicio>30/08/2026</inicio>
+<dias>7</dias>
+<fin>30/08/2026</fin>
+</rango>
+</fechas>
+</extradata>
+</service>
+<service fechaActualizacion="2026-07-09" id="109139">
+<basicData>
+<language>es</language>
+<name>Medusa Winter Blizzard </name>
+<email />
+<phone />
+<fax />
+<title>Medusa Winter Blizzard 2026 </title>
+<body>&lt;p&gt;&lt;strong&gt;El festival valenciano&lt;em&gt; &lt;/em&gt;Medusa continúa con su expansión y el 5 de diciembre de 2026 trae su música y su magia a Madrid, concretamente al recinto ferial&amp;nbsp;IFEMA MADRID, con una temática 100% invernal: &lt;em&gt;Blizzard: La Ciudad del Hielo&lt;/em&gt;.&amp;nbsp;Una edición de formato reducido, para un máximo de 9000 personas, pero con sus señas de identidad famosas: escenario decorado al estilo Tomorrowland y una&amp;nbsp;icónica producción visual&amp;nbsp;que incluye&amp;nbsp;pirotecnia, drones, láseres &lt;/strong&gt;&lt;strong&gt;y FX.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Esta edición madrileña apodada como&amp;nbsp;&lt;em&gt;Blizzard: La Ciudad del Hielo&amp;nbsp;&lt;/em&gt;ofrecerá el mismo espectáculo visual que le ha valido numerosos premios. En 2025, el festival fue galardonado como el &lt;strong&gt;mejor festival de España &lt;/strong&gt;en los&lt;strong&gt; Premios Nacionales de la Música Electrónica&lt;/strong&gt;-&lt;strong&gt;Vicious Music Awards&lt;/strong&gt;. En el año 2026, los &lt;strong&gt;Iberian Festival Awards&lt;/strong&gt;, considerados los ‘Óscar’ de la música en vivo, reconocieron su creatividad escenográfica con la estatuilla de &lt;em&gt;National Winner&lt;/em&gt;.&lt;/p&gt;&lt;p&gt;Con la lógica adaptación al formato bajo techo, el público madrileño podrá disfrutar de la escenografía al más puro estilo Tomorrowland, los efectos especiales y la gran producción de luces y láseres que, verano tras verano, se hacen virales en el festival.&lt;/p&gt;&lt;p class="heading-2"&gt;&lt;a href="https://medusawinter.com/" target="_blank"&gt;Consultar programación completa&lt;/a&gt;&lt;/p&gt;</body>
+<web>https://www.esmadrid.com/agenda/medusa-winter-blizzard-ifema-madrid</web>
+<idrt>69730</idrt>
+<nombrert>IFEMA MADRID</nombrert>
+</basicData>
+<geoData>
+<address>del Partenón, 5</address>
+<zipcode>28042</zipcode>
+<locality />
+<country>Spain</country>
+<latitude>40.465388300000</latitude>
+<longitude>-3.616590300000</longitude>
+<subAdministrativeArea>Madrid</subAdministrativeArea>
+</geoData>
+<multimedia>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/H_jnYs_avFK6zaEJ0kSzD6uQEjM_7xAbHn6h8L4HOuw/mtime:1780479965/sites/default/files/eventos/eventos/medusa_winter_blizzard_2026_.png</url>
+</media>
+</multimedia>
+<extradata>
+<item name="idTipo">6</item>
+<item name="Tipo">Eventos</item>
+<categorias>
+<categoria>
+<item name="idCategoria">6449</item>
+<item name="Categoria">Música</item>
+<subcategorias>
+<subcategoria>
+<item name="idSubCategoria">6452</item>
+<item name="SubCategoria">Electrónica</item>
+</subcategoria>
+<subcategoria>
+<item name="idSubCategoria">6454</item>
+<item name="SubCategoria">Festival</item>
+</subcategoria>
+</subcategorias>
+</categoria>
+</categorias>
+<item name="Servicios de pago">&lt;p&gt;Desde 47 €&lt;/p&gt;</item>
+<item name="Horario">&lt;p&gt;Consultar &lt;a href="https://medusawinter.com/" target="_blank"&gt;página oficial&lt;/a&gt;&lt;/p&gt;</item>
+<fechas>
+<rango>
+<inicio>05/12/2026</inicio>
+<dias>6</dias>
+<fin>05/12/2026</fin>
+</rango>
+</fechas>
+</extradata>
+</service>
+<service fechaActualizacion="2026-07-03" id="109070">
+<basicData>
+<language>es</language>
+<name>Espa&amp;ntilde;a - Dinamarca (Fase de Clasificaci&amp;oacute;n - Copa Mundial Baloncesto 2027)</name>
+<email />
+<phone />
+<fax />
+<title>Espa&amp;ntilde;a - Dinamarca (Fase de Clasificaci&amp;oacute;n - Copa Mundial Baloncesto 2027)</title>
+<body>&lt;p&gt;&lt;strong&gt;La selección Masculina Absoluta de baloncesto&amp;nbsp;visita el Estadio Multiusos de Caja Mágica&amp;nbsp;el próximo 2 de julio para disputar un parte ante la selección de&amp;nbsp;Dinamarca. Este supone el&amp;nbsp;primero de los dos partidos que cierran la primera fase de los clasificatorios para la FIBA World Cup de Catar 2027.&amp;nbsp;&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;#LaFamilia&amp;nbsp;retoma la competición con la tercera jornada de la Fase de Clasificación para la Copa del Mundo de Catar 2027. Esta supone la última jornada de esta primera fase clasificatoria y la Selección, ya clasificada para la siguiente ronda, se enfrentará a Dinamarca, en casa, y a Georgia, a domicilio.&amp;nbsp;&lt;/p&gt;&lt;p&gt;De esta manera, el equipo dirigido&amp;nbsp;peleará&amp;nbsp;por&amp;nbsp;asegurarse la primera plaza del grupo y sumar su quinta victoria ante Dinamarca, selección a la que ya superó en Copenhague en el debut del actual Seleccionador Nacional.&lt;/p&gt;&lt;p&gt;España se ha enfrentado a Dinamarca en un total de cinco ocasiones, siempre en partido oficial. La última vez que #LaFamilia se enfrentó a los daneses fue en casa, el partido se disputó en Madrid y también correspondía con una fase clasificatoria, en concreto, para el Eurobasket de 2003.&lt;br&gt;&amp;nbsp;&lt;/p&gt;</body>
+<web>https://www.esmadrid.com/agenda/espana-dinamarca-fase-clasificacion-copa-mundial-baloncesto-2027-caja-magica</web>
+<idrt>69478</idrt>
+<nombrert>Caja Mágica</nombrert>
+</basicData>
+<geoData>
+<address>de Perales, 23</address>
+<zipcode>28041</zipcode>
+<locality />
+<country>Spain</country>
+<latitude>40.368908000000</latitude>
+<longitude>-3.684098000000</longitude>
+<subAdministrativeArea>Madrid</subAdministrativeArea>
+</geoData>
+<multimedia>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/iEypME_jnmCefDkdSIGM0-FFTLxwpwGSgpPTd2Gf-2I/mtime:1779961986/sites/default/files/eventos/eventos/espana_-_dinamarca_fase_de_clasificacion_-_copa_mundial_baloncesto_2027.png</url>
+</media>
+</multimedia>
+<extradata>
+<item name="idTipo">6</item>
+<item name="Tipo">Eventos</item>
+<categorias>
+<categoria>
+<item name="idCategoria">6517</item>
+<item name="Categoria">Deporte</item>
+<subcategorias>
+<subcategoria>
+<item name="idSubCategoria">6519</item>
+<item name="SubCategoria">Baloncesto</item>
+</subcategoria>
+</subcategorias>
+</categoria>
+</categorias>
+<item name="Servicios de pago">&lt;p&gt;Desde 15 €&lt;/p&gt;</item>
+<item name="Horario">&lt;p&gt;19:00 h&lt;/p&gt;</item>
+<fechas>
+<rango>
+<inicio>02/07/2026</inicio>
+<dias>4</dias>
+<fin>02/07/2026</fin>
+</rango>
+</fechas>
+</extradata>
+</service>
+<service fechaActualizacion="2026-05-25" id="108874">
+<basicData>
+<language>es</language>
+<name>DroneArt Show: Harry Potter&amp;trade;</name>
+<email />
+<phone />
+<fax />
+<title>DroneArt Show: Harry Potter&amp;trade; </title>
+<body>&lt;p&gt;&lt;strong&gt;El&amp;nbsp;Hipódromo de la Zarzuela acoge los días&amp;nbsp;16 y 18 de septiembre&amp;nbsp;un espectáculo multisensorial en el que a través de 1200 drones se puede&amp;nbsp;revivir la magia del universo mágico de Harry Potter™&amp;nbsp;bajo las estrellas.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;em&gt;DroneArt Show: Harry Potter™&lt;/em&gt;&amp;nbsp;permite&amp;nbsp;contemplar cómo momentos icónicos cobran forma en el cielo nocturno con espectaculares formaciones aéreas de drones sincronizadas al ritmo de las bandas sonoras originales de las películas. Una experiencia mágica al aire libre pensada para despertar el asombro y crear recuerdos inolvidables.&lt;/p&gt;&lt;p&gt;Todos los asistentes podrán forman parte de la experiencia gracias a &lt;strong&gt;pulseras LED exclusivas&lt;/strong&gt; y revivir&amp;nbsp;los momentos musicales clave de las películas gracias a un &lt;strong&gt;violinista eléctrico en directo&lt;/strong&gt;&amp;nbsp;que realza&amp;nbsp;la banda sonora.&lt;/p&gt;&lt;p&gt;Se podrá a disposición del público una zona de &lt;strong&gt;merchandising temático exclusivo&lt;/strong&gt; en el que poder adquirir&amp;nbsp;varitas, bufandas y coleccionables diseñados para fans de todas las edades, así como&amp;nbsp;dulces mágicos y otras delicias. Butterbeer™ estará disponible en recintos seleccionados.&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Duración aproximada:&amp;nbsp;60 minutos de espectáculo&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Edad recomendada: todos los públicos&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;&lt;strong&gt;&lt;em&gt;Todos los personajes y elementos © &amp;amp; ™ Warner Bros. Entertainment Inc. Derechos de publicación © JKR&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;</body>
+<web>https://www.esmadrid.com/agenda/droneart-show-harry-potter-hipodromo-zarzuela</web>
+<idrt>69851</idrt>
+<nombrert> Hipódromo de la Zarzuela</nombrert>
+</basicData>
+<geoData>
+<address> Padre Huidobro , s/n</address>
+<zipcode>28023</zipcode>
+<locality />
+<country>Spain</country>
+<latitude>40.460358300000</latitude>
+<longitude>-3.749283200000</longitude>
+<subAdministrativeArea>Madrid</subAdministrativeArea>
+</geoData>
+<multimedia>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/9m2dmTSOmwYHEGwJyNWjPYWF_gkelMIGetPTcyL6APE/mtime:1777976695/sites/default/files/eventos/eventos/drone_harry_potter.png</url>
+</media>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/nc86t3l3xfvmwoFeXKoZeRbZK-_aBCH4_u2Vc3KwgXk/mtime:1777976682/sites/default/files/eventos/eventos/droneart_show_harry_pottertm.png</url>
+</media>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/ZQgaTMfZwP5uDpXNKqGYBbldelZthHPnDuo7KIbW96A/mtime:1777976639/sites/default/files/eventos/eventos/droneart_show_harry_pottertm_4.png</url>
+</media>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/axOWvzO-TOXc-h-r-7xx53Eq6IAXyuDET932SjVGw9o/mtime:1777976866/sites/default/files/eventos/eventos/drones_harry.png</url>
+</media>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/hRg1EhU-JaHDAOypbv8JsXN8CnBUOw7eSKAY1PyMduE/mtime:1777976653/sites/default/files/eventos/eventos/droneart_show_harry_pottertm_3.png</url>
+</media>
+<media type="image">
+<description />
+<url>https://estaticos.esmadrid.com/cdn/farfuture/Wbx673NBX25-EH4NRrYOwkJ4O0eQhgjSwA50D-T4Abo/mtime:1777976668/sites/default/files/eventos/eventos/droneart_show_harry_pottertm_2.png</url>
+</media>
+</multimedia>
+<extradata>
+<item name="idTipo">6</item>
+<item name="Tipo">Eventos</item>
+<categorias>
+<categoria>
+<item name="idCategoria">6530</item>
+<item name="Categoria">Eventos de ciudad</item>
+<subcategorias>
+<subcategoria>
+<item name="idSubCategoria">6536</item>
+<item name="SubCategoria">Otros</item>
+</subcategoria>
+</subcategorias>
+</categoria>
+</categorias>
+<item name="Servicios de pago">&lt;p&gt;&lt;strong&gt;Entrada adulto (12+):&amp;nbsp;&lt;/strong&gt;47,90&amp;nbsp;€&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Entrada infantil (3-11)&lt;/strong&gt;:&amp;nbsp;33,90&amp;nbsp;€&lt;/p&gt;&lt;p&gt;&lt;strong&gt;Entrada grupo&amp;nbsp;(mínimo 8 entradas):&lt;/strong&gt;&amp;nbsp;42,90&amp;nbsp;€&lt;/p&gt;</item>
+<item name="Horario">&lt;p&gt;Apertura de puertas: 18:00 h&lt;/p&gt;&lt;p&gt;Inicio:&amp;nbsp;20:00 h&lt;/p&gt;&lt;p&gt;&lt;em&gt;Se recomienda&amp;nbsp;llegar con antelación, ya que puede no permitirse la entrada tardía&lt;/em&gt;&lt;/p&gt;</item>
+<fechas>
+<rango>
+<inicio>16/09/2026</inicio>
+<dias>3,5</dias>
+<fin>18/09/2026</fin>
+</rango>
+</fechas>
+</extradata>
+</service>
+</serviceList>
