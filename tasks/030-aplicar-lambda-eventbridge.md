@@ -1,5 +1,5 @@
 ---
-id: 28
+id: 30
 slug: aplicar-lambda-eventbridge
 title: "Aplicar el despliegue de Lambda + EventBridge Scheduler (terraform apply)"
 status: pending
@@ -20,7 +20,7 @@ merged_at: null
 
 ## Contexto
 
-La tarea 027 dejó escrito y revisado (`doc/027-terraform-lambda-eventbridge-plan.md`)
+La tarea 029 dejó escrito y revisado (`doc/029-terraform-lambda-eventbridge-plan.md`)
 el plan de despliegue de las 14 Lambdas programadas + sus schedules de
 EventBridge Scheduler. Esta tarea lo aplica. **A diferencia de las tareas 014/015,
 aquí `force` es `false` deliberadamente**: esto pone a producción 14 tareas
@@ -29,11 +29,11 @@ real, y continuo) en cuanto se apliquen — conviene que un humano fusione el PR
 mano tras revisar el resultado, no que se fusione solo.
 
 **Excepción de alcance** (`allow_infra_apply: true`): tienes permiso para ejecutar
-`terraform apply` sobre lo ya escrito y planificado en la tarea 027, y nada más.
+`terraform apply` sobre lo ya escrito y planificado en la tarea 029, y nada más.
 
 ## Objetivo
 
-Aplicar el Terraform de la tarea 027 y verificar que las 14 Lambdas y sus
+Aplicar el Terraform de la tarea 029 y verificar que las 14 Lambdas y sus
 schedules quedan operativos.
 
 ## Alcance concreto
@@ -50,7 +50,7 @@ schedules quedan operativos.
    `aws lambda invoke` para confirmar que escriben de verdad en el bucket Bronze
    real — no esperes al primer disparo programado para descubrir un error de
    permisos o de código.
-5. Copia en `doc/028-aplicar-lambda-eventbridge.md`: el resultado del `apply`, la
+5. Copia en `doc/030-aplicar-lambda-eventbridge.md`: el resultado del `apply`, la
    verificación de las 14 Lambdas/schedules, y el resultado de la invocación
    manual de prueba (incluyendo si escribió correctamente en Bronze).
 
@@ -68,4 +68,4 @@ schedules quedan operativos.
   `aws` CLI.
 - Al menos una invocación manual de prueba confirma una escritura real en el
   bucket Bronze.
-- `doc/028-aplicar-lambda-eventbridge.md` documenta el resultado completo.
+- `doc/030-aplicar-lambda-eventbridge.md` documenta el resultado completo.
