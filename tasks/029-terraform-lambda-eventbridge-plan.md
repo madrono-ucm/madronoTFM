@@ -1,5 +1,5 @@
 ---
-id: 27
+id: 29
 slug: terraform-lambda-eventbridge-plan
 title: "Terraform: Lambda + EventBridge Scheduler para los productores (plan, sin aplicar)"
 status: pending
@@ -20,11 +20,13 @@ merged_at: null
 
 ## Contexto
 
-Tercer paso hacia producción, tras la 025 (BronzeWriter+S3) y la 026
-(`lambda_handler` por productor). Esta tarea escribe el Terraform que despliega
-cada productor como una función Lambda con su propio schedule de EventBridge
-Scheduler, y genera el `plan` — **sin aplicarlo**, igual que el patrón ya usado en
-la tarea 014: el `apply` es la tarea 028, creada aparte tras revisar este plan.
+Quinto paso hacia producción, tras la 025 (BronzeWriter+S3) y los lotes 026-028
+(`lambda_handler` por productor, repartidos en 3 tareas más pequeñas tras un
+primer intento único que agotó presupuesto). Esta tarea escribe el Terraform que
+despliega cada productor como una función Lambda con su propio schedule de
+EventBridge Scheduler, y genera el `plan` — **sin aplicarlo**, igual que el patrón
+ya usado en la tarea 014: el `apply` es la tarea 030, creada aparte tras revisar
+este plan.
 
 **Excepción de alcance** (`allow_infra_apply: true`): tienes permiso para ejecutar
 `terraform init`/`plan` (y los comandos `aws`/`terraform` de solo lectura que
@@ -84,7 +86,7 @@ proyecto aparte) que despliega una `aws_lambda_function` + un
    la Lambda.
 5. `terraform init` + `terraform plan` (reutiliza el backend ya existente de la
    tarea 014/015, mismo bucket de estado). Copia la salida completa del plan en
-   `doc/027-terraform-lambda-eventbridge-plan.md`, igual que hizo la tarea 014.
+   `doc/029-terraform-lambda-eventbridge-plan.md`, igual que hizo la tarea 014.
 6. NO ejecutes `terraform apply`.
 
 ## Restricciones
@@ -103,6 +105,6 @@ proyecto aparte) que despliega una `aws_lambda_function` + un
 
 - Terraform para las 14 funciones Lambda + sus schedules, vía `for_each` sobre una
   tabla parametrizada, escrito y con `plan` limpio (sin errores).
-- `doc/027-terraform-lambda-eventbridge-plan.md` contiene la salida completa del
+- `doc/029-terraform-lambda-eventbridge-plan.md` contiene la salida completa del
   plan y confirma que no se ha aplicado nada.
 - Ninguna credencial real aparece en ningún fichero commiteado.
