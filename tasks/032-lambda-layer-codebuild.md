@@ -2,19 +2,19 @@
 id: 32
 slug: lambda-layer-codebuild
 title: Lambda Layer de dependencias de terceros vía AWS CodeBuild
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: true
 branch: task/032-lambda-layer-codebuild
-pr_number: null
-pr_url: null
+pr_number: 79
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/79
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-14T21:41:18+00:00'
-updated_at: '2026-08-14T21:50:46.842350+00:00'
+updated_at: '2026-08-14T22:04:22.498237+00:00'
 started_at: '2026-08-14T21:50:46.842325+00:00'
-submitted_at: null
+submitted_at: '2026-08-14T22:04:22.498092+00:00'
 merged_at: null
 ---
 
