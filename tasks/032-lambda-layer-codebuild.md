@@ -1,19 +1,19 @@
 ---
 id: 32
 slug: lambda-layer-codebuild
-title: "Lambda Layer de dependencias de terceros vía AWS CodeBuild"
-status: pending
+title: Lambda Layer de dependencias de terceros vía AWS CodeBuild
+status: in_progress
 force: true
 allow_infra_apply: true
-branch: null
+branch: task/032-lambda-layer-codebuild
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-14T21:41:18+00:00"
-updated_at: "2026-08-14T21:41:18+00:00"
-started_at: null
+created_at: '2026-08-14T21:41:18+00:00'
+updated_at: '2026-08-14T21:50:46.842350+00:00'
+started_at: '2026-08-14T21:50:46.842325+00:00'
 submitted_at: null
 merged_at: null
 ---
