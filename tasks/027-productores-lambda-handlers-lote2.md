@@ -3,17 +3,17 @@ id: 27
 slug: productores-lambda-handlers-lote2
 title: Handlers Lambda de captura completa — lote 2/3 (meteorología, ruido, afluencia,
   aforos, Bluesky)
-status: in_progress
+status: blocked
 force: true
 allow_infra_apply: false
 branch: task/027-productores-lambda-handlers-lote2
 pr_number: null
 pr_url: null
-attempts: 3
-next_retry_at: '2026-08-14T16:49:56.560929+00:00'
+attempts: 4
+next_retry_at: '2026-08-14T17:29:01.026120+00:00'
 last_error: You've hit your session limit · resets 8:10pm (UTC)
 created_at: '2026-08-14T16:15:00+00:00'
-updated_at: '2026-08-14T16:50:37.722529+00:00'
+updated_at: '2026-08-14T16:50:41.945002+00:00'
 started_at: '2026-08-14T16:16:59.442638+00:00'
 submitted_at: null
 merged_at: null
