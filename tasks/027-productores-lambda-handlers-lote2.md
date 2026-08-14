@@ -10,7 +10,7 @@ branch: task/027-productores-lambda-handlers-lote2
 pr_number: null
 pr_url: null
 attempts: 6
-next_retry_at: '2026-08-14T21:42:58.703598+00:00'
+next_retry_at: '2026-08-14T21:03:11.810392+00:00'
 last_error: You've hit your session limit · resets 8:10pm (UTC)
 created_at: '2026-08-14T16:15:00+00:00'
 updated_at: '2026-08-14T18:38:50.266532+00:00'
