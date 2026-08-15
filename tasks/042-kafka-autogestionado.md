@@ -1,19 +1,19 @@
 ---
 id: 42
 slug: kafka-autogestionado
-title: "Kafka autogestionado en EC2 (ruta caliente) — infraestructura, sin aplicar"
-status: pending
+title: Kafka autogestionado en EC2 (ruta caliente) — infraestructura, sin aplicar
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/042-kafka-autogestionado
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T18:08:53.668402+00:00'
+started_at: '2026-08-15T18:08:53.668379+00:00'
 submitted_at: null
 merged_at: null
 ---
