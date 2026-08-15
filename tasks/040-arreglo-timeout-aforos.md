@@ -1,5 +1,5 @@
 ---
-id: 39
+id: 40
 slug: arreglo-timeout-aforos
 title: "Arreglar el timeout de la Lambda de aforos de peatones y bicicletas"
 status: pending
@@ -56,7 +56,7 @@ real que la función completa sin timeout.
    (`infra/terraform/lambda.tf`) a un valor razonable — documenta por qué el valor
    elegido.
 3. Actualiza/añade tests si el cambio de código lo justifica.
-4. Reconstruye el `.zip` (mismo mecanismo que la tarea 031/038) si hiciste cambios
+4. Reconstruye el `.zip` (mismo mecanismo que la tarea 031/039) si hiciste cambios
    de código, y aplica cualquier cambio de Terraform.
 5. Invoca manualmente la función (con un `--cli-read-timeout` generoso) y confirma
    que completa y escribe en Bronze, o que falla con un error explícito distinto
@@ -74,4 +74,4 @@ real que la función completa sin timeout.
 - La causa raíz del colgado queda identificada y corregida (código, configuración
   de Lambda, o ambos).
 - Una invocación manual real completa sin `Sandbox.Timedout`.
-- `doc/039-arreglo-timeout-aforos.md` documenta el diagnóstico y el arreglo.
+- `doc/040-arreglo-timeout-aforos.md` documenta el diagnóstico y el arreglo.

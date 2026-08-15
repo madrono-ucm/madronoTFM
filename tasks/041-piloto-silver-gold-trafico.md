@@ -1,5 +1,5 @@
 ---
-id: 40
+id: 41
 slug: piloto-silver-gold-trafico
 title: "Piloto Bronze→Silver→Gold: tráfico (Glue + Great Expectations)"
 status: pending
@@ -63,7 +63,7 @@ sin aplicarlo.
 4. Transformación Silver→Gold: una agregación simple y razonable (p.ej. intensidad
    media por punto de medida y hora, o por distrito si decides cruzar con
    barrios/distritos — usa tu criterio, no hace falta el grafo completo en Neo4j
-   todavía, eso es la tarea 042).
+   todavía, eso es la tarea 043).
 5. Terraform (`infra/terraform/`, fichero nuevo): `aws_glue_job` (o los dos, uno
    por transformación) + rol IAM de Glue con permisos mínimos (leer Bronze,
    escribir Silver/Gold, catálogo de Glue) + `aws_glue_catalog_database`/`table`
