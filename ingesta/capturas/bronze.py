@@ -22,6 +22,11 @@ la forma de `base_path`:
 `write_batch` devuelve la ubicación del fichero escrito: un `Path` en modo
 local (sin cambios respecto a la tarea 002), o un `str` con la URI
 `s3://bucket/key` en modo S3.
+
+El particionado (`fecha=/hora=`) y el nombre de fichero de cada lote se
+calculan en **hora de Madrid** (tarea 034), no en UTC: `write_batch` usa
+`now_madrid()` por defecto cuando no se pasa `moment` explícitamente. Ver
+`now_madrid()` más abajo para el porqué.
 """
 
 from __future__ import annotations
@@ -30,15 +35,40 @@ import json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 import boto3
 
 logger = logging.getLogger(__name__)
 
 S3_URI_PREFIX = "s3://"
+
+MADRID_TZ = ZoneInfo("Europe/Madrid")
+
+
+def now_madrid() -> datetime:
+    """Devuelve el instante actual como `datetime` *aware* en hora de Madrid.
+
+    Usa `zoneinfo` (librería estándar, sin dependencias de terceros) con la
+    zona `Europe/Madrid`, que aplica automáticamente el desfase real según
+    la época del año (CET/UTC+1 en invierno, CEST/UTC+2 en verano) en vez de
+    un offset fijo. Se usa como valor por defecto de `moment` en
+    `BronzeWriter.write_batch`, para que el particionado (`fecha=/hora=`) de
+    Bronze refleje la hora local de Madrid y no UTC (tarea 034).
+
+    Verificado en el entorno de desarrollo/CI de este repo que
+    `ZoneInfo("Europe/Madrid")` resuelve sin `ZoneInfoNotFoundError` (la base
+    de datos IANA de zonas horarias está disponible en el sistema) — no ha
+    hecho falta añadir `tzdata` a `ingesta/requirements.txt` como fallback.
+    Si un entorno futuro (p. ej. una imagen base de Lambda distinta) careciera
+    de esa base de datos, este `ZoneInfo(...)` de módulo fallaría al importar
+    `ingesta.capturas.bronze`; en ese caso habría que añadir `tzdata` a
+    `ingesta/requirements.txt` y reconstruir la Lambda Layer (tarea 032).
+    """
+    return datetime.now(MADRID_TZ)
 
 
 def _parse_s3_uri(uri: str) -> "tuple[str, str]":
@@ -90,11 +120,15 @@ class BronzeWriter:
 
         Devuelve la ruta (local) o URI `s3://...` (S3) del objeto escrito.
         `moment` determina tanto la partición (fecha=/hora=) como el nombre
-        del fichero; por defecto es el instante actual en UTC.
+        del fichero; por defecto es el instante actual en hora de Madrid
+        (`now_madrid()`, tarea 034).
         """
-        moment = moment or datetime.now(timezone.utc)
+        moment = moment or now_madrid()
         records = list(records)
-        filename = f"{moment:%Y%m%dT%H%M%SZ}_{uuid.uuid4().hex[:8]}.json"
+        # Sin sufijo "Z": ese sufijo ISO-8601 denota UTC, y `moment` ya no lo
+        # es por defecto (hora de Madrid, tarea 034) — mantenerlo induciría a
+        # error sobre en qué zona horaria está expresado el nombre.
+        filename = f"{moment:%Y%m%dT%H%M%S}_{uuid.uuid4().hex[:8]}.json"
         body = json.dumps(records, ensure_ascii=False).encode("utf-8")
 
         if self.is_s3:
