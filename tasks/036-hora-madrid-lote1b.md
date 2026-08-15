@@ -1,19 +1,19 @@
 ---
 id: 36
 slug: hora-madrid-lote1b
-title: "Hora de Madrid en timestamps — lote 1b (calidad del aire, meteorología, ruido)"
-status: pending
+title: Hora de Madrid en timestamps — lote 1b (calidad del aire, meteorología, ruido)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/036-hora-madrid-lote1b
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T10:10:00+00:00"
-updated_at: "2026-08-15T10:10:00+00:00"
-started_at: null
+created_at: '2026-08-15T10:10:00+00:00'
+updated_at: '2026-08-15T10:30:31.872936+00:00'
+started_at: '2026-08-15T10:30:31.872914+00:00'
 submitted_at: null
 merged_at: null
 ---
