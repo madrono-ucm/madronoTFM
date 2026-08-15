@@ -1,19 +1,19 @@
 ---
 id: 44
 slug: esqueleto-asistente-fastapi-mcp
-title: "Esqueleto del asistente conversacional (FastAPI + agente MCP)"
-status: pending
+title: Esqueleto del asistente conversacional (FastAPI + agente MCP)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/044-esqueleto-asistente-fastapi-mcp
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T18:28:44.449070+00:00'
+started_at: '2026-08-15T18:28:44.449045+00:00'
 submitted_at: null
 merged_at: null
 ---
