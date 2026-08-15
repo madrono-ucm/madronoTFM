@@ -664,8 +664,8 @@ credenciales.
   "magnitude_name": "Óxidos de Nitrógeno",
   "unit": "µg/m³",
   "value": 37.0,
-  "measured_at": "2026-08-12T00:00:00+00:00",
-  "ingested_at": "2026-08-12T01:30:08.436733+00:00",
+  "measured_at": "2026-08-15T12:00:00+02:00",
+  "ingested_at": "2026-08-15T12:32:14.667483+02:00",
   "location": {"lat": 40.4514734, "lon": -3.6773491, "srid": "EPSG:4326"}
 }
 ```
@@ -676,8 +676,9 @@ credenciales.
   válida, `V`, análogo a mostrar el estado "actual" en las demás capturas
   puntuales de este proyecto).
 - `measured_at`: hora de esa lectura (de `ANO`/`MES`/`DIA` + la hora `Hxx`
-  elegida, hora de Madrid convertida a UTC). `ingested_at`: instante en que
-  este productor consultó ambas fuentes (UTC).
+  elegida, hora de Madrid — tarea 036, la fuente ya publica en esa zona
+  horaria). `ingested_at`: instante en que este productor consultó ambas
+  fuentes (hora de Madrid, tarea 036).
 - `station_name`/`station_address`/`location`: `null` si el código de
   estación de la lectura no aparece en el catálogo de estaciones descargado
   (no debería ocurrir en condiciones normales, pero se normaliza así en vez
@@ -801,13 +802,13 @@ credenciales.
   "neighbourhood": "Justicia",
   "period": "D",
   "period_name": "diurno",
-  "measured_date": "2026-08-10",
-  "ingested_at": "2026-08-12T01:40:10.464669+00:00",
-  "laeq_db": 62.9,
-  "l1_db": 69.7,
-  "l10_db": 66.0,
+  "measured_date": "2026-08-13",
+  "ingested_at": "2026-08-15T12:32:21.270994+02:00",
+  "laeq_db": 62.6,
+  "l1_db": 69.4,
+  "l10_db": 65.9,
   "l50_db": 60.4,
-  "l90_db": 54.6,
+  "l90_db": 54.8,
   "l99_db": 52.2,
   "location": {"lat": 40.422599, "lon": -3.691877, "srid": "EPSG:4326", "altitude_m": 648}
 }
@@ -819,7 +820,7 @@ credenciales.
   con hora) como el resto de capturas: la fuente no publica una hora
   concreta, solo un día — este campo es honesto con esa granularidad real.
   `ingested_at` es el instante en que este productor consultó ambas fuentes
-  (UTC).
+  (hora de Madrid, tarea 036).
 - `laeq_db`/`l1_db`/`l10_db`/`l50_db`/`l90_db`/`l99_db`: nivel continuo
   equivalente y percentiles de presión sonora (dB), tal como define el PDF
   "Contaminación acústica. Datos diarios. Contenido y estructura del
@@ -952,14 +953,14 @@ credenciales.
   "station_id": "28079102",
   "station_name": "J.M.D. Moratalaz",
   "station_address": "C/ Fuente Carantona, 8",
-  "measured_at": "2026-08-12T00:00:00+00:00",
-  "ingested_at": "2026-08-12T01:49:00.436260+00:00",
-  "temperature_c": 25.6,
-  "humidity_pct": 19.0,
-  "wind_speed_ms": 1.0,
-  "wind_direction_deg": 73.0,
-  "pressure_mb": 941.0,
-  "solar_radiation_wm2": 0.0,
+  "measured_at": "2026-08-15T12:00:00+02:00",
+  "ingested_at": "2026-08-15T12:32:18.147036+02:00",
+  "temperature_c": 21.6,
+  "humidity_pct": 43.0,
+  "wind_speed_ms": 3.2,
+  "wind_direction_deg": 120.0,
+  "pressure_mb": 940.0,
+  "solar_radiation_wm2": 313.0,
   "uv_radiation_mwm2": null,
   "precipitation_lm2": 0.0,
   "location": {"lat": 40.398611, "lon": -3.636944, "srid": "EPSG:4326", "altitude_m": 686}
@@ -971,11 +972,12 @@ credenciales.
   no mide esa magnitud, p.ej. `uv_radiation_mwm2` en la mayoría de
   estaciones de esta red).
 - `measured_at`: la hora válida más reciente entre todas las magnitudes de
-  la estación (hora de Madrid convertida a UTC). En la práctica, una misma
-  estación actualiza todas sus magnitudes a la vez, así que suele coincidir
-  para todos los campos de un mismo registro.
+  la estación (hora de Madrid — tarea 036, la fuente ya publica en esa zona
+  horaria). En la práctica, una misma estación actualiza todas sus
+  magnitudes a la vez, así que suele coincidir para todos los campos de un
+  mismo registro.
 - `ingested_at`: instante en que este productor consultó ambas fuentes
-  (UTC).
+  (hora de Madrid, tarea 036).
 - `station_name`/`station_address`/`location`: `null` si el código corto de
   estación de la lectura no aparece en el catálogo descargado (no debería
   ocurrir en condiciones normales, pero se normaliza así en vez de

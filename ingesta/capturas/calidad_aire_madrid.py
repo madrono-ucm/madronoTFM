@@ -56,14 +56,14 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterator, Optional
 from zoneinfo import ZoneInfo
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -247,8 +247,8 @@ def normalize_record(entry: dict, stations: dict[str, dict], ingested_at: dateti
         "magnitude_name": magnitude_info[1] if magnitude_info else None,
         "unit": magnitude_info[2] if magnitude_info else None,
         "value": _to_float(raw_value),
-        "measured_at": _measured_at(entry, hour).astimezone(timezone.utc).isoformat(),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "measured_at": _measured_at(entry, hour).astimezone(MADRID_TZ).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "location": {
             "lat": station_info.get("lat"),
             "lon": station_info.get("lon"),
@@ -266,7 +266,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     orden en que las devuelve la fuente) en un fichero fijo, pensado para commitearse
     como fixture, no para acumular capturas.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     stations_csv = fetch_raw_stations(config)
     stations = parse_stations(stations_csv)
@@ -305,7 +305,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     todos los registros estación+magnitud con alguna lectura horaria válida
     ese día (24 estaciones x hasta ~18 magnitudes).
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     stations_csv = fetch_raw_stations(config)
     stations = parse_stations(stations_csv)

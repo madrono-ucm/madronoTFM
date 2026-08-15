@@ -71,7 +71,7 @@ class NormalizeRecordTests(unittest.TestCase):
         self.assertEqual(record["period"], "D")
         self.assertEqual(record["period_name"], "diurno")
         self.assertEqual(record["measured_date"], "2026-08-10")
-        self.assertEqual(record["ingested_at"], "2026-08-12T09:15:30+00:00")
+        self.assertEqual(record["ingested_at"], "2026-08-12T11:15:30+02:00")
         self.assertEqual(record["laeq_db"], 62.9)
         self.assertEqual(record["l1_db"], 69.7)
         self.assertEqual(record["l99_db"], 52.2)

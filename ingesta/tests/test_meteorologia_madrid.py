@@ -81,8 +81,8 @@ class NormalizeStationRecordTests(unittest.TestCase):
         self.assertEqual(record["precipitation_lm2"], 0.0)
         # La magnitud 80 (UV) no está presente en la fuente para esta estación.
         self.assertIsNone(record["uv_radiation_mwm2"])
-        self.assertEqual(record["measured_at"], "2026-08-12T00:00:00+00:00")
-        self.assertEqual(record["ingested_at"], "2026-08-12T09:15:30+00:00")
+        self.assertEqual(record["measured_at"], "2026-08-12T02:00:00+02:00")
+        self.assertEqual(record["ingested_at"], "2026-08-12T11:15:30+02:00")
         self.assertEqual(
             record["location"],
             {"lat": 40.398611, "lon": -3.636944, "srid": "EPSG:4326", "altitude_m": 686},
