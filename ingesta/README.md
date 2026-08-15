@@ -183,8 +183,8 @@ $BRONZE_BASE_PATH/trafico/fecha=YYYY-MM-DD/hora=HH/<timestamp>_<sufijo>.json
   "schema_version": 1,
   "source": "madrid_trafico_intensidad",
   "point_id": "9841",
-  "measured_at": "2026-08-11T23:45:04+00:00",
-  "ingested_at": "2026-08-11T23:45:07.123456+00:00",
+  "measured_at": "2026-08-15T12:15:15+02:00",
+  "ingested_at": "2026-08-15T12:24:15.534261+02:00",
   "description": "Valle de Mena S-E - Acc.Ramon Castroviejo-Gta.Isaac Rabín",
   "access_code": "0301005",
   "subarea": "0328",
@@ -199,10 +199,13 @@ $BRONZE_BASE_PATH/trafico/fecha=YYYY-MM-DD/hora=HH/<timestamp>_<sufijo>.json
 }
 ```
 
-- `measured_at`: timestamp global del feed (hora de Madrid convertida a UTC).
-  Es el mismo para todos los registros de una misma captura, tal como lo
-  publica la fuente (un único `fecha_hora` para todo el XML).
-- `ingested_at`: instante en que este productor descargó el feed (UTC).
+- `measured_at`: timestamp global del feed, convertido a hora de Madrid
+  (tarea 035; el feed ya lo publica en hora de Madrid, así que no hay
+  conversión de zona real). Es el mismo para todos los registros de una
+  misma captura, tal como lo publica la fuente (un único `fecha_hora` para
+  todo el XML).
+- `ingested_at`: instante en que este productor descargó el feed (hora de
+  Madrid, tarea 035).
 - `location.x`/`location.y`: coordenadas tal como vienen en la fuente
   (UTM ETRS89 huso 30N, EPSG:25830, con coma decimal en origen — ya
   convertidas a `float` con punto). No se reproyecta a lat/lon en esta tarea
@@ -313,7 +316,7 @@ como en la tarea 003.
   "line": "27",
   "bus_id": 1234,
   "destination": "PLAZA CASTILLA",
-  "ingested_at": "2026-08-12T09:15:30+00:00",
+  "ingested_at": "2026-08-15T12:24:02.641625+02:00",
   "estimate_arrive_sec": 180,
   "distance_bus_m": 950,
   "is_head": false,
@@ -323,7 +326,8 @@ como en la tarea 003.
 }
 ```
 
-- `ingested_at`: instante en que este productor consultó la API (UTC).
+- `ingested_at`: instante en que este productor consultó la API (hora de
+  Madrid, tarea 035).
 - `estimate_arrive_sec`: segundos estimados hasta la llegada del autobús a la
   parada (tal como lo da la fuente, sin redondear a minutos).
 - `location.lon`/`location.lat`: coordenadas del autobús tal como las da la
@@ -410,8 +414,8 @@ credenciales.
   "station_id": "1406",
   "name": "2 - Metro Callao",
   "address": "Calle Miguel Moya nº 1",
-  "measured_at": "2026-08-12T01:13:00+00:00",
-  "ingested_at": "2026-08-12T01:13:55.697210+00:00",
+  "measured_at": "2026-08-15T12:23:30+02:00",
+  "ingested_at": "2026-08-15T12:24:00.526219+02:00",
   "bikes_available": 2,
   "bikes_disabled": 2,
   "docks_available": 23,
@@ -426,12 +430,14 @@ credenciales.
 ```
 
 - `measured_at`: `last_reported` del feed `station_status` (por estación,
-  UTC). Puede ser `null` si una estación de `station_information` no tiene
-  entrada correspondiente en `station_status` (desincronización entre
-  feeds); en ese caso todos los campos de estado se normalizan a `null` en
-  vez de descartar la estación — los metadatos fijos (`name`, `docks_total`,
-  `location`...) siempre están presentes.
-- `ingested_at`: instante en que este productor consultó ambos feeds (UTC).
+  convertido a hora de Madrid, tarea 035). Puede ser `null` si una estación
+  de `station_information` no tiene entrada correspondiente en
+  `station_status` (desincronización entre feeds); en ese caso todos los
+  campos de estado se normalizan a `null` en vez de descartar la estación —
+  los metadatos fijos (`name`, `docks_total`, `location`...) siempre están
+  presentes.
+- `ingested_at`: instante en que este productor consultó ambos feeds (hora
+  de Madrid, tarea 035).
 - `docks_total`: capacidad total de la estación (`capacity` en
   `station_information`); `docks_available`/`docks_disabled` son el desglose
   actual de `station_status`.
@@ -535,8 +541,8 @@ credenciales.
   "parking_id": "5",
   "name": "Nuestra Señora del Recuerdo",
   "address": "Calle de la Hiedra",
-  "measured_at": "2026-08-12T01:19:25+00:00",
-  "ingested_at": "2026-08-12T01:21:22.368415+00:00",
+  "measured_at": "2026-08-15T12:23:55+02:00",
+  "ingested_at": "2026-08-15T12:24:06.342708+02:00",
   "free_spaces": 431,
   "total_spaces": 832,
   "location": {"lat": 40.472181, "lon": -3.67916, "srid": "EPSG:4326"}
@@ -544,9 +550,11 @@ credenciales.
 ```
 
 - `measured_at`: momento de la última actualización de ocupación que reporta
-  la fuente (`lstOccupation.moment`, convertido de hora de Madrid a UTC).
-  `null` si el aparcamiento no comparte ocupación en tiempo real.
-- `ingested_at`: instante en que este productor consultó la fuente (UTC).
+  la fuente (`lstOccupation.moment`, ya en hora de Madrid en origen —
+  normalizado a hora de Madrid, tarea 035, no convertido a UTC). `null` si
+  el aparcamiento no comparte ocupación en tiempo real.
+- `ingested_at`: instante en que este productor consultó la fuente (hora de
+  Madrid, tarea 035).
 - `free_spaces`: plazas libres ahora mismo (`GetListParking`); `null` si el
   aparcamiento no comparte ocupación en tiempo real (es voluntario).
 - `total_spaces`: plazas totales (`GetDetailParking`, característica "Total");

@@ -45,8 +45,8 @@ class ParseRecordsTests(unittest.TestCase):
         self.assertEqual(record["docks_total"], 47)
         self.assertEqual(record["status"], "IN_SERVICE")
         self.assertTrue(record["is_renting"])
-        self.assertEqual(record["measured_at"], "2026-08-12T01:13:00+00:00")
-        self.assertEqual(record["ingested_at"], "2026-08-12T09:15:30+00:00")
+        self.assertEqual(record["measured_at"], "2026-08-12T03:13:00+02:00")
+        self.assertEqual(record["ingested_at"], "2026-08-12T11:15:30+02:00")
 
     def test_parses_coordinates_as_lat_lon_wgs84(self):
         record = self.records[0]

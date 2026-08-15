@@ -40,13 +40,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator, Optional
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ def normalize_record(info: dict, status: Optional[dict], ingested_at: datetime) 
     status = status or {}
     last_reported = status.get("last_reported")
     measured_at = (
-        datetime.fromtimestamp(last_reported, tz=timezone.utc).isoformat()
+        datetime.fromtimestamp(last_reported, tz=MADRID_TZ).isoformat()
         if last_reported is not None
         else None
     )
@@ -153,7 +153,7 @@ def normalize_record(info: dict, status: Optional[dict], ingested_at: datetime) 
         "name": info.get("name"),
         "address": info.get("address"),
         "measured_at": measured_at,
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "bikes_available": status.get("num_bikes_available"),
         "bikes_disabled": status.get("num_bikes_disabled"),
         "docks_available": status.get("num_docks_available"),
@@ -200,7 +200,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     completa) en un fichero fijo, pensado para commitearse como fixture, no
     para acumular capturas.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     station_information_json = fetch_raw_station_information(config)
     station_status_json = fetch_raw_station_status(config)
     records = list(parse_records(station_information_json, station_status_json, ingested_at))[
@@ -226,7 +226,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     el fixture versionado), esto es la captura completa pensada para el
     handler Lambda (tarea 026): las ~670 estaciones de la red completa.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     station_information_json = fetch_raw_station_information(config)
     station_status_json = fetch_raw_station_status(config)
     records = list(parse_records(station_information_json, station_status_json, ingested_at))

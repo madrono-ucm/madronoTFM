@@ -69,8 +69,8 @@ class NormalizeRecordTests(unittest.TestCase):
         self.assertEqual(record["name"], "Nuestra Señora del Recuerdo")
         self.assertEqual(record["free_spaces"], 431)
         self.assertEqual(record["total_spaces"], 832)
-        self.assertEqual(record["measured_at"], "2026-08-12T01:17:36+00:00")
-        self.assertEqual(record["ingested_at"], "2026-08-12T09:15:30+00:00")
+        self.assertEqual(record["measured_at"], "2026-08-12T03:17:36+02:00")
+        self.assertEqual(record["ingested_at"], "2026-08-12T11:15:30+02:00")
         self.assertEqual(record["location"], {"lat": 40.472181, "lon": -3.67916, "srid": "EPSG:4326"})
 
     def test_normalizes_an_entry_without_occupancy_or_total(self):
