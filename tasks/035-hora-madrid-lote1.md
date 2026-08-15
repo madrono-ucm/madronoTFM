@@ -1,19 +1,20 @@
 ---
 id: 35
 slug: hora-madrid-lote1
-title: "Hora de Madrid en timestamps — lote 1/3 (tráfico, EMT, BiciMAD, aparcamientos, aire, meteo, ruido)"
-status: pending
+title: Hora de Madrid en timestamps — lote 1/3 (tráfico, EMT, BiciMAD, aparcamientos,
+  aire, meteo, ruido)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/035-hora-madrid-lote1
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T09:59:09.903332+00:00'
+started_at: '2026-08-15T09:59:09.903309+00:00'
 submitted_at: null
 merged_at: null
 ---
