@@ -2,7 +2,7 @@
 id: 35
 slug: hora-madrid-lote1
 title: Hora de Madrid en timestamps — lote 1a (tráfico, EMT, BiciMAD, aparcamientos)
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/035-hora-madrid-lote1
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T10:27:22.320760+00:00'
+updated_at: '2026-08-15T10:29:29.423980+00:00'
 started_at: '2026-08-15T10:20:03.941894+00:00'
 submitted_at: '2026-08-15T10:27:22.320737+00:00'
-merged_at: null
+merged_at: '2026-08-15T10:28:26Z'
 ---
 
 ## Contexto
