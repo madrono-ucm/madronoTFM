@@ -22,7 +22,7 @@
       "srid": "EPSG:4326"
     },
     "url": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=f13107a260cae910VgnVCM200000f921e388RCRD",
-    "captured_at": "2026-08-13T22:18:18.679650+00:00"
+    "captured_at": "2026-08-15T12:39:24.904227+02:00"
   },
   {
     "schema_version": 1,
@@ -47,7 +47,7 @@
       "srid": "EPSG:4326"
     },
     "url": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=92684dde03f7f910VgnVCM200000f921e388RCRD",
-    "captured_at": "2026-08-13T22:18:18.679650+00:00"
+    "captured_at": "2026-08-15T12:39:24.904227+02:00"
   },
   {
     "schema_version": 1,
@@ -72,7 +72,7 @@
       "srid": "EPSG:4326"
     },
     "url": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=180ad70f882af910VgnVCM200000f921e388RCRD",
-    "captured_at": "2026-08-13T22:18:18.679650+00:00"
+    "captured_at": "2026-08-15T12:39:24.904227+02:00"
   },
   {
     "schema_version": 1,
@@ -97,7 +97,7 @@
       "srid": "EPSG:4326"
     },
     "url": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=df7bd881d7dfe910VgnVCM200000f921e388RCRD",
-    "captured_at": "2026-08-13T22:18:18.679650+00:00"
+    "captured_at": "2026-08-15T12:39:24.904227+02:00"
   },
   {
     "schema_version": 1,
@@ -122,7 +122,82 @@
       "srid": "EPSG:4326"
     },
     "url": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=ef1a56066dbdf910VgnVCM100000891ecb1aRCRD",
-    "captured_at": "2026-08-13T22:18:18.679650+00:00"
+    "captured_at": "2026-08-15T12:39:24.904227+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "agenda_turismo_esmadrid",
+    "event_id": "109464",
+    "title": "Ed Maverick",
+    "description": "El cantautor mexicano Ed Maverick ofrece una actuación el próximo 15 de noviembre en la sala La Riviera. Una cita en la que estará acompañando por su banda para presentar su nuevo disco que combina el folk, la canción de autor y sonidos alternativos. Desde la irrupción de sus primeros trabajos como Mix pa’ llorar en tu cuarto y entregas posteriores como Eduardo o La Nube en el Jardín , el joven ar...",
+    "category": "Eventos > Música > Pop-rock",
+    "start_datetime": "2026-11-15",
+    "end_datetime": "2026-11-15",
+    "schedule_text": "21:00 h",
+    "free": null,
+    "price_info": "Desde 35 €",
+    "location": {
+      "venue_name": "La Riviera",
+      "address": "Bajo de la Virgen del Puerto, s/n",
+      "district": null,
+      "neighborhood": null,
+      "postal_code": "28005",
+      "lat": 40.4133013,
+      "lon": -3.7219371,
+      "srid": "EPSG:4326"
+    },
+    "url": "https://www.esmadrid.com/agenda/ed-maverick-riviera",
+    "captured_at": "2026-08-15T12:39:26.252067+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "agenda_turismo_esmadrid",
+    "event_id": "109463",
+    "title": "Perotá Chingó (Madrid Live Experience 2026)",
+    "description": "El prestigioso dúo femenino argentino formado por Julia Ortiz y Dolores Aguirre presenta su propuesta de folk contemporáneo y electrónica ancestral en directo el próximo 29 de septiembre en el Gran Teatro CaixaBank Príncipe Pío. Un concierto que podrá disfrutarse como parte del ciclo de conciertos Madrid Live Experience 2026 , La historia de Perotá Chingó empezó de una forma increíble en el verano...",
+    "category": "Eventos > Música > Folk",
+    "start_datetime": "2026-09-29",
+    "end_datetime": "2026-09-29",
+    "schedule_text": "20:30 h",
+    "free": null,
+    "price_info": "Desde 27,50 €",
+    "location": {
+      "venue_name": "Gran Teatro CaixaBank Príncipe Pío",
+      "address": "de San Vicente, 44",
+      "district": null,
+      "neighborhood": null,
+      "postal_code": "28008",
+      "lat": 40.4209943,
+      "lon": -3.7187873,
+      "srid": "EPSG:4326"
+    },
+    "url": "https://www.esmadrid.com/agenda/perota-chingo-gran-teatro-caixabank-principe-pio",
+    "captured_at": "2026-08-15T12:39:26.252067+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "agenda_turismo_esmadrid",
+    "event_id": "109462",
+    "title": "Riopy (Madrid Live Experience 2026)",
+    "description": "El virtuoso pianista y compositor francés Riopy ofrece un concierto íntimo el próximo 27 de septiembre en el Gran Teatro CaixaBank Príncipe Pío. Una cita que forma parte del ciclo de conciertos Madrid Live Experience 2026 . Solo en el escenario frente a su piano, el artista no se limita a tocar, sino que se revela por completo ante su público. Cada nota de sus composiciones parece brotar de lo más...",
+    "category": "Eventos > Música > Clásica",
+    "start_datetime": "2026-09-27",
+    "end_datetime": "2026-09-27",
+    "schedule_text": "20:00 h",
+    "free": null,
+    "price_info": "Desde 33 €",
+    "location": {
+      "venue_name": "Gran Teatro CaixaBank Príncipe Pío",
+      "address": "de San Vicente, 44",
+      "district": null,
+      "neighborhood": null,
+      "postal_code": "28008",
+      "lat": 40.4209943,
+      "lon": -3.7187873,
+      "srid": "EPSG:4326"
+    },
+    "url": "https://www.esmadrid.com/agenda/riopy-gran-teatro-caixabank-principe-pio",
+    "captured_at": "2026-08-15T12:39:26.252067+02:00"
   },
   {
     "schema_version": 1,
@@ -147,7 +222,7 @@
       "srid": "EPSG:4326"
     },
     "url": "https://www.esmadrid.com/agenda/miguel-lago-miserable-teatro-alcazar",
-    "captured_at": "2026-08-13T22:18:19.603051+00:00"
+    "captured_at": "2026-08-15T12:39:26.252067+02:00"
   },
   {
     "schema_version": 1,
@@ -172,81 +247,6 @@
       "srid": "EPSG:4326"
     },
     "url": "https://www.esmadrid.com/agenda/real-madrid-ajax-vrouwen-uefa-womens-champions-league-estadio-alfredo-di-stefano",
-    "captured_at": "2026-08-13T22:18:19.603051+00:00"
-  },
-  {
-    "schema_version": 1,
-    "source": "agenda_turismo_esmadrid",
-    "event_id": "109459",
-    "title": "Zucchero (Madrid Live Experience 2026)",
-    "description": "El legendario músico italiano Zucchero hace un repaso por sus grandes éxitos el próximo 25 de septiembre en el Gran Teatro CaixaBank Príncipe Pío, en una cita imprescindible que forma parte del ciclo Madrid Live Experience 2026 . Adelmo Fornaciari, conocido mundialmente como Zucchero, es uno de los mayores exponentes del Jazz blues europeo, avalado por una impresionante trayectoria de más de 60 mi...",
-    "category": "Eventos > Música > Jazz-blues",
-    "start_datetime": "2026-09-25",
-    "end_datetime": "2026-09-25",
-    "schedule_text": "21:00 h",
-    "free": null,
-    "price_info": "Desde 61,60 €",
-    "location": {
-      "venue_name": "Gran Teatro CaixaBank Príncipe Pío",
-      "address": "de San Vicente, 44",
-      "district": null,
-      "neighborhood": null,
-      "postal_code": "28008",
-      "lat": 40.4209943,
-      "lon": -3.7187873,
-      "srid": "EPSG:4326"
-    },
-    "url": "https://www.esmadrid.com/agenda/zucchero-gran-teatro-caixabank-principe-pio",
-    "captured_at": "2026-08-13T22:18:19.603051+00:00"
-  },
-  {
-    "schema_version": 1,
-    "source": "agenda_turismo_esmadrid",
-    "event_id": "109458",
-    "title": "Julieta. Chula The Clown",
-    "description": "Dentro del ciclo Canal Hispanidad, la artista mexicana Chula The Clown estrena en España los días 12 y 13 de diciembre en la Sala Negra de los Teatros del Canal un espectáculo unipersonal de teatro físico y clown que aborda desde el humor y la emoción el paso del tiempo y las diferentes capas de la vejez . C uenta con un falso desnudo en escena. Sin recurrir a la palabra, la obra construye el retr...",
-    "category": "Eventos > Teatro y danza > Comedia",
-    "start_datetime": "2026-12-12",
-    "end_datetime": "2026-12-13",
-    "schedule_text": "12 de diciembre: 18:30 h 13 de diciembre: 17:00 h",
-    "free": null,
-    "price_info": "General: 20 € Carné Bibliotecas CAM: 18 € Carne Joven, menores de 25 años, mayores de 65 años, desempleados, familia numerosa y diversidad funcional grado 33%: 15 €",
-    "location": {
-      "venue_name": "Teatros del Canal",
-      "address": "de Cea Bermúdez, 1",
-      "district": null,
-      "neighborhood": null,
-      "postal_code": "28003",
-      "lat": 40.4382782,
-      "lon": -3.705182,
-      "srid": "EPSG:4326"
-    },
-    "url": "https://www.esmadrid.com/agenda/julieta-chula-clown-teatros-canal",
-    "captured_at": "2026-08-13T22:18:19.603051+00:00"
-  },
-  {
-    "schema_version": 1,
-    "source": "agenda_turismo_esmadrid",
-    "event_id": "109457",
-    "title": "Dino Kids Experience",
-    "description": "Dino Kids Experience se puede visitar en ABC Serrano del 20 de marzo al 30 de septiembre, con una propuesta inmersiva y educativa que acerca el mundo de los dinosaurios a niñas, niños y personas adultas a través del aprendizaje, el juego y la participación. La exposición permite recorrer diferentes espacios educativos e interactivos en los que destacan 14 dinosaurios animatrónicos a escala real, c...",
-    "category": "Eventos > Exposiciones > Inmersivo",
-    "start_datetime": "2026-03-20",
-    "end_datetime": "2026-09-30",
-    "schedule_text": "Miércoles a viernes: 16:00 a 20:00 h Sábados y domingos: 12:00 a 14:00h – 16:00 a 20:00 h",
-    "free": null,
-    "price_info": "Persona adulta: 10 € Niño/a entre 3 y 12 años: 8 € Personas adultas + 2 niños/as: 32 € Pack 10 personas: 70 € Niños/as entre 0 y 2 años: gratuito",
-    "location": {
-      "venue_name": "ABC Serrano",
-      "address": "de Serrano , 61",
-      "district": null,
-      "neighborhood": null,
-      "postal_code": "28006",
-      "lat": 40.4319053,
-      "lon": -3.6874425,
-      "srid": "EPSG:4326"
-    },
-    "url": "https://www.esmadrid.com/agenda/dino-kids-experience-abc-serrano",
-    "captured_at": "2026-08-13T22:18:19.603051+00:00"
+    "captured_at": "2026-08-15T12:39:26.252067+02:00"
   }
 ]

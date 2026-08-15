@@ -1604,7 +1604,7 @@ Escribe la muestra en
   "query": "Puerta del Sol, Madrid",
   "address": "Puerta del Sol, 28013 Madrid, Spain",
   "location": {"lat": 40.4169473, "lon": -3.7035285, "srid": "EPSG:4326"},
-  "captured_at": "2026-08-13T12:30:00+00:00",
+  "captured_at": "2026-08-13T14:30:00+02:00",
   "live_pct": 72,
   "typical_by_hour": {
     "lunes": [0, 0, "... 24 valores 0-100 ...", 5],
@@ -1778,8 +1778,8 @@ Escribe la muestra en
   "source": "madrid_aforos_peatones_bicicletas",
   "station_id": "PERM_PEA01_PM01",
   "mode": "peatones",
-  "measured_at": "2024-06-29T22:00:00+00:00",
-  "ingested_at": "2026-08-13T15:44:19.281996+00:00",
+  "measured_at": "2024-06-30T00:00:00+02:00",
+  "ingested_at": "2026-08-15T12:39:58.305359+02:00",
   "pedestrian_count": 857,
   "bicycle_count": null,
   "district_code": "1",
@@ -1792,6 +1792,8 @@ Escribe la muestra en
 
 - `mode`: `"peatones"` o `"bicicletas"`, según la red de estaciones de
   origen del registro.
+- `measured_at`/`ingested_at`: hora de Madrid (tarea 037), no UTC — la
+  fuente ya publica `fecha` en hora local de Madrid sin offset.
 - `pedestrian_count`/`bicycle_count`: solo uno de los dos está relleno por
   registro (ver "Dos redes de estaciones distintas" más arriba).
 - `district_code`/`district`: `null` en las estaciones sin distrito asignado
@@ -1966,16 +1968,16 @@ sea pequeña; un futuro productor programado real pasaría la lista completa.
   "source": "bluesky_menciones_madrid",
   "mode": "bajo_demanda",
   "match_term": "Puerta del Sol",
-  "post_hash": "ab508899abd85c6d",
-  "text": "📣No podemos seguir tolerando esta barbarie financiada...",
+  "post_hash": "cccbdd9fab136930",
+  "text": "La Puerta del Sol se ilumina con los colores de la bandera de Colombia gacetinmadrid.com/2026/08/14/p...",
   "lang": "es",
-  "created_at": "2026-08-13T11:26:39.707Z",
-  "indexed_at": "2026-08-13T11:26:41.312Z",
-  "like_count": 1,
+  "created_at": "2026-08-14T20:25:55.282Z",
+  "indexed_at": "2026-08-14T20:25:55.966Z",
+  "like_count": 0,
   "repost_count": 0,
-  "reply_count": 1,
+  "reply_count": 0,
   "quote_count": 0,
-  "captured_at": "2026-08-13T17:16:57.338443+00:00"
+  "captured_at": "2026-08-15T12:39:31.300627+02:00"
 }
 ```
 
@@ -1991,7 +1993,7 @@ sea pequeña; un futuro productor programado real pasaría la lista completa.
 - `created_at`: fecha de creación del post según su propio registro AT
   Protocol (tal cual la publica Bluesky, con milisegundos y `Z`).
   `indexed_at`: cuándo lo indexó el AppView de Bluesky. `captured_at`:
-  cuándo lo capturó este productor (UTC, ISO-8601).
+  cuándo lo capturó este productor (hora de Madrid, tarea 037; ISO-8601).
 - `like_count`/`repost_count`/`reply_count`/`quote_count`: contadores
   públicos del post en el momento de la captura.
 - No hay `location`/coordenadas: Bluesky no da geolocalización de los
@@ -2143,7 +2145,7 @@ cada fuente) en `ingesta/capturas/samples/agenda_eventos_madrid_sample.json`.
     "srid": "EPSG:4326"
   },
   "url": "http://www.madrid.es/...",
-  "captured_at": "2026-08-13T22:18:01.293752+00:00"
+  "captured_at": "2026-08-15T12:39:24.904227+02:00"
 }
 ```
 
@@ -3071,7 +3073,7 @@ más:
   "schedule_text": "17:00 h",
   "capacity": null,
   "url": "https://www.esmadrid.com/agenda/real-madrid-malaga-cf-laliga-ea-sports-estadio-bernabeu",
-  "captured_at": "2026-08-14T04:05:07.219305+00:00"
+  "captured_at": "2026-08-15T12:39:29.179609+02:00"
 }
 ```
 
@@ -3224,13 +3226,13 @@ python3 -m ingesta.capturas.cartelera_cines_madrid
   "postal_code": "28001",
   "locality": "Madrid",
   "screen_count": 8,
-  "movie_title": "Spider-Man: Brand New Day",
-  "movie_url": "https://www.sensacine.com/peliculas/pelicula-276608/",
+  "movie_title": "Minions & Monsters",
+  "movie_url": "https://www.sensacine.com/peliculas/pelicula-315380/",
   "language_version": "En Versión doblada",
   "experiences": ["Format.Projection.Digital"],
-  "showtime_datetime": "2026-08-14T15:50:00+02:00",
-  "showtime_id": "80287958721",
-  "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  "showtime_datetime": "2026-08-15T15:45:00+02:00",
+  "showtime_id": "80287958749",
+  "captured_at": "2026-08-15T12:39:30.369461+02:00"
 }
 ```
 
@@ -3241,12 +3243,12 @@ python3 -m ingesta.capturas.cartelera_cines_madrid
   "schema_version": 1,
   "source": "cartelera_cines_madrid",
   "record_type": "estreno_semana",
-  "movie_title": "Cuentra atrás",
-  "movie_url": "https://www.sensacine.com/peliculas/pelicula-326598/",
+  "movie_title": "El final de Oak Street",
+  "movie_url": "https://www.sensacine.com/peliculas/pelicula-314503/",
   "release_date": "2026-08-14",
-  "duration_minutes": 97,
-  "genres": ["Acción", "Suspense"],
-  "captured_at": "2026-08-14T04:17:48.423713+00:00"
+  "duration_minutes": 100,
+  "genres": ["Acción", "Aventura", "Ciencia ficción"],
+  "captured_at": "2026-08-15T12:39:30.369461+02:00"
 }
 ```
 

@@ -128,13 +128,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -321,7 +321,7 @@ def normalize_record(
             "lon": coordinates.get("lng"),
             "srid": "EPSG:4326",
         },
-        "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
+        "captured_at": captured_at.astimezone(MADRID_TZ).isoformat(),
         "live_pct": raw.get("current_popularity") if include_live else None,
         "typical_by_hour": _typical_by_hour(raw.get("populartimes")),
         "is_mock": is_mock,
@@ -351,7 +351,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
             "sección 'Autenticación', para obtener una clave gratuita."
         )
 
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     records = []
     for query in config.place_queries[: config.sample_size]:
         candidate = resolve_place_id(config, query)
@@ -383,7 +383,7 @@ def capture_typical_patterns(config: CaptureConfig) -> "list[dict]":
             "sección 'Autenticación', para obtener una clave gratuita."
         )
 
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     records = []
     for query in config.place_queries:
         candidate = resolve_place_id(config, query)

@@ -122,14 +122,14 @@ import re
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from urllib.parse import unquote
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -305,7 +305,7 @@ def normalize_municipal_event(raw: dict, captured_at: datetime) -> dict:
             "srid": "EPSG:4326" if lat is not None and lon is not None else None,
         },
         "url": raw.get("link") or None,
-        "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
+        "captured_at": captured_at.astimezone(MADRID_TZ).isoformat(),
     }
 
 
@@ -313,7 +313,7 @@ def fetch_municipal_events(config: CaptureConfig, limit: Optional[int] = None) -
     """Descarga y normaliza los primeros `limit` eventos del dataset municipal."""
     limit = config.municipal_sample_size if limit is None else limit
     raw_events = fetch_municipal_events_raw(config)
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     return [normalize_municipal_event(raw, captured_at) for raw in raw_events[:limit]]
 
 
@@ -403,7 +403,7 @@ def normalize_esmadrid_event(service: ET.Element, captured_at: datetime) -> dict
             "srid": "EPSG:4326" if lat is not None and lon is not None else None,
         },
         "url": _element_text(service, "basicData/web"),
-        "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
+        "captured_at": captured_at.astimezone(MADRID_TZ).isoformat(),
     }
 
 
@@ -411,7 +411,7 @@ def fetch_esmadrid_events(config: CaptureConfig, limit: Optional[int] = None) ->
     """Descarga y normaliza los primeros `limit` eventos del dataset de esMadrid."""
     limit = config.esmadrid_sample_size if limit is None else limit
     raw_services = fetch_esmadrid_services_raw(config)
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     return [normalize_esmadrid_event(service, captured_at) for service in raw_services[:limit]]
 
 
@@ -455,7 +455,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     captura completa pensada para el handler Lambda (tarea 028): los ~669
     eventos municipales y todos los `<service>` de la agenda de esMadrid.
     """
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     records = [normalize_municipal_event(raw, captured_at) for raw in fetch_municipal_events_raw(config)]
     records += [normalize_esmadrid_event(s, captured_at) for s in fetch_esmadrid_services_raw(config)]
     logger.info("Normalizados %d eventos de la agenda (captura completa)", len(records))

@@ -164,7 +164,7 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -174,6 +174,7 @@ from ingesta.capturas.agenda_eventos_madrid import (
     fetch_esmadrid_services_raw,
     normalize_esmadrid_event,
 )
+from ingesta.capturas.bronze import now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -326,7 +327,7 @@ def fetch_venue_agenda(
         raise ValueError(f"Recinto desconocido: '{venue_id}'. Recintos disponibles: {sorted(VENUES)}")
 
     venue = VENUES[venue_id]
-    captured_at = captured_at or datetime.now(timezone.utc)
+    captured_at = captured_at or now_madrid()
     if services is None:
         config = config or EsmadridSourceConfig.from_env()
         services = fetch_esmadrid_services_raw(config)
@@ -349,7 +350,7 @@ def sweep_all_venues(
     memoria para cada recinto, en vez de repetir la descarga por recinto.
     """
     config = config or EsmadridSourceConfig.from_env()
-    captured_at = captured_at or datetime.now(timezone.utc)
+    captured_at = captured_at or now_madrid()
     services = fetch_esmadrid_services_raw(config)
 
     records: "list[dict]" = []
