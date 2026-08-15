@@ -1,19 +1,19 @@
 ---
 id: 41
 slug: piloto-silver-gold-trafico
-title: "Piloto Bronze→Silver→Gold: tráfico (Glue + Great Expectations)"
-status: pending
+title: 'Piloto Bronze→Silver→Gold: tráfico (Glue + Great Expectations)'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/041-piloto-silver-gold-trafico
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T17:51:07.614207+00:00'
+started_at: '2026-08-15T17:51:07.614183+00:00'
 submitted_at: null
 merged_at: null
 ---
