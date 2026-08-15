@@ -2,7 +2,7 @@
 id: 44
 slug: esqueleto-asistente-fastapi-mcp
 title: Esqueleto del asistente conversacional (FastAPI + agente MCP)
-status: blocked
+status: in_progress
 force: true
 allow_infra_apply: false
 branch: task/044-esqueleto-asistente-fastapi-mcp
@@ -12,7 +12,7 @@ attempts: 1
 next_retry_at: '2026-08-15T18:36:33.484978+00:00'
 last_error: You've hit your session limit · resets 9:40pm (UTC)
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T18:30:35.016139+00:00'
+updated_at: '2026-08-15T18:36:40.024431+00:00'
 started_at: '2026-08-15T18:28:44.449045+00:00'
 submitted_at: null
 merged_at: null
