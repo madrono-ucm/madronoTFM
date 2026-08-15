@@ -1,19 +1,19 @@
 ---
 id: 34
 slug: bronzewriter-hora-madrid
-title: "BronzeWriter y particionado: usar hora de Madrid en vez de UTC"
-status: pending
+title: 'BronzeWriter y particionado: usar hora de Madrid en vez de UTC'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/034-bronzewriter-hora-madrid
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T09:53:57.531234+00:00'
+started_at: '2026-08-15T09:53:57.531209+00:00'
 submitted_at: null
 merged_at: null
 ---
