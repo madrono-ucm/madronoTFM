@@ -3,19 +3,19 @@ id: 38
 slug: hora-madrid-lote3
 title: Hora de Madrid en timestamps — lote 3/3 (AEMET, CAMS, callejero, barrios, POI,
   calendario, CRTM)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/038-hora-madrid-lote3
-pr_number: null
-pr_url: null
+pr_number: 85
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/85
 attempts: 6
 next_retry_at: '2026-08-15T16:48:36.997457+00:00'
 last_error: You've hit your session limit · resets 2:40pm (UTC)
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T16:49:30.961017+00:00'
+updated_at: '2026-08-15T16:57:43.810009+00:00'
 started_at: '2026-08-15T10:45:22.899575+00:00'
-submitted_at: null
+submitted_at: '2026-08-15T16:57:43.809856+00:00'
 merged_at: null
 ---
 
