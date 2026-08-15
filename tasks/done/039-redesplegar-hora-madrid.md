@@ -2,7 +2,7 @@
 id: 39
 slug: redesplegar-hora-madrid
 title: Redesplegar las Lambdas con los timestamps en hora de Madrid
-status: in_review
+status: done
 force: false
 allow_infra_apply: true
 branch: task/039-redesplegar-hora-madrid
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T17:06:14.241766+00:00'
+updated_at: '2026-08-15T17:38:46.500647+00:00'
 started_at: '2026-08-15T16:59:52.473798+00:00'
 submitted_at: '2026-08-15T17:06:14.241623+00:00'
-merged_at: null
+merged_at: '2026-08-15T17:38:23Z'
 ---
 
 ## Contexto
