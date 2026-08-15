@@ -62,7 +62,7 @@ class NormalizeDayRecordTests(unittest.TestCase):
         self.assertEqual(record["holiday_type"], "nacional")
         self.assertEqual(record["holiday_type_raw"], "Festivo nacional")
         self.assertEqual(record["holiday_name"], "Año Nuevo")
-        self.assertEqual(record["ingested_at"], "2026-08-13T22:00:00+00:00")
+        self.assertEqual(record["ingested_at"], "2026-08-14T00:00:00+02:00")
 
     def test_normalizes_working_day_without_holiday_fields(self):
         record = _normalize_all()[1]

@@ -57,7 +57,7 @@ class NormalizePrediccionDiaTests(unittest.TestCase):
         self.assertEqual(record["wind_speed_kmh"], "20")
         self.assertEqual(record["wind_gust_max_kmh"], "40")
         self.assertEqual(record["uv_max"], 8)
-        self.assertEqual(record["captured_at"], "2026-08-13T22:00:00+00:00")
+        self.assertEqual(record["captured_at"], "2026-08-14T00:00:00+02:00")
         self.assertFalse(record["is_mock"])
 
     def test_missing_gust_for_the_day_period_is_none(self):
@@ -122,7 +122,7 @@ class NormalizeAvisoTests(unittest.TestCase):
         self.assertEqual(record["severity"], "Moderate")
         self.assertEqual(record["effective_from"], "2026-08-14T13:00:00+02:00")
         self.assertEqual(record["effective_until"], "2026-08-14T21:00:00+02:00")
-        self.assertEqual(record["captured_at"], "2026-08-14T08:00:00+00:00")
+        self.assertEqual(record["captured_at"], "2026-08-14T10:00:00+02:00")
         self.assertFalse(record["is_mock"])
 
     def test_falls_back_to_cap_event_and_areadesc_without_aemet_parameters(self):

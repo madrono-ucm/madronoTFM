@@ -1122,7 +1122,7 @@ Viales (nodos), un registro por vial:
   "postal_code": "28050",
   "ine_code": "00011704",
   "address_count": 52,
-  "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+  "ingested_at": "2026-08-15T18:52:32.742115+02:00",
   "start_node": {"lat": 40.515494, "lon": -3.671311, "srid": "EPSG:4326"},
   "end_node": {"lat": 40.509358, "lon": -3.680669, "srid": "EPSG:4326"}
 }
@@ -1138,7 +1138,7 @@ Cruces (aristas), un registro por cruce de un vial de la muestra con otro:
   "from_vial_name": "CALLE DE ISABEL COLBRAND",
   "to_vial_id": "00002792",
   "to_vial_name": "CALLE DE CASTIELLO DE JACA",
-  "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+  "ingested_at": "2026-08-15T18:52:32.742115+02:00",
   "location": {"lat": 40.510047, "lon": -3.678731, "srid": "EPSG:4326"}
 }
 ```
@@ -1284,7 +1284,7 @@ Distritos, un registro por distrito:
   "district_id": "01",
   "name": "Centro",
   "area_m2": 5228245.50873203,
-  "ingested_at": "2026-08-12T22:47:59.275940+00:00",
+  "ingested_at": "2026-08-15T18:52:37.822972+02:00",
   "simplified": true,
   "simplify_tolerance_deg": 0.0001,
   "geometry": {"type": "Polygon", "coordinates": [[[-3.693, 40.407], ...]], "srid": "EPSG:4326"}
@@ -1302,7 +1302,7 @@ Barrios, un registro por barrio:
   "district_id": "01",
   "district_name": "Centro",
   "area_m2": 1469905.932620575,
-  "ingested_at": "2026-08-12T22:47:59.275940+00:00",
+  "ingested_at": "2026-08-15T18:52:37.822972+02:00",
   "simplified": true,
   "simplify_tolerance_deg": 0.0001,
   "geometry": {"type": "Polygon", "coordinates": [[[-3.705, 40.420], ...]], "srid": "EPSG:4326"}
@@ -1463,7 +1463,7 @@ credenciales.
   "schedule": "Oficina: Lun - Vier: 10:00 - 14:00 h ...",
   "price_info": "--",
   "last_updated": "2026-06-04",
-  "ingested_at": "2026-08-12T22:58:17.717369+00:00",
+  "ingested_at": "2026-08-13T00:58:17.717369+02:00",
   "location": {"lat": 40.4272094, "lon": -3.6891476, "srid": "EPSG:4326"}
 }
 ```
@@ -1484,7 +1484,7 @@ credenciales.
   ver "Formato real encontrado").
 - `last_updated`: fecha (`aaaa-mm-dd`, sin hora) de la última actualización
   de la ficha en el portal esmadrid.com, tal como la da la fuente.
-- `ingested_at`: instante en que este productor descargó el catálogo (UTC).
+- `ingested_at`: instante en que este productor descargó el catálogo (hora de Madrid, tarea 038).
 - `location.lat`/`location.lon`: WGS84 decimal (pese a que el PDF de la
   fuente los etiqueta como "UTM", ver más arriba).
 - Puntos sin coordenadas conocidas se descartan de la muestra (no debería
@@ -1506,6 +1506,18 @@ sesión — no son datos de ejemplo generados a mano. El catálogo completo
 (935 fichas, ~3.6 MB) se descargó en memoria porque la fuente no ofrece
 filtrado remoto por categoría, pero en ningún momento se escribió a disco;
 solo la muestra final de 5 puntos.
+
+**Nota (tarea 038):** al migrar `ingested_at` a hora de Madrid, se intentó
+regenerar este fixture con una captura real nueva, pero
+`https://www.esmadrid.com/opendata/turismo_v1_es.xml` devolvió `200 OK` con
+cuerpo vacío (`Content-Length: 0`) de forma persistente durante toda la
+sesión (confirmado también con `curl` directo, varios reintentos
+espaciados) — una indisponibilidad puntual del origen, no relacionada con
+el cambio de esta tarea. Se conservó el contenido real de la tarea 011 y se
+convirtió a mano el único campo afectado (`ingested_at`, de
+`2026-08-12T22:58:17.717369+00:00` a `2026-08-13T00:58:17.717369+02:00`, la
+misma conversión que aplica el código): incluso sin captura nueva, el valor
+resultante es el mismo instante real, solo expresado en hora de Madrid.
 
 ## `capturas/afluencia_lugares_madrid.py` — Afluencia de lugares de Madrid (muestra puntual, zona gris)
 
@@ -2315,7 +2327,7 @@ nota para quien complete el alta.
   "wind_speed_kmh": "20",
   "wind_gust_max_kmh": "40",
   "uv_max": 8,
-  "captured_at": "2026-08-13T22:32:05.022443+00:00",
+  "captured_at": "2026-08-14T00:32:05.022443+02:00",
   "is_mock": true
 }
 ```
@@ -2354,7 +2366,7 @@ nota para quien complete el alta.
   "effective_until": "2026-08-14T21:00:00+02:00",
   "headline": "Aviso amarillo por altas temperaturas en Madrid",
   "description": "Temperaturas máximas en torno a 38-39 grados en la Comunidad de Madrid.",
-  "captured_at": "2026-08-13T22:32:05.022443+00:00",
+  "captured_at": "2026-08-14T00:32:05.022443+02:00",
   "is_mock": true
 }
 ```
@@ -2402,6 +2414,13 @@ datos de ejemplo (los de previsión, con valores reales de Madrid capturados
 en vivo del feed legado sin key; los de avisos, un único escenario
 verosímil pero inventado, dado que no hay forma de saber si hay algún aviso
 realmente vigente sin la key), con `"is_mock": true` en cada registro.
+
+**Nota (tarea 038):** `AEMET_API_KEY` ya está fijada en producción vía SSM
+(tarea 037), pero no como variable de entorno en esta EC2 de desarrollo, así
+que tampoco esta sesión pudo hacer una captura real. Se convirtió a mano el
+único campo de reloj propio (`captured_at`, en ambas muestras) a hora de
+Madrid, sin tocar el resto del contenido de ejemplo, que sigue siendo el
+mismo mock de la tarea 018.
 
 ## `capturas/cams_calidad_aire_madrid.py` — Previsión de calidad del aire de Copernicus CAMS (muestra puntual, bloqueada)
 
@@ -2534,13 +2553,13 @@ misma variable si una tarea futura lo necesitara.
   "pollutant_code": "ozone",
   "value": 112.5,
   "unit": "µg m-3",
-  "valid_datetime": "2026-08-13T12:00:00+00:00",
-  "forecast_issued_at": "2026-08-13T00:00:00+00:00",
+  "valid_datetime": "2026-08-13T14:00:00+02:00",
+  "forecast_issued_at": "2026-08-13T02:00:00+02:00",
   "leadtime_hour": 12,
   "model": "ensemble",
   "latitude": 40.4,
   "longitude": -3.7,
-  "captured_at": "2026-08-13T09:00:00+00:00",
+  "captured_at": "2026-08-13T11:00:00+02:00",
   "is_mock": true
 }
 ```
@@ -2550,8 +2569,10 @@ misma variable si una tarea futura lo necesitara.
 - `valid_datetime`: instante al que corresponde la previsión (`forecast_issued_at`
   + `leadtime_hour` horas).
 - `forecast_issued_at`: instante de la corrida que generó la previsión
-  (siempre `00:00` UTC del día de la corrida — CAMS solo publica una
-  corrida diaria, ver cadencia más abajo).
+  (siempre las `00:00` UTC del día de la corrida — CAMS solo publica una
+  corrida diaria, ver cadencia más abajo —, expresado en hora de Madrid
+  como el resto de timestamps del esquema desde la tarea 038: `02:00` en
+  verano, `01:00` en invierno).
 - `latitude`/`longitude`: coordenadas reales del punto de rejilla de 0.1°
   más cercano al centro de Madrid dentro del `area` pedido (no
   necesariamente 40.4168/-3.7038 exactos).
@@ -2584,6 +2605,22 @@ parseo del NetCDF y normalización) sustituyendo `cdsapi.Client` por un
 doble que sirve un NetCDF sintético con la estructura real del dataset
 (`ingesta/tests/fixtures/cams_forecast_sample.nc`), en vez de solo probar la
 normalización de forma aislada.
+
+**Nota (tarea 038):** `CAMS_ADS_API_KEY` ya está fijada en producción vía
+SSM (tarea 037), pero no como variable de entorno en esta EC2 de
+desarrollo, así que tampoco esta sesión pudo hacer una captura real. Se
+convirtieron a mano los tres campos de instante (`valid_datetime`,
+`forecast_issued_at`, `captured_at`) a hora de Madrid, sin tocar el resto
+del contenido de ejemplo. La fecha de la corrida que se pide a la API
+(`run_date`, parámetro interno de `fetch_forecast`, no un campo del
+esquema) sigue calculándose con `datetime.now(timezone.utc).date()`, **sin
+cambiar a hora de Madrid a propósito**: CAMS define el día de su corrida
+diaria a partir de las 00:00 UTC (ver "Cadencia real de publicación"), así
+que usar la fecha de Madrid podría pedir la corrida de "mañana" antes de
+que exista (posible en verano, cuando la medianoche de Madrid cae hasta dos
+horas antes que la UTC) — es la única excepción del lote 3 a "sustituir
+UTC por hora de Madrid", documentada también como comentario en el propio
+código.
 
 ## `capturas/calendario_laboral_madrid.py` — Calendario laboral y festivos de Madrid (muestra, carga puntual de referencia)
 
@@ -2655,7 +2692,7 @@ entero y escribe solo el año más reciente disponible (o
   "holiday_type": "nacional",
   "holiday_type_raw": "Festivo nacional",
   "holiday_name": "Año Nuevo",
-  "ingested_at": "2026-08-13T22:56:10.507314+00:00"
+  "ingested_at": "2026-08-15T18:52:40.681987+02:00"
 }
 ```
 
@@ -2865,7 +2902,7 @@ python3 -m ingesta.capturas.crtm_red_transporte_madrid
   "route_type": "metro",
   "color": "2DBEF0",
   "url": "https://www.crtm.es/4__1___.aspx",
-  "ingested_at": "2026-08-14T03:46:26.613022+00:00",
+  "ingested_at": "2026-08-15T18:52:41.384752+02:00",
   "stops": [
     {
       "stop_id": "par_4_263",

@@ -19,7 +19,7 @@
     "schedule": "Oficina: Lun - Vier: 10:00 - 14:00 h Consultar en web oficial horarios de celebraciones y eventos.",
     "price_info": "--",
     "last_updated": "2026-06-04",
-    "ingested_at": "2026-08-12T22:58:17.717369+00:00",
+    "ingested_at": "2026-08-13T00:58:17.717369+02:00",
     "location": {
       "lat": 40.4272094,
       "lon": -3.6891476,
@@ -46,7 +46,7 @@
     "schedule": null,
     "price_info": null,
     "last_updated": "2026-02-18",
-    "ingested_at": "2026-08-12T22:58:17.717369+00:00",
+    "ingested_at": "2026-08-13T00:58:17.717369+02:00",
     "location": {
       "lat": 40.4753178,
       "lon": -3.6465498,
@@ -73,7 +73,7 @@
     "schedule": "1 de octubre/31 de marzo: de 8:00 - 18:00 h. 1 de abril/30 de septiembre: de 8:00 - 20:00 h.",
     "price_info": "Visita gratuita a los jardines.",
     "last_updated": "2026-05-13",
-    "ingested_at": "2026-08-12T22:58:17.717369+00:00",
+    "ingested_at": "2026-08-13T00:58:17.717369+02:00",
     "location": {
       "lat": 40.505511544889,
       "lon": -3.736810684204,
@@ -100,7 +100,7 @@
     "schedule": "--",
     "price_info": "--",
     "last_updated": "2026-07-06",
-    "ingested_at": "2026-08-12T22:58:17.717369+00:00",
+    "ingested_at": "2026-08-13T00:58:17.717369+02:00",
     "location": {
       "lat": 40.4388929,
       "lon": -3.7045057,
@@ -127,7 +127,7 @@
     "schedule": null,
     "price_info": null,
     "last_updated": "2026-03-10",
-    "ingested_at": "2026-08-12T22:58:17.717369+00:00",
+    "ingested_at": "2026-08-13T00:58:17.717369+02:00",
     "location": {
       "lat": 40.418357010962,
       "lon": -3.6789161346,
