@@ -57,3 +57,26 @@ output "lambda_dependencies_layer_arn" {
   description = "ARN (con versión) de la Lambda Layer de dependencias de terceros publicada por la tarea 032 y conectada a las 14 funciones de productores por la tarea 033 (var.lambda_dependencies_layer_arn en terraform.tfvars)."
   value       = aws_lambda_layer_version.ingesta_dependencies.arn
 }
+
+output "glue_trafico_bronze_to_silver_job_name" {
+  description = "Nombre del job de Glue Bronze->Silver de tráfico (tarea 041, piloto sin aplicar). Dispara una ejecución con `aws glue start-job-run --job-name <este-valor>`."
+  value       = aws_glue_job.trafico_bronze_to_silver.name
+}
+
+output "glue_trafico_silver_to_gold_job_name" {
+  description = "Nombre del job de Glue Silver->Gold de tráfico (tarea 041, piloto sin aplicar)."
+  value       = aws_glue_job.trafico_silver_to_gold.name
+}
+
+output "glue_trafico_role_arn" {
+  description = "ARN del rol IAM que asumen ambos jobs de Glue del piloto de tráfico (tarea 041)."
+  value       = aws_iam_role.glue_trafico.arn
+}
+
+output "glue_catalog_database_names" {
+  description = "Nombre de las bases de datos del catálogo de Glue creadas para Silver/Gold (tarea 041)."
+  value = {
+    silver = aws_glue_catalog_database.silver.name
+    gold   = aws_glue_catalog_database.gold.name
+  }
+}

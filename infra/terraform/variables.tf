@@ -147,3 +147,48 @@ variable "ssm_secret_placeholder_value" {
   default     = "CHANGEME-SET-MANUALLY-OUTSIDE-TERRAFORM"
   sensitive   = true
 }
+
+# ---------------------------------------------------------------------------
+# Tarea 041: piloto Bronze -> Silver -> Gold de tráfico (AWS Glue).
+# ---------------------------------------------------------------------------
+
+variable "glue_version" {
+  description = "Versión de AWS Glue (motor Spark serverless) para los jobs de procesamiento. \"4.0\" es, a fecha de esta tarea, la más reciente con soporte a largo plazo (Spark 3.3, Python 3.10)."
+  type        = string
+  default     = "4.0"
+}
+
+variable "glue_worker_type" {
+  description = "Tipo de worker de los jobs de Glue. \"G.1X\" (4 vCPU/16GB, 1 DPU) es el tamaño mínimo recomendado por AWS para jobs Spark con memory-intensive transforms; de sobra para el volumen de un único dataset piloto."
+  type        = string
+  default     = "G.1X"
+}
+
+variable "glue_number_of_workers" {
+  description = "Número de workers de cada job de Glue. El mínimo permitido (2, uno de ellos actúa de driver) — coste mínimo para un piloto de un solo dataset; subir esto es la primera palanca si el volumen crece al extender el patrón a más fuentes."
+  type        = number
+  default     = 2
+}
+
+variable "glue_job_timeout_minutes" {
+  description = "Timeout (minutos) de cada job de Glue. Corta ejecuciones colgadas sin depender del timeout por defecto (2880 min/48h) de Glue."
+  type        = number
+  default     = 30
+}
+
+variable "great_expectations_pip_spec" {
+  description = <<-EOT
+    Especificador `pip` (nombre==versión) de Great Expectations, instalado
+    en tiempo de ejecución del job de Glue vía el parámetro nativo
+    `--additional-python-modules` (paquetes puros de PyPI, sin necesidad de
+    una imagen/capa a medida — a diferencia de la Lambda Layer de la tarea
+    032, aquí no hace falta CodeBuild/Docker porque Glue ya resuelve esto
+    él solo). Versión fijada explícitamente (no un rango) para que las
+    ejecuciones del job sean reproducibles. Ver
+    `procesamiento/silver_gold/trafico/ge_suite.py` para el porqué de esta
+    versión y de que la puerta de calidad "real" viva en Python puro
+    (`transform.validate_record`), no en GX.
+  EOT
+  type        = string
+  default     = "great_expectations==0.18.19"
+}
