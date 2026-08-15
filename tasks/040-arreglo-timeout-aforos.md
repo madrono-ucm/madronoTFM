@@ -1,19 +1,19 @@
 ---
 id: 40
 slug: arreglo-timeout-aforos
-title: "Arreglar el timeout de la Lambda de aforos de peatones y bicicletas"
-status: pending
+title: Arreglar el timeout de la Lambda de aforos de peatones y bicicletas
+status: in_progress
 force: true
 allow_infra_apply: true
-branch: null
+branch: task/040-arreglo-timeout-aforos
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T17:39:48.945206+00:00'
+started_at: '2026-08-15T17:39:48.945183+00:00'
 submitted_at: null
 merged_at: null
 ---
