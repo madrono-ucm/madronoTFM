@@ -154,14 +154,14 @@ import tarfile
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -341,7 +341,7 @@ def normalize_prediccion_dia(raw_dia: dict, municipio_meta: dict, captured_at: d
         "wind_speed_kmh": velocidad_dia,
         "wind_gust_max_kmh": _period_value(raw_dia.get("rachaMax")),
         "uv_max": raw_dia.get("uvMax"),
-        "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
+        "captured_at": captured_at.astimezone(MADRID_TZ).isoformat(),
         "is_mock": is_mock,
     }
 
@@ -357,7 +357,7 @@ def fetch_prediccion(config: CaptureConfig, municipio_code: Optional[str] = None
     dias = (raw.get("prediccion") or {}).get("dia") or []
     if limit is not None:
         dias = dias[:limit]
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     return [normalize_prediccion_dia(dia, raw, captured_at) for dia in dias]
 
 
@@ -468,7 +468,7 @@ def normalize_aviso(info: dict, captured_at: datetime, is_mock: bool = False) ->
         "effective_until": info.get("expires"),
         "headline": info.get("headline"),
         "description": info.get("description"),
-        "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
+        "captured_at": captured_at.astimezone(MADRID_TZ).isoformat(),
         "is_mock": is_mock,
     }
 
@@ -483,7 +483,7 @@ def fetch_avisos(config: CaptureConfig, area_code: Optional[str] = None) -> "lis
     """
     area_code = area_code or config.area_code
     archive_bytes = fetch_avisos_archive(config, area_code)
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
 
     records = []
     for xml_bytes in _extract_cap_xml_documents(archive_bytes):

@@ -95,11 +95,13 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
+
+from .bronze import MADRID_TZ, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +268,7 @@ def normalize_vial_record(row: dict, ingested_at: datetime) -> dict:
         "postal_code": _clean(row.get("Codigos postales")),
         "ine_code": _clean(row.get("Codigo de vía I N E ")),
         "address_count": _to_int(row.get("Cantidad de numeraciones en la via")),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "start_node": {
             "lat": _parse_dms(row.get("Latitud en S R  WGS84 (inicio)")),
             "lon": _parse_dms(row.get("Longitud en S R  WGS84 (inicio)")),
@@ -289,7 +291,7 @@ def normalize_crossing_record(row: dict, ingested_at: datetime) -> dict:
         "from_vial_name": _clean(row.get("Literal completo del vial tratado")),
         "to_vial_id": _clean(row.get("Codigo de via que cruza o enlaza")),
         "to_vial_name": _clean(row.get("Literal completo del vial que cruza")),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "location": {
             "lat": _parse_dms(row.get("Latitud en S R  WGS84 (cruce)")),
             "lon": _parse_dms(row.get("Longitud en S R  WGS84 (cruce)")),
@@ -360,7 +362,7 @@ def capture_sample(config: CaptureConfig, vias_out_path: Path, crossings_out_pat
     viales, con hasta `config.max_crossings_per_vial` cruces cada uno),
     pensados para commitearse como fixtures, no para acumularse en disco.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     vias_csv = fetch_raw_vias(config)
     sample_rows = select_sample_vias(vias_csv, config.sample_size)

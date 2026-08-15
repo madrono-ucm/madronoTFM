@@ -95,11 +95,13 @@ import math
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
+
+from .bronze import MADRID_TZ, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -297,7 +299,7 @@ def normalize_district_record(feature: dict, ingested_at: datetime, tolerance: f
         "district_id": props.get("COD_DIS_TX"),
         "name": props.get("NOMBRE"),
         "area_m2": props.get("Shape.STArea()"),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "simplified": simplified,
         "simplify_tolerance_deg": tolerance if simplified else None,
         "geometry": {**geometry, "srid": "EPSG:4326"},
@@ -316,7 +318,7 @@ def normalize_neighbourhood_record(feature: dict, ingested_at: datetime, toleran
         "district_id": props.get("COD_DIS_TX"),
         "district_name": props.get("NOMDIS"),
         "area_m2": props.get("Shape.STArea()"),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "simplified": simplified,
         "simplify_tolerance_deg": tolerance if simplified else None,
         "geometry": {**geometry, "srid": "EPSG:4326"},
@@ -391,7 +393,7 @@ def capture_sample(
     para acumularse en disco. El servicio de origen nunca se consulta por
     más distritos/barrios de los que entran en la muestra.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     district_features = select_sample_districts(config)
     district_records = [
