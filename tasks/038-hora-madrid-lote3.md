@@ -1,19 +1,20 @@
 ---
 id: 38
 slug: hora-madrid-lote3
-title: "Hora de Madrid en timestamps — lote 3/3 (AEMET, CAMS, callejero, barrios, POI, calendario, CRTM)"
-status: pending
+title: Hora de Madrid en timestamps — lote 3/3 (AEMET, CAMS, callejero, barrios, POI,
+  calendario, CRTM)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/038-hora-madrid-lote3
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T10:45:22.899598+00:00'
+started_at: '2026-08-15T10:45:22.899575+00:00'
 submitted_at: null
 merged_at: null
 ---
