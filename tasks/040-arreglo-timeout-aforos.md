@@ -2,19 +2,19 @@
 id: 40
 slug: arreglo-timeout-aforos
 title: Arreglar el timeout de la Lambda de aforos de peatones y bicicletas
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: true
 branch: task/040-arreglo-timeout-aforos
-pr_number: null
-pr_url: null
+pr_number: 87
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/87
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T17:39:48.945206+00:00'
+updated_at: '2026-08-15T17:48:58.672968+00:00'
 started_at: '2026-08-15T17:39:48.945183+00:00'
-submitted_at: null
+submitted_at: '2026-08-15T17:48:58.672799+00:00'
 merged_at: null
 ---
 
