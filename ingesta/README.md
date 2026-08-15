@@ -1777,7 +1777,8 @@ Escribe la muestra en
 | `MADRID_COUNTERS_BICYCLE_URL`             | CSV de bicicletas 2024 (ver `DEFAULT_BICYCLE_URL`)  | URL del recurso CSV de conteos de bicicletas.                       |
 | `MADRID_COUNTERS_SAMPLE_STATIONS`         | `3`                                             | Nº máximo de estaciones distintas por modo en la muestra.                |
 | `MADRID_COUNTERS_SAMPLE_HOURS_PER_STATION` | `6`                                             | Nº máximo de horas del último día disponible que se toman de cada estación. |
-| `HTTP_TIMEOUT_SECONDS`                    | `30`                                             | Timeout por request HTTP.                                                |
+| `HTTP_TIMEOUT_SECONDS`                    | `30`                                             | Timeout por lectura de socket de `requests` (no cubre el tiempo total de una descarga lenta pero continua, ver siguiente variable y tarea 040). |
+| `MADRID_COUNTERS_DOWNLOAD_TIMEOUT_SECONDS` | `100`                                            | Límite de tiempo **total** (tarea 040) para descargar cada CSV completo; si se supera, se levanta un error explícito que entra en el mismo reintento con backoff. |
 | `HTTP_MAX_RETRIES`                        | `3`                                              | Reintentos ante fallo de red (backoff lineal simple).                    |
 | `HTTP_RETRY_BACKOFF_SECONDS`              | `2`                                              | Base del backoff entre reintentos (segundos * intento).                  |
 | `LOG_LEVEL`                                | `INFO`                                           | Nivel de logging (también configurable con `--log-level`).               |

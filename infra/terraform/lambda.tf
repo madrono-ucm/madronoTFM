@@ -109,9 +109,18 @@ locals {
       module      = "aforos_peatones_bicicletas_madrid"
       dataset     = "aforos_peatones_bicicletas"
       description = "Aforos de peatones/bicicletas de Madrid (último día disponible) -> Bronze/aforos_peatones_bicicletas"
-      timeout     = 120
-      memory_mb   = 256
-      secret_env  = []
+      # 120s se quedaba corto en el entorno de red real de Lambda para
+      # descargar los dos CSV completos de este dataset (~17-34 MB, ver
+      # diagnóstico tarea 040): la Lambda se colgaba en silencio hasta el
+      # timeout, sin ningún error de red, porque un único timeout float de
+      # `requests` no cubre una descarga lenta pero continua. 300s (mismo
+      # valor que `afluencia_lugares`, la otra función de este proyecto con
+      # timeout ampliado) da margen de sobra incluso con reintentos; 512 MB
+      # (el doble) da más CPU/ancho de banda proporcional para la descarga y
+      # el parseo de los CSV completos.
+      timeout    = 300
+      memory_mb  = 512
+      secret_env = []
     }
     bluesky_menciones = {
       module      = "bluesky_menciones_madrid"
