@@ -76,6 +76,22 @@ En ambos casos la partición es la misma:
 modo local (sin cambios), o un `str` con la URI `s3://bucket/key` en modo
 S3.
 
+**Particionado en hora de Madrid, no UTC (tarea 034)**: `write_batch(records,
+moment=None)` usa `now_madrid()` como valor por defecto de `moment` cuando no
+se pasa uno explícito — un `datetime` *aware* en la zona `Europe/Madrid`
+(`zoneinfo`, librería estándar, sin dependencias nuevas), con el desfase real
+según la época del año (CET/UTC+1 en invierno, CEST/UTC+2 en verano). Tanto
+`fecha=`/`hora=` como el nombre del fichero (que ya no lleva el sufijo `Z` de
+UTC) reflejan esa hora local. Los productores que llamen a `write_batch` con
+un `moment` explícito (p. ej. `measured_at` ya convertido a UTC) no se ven
+afectados: solo cambia el valor por defecto. Verificado en este repo que
+`ZoneInfo("Europe/Madrid")` resuelve sin `ZoneInfoNotFoundError`; si un
+entorno futuro careciera de la base de datos IANA de zonas horarias, haría
+falta añadir `tzdata` a `ingesta/requirements.txt` y reconstruir la Lambda
+Layer (tarea 032) — no ha sido necesario aquí. Esta tarea solo toca
+`BronzeWriter`; los `ingested_at`/`measured_at` propios de cada productor
+individual se corrigen en las tareas 035-037.
+
 Para apuntar una captura al bucket Bronze real del lakehouse (tarea 001,
 aplicado en la tarea 015):
 
