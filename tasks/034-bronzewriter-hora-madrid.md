@@ -2,19 +2,19 @@
 id: 34
 slug: bronzewriter-hora-madrid
 title: 'BronzeWriter y particionado: usar hora de Madrid en vez de UTC'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/034-bronzewriter-hora-madrid
-pr_number: null
-pr_url: null
+pr_number: 81
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/81
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T09:53:57.531234+00:00'
+updated_at: '2026-08-15T09:57:01.705502+00:00'
 started_at: '2026-08-15T09:53:57.531209+00:00'
-submitted_at: null
+submitted_at: '2026-08-15T09:57:01.705355+00:00'
 merged_at: null
 ---
 
