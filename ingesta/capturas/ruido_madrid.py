@@ -65,13 +65,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import BronzeWriter, MADRID_TZ, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -288,7 +288,7 @@ def normalize_record(entry: dict, stations: dict[str, dict], ingested_at: dateti
         # en el resto de capturas (un instante concreto), aquí solo hay
         # fecha, tal como la publica la fuente.
         "measured_date": measured_date.isoformat(),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "laeq_db": _to_float(entry.get("LAeq")),
         "l1_db": _to_float(entry.get("L1")),
         "l10_db": _to_float(entry.get("L10")),
@@ -313,7 +313,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     uno por periodo D/E/N/T — del último día disponible) en un fichero fijo,
     pensado para commitearse como fixture, no para acumular capturas.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     stations_csv = fetch_raw_stations(config)
     stations = parse_stations(stations_csv)
@@ -359,7 +359,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     CSV de origen es un histórico completo desde 2014, ver docstring del
     módulo) — "completa" aquí es "todas las estaciones de ese último día".
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     stations_csv = fetch_raw_stations(config)
     stations = parse_stations(stations_csv)

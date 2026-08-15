@@ -63,8 +63,8 @@ class NormalizeRecordTests(unittest.TestCase):
         self.assertEqual(record["unit"], "µg/m³")
         # H02/V02 son la lectura horaria válida más reciente de este registro.
         self.assertEqual(record["value"], 37.0)
-        self.assertEqual(record["measured_at"], "2026-08-12T00:00:00+00:00")
-        self.assertEqual(record["ingested_at"], "2026-08-12T09:15:30+00:00")
+        self.assertEqual(record["measured_at"], "2026-08-12T02:00:00+02:00")
+        self.assertEqual(record["ingested_at"], "2026-08-12T11:15:30+02:00")
         self.assertEqual(record["location"], {"lat": 40.4514734, "lon": -3.6773491, "srid": "EPSG:4326"})
 
     def test_normalizes_a_reading_with_unpadded_magnitude_code(self):

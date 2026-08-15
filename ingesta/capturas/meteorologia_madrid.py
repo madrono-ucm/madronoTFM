@@ -88,14 +88,14 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -311,8 +311,8 @@ def normalize_station_record(
         "station_id": station_id,
         "station_name": station_info.get("name"),
         "station_address": station_info.get("address"),
-        "measured_at": _measured_at(ref_entry, hour).astimezone(timezone.utc).isoformat(),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "measured_at": _measured_at(ref_entry, hour).astimezone(MADRID_TZ).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "temperature_c": values.get("temperature_c"),
         "humidity_pct": values.get("humidity_pct"),
         "wind_speed_ms": values.get("wind_speed_ms"),
@@ -339,7 +339,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     las devuelve la fuente) en un fichero fijo, pensado para commitearse
     como fixture, no para acumular capturas.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     stations_csv = fetch_raw_stations(config)
     stations = parse_stations(stations_csv)
@@ -382,7 +382,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     esto es la captura completa pensada para el handler Lambda (tarea 027):
     las ~25 estaciones de la red completa.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     stations_csv = fetch_raw_stations(config)
     stations = parse_stations(stations_csv)
