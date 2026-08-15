@@ -60,13 +60,13 @@ import os
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator, Optional
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +186,7 @@ def fetch_raw_list_parking(config: CaptureConfig) -> str:
 def fetch_raw_detail_parking(config: CaptureConfig, parking_id: str) -> str:
     """Llama a la operación SOAP `GetDetailParking` para un aparcamiento concreto."""
     body = _DETAIL_PARKING_BODY_TEMPLATE.format(
-        parking_id=parking_id, date=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        parking_id=parking_id, date=now_madrid().strftime("%Y-%m-%dT%H:%M:%S")
     )
     return _soap_post(config, SOAP_ACTION_DETAIL, body)
 
@@ -261,7 +261,7 @@ def normalize_record(entry: dict, total_spaces: Optional[int], ingested_at: date
     """Normaliza un aparcamiento (listado + plazas totales) al esquema mínimo."""
     measured_at_raw = entry.get("measured_at_raw")
     measured_at = (
-        datetime.fromisoformat(measured_at_raw).astimezone(timezone.utc).isoformat()
+        datetime.fromisoformat(measured_at_raw).astimezone(MADRID_TZ).isoformat()
         if measured_at_raw
         else None
     )
@@ -273,7 +273,7 @@ def normalize_record(entry: dict, total_spaces: Optional[int], ingested_at: date
         "name": entry.get("name"),
         "address": entry.get("address"),
         "measured_at": measured_at,
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "free_spaces": entry.get("free_spaces"),
         "total_spaces": total_spaces,
         "location": {
@@ -298,7 +298,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     relevante para el objetivo de la tarea (ocupación), de los 75
     aparcamientos que devuelve el listado completo.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     list_xml = fetch_raw_list_parking(config)
     entries = [e for e in parse_list_parking(list_xml) if e["free_spaces"] is not None]
@@ -342,7 +342,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     llamada SOAP por aparcamiento) para todos los que comparten ocupación en
     tiempo real, no solo la muestra.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     list_xml = fetch_raw_list_parking(config)
     entries = [e for e in parse_list_parking(list_xml) if e["free_spaces"] is not None]

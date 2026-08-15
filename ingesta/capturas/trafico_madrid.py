@@ -26,14 +26,14 @@ import os
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator, Optional
 from zoneinfo import ZoneInfo
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -152,8 +152,8 @@ def normalize_record(pm: ET.Element, measured_at: datetime, ingested_at: datetim
         "schema_version": 1,
         "source": SOURCE_NAME,
         "point_id": text("idelem"),
-        "measured_at": measured_at.astimezone(timezone.utc).isoformat(),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "measured_at": measured_at.astimezone(MADRID_TZ).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "description": text("descripcion"),
         "access_code": text("accesoAsociado"),
         "subarea": text("subarea"),
@@ -184,7 +184,7 @@ def parse_records(xml_text: str, ingested_at: datetime) -> Iterator[dict]:
 
 def capture_once(config: CaptureConfig) -> Path:
     """Descarga, normaliza y aterriza en Bronze un lote de intensidad de tráfico."""
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     xml_text = fetch_raw_xml(config)
     records = list(parse_records(xml_text, ingested_at))
     logger.info("Descargados %d puntos de medida de tráfico", len(records))

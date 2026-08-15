@@ -45,10 +45,11 @@ class ParseRecordsTests(unittest.TestCase):
         self.assertAlmostEqual(record["location"]["y"], 4480454.96970565)
         self.assertEqual(record["location"]["srid"], "EPSG:25830")
 
-    def test_parses_global_timestamp_from_madrid_local_time_to_utc(self):
-        # fecha_hora='12/08/2026 1:45:04' es hora de Madrid (verano => UTC+2).
+    def test_parses_global_timestamp_as_madrid_local_time(self):
+        # fecha_hora='12/08/2026 1:45:04' es hora de Madrid (verano => UTC+2);
+        # se conserva en hora de Madrid, no se convierte a UTC (tarea 035).
         for record in self.records:
-            self.assertEqual(record["measured_at"], "2026-08-11T23:45:04+00:00")
+            self.assertEqual(record["measured_at"], "2026-08-12T01:45:04+02:00")
 
     def test_handles_missing_numeric_fields_and_error_flag(self):
         record = next(r for r in self.records if r["point_id"] == "5555")
