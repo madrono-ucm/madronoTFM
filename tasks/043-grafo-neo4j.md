@@ -2,19 +2,19 @@
 id: 43
 slug: grafo-neo4j
 title: Grafo urbano en Neo4j — infraestructura, sin aplicar
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/043-grafo-neo4j
-pr_number: null
-pr_url: null
+pr_number: 90
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/90
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T18:20:44.516699+00:00'
+updated_at: '2026-08-15T18:26:35.028214+00:00'
 started_at: '2026-08-15T18:20:44.516674+00:00'
-submitted_at: null
+submitted_at: '2026-08-15T18:26:35.028074+00:00'
 merged_at: null
 ---
 
