@@ -264,6 +264,12 @@ habitual de `apply`).
   usa Kafka autogestionado en una única EC2 en vez de MSK, por coste (mismo
   principio de coste mínimo, apartado 5.4 de la memoria) — ver
   `infra/kafka/README.md` para la comparación de coste y el resto del diseño.
+- **Sin ningún `.tf` para Neo4j**: el grafo urbano (tarea 043) usa Neo4j AuraDB
+  Free (SaaS gestionado por Neo4j, tier gratuito), no Neo4j autogestionado en
+  EC2 — al ser un servicio externo a AWS sin coste, no hay ningún recurso AWS
+  que aprovisionar para el propio Neo4j. Ver `infra/neo4j/README.md` para la
+  decisión completa (por qué AuraDB Free y no EC2, a diferencia de Kafka) y el
+  esquema inicial del grafo (`infra/neo4j/schema/schema.cypher`).
 - **Rol de ingesta confiado por defecto a `lambda.amazonaws.com`**: encaja con
   el principio de coste mínimo (sin servidores que pagar en reposo) como
   patrón por defecto para los futuros productores de datos; es una variable
