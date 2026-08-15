@@ -16,6 +16,8 @@ humano con las credenciales adecuadas.
 | `variables.tf` | Todas las variables de entrada (región, nombre de proyecto, ciclo de vida, principals de ingesta, runtime/timeout/memoria de Lambda, placeholder de secretos...). |
 | `main.tf` | Provider, buckets S3 del lakehouse, y el rol/policy IAM de ingesta. |
 | `lambda.tf` | Tarea 029: una función Lambda + un schedule de EventBridge Scheduler por productor de `ingesta/capturas/`, parámetros SSM placeholder para sus credenciales, y el rol IAM que EventBridge Scheduler usa para invocarlas. |
+| `kafka.tf` | Tarea 042: la EC2 de Kafka autogestionado (ruta caliente), su security group/rol IAM, y los topics iniciales (ver `infra/kafka/README.md` para el diseño completo). Plan-only, sin aplicar. |
+| `templates/kafka_bootstrap.sh.tpl` | Script de aprovisionamiento (user_data) que instala y arranca Kafka en modo KRaft y crea los topics iniciales (tarea 042). |
 | `outputs.tf` | Nombres/ARNs de los buckets, del rol de ingesta, de las funciones Lambda de productor y de sus schedules. |
 | `backend.hcl.example` | Plantilla de configuración del backend S3 (bucket de estado, tabla de lock). |
 | `terraform.tfvars.example` | Plantilla de valores de variables. |
@@ -258,9 +260,10 @@ habitual de `apply`).
   privilegio (ver más arriba).
 - **Backend S3 + DynamoDB** para el estado, con el bucket/tabla creados a mano
   como paso 0 (no se pueden crear con el mismo Terraform que los usa).
-- **Nada de MSK/Kafka ni otros servicios gestionados caros** en esta tarea:
-  fuera de alcance, se evalúa en una tarea posterior una vez validado el resto
-  del andamiaje (principio de coste mínimo, apartado 5.4 de la memoria).
+- **Sin MSK gestionado**: la ruta caliente de streaming (`kafka.tf`, tarea 042)
+  usa Kafka autogestionado en una única EC2 en vez de MSK, por coste (mismo
+  principio de coste mínimo, apartado 5.4 de la memoria) — ver
+  `infra/kafka/README.md` para la comparación de coste y el resto del diseño.
 - **Rol de ingesta confiado por defecto a `lambda.amazonaws.com`**: encaja con
   el principio de coste mínimo (sin servidores que pagar en reposo) como
   patrón por defecto para los futuros productores de datos; es una variable

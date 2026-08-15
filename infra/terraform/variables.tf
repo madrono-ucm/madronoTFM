@@ -192,3 +192,82 @@ variable "great_expectations_pip_spec" {
   type        = string
   default     = "great_expectations==0.18.19"
 }
+
+# ---------------------------------------------------------------------------
+# Tarea 042: Kafka autogestionado en una EC2 dedicada (ruta caliente, ver
+# apartado 5.2 de la memoria). Ver infra/kafka/README.md para el diseño
+# completo -- solo código, sin `terraform apply` (mismo patrón que las
+# tareas 001/041).
+# ---------------------------------------------------------------------------
+
+variable "kafka_instance_type" {
+  description = <<-EOT
+    Tipo de instancia EC2 del broker Kafka. "t3.small" (2 vCPU ráfaga, 2GB
+    RAM) por coste mínimo: para un único broker en modo KRaft combinado
+    (broker+controller) con el volumen bajo de este piloto (5 topics, pocos
+    mensajes/minuto, ningún productor conectado todavía), el heap de la JVM
+    se acota a `var.kafka_heap_mb` (768MB por defecto) dejando margen de
+    sobra para el sistema operativo y la page cache de Kafka. Si el
+    throughput crece, subir esto es un cambio de una línea (recrea la
+    instancia; los datos persisten en el volumen EBS si se usa
+    `stop`+`start` en vez de `destroy`+`apply`, pero no si se cambia este
+    valor con la instancia ya creada -- ver README para el detalle).
+  EOT
+  type        = string
+  default     = "t3.small"
+}
+
+variable "kafka_root_volume_gb" {
+  description = "Tamaño (GB) del volumen raíz EBS (gp3) donde Kafka guarda los segmentos de log de cada topic. 20GB de sobra para la retención acotada (24-72h) de los 5 topics iniciales a este volumen de mensajes."
+  type        = number
+  default     = 20
+}
+
+variable "kafka_version" {
+  description = "Versión de Apache Kafka a instalar (binario oficial de archive.apache.org, no un paquete de distro). 3.9.0 es, a fecha de esta tarea, una versión estable reciente con KRaft como modo por defecto (sin ZooKeeper) desde la serie 3.x."
+  type        = string
+  default     = "3.9.0"
+}
+
+variable "kafka_scala_version" {
+  description = "Versión de Scala del binario de Kafka a descargar (parte del nombre del tarball oficial, p.ej. kafka_2.13-3.9.0.tgz). No afecta al cliente/protocolo, solo a qué build de Scala embebe el broker."
+  type        = string
+  default     = "2.13"
+}
+
+variable "kafka_broker_port" {
+  description = "Puerto del listener PLAINTEXT de cliente del broker Kafka (donde se conectarán los futuros productores/consumidores)."
+  type        = number
+  default     = 9092
+}
+
+variable "kafka_controller_port" {
+  description = "Puerto del listener CONTROLLER (metadatos KRaft). Solo se usa en localhost en este despliegue de nodo único (controller.quorum.voters=1@localhost:<puerto>), así que no se abre en el security group -- ver kafka.tf."
+  type        = number
+  default     = 9093
+}
+
+variable "kafka_heap_mb" {
+  description = "Tamaño (MB) del heap de la JVM del broker (-Xmx/-Xms). 768MB por defecto, acotado para dejar margen de RAM al sistema operativo/page cache en una instancia kafka_instance_type=\"t3.small\" (2GB); revisar al alza si se cambia a un tipo de instancia mayor."
+  type        = number
+  default     = 768
+}
+
+variable "kafka_allowed_cidr_blocks" {
+  description = <<-EOT
+    Bloques CIDR con permiso de entrada al puerto de cliente de Kafka
+    (`kafka_broker_port`). Vacío por defecto: en ese caso el security group
+    (kafka.tf) usa automáticamente el CIDR de la VPC por defecto de la
+    cuenta/región, es decir "solo desde dentro de la VPC". Rellena esto
+    explícitamente solo si hace falta acotar aún más (p.ej. a la subred
+    concreta de un futuro productor). Nunca debe incluir "0.0.0.0/0" ni
+    "::/0" -- la validación de abajo lo impide.
+  EOT
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = !contains(var.kafka_allowed_cidr_blocks, "0.0.0.0/0") && !contains(var.kafka_allowed_cidr_blocks, "::/0")
+    error_message = "kafka_allowed_cidr_blocks no debe abrir el puerto de Kafka a Internet (0.0.0.0/0 / ::/0): debe quedar acotado a la VPC u otros CIDR internos del proyecto."
+  }
+}
