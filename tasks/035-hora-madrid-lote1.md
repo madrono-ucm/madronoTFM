@@ -1,23 +1,19 @@
 ---
 id: 35
 slug: hora-madrid-lote1
-title: Hora de Madrid en timestamps — lote 1/3 (tráfico, EMT, BiciMAD, aparcamientos,
-  aire, meteo, ruido)
-status: failed
+title: "Hora de Madrid en timestamps — lote 1a (tráfico, EMT, BiciMAD, aparcamientos)"
+status: pending
 force: true
 allow_infra_apply: false
-branch: task/035-hora-madrid-lote1
+branch: null
 pr_number: null
 pr_url: null
-attempts: 1
+attempts: 0
 next_retry_at: null
-last_error: 'ens":14714766,"cacheCreationInputTokens":167672,"webSearchRequests":0,"costUSD":6.009070800000001,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
-  maximum budget ($6)"],"type":"result","duration_ms":460973,"uuid":"dda3b6bc-17e0-40a0-8884-c6d899425c7c"}
-
-  '
-created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T10:06:54.330800+00:00'
-started_at: '2026-08-15T09:59:09.903309+00:00'
+last_error: null
+created_at: "2026-08-15T09:49:55+00:00"
+updated_at: "2026-08-15T10:10:00+00:00"
+started_at: null
 submitted_at: null
 merged_at: null
 ---
@@ -26,15 +22,21 @@ merged_at: null
 
 Continúa la tarea 034 (que ya añadió `now_madrid()` y corrigió el particionado de
 `BronzeWriter`). Esta tarea corrige los campos de timestamp (`ingested_at`,
-`measured_at` y cualquier otro campo de fecha/hora) de los 7 productores de mayor
+`measured_at` y cualquier otro campo de fecha/hora) de 4 productores de alta
 frecuencia, ya en producción real, para que usen hora de Madrid en vez de UTC.
 
-**Alcance acotado a propósito** (lote 1 de 3) — no lo amplíes al resto de
-productores, están en las tareas 036/037.
+**Nota**: un primer intento de este lote cubría 7 productores de una vez y agotó
+el presupuesto por tarea ($6, ~14.7M tokens) sin comitear nada — regenerar
+muestras reales en vivo para varios productores a la vez resultó más caro de lo
+esperado. Se redujo a 4; los otros 3 (calidad del aire, meteorología, ruido)
+están en la tarea 036, creada aparte.
+
+**Alcance acotado a propósito** — no lo amplíes a los demás productores, están en
+las tareas 036/037/038.
 
 ## Objetivo
 
-Sustituir, en cada uno de estos 7 módulos, el uso de `datetime.now(timezone.utc)`
+Sustituir, en cada uno de estos 4 módulos, el uso de `datetime.now(timezone.utc)`
 (o cualquier conversión explícita a UTC de un timestamp de origen) por
 `now_madrid()`/una conversión a `Europe/Madrid`:
 
@@ -44,13 +46,10 @@ Sustituir, en cada uno de estos 7 módulos, el uso de `datetime.now(timezone.utc
 | `transporte_publico_madrid.py` | |
 | `bicimad.py` | |
 | `aparcamientos_madrid.py` | |
-| `calidad_aire_madrid.py` | |
-| `meteorologia_madrid.py` | |
-| `ruido_madrid.py` | |
 
 ## Alcance concreto
 
-1. Para cada uno de los 7 módulos, localiza todos los usos de
+1. Para cada uno de los 4 módulos, localiza todos los usos de
    `datetime.now(timezone.utc)`, `timezone.utc` en conversiones, o comentarios/
    código que asuma UTC como destino, y sustitúyelos por `now_madrid()` (importada
    de `bronze.py` o donde haya quedado tras la tarea 034) o por una conversión al
@@ -60,21 +59,25 @@ Sustituir, en cada uno de estos 7 módulos, el uso de `datetime.now(timezone.utc
    campos (offset esperado, etc.).
 3. Actualiza la sección de cada módulo en `ingesta/README.md` (donde diga
    "convertido a UTC", corrígelo a "convertido a hora de Madrid" o equivalente).
-4. Regenera la muestra commiteada de cada uno de los 7 en
+4. Regenera la muestra commiteada de cada uno de los 4 en
    `ingesta/capturas/samples/` ejecutando el módulo de verdad, para que el
    fixture también refleje el cambio (mismo criterio que cuando se crearon:
-   dato real, no inventado a mano, salvo que la fuente no fuera accesible).
+   dato real, no inventado a mano, salvo que la fuente no fuera accesible). Para
+   `transporte_publico_madrid.py`, las credenciales reales ya están disponibles
+   en `EMT_CLIENT_ID`/`EMT_PASS_KEY` si este entorno las tiene configuradas.
 
 ## Restricciones
 
-- Alcance estrictamente estos 7 módulos.
+- Alcance estrictamente estos 4 módulos — no adelantes trabajo de la 036, aunque
+  parezca poco esfuerzo adicional: mantener el alcance pequeño es precisamente lo
+  que evita repetir el fallo por presupuesto agotado.
 - NO toques `bronze.py` (ya está resuelto en la 034) ni despliegues nada en AWS.
 - Si algún módulo quedara bloqueado por algo imprevisto, documenta el motivo en
   `doc/035-hora-madrid-lote1.md` y continúa con el resto.
 
 ## Criterios de aceptación
 
-- Los 7 módulos usan hora de Madrid en sus timestamps, verificado con una muestra
+- Los 4 módulos usan hora de Madrid en sus timestamps, verificado con una muestra
   real regenerada.
-- `ingesta/README.md` actualizado para los 7.
+- `ingesta/README.md` actualizado para los 4.
 - Todos los tests del proyecto siguen pasando.

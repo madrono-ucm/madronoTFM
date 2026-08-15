@@ -1,5 +1,5 @@
 ---
-id: 41
+id: 42
 slug: kafka-autogestionado
 title: "Kafka autogestionado en EC2 (ruta caliente) — infraestructura, sin aplicar"
 status: pending

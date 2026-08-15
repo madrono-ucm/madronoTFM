@@ -1,5 +1,5 @@
 ---
-id: 37
+id: 38
 slug: hora-madrid-lote3
 title: "Hora de Madrid en timestamps — lote 3/3 (AEMET, CAMS, callejero, barrios, POI, calendario, CRTM)"
 status: pending
@@ -20,7 +20,8 @@ merged_at: null
 
 ## Contexto
 
-Continúa las tareas 034-036 (mismo objetivo, ver su contexto). Lote 3 de 3 — al
+Continúa las tareas 034-037 (mismo objetivo, ver su contexto; el lote 1 original
+se dividió en dos tareas, 035 y 036, tras agotar presupuesto una vez). Lote 3 — al
 terminar, los 21 módulos de `ingesta/capturas/` usarán hora de Madrid de forma
 consistente.
 
@@ -39,7 +40,7 @@ conversión al `tzinfo` de `Europe/Madrid`) en:
 | `calendario_laboral_madrid.py` |
 | `crtm_red_transporte_madrid.py` |
 
-No toques ningún otro módulo — los lotes 1 (035) y 2 (036) cubren el resto.
+No toques ningún otro módulo — los lotes 1 (035/036) y 2 (037) cubren el resto.
 
 ## Alcance concreto
 
@@ -54,16 +55,20 @@ No toques ningún otro módulo — los lotes 1 (035) y 2 (036) cubren el resto.
 4. Actualiza la sección de cada módulo en `ingesta/README.md`.
 5. Regenera la muestra commiteada de cada uno en `ingesta/capturas/samples/`
    ejecutando el módulo de verdad (dato real, no inventado a mano, salvo que la
-   fuente no fuera accesible — mismo criterio que siempre; para AEMET/CAMS,
-   recuerda que siguen sin credenciales reales, así que la muestra seguirá
-   marcada `is_mock: true` como ya estaba).
+   fuente no fuera accesible — mismo criterio que siempre). **AEMET y CAMS ya
+   tienen credenciales reales en producción** (SSM, fijadas fuera de este
+   pipeline) — pero esta EC2 no las tiene disponibles como variables de entorno
+   locales; si `AEMET_API_KEY`/`CAMS_ADS_API_KEY` no están definidas en este
+   entorno al ejecutar el módulo, la muestra seguirá marcada `is_mock: true`
+   como hasta ahora, documenta que fue por eso y no por que las credenciales no
+   existan en absoluto.
 
 ## Restricciones
 
 - Alcance estrictamente estos 7 módulos.
 - NO despliegues nada en AWS.
 - Si alguno quedara bloqueado por algo imprevisto, documenta el motivo en
-  `doc/037-hora-madrid-lote3.md` y continúa con el resto.
+  `doc/038-hora-madrid-lote3.md` y continúa con el resto.
 
 ## Criterios de aceptación
 

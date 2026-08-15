@@ -1,5 +1,5 @@
 ---
-id: 42
+id: 43
 slug: grafo-neo4j
 title: "Grafo urbano en Neo4j — infraestructura, sin aplicar"
 status: pending
@@ -42,7 +42,7 @@ Neo4j, con un tier gratuito), e implementar la infraestructura correspondiente.
    una decisión trivial, tómatela en serio.
 2. Si autogestionado: Terraform de una EC2 dedicada (separada de la de este
    pipeline), con Neo4j instalado, security group de acceso mínimo (igual criterio
-   que la tarea 041 para Kafka).
+   que la tarea 042 para Kafka).
 3. Si AuraDB Free: documenta el proceso de alta (probablemente requiere un paso
    manual del usuario, igual que EMT/AEMET/CAMS — si es así, documenta el bloqueo
    igual que en esas tareas, con el código lo más preparado posible para cuando
@@ -60,7 +60,7 @@ Neo4j, con un tier gratuito), e implementar la infraestructura correspondiente.
 - NO ejecutes `terraform apply` ni ningún comando `aws` con efectos reales.
 - No captures ninguna credencial real en ningún fichero commiteado.
 - No cargues datos reales en el grafo — es esquema e infraestructura, no ETL
-  todavía (eso depende de que exista Gold, tarea 040 y sus extensiones futuras).
+  todavía (eso depende de que exista Gold, tarea 041 y sus extensiones futuras).
 
 ## Criterios de aceptación
 

@@ -1,5 +1,5 @@
 ---
-id: 38
+id: 39
 slug: redesplegar-hora-madrid
 title: "Redesplegar las Lambdas con los timestamps en hora de Madrid"
 status: pending
@@ -20,7 +20,7 @@ merged_at: null
 
 ## Contexto
 
-Las tareas 034-037 corrigieron el código de `ingesta/` para usar hora de Madrid.
+Las tareas 034-038 corrigieron el código de `ingesta/` para usar hora de Madrid.
 Igual que la tarea 031 (que corrigió el empaquetado), un cambio de código en
 `ingesta/` no llega solo a producción: el `.zip` de las 14 Lambdas está fijado al
 `source_code_hash` de cuando se generó. Esta tarea reconstruye el paquete y
@@ -52,13 +52,13 @@ objetos en Bronze usan hora de Madrid (offset `+01:00`/`+02:00` según DST, no
    meteorología, cartelera de cines — ver `doc/033-conectar-lambda-layer-verificar.md`)
    y comprueba en el objeto escrito en Bronze que `ingested_at`/`measured_at`
    tienen offset de hora de Madrid, no `+00:00`.
-4. Documenta en `doc/038-redesplegar-hora-madrid.md` el antes/después de al menos
+4. Documenta en `doc/039-redesplegar-hora-madrid.md` el antes/después de al menos
    un ejemplo real de cada función invocada.
 
 ## Restricciones
 
 - NO modifiques ningún fichero `.tf` en esta tarea (el código ya cambió en
-  034-037, aquí solo se reempaqueta y aplica).
+  034-038, aquí solo se reempaqueta y aplica).
 - NO ejecutes `terraform destroy`.
 - Si alguna función que antes funcionaba dejara de hacerlo tras este redespliegue,
   documenta el error exacto — no intentes depurarlo ni arreglarlo aquí, sería una
@@ -69,4 +69,4 @@ objetos en Bronze usan hora de Madrid (offset `+01:00`/`+02:00` según DST, no
 - Las 14 funciones actualizadas in-place, sin recrear ni destruir nada.
 - Al menos las 7 funciones ya verificadas antes siguen escribiendo en Bronze, ahora
   con timestamps en hora de Madrid, confirmado con invocaciones reales.
-- `doc/038-redesplegar-hora-madrid.md` documenta el antes/después.
+- `doc/039-redesplegar-hora-madrid.md` documenta el antes/después.

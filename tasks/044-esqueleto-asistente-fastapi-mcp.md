@@ -1,5 +1,5 @@
 ---
-id: 43
+id: 44
 slug: esqueleto-asistente-fastapi-mcp
 title: "Esqueleto del asistente conversacional (FastAPI + agente MCP)"
 status: pending
@@ -25,7 +25,7 @@ asistente conversacional «Madroño», un servicio FastAPI con un agente MCP que
 responde preguntas como «¿voy al centro a las nueve de la noche del viernes?» con
 un veredicto, una fiabilidad, y una explicación trazable a los datos.
 
-**Este servicio depende de que exista Gold** (tareas 040 y sus extensiones
+**Este servicio depende de que exista Gold** (tareas 041 y sus extensiones
 futuras) para responder con datos reales — esta tarea es solo el **esqueleto**:
 estructura del servicio, no la lógica de negocio completa, que no tiene sentido
 implementar todavía sin datos de Gold que consultar.
@@ -60,7 +60,7 @@ a partir de lo ya capturado, aunque todavía no lean de Gold real.
 5. `requirements.txt`/dependencias del nuevo servicio (FastAPI, el SDK de MCP que
    corresponda — investiga cuál es el estándar actual, documenta la elección) y un
    README (`asistente/README.md`) explicando el estado (esqueleto, no funcional
-   todavía) y qué haría falta para completarlo (Gold real, tarea 040 extendida a
+   todavía) y qué haría falta para completarlo (Gold real, tarea 041 extendida a
    más fuentes).
 
 ## Restricciones
@@ -69,7 +69,7 @@ a partir de lo ya capturado, aunque todavía no lean de Gold real.
   (ni Bronze, ni Silver, ni Gold) — es un esqueleto.
 - NO despliegues nada en AWS — si decides que hace falta algo de infraestructura
   para correr el servicio (EC2/Lambda/ECS), escríbela como código Terraform sin
-  aplicarla, igual que las tareas 040-042.
+  aplicarla, igual que las tareas 041-043.
 - No captures ninguna credencial real en ningún fichero commiteado.
 
 ## Criterios de aceptación

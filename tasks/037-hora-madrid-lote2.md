@@ -1,5 +1,5 @@
 ---
-id: 36
+id: 37
 slug: hora-madrid-lote2
 title: "Hora de Madrid en timestamps — lote 2/3 (agenda eventos, recintos, afluencia, aforos, Bluesky, cines)"
 status: pending
@@ -20,7 +20,8 @@ merged_at: null
 
 ## Contexto
 
-Continúa las tareas 034/035 (mismo objetivo, ver su contexto). Lote 2 de 3.
+Continúa las tareas 034-036 (mismo objetivo, ver su contexto; el lote 1 original
+se dividió en dos tareas, 035 y 036, tras agotar presupuesto una vez). Lote 2.
 
 ## Objetivo
 
@@ -36,7 +37,7 @@ conversión al `tzinfo` de `Europe/Madrid`) en:
 | `bluesky_menciones_madrid.py` |
 | `cartelera_cines_madrid.py` |
 
-No toques ningún otro módulo — el lote 1 (035) y el lote 3 (037) cubren el resto.
+No toques ningún otro módulo — el lote 1 (035/036) y el lote 3 (038) cubren el resto.
 
 ## Alcance concreto
 
@@ -53,7 +54,7 @@ No toques ningún otro módulo — el lote 1 (035) y el lote 3 (037) cubren el r
 - Alcance estrictamente estos 6 módulos.
 - NO despliegues nada en AWS.
 - Si alguno quedara bloqueado por algo imprevisto, documenta el motivo en
-  `doc/036-hora-madrid-lote2.md` y continúa con el resto.
+  `doc/037-hora-madrid-lote2.md` y continúa con el resto.
 
 ## Criterios de aceptación
 
