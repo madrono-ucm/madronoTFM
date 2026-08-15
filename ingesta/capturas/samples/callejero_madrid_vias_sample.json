@@ -15,7 +15,7 @@
     "postal_code": "28050",
     "ine_code": "00011704",
     "address_count": 52,
-    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "ingested_at": "2026-08-15T18:52:32.742115+02:00",
     "start_node": {
       "lat": 40.515494,
       "lon": -3.671311,
@@ -43,7 +43,7 @@
     "postal_code": "varios",
     "ine_code": "00011280",
     "address_count": 18,
-    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "ingested_at": "2026-08-15T18:52:32.742115+02:00",
     "start_node": {
       "lat": 40.37675,
       "lon": -3.638964,
@@ -71,7 +71,7 @@
     "postal_code": "varios",
     "ine_code": "00000003",
     "address_count": 12,
-    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "ingested_at": "2026-08-15T18:52:32.742115+02:00",
     "start_node": {
       "lat": 40.418897,
       "lon": -3.703944,
@@ -99,7 +99,7 @@
     "postal_code": "varios",
     "ine_code": "00000004",
     "address_count": 19,
-    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "ingested_at": "2026-08-15T18:52:32.742115+02:00",
     "start_node": {
       "lat": 40.410253,
       "lon": -3.704561,
@@ -127,7 +127,7 @@
     "postal_code": "varios",
     "ine_code": "00000005",
     "address_count": 7,
-    "ingested_at": "2026-08-12T22:38:10.689040+00:00",
+    "ingested_at": "2026-08-15T18:52:32.742115+02:00",
     "start_node": {
       "lat": 40.464525,
       "lon": -3.704361,

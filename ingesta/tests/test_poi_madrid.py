@@ -96,7 +96,7 @@ class NormalizeRecordTests(unittest.TestCase):
         self.assertEqual(record["schedule"], "Lun - Vier: 10:00 - 14:00 h")
         self.assertEqual(record["price_info"], "--")
         self.assertEqual(record["last_updated"], "2026-06-04")
-        self.assertEqual(record["ingested_at"], "2026-08-12T23:00:00+00:00")
+        self.assertEqual(record["ingested_at"], "2026-08-13T01:00:00+02:00")
         self.assertAlmostEqual(record["location"]["lat"], 40.4272094, places=6)
         self.assertAlmostEqual(record["location"]["lon"], -3.6891476, places=6)
         self.assertEqual(record["location"]["srid"], "EPSG:4326")

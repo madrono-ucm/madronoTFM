@@ -100,7 +100,7 @@ class NormalizeDistrictRecordTests(unittest.TestCase):
         self.assertEqual(record["district_id"], "01")
         self.assertEqual(record["name"], "Centro")
         self.assertAlmostEqual(record["area_m2"], 5228245.50873203)
-        self.assertEqual(record["ingested_at"], "2026-08-12T22:00:00+00:00")
+        self.assertEqual(record["ingested_at"], "2026-08-13T00:00:00+02:00")
         self.assertTrue(record["simplified"])
         self.assertEqual(record["simplify_tolerance_deg"], 0.0001)
         self.assertEqual(record["geometry"]["type"], "Polygon")

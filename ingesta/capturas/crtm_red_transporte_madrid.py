@@ -161,11 +161,13 @@ import os
 import time
 import zipfile
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
+
+from .bronze import MADRID_TZ, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -408,7 +410,7 @@ def normalize_route(
         "route_type": ROUTE_TYPE_LABELS.get(route.get("route_type"), route.get("route_type")),
         "color": _clean(route.get("route_color")),
         "url": _clean(route.get("route_url")),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "stops": stops,
     }
 
@@ -453,7 +455,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     pero nunca se escribe a disco ni se lee entero en el contexto de la
     sesión que genera este módulo.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     records: list[dict] = []
     for mode in config.modes:
         mode_records = fetch_and_normalize_mode(config, mode, ingested_at)

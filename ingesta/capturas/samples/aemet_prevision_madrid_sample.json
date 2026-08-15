@@ -20,7 +20,7 @@
     "wind_speed_kmh": "0",
     "wind_gust_max_kmh": null,
     "uv_max": 8,
-    "captured_at": "2026-08-13T22:32:05.022443+00:00",
+    "captured_at": "2026-08-14T00:32:05.022443+02:00",
     "is_mock": true
   },
   {
@@ -44,7 +44,7 @@
     "wind_speed_kmh": "20",
     "wind_gust_max_kmh": "40",
     "uv_max": 8,
-    "captured_at": "2026-08-13T22:32:05.022443+00:00",
+    "captured_at": "2026-08-14T00:32:05.022443+02:00",
     "is_mock": true
   },
   {
@@ -68,7 +68,7 @@
     "wind_speed_kmh": "0",
     "wind_gust_max_kmh": null,
     "uv_max": 8,
-    "captured_at": "2026-08-13T22:32:05.022443+00:00",
+    "captured_at": "2026-08-14T00:32:05.022443+02:00",
     "is_mock": true
   }
 ]

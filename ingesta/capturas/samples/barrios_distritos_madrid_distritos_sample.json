@@ -5,7 +5,7 @@
     "district_id": "01",
     "name": "Centro",
     "area_m2": 5228245.50873203,
-    "ingested_at": "2026-08-12T22:47:59.275940+00:00",
+    "ingested_at": "2026-08-15T18:52:37.822972+02:00",
     "simplified": true,
     "simplify_tolerance_deg": 0.0001,
     "geometry": {
@@ -159,7 +159,7 @@
     "district_id": "02",
     "name": "Arganzuela",
     "area_m2": 6462175.91405005,
-    "ingested_at": "2026-08-12T22:47:59.275940+00:00",
+    "ingested_at": "2026-08-15T18:52:37.822972+02:00",
     "simplified": true,
     "simplify_tolerance_deg": 0.0001,
     "geometry": {
@@ -369,7 +369,7 @@
     "district_id": "03",
     "name": "Retiro",
     "area_m2": 5466211.190949875,
-    "ingested_at": "2026-08-12T22:47:59.275940+00:00",
+    "ingested_at": "2026-08-15T18:52:37.822972+02:00",
     "simplified": true,
     "simplify_tolerance_deg": 0.0001,
     "geometry": {

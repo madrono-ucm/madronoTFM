@@ -144,7 +144,7 @@ from typing import Optional
 
 import netCDF4
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -360,13 +360,13 @@ def normalize_forecast_file(
                         "pollutant_code": pollutant_key,
                         "value": value,
                         "unit": unit,
-                        "valid_datetime": valid_dt.replace(tzinfo=timezone.utc).isoformat(),
-                        "forecast_issued_at": forecast_issued_at.replace(tzinfo=timezone.utc).isoformat(),
+                        "valid_datetime": valid_dt.replace(tzinfo=timezone.utc).astimezone(MADRID_TZ).isoformat(),
+                        "forecast_issued_at": forecast_issued_at.replace(tzinfo=timezone.utc).astimezone(MADRID_TZ).isoformat(),
                         "leadtime_hour": leadtime_hour,
                         "model": model,
                         "latitude": grid_lat,
                         "longitude": grid_lon,
-                        "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
+                        "captured_at": captured_at.astimezone(MADRID_TZ).isoformat(),
                         "is_mock": is_mock,
                     }
                 )
@@ -396,9 +396,14 @@ def fetch_forecast(config: CaptureConfig, run_date: Optional[date] = None) -> "l
     Requiere `CAMS_ADS_API_KEY` configurada (ver docstring del módulo,
     "Bloqueo de registro").
     """
+    # La corrida diaria de CAMS arranca a las 00:00 UTC (ver docstring del
+    # módulo), no a medianoche de Madrid: se usa la fecha UTC, no
+    # now_madrid().date(), para no pedir la corrida de "mañana" antes de que
+    # exista (posible en verano, cuando la medianoche de Madrid ya cayó pero
+    # aún no son las 00:00 UTC).
     run_date = run_date or datetime.now(timezone.utc).date()
     zip_bytes = _fetch_forecast_zip_bytes(config, run_date)
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     return normalize_forecast_zip(zip_bytes, captured_at, model=config.model)
 
 

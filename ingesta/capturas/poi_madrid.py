@@ -134,11 +134,13 @@ import re
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
+
+from .bronze import MADRID_TZ, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -356,7 +358,7 @@ def normalize_record(service: ET.Element, category: dict, ingested_at: datetime)
         "schedule": _strip_html(schedule_item.text if schedule_item is not None else None),
         "price_info": _strip_html(price_item.text if price_item is not None else None),
         "last_updated": _clean(service.get("fechaActualizacion")),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "location": {
             "lat": _to_float(_text(geo_data, "latitude")),
             "lon": _to_float(_text(geo_data, "longitude")),
@@ -385,7 +387,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     fichas) se descarga en memoria porque la fuente no ofrece filtrado
     remoto, pero nunca se escribe a disco.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     pois_xml = fetch_raw_pois(config)
     sample = select_sample_pois(pois_xml, config.category_id, config.sample_size)

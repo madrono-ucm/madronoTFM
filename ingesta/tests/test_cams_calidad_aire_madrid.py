@@ -125,9 +125,9 @@ class NormalizeForecastFileTests(unittest.TestCase):
             (r for r in records if r["pollutant_code"] == "nitrogen_dioxide"), key=lambda r: r["leadtime_hour"]
         )
         self.assertEqual([r["leadtime_hour"] for r in no2_records], [0, 1, 2, 3])
-        self.assertEqual(no2_records[0]["valid_datetime"], "2026-08-13T00:00:00+00:00")
-        self.assertEqual(no2_records[3]["valid_datetime"], "2026-08-13T03:00:00+00:00")
-        self.assertTrue(all(r["forecast_issued_at"] == "2026-08-13T00:00:00+00:00" for r in no2_records))
+        self.assertEqual(no2_records[0]["valid_datetime"], "2026-08-13T02:00:00+02:00")
+        self.assertEqual(no2_records[3]["valid_datetime"], "2026-08-13T05:00:00+02:00")
+        self.assertTrue(all(r["forecast_issued_at"] == "2026-08-13T02:00:00+02:00" for r in no2_records))
 
     def test_records_carry_source_schema_and_units(self):
         records = normalize_forecast_file(self.nc_bytes, self.captured_at)

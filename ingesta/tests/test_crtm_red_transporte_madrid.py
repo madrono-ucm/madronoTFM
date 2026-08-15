@@ -167,7 +167,7 @@ class NormalizeRouteTests(unittest.TestCase):
         self.assertEqual(record["short_name"], "1")
         self.assertEqual(record["route_type"], "metro")
         self.assertEqual(record["color"], "2DBEF0")
-        self.assertEqual(record["ingested_at"], "2026-08-14T03:46:26+00:00")
+        self.assertEqual(record["ingested_at"], "2026-08-14T05:46:26+02:00")
         # acc_4_1_1040 (location_type=2) queda excluida: solo 2 paradas reales.
         self.assertEqual([s["stop_id"] for s in record["stops"]], ["par_4_263", "par_4_1"])
         self.assertEqual([s["sequence"] for s in record["stops"]], [0, 1])

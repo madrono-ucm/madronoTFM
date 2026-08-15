@@ -109,11 +109,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
+
+from .bronze import MADRID_TZ, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -234,7 +236,7 @@ def normalize_day_record(row: dict, ingested_at: datetime) -> dict:
         "holiday_type": HOLIDAY_TYPE_MAP.get(holiday_type_raw) if holiday_type_raw else None,
         "holiday_type_raw": holiday_type_raw,
         "holiday_name": _clean(row.get("Festividad")),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
     }
 
 
@@ -271,7 +273,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     igual que otras cargas de referencia de este proyecto, esto NO escribe en
     la capa Bronze particionada ni deja nada programado.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
 
     raw_csv = fetch_raw_csv(config)
     rows = parse_csv_rows(raw_csv)
