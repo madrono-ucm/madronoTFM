@@ -101,6 +101,41 @@ publicación de cada registro normalizado en un topic Kafka (p.ej.
 `aforos-peatones-bicicletas-madrid`), manteniendo `normalize_record` como la
 única fuente de verdad del esquema.
 
+## Timeout en Lambda (tarea 040): descarga lenta pero continua, no un fallo de red
+
+La tarea 033 detectó que la invocación real en Lambda se colgaba siempre a
+los 120.00s exactos (`Sandbox.Timedout`, el `timeout` configurado en
+`infra/terraform/lambda.tf`), sin ningún error ni reintento en los logs más
+allá del `WARNING` inicial de `check_for_newer_resources`. La causa
+diagnosticada en la tarea 040: `requests.get(url, timeout=...)` con un único
+valor float aplica ese timeout **por operación de lectura del socket**, no
+como límite del tiempo total de la petición — si el servidor va entregando
+datos de forma continua pero lenta (nunca hay un hueco de inactividad mayor
+que el timeout), la descarga nunca lanza ninguna excepción por mucho que
+tarde en completarse. Con los CSV completos de este dataset (~17 MB
+peatones, ~34 MB bicicletas), eso es exactamente lo que ocurría en el
+entorno de red de Lambda (más lento que esta EC2 de desarrollo, donde la
+misma descarga nunca ha tardado más de unos segundos): la petición seguía
+"viva" recibiendo bytes hasta que la propia Lambda mataba el proceso en
+seco, sin que el código llegara a registrar ni un solo log de fallo.
+
+El arreglo (`_download`, usado por `_fetch_with_retries`) añade un límite de
+tiempo **total** de pared (`config.download_timeout_seconds`,
+`MADRID_COUNTERS_DOWNLOAD_TIMEOUT_SECONDS`), independiente del timeout por
+lectura de `requests`: se descarga en streaming (`stream=True`,
+`iter_content`) comprobando en cada trozo si se ha superado el plazo total,
+y si es así se levanta `requests.exceptions.Timeout` explícitamente — un
+error real que sí entra en el mismo bucle de reintentos con backoff que ya
+usaba este módulo (`_fetch_with_retries`), en vez de un colgado silencioso
+que solo termina cuando Lambda mata el proceso. Como red de seguridad
+adicional (una descarga lenta pero legítima de 17-34 MB puede, en el peor
+caso real, seguir necesitando más presupuesto del que daban los 120s
+originales incluso sin ningún fallo), se subió también el `timeout`/
+`memory_mb` de esta función en `infra/terraform/lambda.tf` — más memoria en
+Lambda también implica más CPU/ancho de banda de red proporcional. Ver
+`doc/040-arreglo-timeout-aforos.md` para el detalle completo del diagnóstico
+y la verificación con una invocación real.
+
 ## Handler Lambda (tarea 027, lote 2/3): comprobación de recurso + captura si aplica
 
 `lambda_handler` primero llama a `check_for_newer_resources`, que consulta
@@ -174,6 +209,11 @@ SOURCE_ENCODING = "utf-8-sig"
 # El feed publica `fecha` en hora local de Madrid, sin offset.
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
+# Tamaño de trozo para la descarga en streaming (ver "Timeout en Lambda",
+# tarea 040): solo afecta a la granularidad de la comprobación del plazo
+# total, no al resultado descargado (se concatenan todos los trozos).
+_DOWNLOAD_CHUNK_BYTES = 256 * 1024
+
 
 def _env_float(name: str, default: float) -> float:
     raw = os.environ.get(name)
@@ -196,6 +236,7 @@ class CaptureConfig:
     pedestrian_url: str
     bicycle_url: str
     timeout_seconds: float
+    download_timeout_seconds: float
     max_retries: int
     retry_backoff_seconds: float
     sample_stations: int
@@ -207,6 +248,9 @@ class CaptureConfig:
             pedestrian_url=os.environ.get("MADRID_COUNTERS_PEDESTRIAN_URL", DEFAULT_PEDESTRIAN_URL),
             bicycle_url=os.environ.get("MADRID_COUNTERS_BICYCLE_URL", DEFAULT_BICYCLE_URL),
             timeout_seconds=_env_float("HTTP_TIMEOUT_SECONDS", 30.0),
+            download_timeout_seconds=_env_float(
+                "MADRID_COUNTERS_DOWNLOAD_TIMEOUT_SECONDS", 100.0
+            ),
             max_retries=_env_int("HTTP_MAX_RETRIES", 3),
             retry_backoff_seconds=_env_float("HTTP_RETRY_BACKOFF_SECONDS", 2.0),
             sample_stations=_env_int("MADRID_COUNTERS_SAMPLE_STATIONS", DEFAULT_SAMPLE_STATIONS),
@@ -216,14 +260,43 @@ class CaptureConfig:
         )
 
 
+def _download(config: CaptureConfig, url: str) -> bytes:
+    """Descarga `url` en streaming, con un límite de tiempo total de pared
+    (`config.download_timeout_seconds`) independiente del timeout por lectura
+    de `requests` (ver "Timeout en Lambda", tarea 040, en el docstring del
+    módulo): un único valor float de `timeout=` en `requests.get` solo cubre
+    los huecos de inactividad entre lecturas del socket, no el tiempo total
+    de una descarga que va recibiendo datos de forma continua pero lenta —
+    justo el caso real de los CSV completos de este dataset (~17-34 MB) en el
+    entorno de red de Lambda. Si se supera el plazo, se levanta
+    `requests.exceptions.Timeout` explícitamente para que
+    `_fetch_with_retries` lo trate como cualquier otro fallo de red
+    (reintento con backoff), en vez de dejar que Lambda mate el proceso en
+    seco sin ningún log de error.
+    """
+    deadline = time.monotonic() + config.download_timeout_seconds
+    chunks: list[bytes] = []
+    with requests.get(url, timeout=config.timeout_seconds, stream=True) as response:
+        response.raise_for_status()
+        for chunk in response.iter_content(chunk_size=_DOWNLOAD_CHUNK_BYTES):
+            if not chunk:
+                continue
+            chunks.append(chunk)
+            if time.monotonic() > deadline:
+                raise requests.exceptions.Timeout(
+                    f"Descarga de {url} superó el límite total de "
+                    f"{config.download_timeout_seconds}s "
+                    f"(descargados {sum(len(c) for c in chunks)} bytes)"
+                )
+    return b"".join(chunks)
+
+
 def _fetch_with_retries(config: CaptureConfig, url: str) -> bytes:
     """Descarga una URL, con reintentos simples y backoff lineal."""
     last_exc: Optional[Exception] = None
     for attempt in range(1, config.max_retries + 1):
         try:
-            response = requests.get(url, timeout=config.timeout_seconds)
-            response.raise_for_status()
-            return response.content
+            return _download(config, url)
         except requests.RequestException as exc:
             last_exc = exc
             logger.warning(
