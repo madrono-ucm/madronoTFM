@@ -1,19 +1,20 @@
 ---
 id: 37
 slug: hora-madrid-lote2
-title: "Hora de Madrid en timestamps — lote 2/3 (agenda eventos, recintos, afluencia, aforos, Bluesky, cines)"
-status: pending
+title: Hora de Madrid en timestamps — lote 2/3 (agenda eventos, recintos, afluencia,
+  aforos, Bluesky, cines)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/037-hora-madrid-lote2
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T10:36:58.433077+00:00'
+started_at: '2026-08-15T10:36:58.433055+00:00'
 submitted_at: null
 merged_at: null
 ---
