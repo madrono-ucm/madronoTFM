@@ -1,19 +1,19 @@
 ---
 id: 43
 slug: grafo-neo4j
-title: "Grafo urbano en Neo4j — infraestructura, sin aplicar"
-status: pending
+title: Grafo urbano en Neo4j — infraestructura, sin aplicar
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/043-grafo-neo4j
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T09:49:55+00:00"
-updated_at: "2026-08-15T09:49:55+00:00"
-started_at: null
+created_at: '2026-08-15T09:49:55+00:00'
+updated_at: '2026-08-15T18:20:44.516699+00:00'
+started_at: '2026-08-15T18:20:44.516674+00:00'
 submitted_at: null
 merged_at: null
 ---
