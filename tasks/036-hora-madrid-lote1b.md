@@ -2,19 +2,19 @@
 id: 36
 slug: hora-madrid-lote1b
 title: Hora de Madrid en timestamps — lote 1b (calidad del aire, meteorología, ruido)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/036-hora-madrid-lote1b
-pr_number: null
-pr_url: null
+pr_number: 83
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/83
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-15T10:10:00+00:00'
-updated_at: '2026-08-15T10:30:31.872936+00:00'
+updated_at: '2026-08-15T10:34:50.029575+00:00'
 started_at: '2026-08-15T10:30:31.872914+00:00'
-submitted_at: null
+submitted_at: '2026-08-15T10:34:50.029443+00:00'
 merged_at: null
 ---
 
