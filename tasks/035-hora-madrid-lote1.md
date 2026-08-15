@@ -3,17 +3,20 @@ id: 35
 slug: hora-madrid-lote1
 title: Hora de Madrid en timestamps — lote 1/3 (tráfico, EMT, BiciMAD, aparcamientos,
   aire, meteo, ruido)
-status: in_progress
+status: failed
 force: true
 allow_infra_apply: false
 branch: task/035-hora-madrid-lote1
 pr_number: null
 pr_url: null
-attempts: 0
+attempts: 1
 next_retry_at: null
-last_error: null
+last_error: 'ens":14714766,"cacheCreationInputTokens":167672,"webSearchRequests":0,"costUSD":6.009070800000001,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
+  maximum budget ($6)"],"type":"result","duration_ms":460973,"uuid":"dda3b6bc-17e0-40a0-8884-c6d899425c7c"}
+
+  '
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-15T09:59:09.903332+00:00'
+updated_at: '2026-08-15T10:06:54.330800+00:00'
 started_at: '2026-08-15T09:59:09.903309+00:00'
 submitted_at: null
 merged_at: null
