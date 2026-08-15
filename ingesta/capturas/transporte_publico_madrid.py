@@ -51,13 +51,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator, Optional
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +205,7 @@ def normalize_record(arrival: dict, stop_id: str, ingested_at: datetime) -> dict
         "line": str(arrival["line"]) if arrival.get("line") is not None else None,
         "bus_id": arrival.get("bus"),
         "destination": arrival.get("destination"),
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "estimate_arrive_sec": arrival.get("estimateArrive"),
         "distance_bus_m": arrival.get("DistanceBus"),
         "is_head": str(arrival.get("isHead", "False")).lower() == "true",
@@ -235,7 +235,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     `config.sample_size` registros) en un fichero fijo, pensado para
     commitearse como fixture versionado, no para acumular capturas.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     access_token = fetch_access_token(config)
     response_json = fetch_raw_arrivals(config, access_token)
     records = list(parse_records(response_json, config.stop_id, ingested_at))[: config.sample_size]
@@ -261,7 +261,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     vigentes de una única parada, así que "completa" aquí significa "sin el
     slicing `[:sample_size]`", no una fuente distinta.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     access_token = fetch_access_token(config)
     response_json = fetch_raw_arrivals(config, access_token)
     records = list(parse_records(response_json, config.stop_id, ingested_at))
