@@ -49,7 +49,7 @@ class NormalizeMunicipalEventTests(unittest.TestCase):
         self.assertEqual(record["location"]["postal_code"], "28045")
         self.assertAlmostEqual(record["location"]["lat"], 40.39130985242181)
         self.assertEqual(record["location"]["srid"], "EPSG:4326")
-        self.assertEqual(record["captured_at"], "2026-08-13T18:00:00+00:00")
+        self.assertEqual(record["captured_at"], "2026-08-13T20:00:00+02:00")
 
     def test_normalizes_an_event_without_type_or_location(self):
         record = normalize_municipal_event(self.raw_events[1], self.captured_at)

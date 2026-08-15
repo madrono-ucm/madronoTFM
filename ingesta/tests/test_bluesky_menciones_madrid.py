@@ -59,7 +59,7 @@ class NormalizePostTests(unittest.TestCase):
         self.assertEqual(record["repost_count"], 3)
         self.assertEqual(record["reply_count"], 1)
         self.assertEqual(record["quote_count"], 0)
-        self.assertEqual(record["captured_at"], "2026-08-13T18:00:00+00:00")
+        self.assertEqual(record["captured_at"], "2026-08-13T20:00:00+02:00")
 
     def test_normalizes_a_post_from_district_sweep(self):
         record = normalize_post(

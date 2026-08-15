@@ -123,7 +123,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urljoin
@@ -131,7 +131,7 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
-from .bronze import BronzeWriter
+from .bronze import BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -400,7 +400,7 @@ def fetch_cinema_showtimes(
     if cinema_id not in CINEMAS:
         raise ValueError(f"Cine desconocido: '{cinema_id}'. Cines disponibles: {sorted(CINEMAS)}")
     cinema = CINEMAS[cinema_id]
-    captured_at = captured_at or datetime.now(timezone.utc)
+    captured_at = captured_at or now_madrid()
     if html is None:
         config = config or CaptureConfig.from_env()
         html = _fetch_html(config, CINEMA_PATH_TEMPLATE.format(sensacine_id=cinema.sensacine_id))
@@ -468,7 +468,7 @@ def sweep_premieres(
     SensaCine no publica una lista de estrenos filtrada por ciudad: es una
     única lista nacional (ver docstring del módulo).
     """
-    captured_at = captured_at or datetime.now(timezone.utc)
+    captured_at = captured_at or now_madrid()
     if html is None:
         config = config or CaptureConfig.from_env()
         html = _fetch_html(config, PREMIERES_PATH)
@@ -503,7 +503,7 @@ def capture_sample(
     único fichero de muestra pequeño y fijo, pensado para commitearse como
     fixture.
     """
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     records: "list[dict]" = []
     for cinema_id in config.cinema_ids:
         cinema_records = fetch_cinema_showtimes(

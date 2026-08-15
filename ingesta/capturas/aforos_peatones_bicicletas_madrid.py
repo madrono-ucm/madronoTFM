@@ -125,14 +125,14 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -421,8 +421,8 @@ def normalize_record(row: dict, mode: str, ingested_at: datetime) -> dict:
         "source": SOURCE_NAME,
         "station_id": _clean(row.get("identificador")),
         "mode": mode,
-        "measured_at": measured_at.astimezone(timezone.utc).isoformat() if measured_at else None,
-        "ingested_at": ingested_at.astimezone(timezone.utc).isoformat(),
+        "measured_at": measured_at.astimezone(MADRID_TZ).isoformat() if measured_at else None,
+        "ingested_at": ingested_at.astimezone(MADRID_TZ).isoformat(),
         "pedestrian_count": count if mode == MODE_PEDESTRIAN else None,
         "bicycle_count": count if mode == MODE_BICYCLE else None,
         "district_code": _clean(row.get("Número_distrito")),
@@ -457,7 +457,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     disponible en cada CSV de origen) en un fichero fijo, pensado para
     commitearse como fixture, no para acumular capturas.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     records: list[dict] = []
 
     pedestrian_csv = fetch_raw_pedestrians(config)
@@ -494,7 +494,7 @@ def capture_all(config: CaptureConfig) -> "list[dict]":
     53 de bicicletas, con todas las horas del último día disponible en cada
     CSV de origen.
     """
-    ingested_at = datetime.now(timezone.utc)
+    ingested_at = now_madrid()
     records: "list[dict]" = []
 
     pedestrian_csv = fetch_raw_pedestrians(config)
