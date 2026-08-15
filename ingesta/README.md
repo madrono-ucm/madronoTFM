@@ -208,10 +208,11 @@ $BRONZE_BASE_PATH/trafico/fecha=YYYY-MM-DD/hora=HH/<timestamp>_<sufijo>.json
   Madrid, tarea 035).
 - `location.x`/`location.y`: coordenadas tal como vienen en la fuente
   (UTM ETRS89 huso 30N, EPSG:25830, con coma decimal en origen — ya
-  convertidas a `float` con punto). No se reproyecta a lat/lon en esta tarea
-  para no añadir una dependencia de geoprocesado (p.ej. `pyproj`) sin
-  necesidad; queda como posible mejora futura si una tarea de Silver/Gold la
-  necesita en WGS84.
+  convertidas a `float` con punto). No se reproyecta a lat/lon en Bronze
+  (a propósito: Bronze conserva los datos tal como llegan de la fuente).
+  La reproyección a WGS84 ya existe en la capa Silver del piloto de la
+  tarea 041 (`procesamiento/silver_gold/trafico/geo.py`, sin necesidad de
+  `pyproj`), aunque esa infraestructura todavía no está aplicada en AWS.
 - Campos ausentes o vacíos en la fuente (p.ej. sensores con `error=S`) se
   normalizan a `null`, no se descartan — Bronze debe conservar el registro
   tal cual llega, errores incluidos.
