@@ -80,3 +80,23 @@ output "glue_catalog_database_names" {
     gold   = aws_glue_catalog_database.gold.name
   }
 }
+
+output "kafka_instance_id" {
+  description = "ID de la instancia EC2 del broker Kafka autogestionado (tarea 042, plan sin aplicar). Útil para `aws ssm start-session --target <este-valor>`."
+  value       = aws_instance.kafka.id
+}
+
+output "kafka_instance_private_ip" {
+  description = "IP privada de la instancia de Kafka -- el valor que debe usar cualquier productor/consumidor dentro de la VPC como `bootstrap.servers` (tarea 042)."
+  value       = aws_instance.kafka.private_ip
+}
+
+output "kafka_security_group_id" {
+  description = "ID del security group del broker Kafka (tarea 042): puerto de cliente acotado a la VPC, sin SSH."
+  value       = aws_security_group.kafka.id
+}
+
+output "kafka_topic_names" {
+  description = "Nombre de cada topic inicial de Kafka, por clave de local.kafka_topics (tarea 042)."
+  value       = local.kafka_topic_names
+}
