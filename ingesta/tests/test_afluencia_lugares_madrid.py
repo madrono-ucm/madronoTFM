@@ -72,7 +72,7 @@ class NormalizeRecordTests(unittest.TestCase):
         self.assertEqual(record["name"], "Puerta del Sol")
         self.assertEqual(record["query"], "Puerta del Sol, Madrid")
         self.assertEqual(record["live_pct"], 63)
-        self.assertEqual(record["captured_at"], "2026-08-13T10:00:00+00:00")
+        self.assertEqual(record["captured_at"], "2026-08-13T12:00:00+02:00")
         self.assertAlmostEqual(record["location"]["lat"], 40.4169473)
         self.assertAlmostEqual(record["location"]["lon"], -3.7035285)
         self.assertEqual(record["location"]["srid"], "EPSG:4326")

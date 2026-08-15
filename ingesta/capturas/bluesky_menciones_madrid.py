@@ -119,13 +119,13 @@ import logging
 import os
 import time
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Optional
 
 import requests
 
-from .bronze import BronzeWriter
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
 
@@ -298,7 +298,7 @@ def normalize_post(raw_post: dict, match_term: str, mode: str, captured_at: date
         "repost_count": raw_post.get("repostCount"),
         "reply_count": raw_post.get("replyCount"),
         "quote_count": raw_post.get("quoteCount"),
-        "captured_at": captured_at.astimezone(timezone.utc).isoformat(),
+        "captured_at": captured_at.astimezone(MADRID_TZ).isoformat(),
     }
 
 
@@ -342,7 +342,7 @@ def search_place(
     Pensada para invocarse en tiempo de consulta cuando el asistente no
     tenga información concreta de un lugar que el usuario menciona.
     """
-    captured_at = captured_at or datetime.now(timezone.utc)
+    captured_at = captured_at or now_madrid()
     q = _build_query(query, [f"#{tag.lstrip('#')}" for tag in (tags or [])])
     raw_posts = search_posts_raw(config, q, lang=lang, since=since, until=until, limit=limit)
     return [
@@ -370,7 +370,7 @@ def search_district_sweep(
     serie histórica agregada por zona y hora, no para responder una
     pregunta puntual.
     """
-    captured_at = captured_at or datetime.now(timezone.utc)
+    captured_at = captured_at or now_madrid()
     event_terms = event_terms if event_terms is not None else config.event_terms
     records: "list[dict]" = []
 
@@ -412,7 +412,7 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     distinguirlos, no como dos ficheros separados: quien solo necesite un
     modo puede filtrar por `mode`.
     """
-    captured_at = datetime.now(timezone.utc)
+    captured_at = now_madrid()
     records: "list[dict]" = []
 
     for query in config.place_queries:

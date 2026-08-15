@@ -68,7 +68,7 @@ class NormalizeVenueEventTests(unittest.TestCase):
         self.assertEqual(record["event_type"], "deporte")
         self.assertIsNotNone(record["start_datetime"])
         self.assertIsNone(record["capacity"])
-        self.assertEqual(record["captured_at"], "2026-08-14T12:00:00+00:00")
+        self.assertEqual(record["captured_at"], "2026-08-14T14:00:00+02:00")
 
     def test_normalizes_a_concert_at_movistar_arena(self):
         service = self.services["Movistar Arena"]
