@@ -2,19 +2,19 @@
 id: 55
 slug: silver-gold-cartelera-cines
 title: 'Silver/Gold: cartelera de cines (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/055-silver-gold-cartelera-cines
-pr_number: null
-pr_url: null
+pr_number: 102
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/102
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-16T19:51:45.232243+00:00'
+updated_at: '2026-08-16T19:53:03.464125+00:00'
 started_at: '2026-08-16T19:51:45.232220+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T19:53:03.463984+00:00'
 merged_at: null
 ---
 
