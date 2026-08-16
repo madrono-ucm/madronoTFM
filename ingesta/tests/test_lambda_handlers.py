@@ -20,7 +20,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from ingesta.capturas import (
     aemet_prevision_avisos,
@@ -258,6 +258,31 @@ class CamsLambdaHandlerTests(unittest.TestCase):
             with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp, "CAMS_ADS_API_KEY": ""}):
                 with self.assertRaises(RuntimeError):
                     cams_calidad_aire_madrid.lambda_handler({}, None)
+
+    def test_run_date_override_is_forwarded_to_fetch_forecast(self):
+        # Tarea 045: permite forzar una corrida concreta (p.ej. para
+        # reprocesar/verificar cuando la de hoy aún no está publicada) sin
+        # cambiar el comportamiento por defecto (fecha UTC de hoy).
+        import datetime as datetime_module
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(
+                "os.environ", {"BRONZE_BASE_PATH": tmp, "CAMS_ADS_API_KEY": "fake-token"}
+            ):
+                with patch.object(cams_calidad_aire_madrid, "fetch_forecast") as mock_fn:
+                    mock_fn.return_value = []
+                    cams_calidad_aire_madrid.lambda_handler({"run_date": "2026-08-15"}, None)
+        mock_fn.assert_called_once_with(ANY, run_date=datetime_module.date(2026, 8, 15))
+
+    def test_without_run_date_override_defaults_to_none(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(
+                "os.environ", {"BRONZE_BASE_PATH": tmp, "CAMS_ADS_API_KEY": "fake-token"}
+            ):
+                with patch.object(cams_calidad_aire_madrid, "fetch_forecast") as mock_fn:
+                    mock_fn.return_value = []
+                    cams_calidad_aire_madrid.lambda_handler({}, None)
+        mock_fn.assert_called_once_with(ANY, run_date=None)
 
 
 class CarteleraLambdaHandlerTests(unittest.TestCase):
