@@ -2,19 +2,19 @@
 id: 46
 slug: silver-gold-transporte-publico-emt
 title: 'Silver/Gold: transporte público EMT (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/046-silver-gold-transporte-publico-emt
-pr_number: null
-pr_url: null
+pr_number: 93
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/93
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T00:51:31.755268+00:00'
+updated_at: '2026-08-16T01:00:31.392341+00:00'
 started_at: '2026-08-16T00:51:31.755243+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T01:00:31.392197+00:00'
 merged_at: null
 ---
 
