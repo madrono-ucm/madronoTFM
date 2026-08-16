@@ -1,0 +1,84 @@
+"""Job de AWS Glue: Silver -> Gold del dataset `transporte_publico_emt` (espera por parada/línea/hora).
+
+**No ejecutado en esta tarea** (mismas condiciones que
+`glue_bronze_to_silver.py`: piloto de solo código/infraestructura, sin Spark
+disponible en esta EC2 de desarrollo -- ver `procesamiento/README.md`).
+
+A diferencia de `glue_bronze_to_silver.py`, este job **no** reutiliza
+`aggregate.py` en tiempo de ejecución: una agregación `groupBy` correcta a
+través de múltiples particiones/ficheros de Silver necesita las primitivas
+nativas de reduce distribuido de Spark, no un `mapPartitions` fila a fila --
+mismo motivo que `trafico/glue_silver_to_gold.py`. `aggregate.py` sigue
+siendo la fuente de verdad **documental y de test** de qué agrega Gold; las
+expresiones de Spark de este job están escritas para producir exactamente el
+mismo esquema de salida que `aggregate.aggregate_silver_to_gold`; un cambio
+en uno debe reflejarse en el otro.
+
+Parámetros del job (`--<nombre>`, ver `glue.tf`):
+
+- `JOB_NAME`: nombre del job (estándar de Glue).
+- `silver_path`: prefijo S3 de origen, p.ej.
+  `s3://madrono-tfm-dev-silver-222234418587/transporte_publico_emt/`.
+- `gold_path`: prefijo S3 de destino, p.ej.
+  `s3://madrono-tfm-dev-gold-222234418587/transporte_publico_emt_por_parada_hora/`.
+"""
+
+from __future__ import annotations
+
+import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+
+MADRID_TZ = ZoneInfo("Europe/Madrid")
+
+
+def main() -> None:
+    args = getResolvedOptions(sys.argv, ["JOB_NAME", "silver_path", "gold_path"])
+
+    sc = SparkContext()
+    glue_context = GlueContext(sc)
+    spark: SparkSession = glue_context.spark_session
+    job = Job(glue_context)
+    job.init(args["JOB_NAME"], args)
+
+    processed_at = datetime.now(MADRID_TZ)
+
+    silver_df = spark.read.parquet(args["silver_path"])
+
+    # `fecha`/`hora` ya son las columnas de partición físicas de Silver (ver
+    # glue_bronze_to_silver.py); agrupar por ellas permite a Spark aprovechar
+    # partition pruning si `silver_path` acota un rango de fechas concreto.
+    gold_df = (
+        silver_df.groupBy("stop_id", "line", "fecha", "hora")
+        .agg(
+            F.count(F.lit(1)).alias("samples_count"),
+            F.min("ingested_at").alias("first_ingested_at"),
+            F.max("ingested_at").alias("last_ingested_at"),
+            F.avg("estimate_arrive_sec").alias("avg_estimate_arrive_sec"),
+            F.min("estimate_arrive_sec").alias("min_estimate_arrive_sec"),
+            F.max("estimate_arrive_sec").alias("max_estimate_arrive_sec"),
+        )
+        .withColumnRenamed("fecha", "date")
+        .withColumn("hour", F.col("hora").cast("int"))
+        .drop("hora")
+        .withColumn("schema_version", F.lit(1))
+        .withColumn("processed_at", F.lit(processed_at.isoformat()))
+    )
+
+    # Gold es órdenes de magnitud más pequeño que Silver (una fila por
+    # parada/línea/hora, no cada pocos minutos): particionar solo por `date`
+    # es suficiente para podar particiones sin generar ficheros diminutos.
+    gold_df.write.mode("append").partitionBy("date").parquet(args["gold_path"])
+
+    job.commit()
+
+
+if __name__ == "__main__":
+    main()
