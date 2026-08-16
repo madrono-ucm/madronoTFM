@@ -2814,3 +2814,502 @@ resource "aws_glue_job" "meteorologia_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_meteorologia]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (tarea 041/046/047/048/049/050 extendido a un
+# SEPTIMO dataset (`ruido`, contaminación acústica diaria de la Red Fija del
+# SIVCA de Madrid, ver doc/008, `ingesta/capturas/ruido_madrid.py` y
+# `procesamiento/silver_gold/ruido/`). Alcance de ESTA tarea: igual que las
+# anteriores, solo código/infraestructura, sin `terraform apply` -- `terraform
+# plan`/`apply` de este bloque quedan para una tarea posterior con revisión
+# de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/ruido/*`, `silver/ruido/*`,
+# `gold/ruido_por_estacion_periodo_fecha/*`) -- no se comparte ningún rol con
+# el resto de datasets, mismo principio de mínimo privilegio por dataset que
+# ya aplicaba `ingesta` (ver `procesamiento/README.md`).
+#
+# Diferencia real frente al resto: esta fuente es diaria por estación+periodo
+# (no horaria), así que Silver se particiona solo por `fecha` (sin `hora`) --
+# ver `procesamiento/silver_gold/ruido/transform.py`.
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_ruido_prefix = "${var.project_name}-${var.environment}-ruido"
+}
+
+resource "aws_s3_object" "glue_script_ruido_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/ruido_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/ruido/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_ruido_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/ruido_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/ruido/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_ruido_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_ruido" {
+  name = "${local.glue_ruido_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de contaminación acústica (tarea 053)."
+  assume_role_policy = data.aws_iam_policy_document.glue_ruido_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_ruido_service_role" {
+  role       = aws_iam_role.glue_ruido.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_ruido_data_access" {
+  statement {
+    sid    = "ReadBronzeRuido"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/ruido/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverRuido"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/ruido/*"]
+  }
+
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsRuido"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/ruido/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldRuidoPorEstacionPeriodoFecha"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+    # el marcador `_$folder$` que crea el committer de Spark cuando el
+    # DataFrame de Gold sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/ruido_por_estacion_periodo_fecha/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/ruido_por_estacion_periodo_fecha_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForRuidoPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "ruido/*",
+        "ruido_por_estacion_periodo_fecha/*",
+        "_quality_reports/ruido/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets --
+  # no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogRuidoTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_ruido_data_access" {
+  name = "${local.glue_ruido_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de contaminación acústica a los buckets del lakehouse y al catalogo de Glue (tarea 053)."
+  policy      = data.aws_iam_policy_document.glue_ruido_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_ruido_data_access" {
+  role       = aws_iam_role.glue_ruido.name
+  policy_arn = aws_iam_policy.glue_ruido_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "ruido_silver" {
+  name          = "ruido"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Lecturas diarias de contaminación acústica de la Red Fija del SIVCA de Madrid, limpias/validadas (tarea 053)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  # Solo `fecha` -- a diferencia del resto del patrón, esta fuente es diaria
+  # (sin hora), ver `procesamiento/silver_gold/ruido/transform.py`.
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/ruido/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "station_id"
+      type = "string"
+    }
+    columns {
+      name = "station_name"
+      type = "string"
+    }
+    columns {
+      name = "station_address"
+      type = "string"
+    }
+    columns {
+      name = "district"
+      type = "string"
+    }
+    columns {
+      name = "neighbourhood"
+      type = "string"
+    }
+    columns {
+      name = "period"
+      type = "string"
+    }
+    columns {
+      name = "period_name"
+      type = "string"
+    }
+    columns {
+      name = "measured_date"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+    columns {
+      name = "laeq_db"
+      type = "double"
+    }
+    columns {
+      name = "l1_db"
+      type = "double"
+    }
+    columns {
+      name = "l10_db"
+      type = "double"
+    }
+    columns {
+      name = "l50_db"
+      type = "double"
+    }
+    columns {
+      name = "l90_db"
+      type = "double"
+    }
+    columns {
+      name = "l99_db"
+      type = "double"
+    }
+    columns {
+      name = "location"
+      type = "struct<lat:double,lon:double,srid:string,altitude_m:int>"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "ruido_gold" {
+  name          = "ruido_por_estacion_periodo_fecha"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Contaminación acústica agregada por estación, periodo horario y día, con media móvil de 7 días de LAeq (tarea 053)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/ruido_por_estacion_periodo_fecha/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "station_id"
+      type = "string"
+    }
+    columns {
+      name = "station_name"
+      type = "string"
+    }
+    columns {
+      name = "district"
+      type = "string"
+    }
+    columns {
+      name = "neighbourhood"
+      type = "string"
+    }
+    columns {
+      name = "period"
+      type = "string"
+    }
+    columns {
+      name = "period_name"
+      type = "string"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "avg_laeq_db"
+      type = "double"
+    }
+    columns {
+      name = "max_laeq_db"
+      type = "double"
+    }
+    columns {
+      name = "min_laeq_db"
+      type = "double"
+    }
+    columns {
+      name = "avg_l1_db"
+      type = "double"
+    }
+    columns {
+      name = "avg_l10_db"
+      type = "double"
+    }
+    columns {
+      name = "avg_l50_db"
+      type = "double"
+    }
+    columns {
+      name = "avg_l90_db"
+      type = "double"
+    }
+    columns {
+      name = "avg_l99_db"
+      type = "double"
+    }
+    columns {
+      name = "laeq_rolling_7d_avg_db"
+      type = "double"
+    }
+    columns {
+      name = "laeq_rolling_7d_days"
+      type = "bigint"
+    }
+    columns {
+      name = "lat"
+      type = "double"
+    }
+    columns {
+      name = "lon"
+      type = "double"
+    }
+    columns {
+      name = "altitude_m"
+      type = "int"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_ruido" {
+  name              = "/aws-glue/jobs/${local.glue_ruido_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "ruido_bronze_to_silver" {
+  name        = "${local.glue_ruido_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de contaminación acústica: normalizacion, puerta de calidad por nivel sonoro (tarea 053)."
+
+  role_arn          = aws_iam_role.glue_ruido.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_ruido_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/ruido/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/ruido/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/ruido/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_ruido]
+}
+
+resource "aws_glue_job" "ruido_silver_to_gold" {
+  name        = "${local.glue_ruido_prefix}-silver-to-gold"
+  description = "Silver -> Gold de contaminación acústica: resumen diario por estacion y periodo, con media movil de 7 dias de LAeq (tarea 053)."
+
+  role_arn          = aws_iam_role.glue_ruido.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_ruido_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/ruido/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/ruido_por_estacion_periodo_fecha/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_ruido]
+}
