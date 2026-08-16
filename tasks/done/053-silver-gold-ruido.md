@@ -2,7 +2,7 @@
 id: 53
 slug: silver-gold-ruido
 title: 'Silver/Gold: contaminación acústica (siguiendo el patrón de la tarea 041)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/053-silver-gold-ruido
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-16T16:33:15.997431+00:00'
+updated_at: '2026-08-16T16:34:23.347078+00:00'
 started_at: '2026-08-16T16:22:05.560683+00:00'
 submitted_at: '2026-08-16T16:33:15.997293+00:00'
-merged_at: null
+merged_at: '2026-08-16T16:33:20Z'
 ---
 
 ## Contexto
