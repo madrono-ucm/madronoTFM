@@ -1,4 +1,4 @@
-# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048 y 049)
+# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049 y 050)
 
 Este directorio es el análogo de `ingesta/` para la fase 2 del proyecto
 (limpieza/normalización y agregación, ver memoria del TFM, apartados 5.5 y
@@ -11,19 +11,20 @@ La tarea 041 fue un **piloto de un único dataset** (tráfico — el más maduro
 mejor documentado de los 21 productores de `ingesta/`, ver doc/002, doc/035,
 doc/037, doc/039): estableció el patrón (estructura de código, motor de
 procesamiento, dónde vive la puerta de calidad, cómo se despliega). Las
-tareas 046, 047, 048 y 049 replican ese mismo patrón para un segundo, tercer,
-cuarto y quinto dataset (`transporte_publico_emt`, llegadas de autobús de la
-EMT Madrid, ver doc/003, doc/024; `bicimad`, estado de estaciones de BiciMAD
-vía GBFS, ver doc/004; `aparcamientos`, ocupación de aparcamientos
-rotacionales, ver doc/005; `calidad_aire`, lecturas horarias de la red de
-estaciones de calidad del aire, ver doc/006) — ver "Segundo dataset:
-`transporte_publico_emt`", "Tercer dataset: `bicimad`", "Cuarto dataset:
-`aparcamientos`" y "Quinto dataset: `calidad_aire`" más abajo para las
-diferencias reales frente al piloto. **Los cinco siguen siendo solo código e
-infraestructura, sin aplicar nada en AWS** — mismo alcance que la tarea 001
-con el lakehouse; aplicar (con revisión de plan de por medio) es una tarea
-posterior, igual que las tareas 014/015 lo fueron para esa infraestructura
-base.
+tareas 046, 047, 048, 049 y 050 replican ese mismo patrón para un segundo,
+tercer, cuarto, quinto y sexto dataset (`transporte_publico_emt`, llegadas de
+autobús de la EMT Madrid, ver doc/003, doc/024; `bicimad`, estado de
+estaciones de BiciMAD vía GBFS, ver doc/004; `aparcamientos`, ocupación de
+aparcamientos rotacionales, ver doc/005; `calidad_aire`, lecturas horarias de
+la red de estaciones de calidad del aire, ver doc/006; `meteorologia`,
+lecturas horarias de la red de estaciones meteorológicas, ver doc/008) — ver
+"Segundo dataset: `transporte_publico_emt`", "Tercer dataset: `bicimad`",
+"Cuarto dataset: `aparcamientos`", "Quinto dataset: `calidad_aire`" y "Sexto
+dataset: `meteorologia`" más abajo para las diferencias reales frente al
+piloto. **Los seis siguen siendo solo código e infraestructura, sin aplicar
+nada en AWS** — mismo alcance que la tarea 001 con el lakehouse; aplicar (con
+revisión de plan de por medio) es una tarea posterior, igual que las tareas
+014/015 lo fueron para esa infraestructura base.
 
 ## Motor de procesamiento: AWS Glue (Spark serverless)
 
@@ -72,12 +73,19 @@ procesamiento/
       ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
       glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver)
       glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
+    meteorologia/
+      transform.py               # Bronze -> Silver: pivote ancho->largo + puerta de calidad por magnitud (sin geo.py, ver más abajo)
+      aggregate.py                # Silver -> Gold: agregación por estación/magnitud/hora
+      ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
+      glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver)
+      glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
   tests/
     fixtures/trafico_bronze_sample.json
     fixtures/transporte_publico_emt_bronze_sample.json
     fixtures/bicimad_bronze_sample.json
     fixtures/aparcamientos_bronze_sample.json
     fixtures/calidad_aire_bronze_sample.json
+    fixtures/meteorologia_bronze_sample.json
     test_geo.py
     test_transform.py
     test_aggregate.py
@@ -89,6 +97,8 @@ procesamiento/
     test_aparcamientos_aggregate.py
     test_calidad_aire_transform.py
     test_calidad_aire_aggregate.py
+    test_meteorologia_transform.py
+    test_meteorologia_aggregate.py
 ```
 
 Precedente directo: `ingesta/capturas/` + `ingesta/tests/` (un paquete por
@@ -365,6 +375,54 @@ conserva `unit`/`pollutant_name`/`magnitude_code` para legibilidad, además
 de `lat`/`lon` (una estación, como un aparcamiento o una estación de
 BiciMAD, tiene ubicación fija).
 
+## Sexto dataset: `meteorologia` (tarea 050)
+
+Replica el patrón sobre las lecturas horarias de la red de estaciones
+meteorológicas de Madrid (`ingesta/capturas/meteorologia_madrid.py`, ver
+doc/008). Igual que `transporte_publico_emt`/`bicimad`/`aparcamientos`/
+`calidad_aire`, **sin `geo.py`**: `normalize_station_record` ya entrega
+`location.lat`/`location.lon` en WGS84 (coordenadas del CSV de metadatos
+"Estaciones de control" de datos.madrid.es), no hace falta reproyección.
+
+**Diferencia real frente a `calidad_aire`** (que usa el mismo backend
+"bdca"): aunque el enunciado apuntaba a un esquema parecido, Bronze de este
+dataset es **ancho**, no largo -- `meteorologia_madrid.normalize_station_record`
+agrega deliberadamente todas las magnitudes de una estación (hasta 8:
+`temperature_c`, `humidity_pct`, `wind_speed_ms`, `wind_direction_deg`,
+`pressure_mb`, `solar_radiation_wm2`, `uv_radiation_mwm2`,
+`precipitation_lm2`) en un único registro Bronze, en vez de un registro por
+estación+magnitud como `calidad_aire` (el objetivo original de la tarea 008
+pedía explícitamente temperatura/humedad/viento/precipitación como campos de
+un mismo registro). `transform.py` pivota de ancho a largo en el propio paso
+Bronze->Silver (`bronze_to_silver` puede producir hasta 8 registros Silver
+por cada registro Bronze, uno por magnitud presente), para que Silver/Gold
+queden en el mismo formato "largo por magnitud" que el resto del patrón. No
+todas las estaciones miden todas las magnitudes -- un campo de magnitud
+ausente en Bronze es `null`, no un error, y se omite en silencio (no genera
+ningún registro Silver ni ninguna entrada de rechazo).
+
+La puerta de calidad tiene dos niveles: `validate_record` (a nivel de
+estación+instante: `station_id`/`measured_at`/`ingested_at` no nulos,
+timestamps timezone-aware) rechaza el registro Bronze entero -- ninguna
+magnitud llega a Silver si fallan estas comprobaciones, porque no hay
+estación/instante al que atribuirlas; `validate_magnitude_value` (a nivel de
+magnitud individual, rango de plausibilidad por magnitud vía
+`transform.PLAUSIBLE_RANGE_BY_MAGNITUDE`, con mínimo Y máximo -- a
+diferencia de `calidad_aire`, donde el mínimo siempre es 0) rechaza **solo
+esa magnitud**: un sensor de temperatura estropeado no debe tirar también la
+humedad o el viento válidos de la misma estación. Este es el primer dataset
+del patrón donde una parte de un registro Bronze puede rechazarse sin
+rechazar el registro completo.
+
+Gold agrega por **`(station_id, magnitude, fecha, hora)`** (mismo criterio
+de clave de tres componentes que `calidad_aire`, por la misma razón: una
+estación reporta varias magnitudes a la vez, mezclarlas en un único agregado
+por estación+hora no tendría sentido). Cada fila agrega `samples_count`,
+`avg`/`max`/`min_value`, `first`/`last_measured_at` y `lat`/`lon`/
+`altitude_m` (una estación tiene ubicación fija; `altitude_m` es un campo
+propio de este dataset, ausente en el resto -- la red de estaciones
+meteorológicas publica la altitud de cada emplazamiento en su catálogo).
+
 ## Great Expectations: dónde corre, y por qué no es el único filtro
 
 **Decisión (pregunta explícita del enunciado): corre dentro del propio job
@@ -409,9 +467,9 @@ riesgo de agotar ese disco compartido, no por falta de intención. En
 consecuencia:
 
 - `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py` (de
-  **los cinco** datasets) importan `pyspark`/`great_expectations`/`awsglue`
+  **los seis** datasets) importan `pyspark`/`great_expectations`/`awsglue`
   a nivel de módulo y **no se han podido importar ni ejecutar en ninguna de
-  las cinco sesiones (041/046/047/048/049)**. Están escritos con el mismo
+  las seis sesiones (041/046/047/048/049/050)**. Están escritos con el mismo
   cuidado que el resto del proyecto y basados en la API pública documentada
   de Glue/GX (Glue: `awsglue.context.GlueContext`, `awsglue.job.Job`,
   estable desde hace años; GX: `sources.add_or_update_spark`/`Validator`,
@@ -427,12 +485,13 @@ consecuencia:
   `procesamiento/silver_gold/trafico/__init__.py`,
   `procesamiento/silver_gold/transporte_publico_emt/__init__.py`,
   `procesamiento/silver_gold/bicimad/__init__.py`,
-  `procesamiento/silver_gold/aparcamientos/__init__.py` y
-  `procesamiento/silver_gold/calidad_aire/__init__.py`, que exponen solo
+  `procesamiento/silver_gold/aparcamientos/__init__.py`,
+  `procesamiento/silver_gold/calidad_aire/__init__.py` y
+  `procesamiento/silver_gold/meteorologia/__init__.py`, que exponen solo
   `transform`/`aggregate` (y `geo`, solo en tráfico) a propósito) — así el
   resto del paquete sigue siendo importable/testable en cualquier entorno
   sin Spark.
-- No se ha procesado ningún dato real de Bronze de ninguno de los cinco
+- No se ha procesado ningún dato real de Bronze de ninguno de los seis
   datasets (no hay Glue desplegado todavía): toda la verificación usa
   fixtures construidos a mano —
   `tests/fixtures/trafico_bronze_sample.json` (10 registros, 5 válidos + 5
@@ -450,22 +509,29 @@ consecuencia:
   `ingesta/capturas/samples/aparcamientos_madrid_sample.json` + 1 con
   ocupación no compartida en tiempo real (`measured_at`/`free_spaces`/
   `total_spaces` a `null`, válido, ver "Cuarto dataset" arriba) + 4 que
-  violan cada regla de rechazo por turnos) y
-  `tests/fixtures/calidad_aire_bronze_sample.json` (10 registros: las 5
-  lecturas reales de
+  violan cada regla de rechazo por turnos), `tests/fixtures/calidad_aire_bronze_sample.json`
+  (10 registros: las 5 lecturas reales de
   `ingesta/capturas/samples/calidad_aire_madrid_sample.json` -- 2 estaciones,
   4 contaminantes distintos (NOx/NO/NO2/O3) -- + 5 que violan cada regla de
   rechazo por turnos, incluido un valor de NO2 muy por encima de su rango
   plausible pero que sería válido para un contaminante con un rango mayor,
-  ver "Quinto dataset" arriba).
+  ver "Quinto dataset" arriba) y `tests/fixtures/meteorologia_bronze_sample.json`
+  (10 registros Bronze "anchos": las 5 estaciones reales de
+  `ingesta/capturas/samples/meteorologia_madrid_sample.json` -- que expanden
+  a 30 registros Silver "largos" -- + 5 que violan cada regla por turnos
+  (estación sin id, sin `measured_at`, `measured_at` sin zona horaria, sin
+  `ingested_at`, y una estación con la temperatura disparada pero el resto de
+  sus magnitudes válidas, para probar el rechazo a nivel de magnitud sin
+  perder el resto del registro), ver "Sexto dataset" arriba).
 
 ## Terraform (`infra/terraform/glue.tf`)
 
 Sin aplicar (ver arriba). Un bloque de recursos por dataset (`trafico`,
 tarea 041; `transporte_publico_emt`, tarea 046; `bicimad`, tarea 047;
-`aparcamientos`, tarea 048; `calidad_aire`, tarea 049), cada uno con su
-propio rol IAM acotado por prefijo — no se comparte rol entre datasets,
-mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
+`aparcamientos`, tarea 048; `calidad_aire`, tarea 049; `meteorologia`, tarea
+050), cada uno con su propio rol IAM acotado por prefijo — no se comparte rol
+entre datasets, mismo principio de mínimo privilegio que ya aplicaba
+`ingesta`:
 
 - `aws_glue_job.<dataset>_bronze_to_silver` / `<dataset>_silver_to_gold`:
   dos jobs por dataset (uno por transformación, no combinados — para poder
@@ -475,52 +541,53 @@ mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
   variables compartidas en `variables.tf` para poder subir esto sin tocar
   `.tf` cuando el volumen crezca.
 - `aws_iam_role.glue_trafico` / `glue_transporte_publico_emt` / `glue_bicimad`
-  / `glue_aparcamientos` / `glue_calidad_aire`: la política gestionada
-  `AWSGlueServiceRole` (lo que todo job de Glue necesita en su propio
-  nombre: API de Glue, logs bajo `/aws-glue/...`) más una política propia
-  acotada por prefijo — lectura de `bronze/<dataset>/*`, lectura+escritura
-  de `silver/<dataset>/*`, escritura de `gold/<tabla_gold>/*`, lectura del
-  script/librería en el bucket de artefactos
+  / `glue_aparcamientos` / `glue_calidad_aire` / `glue_meteorologia`: la
+  política gestionada `AWSGlueServiceRole` (lo que todo job de Glue necesita
+  en su propio nombre: API de Glue, logs bajo `/aws-glue/...`) más una
+  política propia acotada por prefijo — lectura de `bronze/<dataset>/*`,
+  lectura+escritura de `silver/<dataset>/*`, escritura de `gold/<tabla_gold>/*`,
+  lectura del script/librería en el bucket de artefactos
   (`aws_s3_bucket.build_artifacts`, reutilizado de la tarea 032 para los
-  cinco datasets en vez de crear un bucket nuevo) y permisos acotados sobre
+  seis datasets en vez de crear un bucket nuevo) y permisos acotados sobre
   el catálogo de Glue de las dos tablas de cada dataset — ni un permiso más.
 - `aws_glue_catalog_database.silver`/`gold` (compartidas entre datasets, una
   base de datos por capa) + `aws_glue_catalog_table.trafico_silver`/
   `trafico_gold`/`transporte_publico_emt_silver`/`transporte_publico_emt_gold`/
   `bicimad_silver`/`bicimad_gold`/`aparcamientos_silver`/`aparcamientos_gold`/
-  `calidad_aire_silver`/`calidad_aire_gold`: catalogadas para poder
-  consultarlas con Athena sin ningún paso adicional. Bronze deliberadamente
-  **no** se cataloga: son lotes JSON crudos sin un esquema único garantizado
-  entre los 21 productores, no pensados para consultarse vía SQL.
+  `calidad_aire_silver`/`calidad_aire_gold`/`meteorologia_silver`/
+  `meteorologia_gold`: catalogadas para poder consultarlas con Athena sin
+  ningún paso adicional. Bronze deliberadamente **no** se cataloga: son lotes
+  JSON crudos sin un esquema único garantizado entre los 21 productores, no
+  pensados para consultarse vía SQL.
 - `data.archive_file.procesamiento_source` (**sin cambios en su
   definición**: ya empaquetaba todo `procesamiento/` salvo `tests/`, así
-  que cada subpaquete nuevo, incluido el de la tarea 049, se incluye
+  que cada subpaquete nuevo, incluido el de la tarea 050, se incluye
   automáticamente) + `aws_s3_object.*` por script de cada dataset, subidos
   al bucket de artefactos con el hash del contenido en la key (mismo patrón
   que `data.archive_file.ingesta_source`/`layer_source_key` de tareas
   anteriores) — un cambio de código sube a una key nueva sin pisar la
   anterior.
 
-`terraform validate` limpio (verificado en las cinco tareas, sin backend
+`terraform validate` limpio (verificado en las seis tareas, sin backend
 real inicializado — `terraform init -backend=false`); no se ha ejecutado
 `terraform plan` contra la cuenta real (necesitaría credenciales AWS que
 estas tareas no deben usar para aplicar nada).
 
 ## Relevante para tareas futuras
 
-- El patrón (fijado por la tarea 041, ya replicado cuatro veces con la
-  046/047/048/049) para extender Bronze→Silver→Gold a más fuentes: un
+- El patrón (fijado por la tarea 041, ya replicado cinco veces con la
+  046/047/048/049/050) para extender Bronze→Silver→Gold a más fuentes: un
   subpaquete `silver_gold/<dataset>/` con `transform.py` (Python puro,
   testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py` (GX,
   ejecutado en Glue)/`glue_*.py` (entry points) — más `geo.py` **solo si la
   fuente necesita reproyectar** (no es parte fija del patrón: ni
-  `transporte_publico_emt`, ni `bicimad`, ni `aparcamientos` ni
-  `calidad_aire` lo tienen porque sus fuentes ya entregan WGS84, ver
-  "Segundo dataset"/"Tercer dataset"/"Cuarto dataset"/"Quinto dataset"
-  arriba) —, más un bloque en `glue.tf` con su propio rol IAM acotado por
-  prefijo (no un rol compartido entre datasets: mantiene el principio de
-  mínimo privilegio ya aplicado en `ingesta`).
-- Antes de aplicar esta infraestructura: (1) smoke-test de los cinco
+  `transporte_publico_emt`, ni `bicimad`, ni `aparcamientos`, ni
+  `calidad_aire` ni `meteorologia` lo tienen porque sus fuentes ya entregan
+  WGS84, ver "Segundo dataset"/"Tercer dataset"/"Cuarto dataset"/"Quinto
+  dataset"/"Sexto dataset" arriba) —, más un bloque en `glue.tf` con su
+  propio rol IAM acotado por prefijo (no un rol compartido entre datasets:
+  mantiene el principio de mínimo privilegio ya aplicado en `ingesta`).
+- Antes de aplicar esta infraestructura: (1) smoke-test de los seis
   `ge_suite.py` contra un Glue Studio Notebook real (ver arriba) —
   `bicimad/ge_suite.py` y `aparcamientos/ge_suite.py` necesitan además
   confirmar que las columnas auxiliares que calculan sus respectivos
@@ -528,23 +595,24 @@ estas tareas no deben usar para aplicar nada).
   `free_spaces_over_total_spaces`) se comportan como se espera contra el
   runtime real de Spark/GX, al no existir una expectation nativa de "suma
   de columnas <= columna" ni de "columna <= columna" (ver docstring de
-  ambos `ge_suite.py`); `calidad_aire/ge_suite.py` necesita confirmar de
-  igual forma la columna auxiliar `value_over_plausible_max` (rango por
-  contaminante, traducido a una expresión `when/otherwise` de Spark en
-  `glue_bronze_to_silver.py`, ver "Quinto dataset" arriba); (2) revisar si
-  `great_expectations==0.18.19` (versión fijada en
-  `var.great_expectations_pip_spec`) sigue siendo la última estable de la
-  serie 0.18 en el momento de aplicar, y (3) el mismo patrón `terraform
-  plan`/`apply` con revisión humana de por medio que ya usaron las tareas
-  015/030/039 para la infraestructura ya desplegada.
+  ambos `ge_suite.py`); `calidad_aire/ge_suite.py` y `meteorologia/ge_suite.py`
+  necesitan confirmar de igual forma sus columnas auxiliares de rango por
+  etiqueta (`value_over_plausible_max` en `calidad_aire`;
+  `value_below_plausible_min`/`value_over_plausible_max` en `meteorologia`,
+  que además tiene mínimo variable, no solo máximo -- ver "Quinto dataset"/
+  "Sexto dataset" arriba); (2) revisar si `great_expectations==0.18.19`
+  (versión fijada en `var.great_expectations_pip_spec`) sigue siendo la
+  última estable de la serie 0.18 en el momento de aplicar, y (3) el mismo
+  patrón `terraform plan`/`apply` con revisión humana de por medio que ya
+  usaron las tareas 015/030/039 para la infraestructura ya desplegada.
 - La agregación por distrito (en vez de por punto de medida/parada/estación/
   aparcamiento) queda pendiente de la tarea 043 (grafo Neo4j de relaciones
   espaciales) — no se ha aproximado con una heurística ad-hoc a propósito,
   ver "Transformación Silver → Gold" arriba. Aplica igual a
-  `transporte_publico_emt`/`bicimad`/`aparcamientos`/`calidad_aire`: ni la
-  parada (`stop_id`), ni la estación (`station_id`), ni el aparcamiento
-  (`parking_id`) se han cruzado con ningún distrito/barrio en ninguna de
-  las cuatro tareas.
+  `transporte_publico_emt`/`bicimad`/`aparcamientos`/`calidad_aire`/
+  `meteorologia`: ni la parada (`stop_id`), ni la estación (`station_id`),
+  ni el aparcamiento (`parking_id`) se han cruzado con ningún distrito/barrio
+  en ninguna de las cinco tareas.
 - El rango de plausibilidad por contaminante de `calidad_aire`
   (`transform.PLAUSIBLE_MAX_BY_POLLUTANT`, ver "Quinto dataset" arriba) es
   la primera pieza de la puerta de calidad del patrón que necesita una
@@ -555,7 +623,24 @@ estas tareas no deben usar para aplicar nada).
   criterio a replicar es este: una tabla `dict[etiqueta, rango]` en
   `transform.py`, con un contaminante/etiqueta ausente de la tabla
   aceptado por defecto (no rechazado por rango, solo por negatividad) en
-  vez de fallar o inventar un rango.
+  vez de fallar o inventar un rango. `meteorologia.PLAUSIBLE_RANGE_BY_MAGNITUDE`
+  (ver "Sexto dataset" arriba) extiende ese mismo criterio a rangos con
+  mínimo Y máximo (no solo máximo, ya que una temperatura sí puede ser
+  negativa) -- si una tarea futura necesita ese mismo patrón, la tabla pasa
+  a ser `dict[etiqueta, tuple[mínimo, máximo]]`, no `dict[etiqueta, máximo]`.
+- `meteorologia` es el primer dataset del patrón donde Bronze llega en
+  formato "ancho" (una fila por estación+instante con varias magnitudes como
+  columnas) y hay que pivotarlo a "largo" (una fila por estación+magnitud+
+  instante) dentro del propio paso Bronze→Silver, en vez de que la ingesta ya
+  lo entregue largo (como `calidad_aire`) -- ver "Sexto dataset" arriba. Es
+  también el primer dataset donde una puerta de calidad tiene dos niveles
+  (registro completo vs. magnitud individual): un valor fuera de rango en
+  una sola magnitud no descarta el resto de magnitudes válidas del mismo
+  registro. Si una tarea futura añade un dataset con la misma forma (varias
+  magnitudes por registro Bronze, con puerta de calidad por magnitud), el
+  criterio a replicar es este: pivotar en `transform.py` (no en
+  `aggregate.py` ni en el job de Glue) y separar `validate_record`
+  (estación/instante) de una función de validación por magnitud aparte.
 - `intensity_ratio` (intensidad / intensidad de saturación) es la magnitud
   pensada para comparar puntos de medida de tráfico con capacidades
   distintas; `occupancy_ratio` (bicis disponibles / capacidad, o plazas
