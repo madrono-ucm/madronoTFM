@@ -2,17 +2,17 @@
 id: 48
 slug: silver-gold-aparcamientos
 title: 'Silver/Gold: aparcamientos rotacionales (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: blocked
 force: true
 allow_infra_apply: false
 branch: task/048-silver-gold-aparcamientos
 pr_number: null
 pr_url: null
-attempts: 5
-next_retry_at: '2026-08-16T04:09:36.940807+00:00'
+attempts: 6
+next_retry_at: '2026-08-16T07:17:36.141798+00:00'
 last_error: You've hit your session limit · resets 5am (UTC)
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T04:09:59.860434+00:00'
+updated_at: '2026-08-16T04:10:04.588677+00:00'
 started_at: '2026-08-16T01:12:54.221061+00:00'
 submitted_at: null
 merged_at: null
