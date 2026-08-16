@@ -33,6 +33,7 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import boto3
 import great_expectations as gx
 from awsglue.context import GlueContext
 from awsglue.job import Job
@@ -98,6 +99,24 @@ def _to_silver_row(silver_record: dict) -> Row:
             srid=location["srid"],
             altitude_m=location["altitude_m"],
         ),
+    )
+
+
+def _write_quality_report(report_uri: str, quality_report: dict) -> None:
+    """Escribe el informe de Great Expectations directamente a S3 vía boto3.
+
+    Sustituye a `sc.parallelize([...], numSlices=1).saveAsTextFile(...)`: un
+    único JSON pequeño no necesita el protocolo de commit distribuido de
+    Spark/Hadoop, que en el runtime de AWS Glue falla buscando
+    `org.apache.hadoop.mapred.DirectOutputCommitter` (clase de EMR/
+    `hadoop-aws` ausente en Glue) — ver tarea 051.
+    """
+    bucket, _, key = report_uri.removeprefix("s3://").partition("/")
+    boto3.client("s3").put_object(
+        Bucket=bucket,
+        Key=key,
+        Body=json.dumps(quality_report, ensure_ascii=False).encode("utf-8"),
+        ContentType="application/json",
     )
 
 
@@ -168,9 +187,7 @@ def main() -> None:
         f"{args['quality_report_path'].rstrip('/')}/"
         f"meteorologia_{processed_at:%Y%m%dT%H%M%S}.json"
     )
-    sc.parallelize([json.dumps(quality_report, ensure_ascii=False)], numSlices=1).saveAsTextFile(
-        report_key
-    )
+    _write_quality_report(report_key, quality_report)
 
     # Mismo esquema de partición que Bronze (fecha=/hora=, hora de Madrid),
     # para que un consumidor ya familiarizado con Bronze no tenga que
