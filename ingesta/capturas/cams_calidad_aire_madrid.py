@@ -100,6 +100,31 @@ las variables que encuentra, así que un nombre equivocado para NO/polvo
 simplemente no producirá registros para ese contaminante en vez de fallar
 duro.
 
+**Actualización (tarea 045, con credenciales y licencia reales ya
+funcionando):** `no_conc`/`so2_conc` se confirmaron correctos contra un
+fichero real. `dust_conc` **es incorrecto**: la variable real dentro del
+NetCDF se llama simplemente `dust` (sin el sufijo `_conc` que sí llevan
+todas las demás). No se ha corregido en esta tarea (fuera de su alcance
+explícito, ver `doc/045-arreglo-parseo-fecha-cams.md`) — sigue produciendo
+cero registros de polvo en vez de fallar, por el mismo diseño tolerante
+descrito arriba, hasta que una tarea de seguimiento corrija
+`POLLUTANT_VARIABLES["dust"]`.
+
+## Formato real de fechas dentro del NetCDF (tarea 045)
+
+El fixture usado para desarrollar `normalize_forecast_file` originalmente
+asumía que `time.units` seguía el formato estándar CF
+(`"<unidad> since <referencia>"`, p.ej. `"hours since 1900-01-01 00:00:00.0"`),
+parseable directamente con `netCDF4.num2date`. Verificado en vivo contra
+varios ficheros reales (credenciales y licencia ya aceptadas): **no es así**.
+El `.nc` real tiene `time.units = "hours"` (sin cláusula "since") y **no**
+tiene ninguna variable `forecast_reference_time`; la fecha de referencia real
+está en `time.long_name`, con el formato `"FORECAST time from 20260815"`
+(`AAAAMMDD`). `_parse_time_variable`/`_parse_reference_date` manejan este
+formato real como caso principal, con el formato CF estándar como
+alternativa (por si el dataset cambiara de formato en el futuro), no como
+caso principal ya descartado por la evidencia real.
+
 ## Área geográfica: un recorte pequeño alrededor de Madrid, no toda Europa
 
 El dataset cubre toda Europa (25°O-45°E, 30°N-72°N) a 0.1°×0.1°; pedir el
@@ -135,10 +160,11 @@ import io
 import json
 import logging
 import os
+import re
 import tempfile
 import zipfile
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -289,6 +315,66 @@ def _nearest_index(values: "list[float]", target: float) -> int:
     return min(range(len(values)), key=lambda i: abs(values[i] - target))
 
 
+def _grid_value(variable, t_idx: int, lat_idx: int, lon_idx: int) -> float:
+    """Lee un único valor escalar de una variable de contaminante, por nombre de dimensión.
+
+    El fichero NetCDF real trae una dimensión `level` adicional
+    (`(time, level, latitude, longitude)`, tamaño 1: la petición siempre pide
+    un único nivel vertical, `CaptureConfig.level`) que el fixture de
+    desarrollo original no tenía (`(time, latitude, longitude)`); indexar por
+    posición fija asumía ese segundo esquema y fallaba con datos reales. Se
+    indexa por nombre de dimensión para no depender de cuántas/qué orden
+    tengan.
+    """
+    index = tuple(
+        {"time": t_idx, "latitude": lat_idx, "longitude": lon_idx}.get(dim, 0) for dim in variable.dimensions
+    )
+    return float(variable[index])
+
+
+# `long_name` real observado: "FORECAST time from 20260815" (ver docstring del
+# módulo, sección sobre el formato real de fechas).
+_REFERENCE_DATE_RE = re.compile(r"from (\d{8})\b")
+
+# `netCDF4.num2date` solo entiende nombres de unidad en plural (p.ej.
+# "hours"), que coinciden con los kwargs válidos de `timedelta`.
+_TIMEDELTA_UNIT_NAMES = {"days", "hours", "minutes", "seconds", "milliseconds", "microseconds"}
+
+
+def _parse_reference_date(long_name: str) -> datetime:
+    """Extrae la fecha de referencia (AAAAMMDD) del `long_name` de la variable `time`."""
+    match = _REFERENCE_DATE_RE.search(long_name or "")
+    if not match:
+        raise ValueError(f"No se pudo extraer la fecha de referencia de time.long_name: {long_name!r}")
+    return datetime.strptime(match.group(1), "%Y%m%d").replace(tzinfo=timezone.utc)
+
+
+def _parse_time_variable(time_var) -> "list[datetime]":
+    """Convierte los valores numéricos de la variable `time` a `datetime` UTC.
+
+    El fichero NetCDF real que devuelve la API de CAMS (verificado en vivo
+    con credenciales reales, tarea 045) **no** sigue el formato estándar CF
+    "<unidad> since <referencia>" que asumía este módulo originalmente
+    (fixture de desarrollo, nunca contrastado contra un fichero real): su
+    atributo `units` es simplemente `"hours"` (u otra unidad, sin cláusula
+    "since"), y la fecha de referencia real está en el `long_name` de la
+    propia variable (`"FORECAST time from 20260815"`), no en `units`. Se
+    intenta primero el formato CF estándar (`netCDF4.num2date`, por si algún
+    día el dataset lo sirve así) y solo si `units` no lo declara (sin
+    "since") se recurre al formato real observado.
+    """
+    units = time_var.units
+    if "since" in units:
+        result = netCDF4.num2date(time_var[:], units, only_use_cftime_datetimes=False, only_use_python_datetimes=True)
+        return list(result) if hasattr(result, "__len__") else [result]
+
+    unit_name = units.strip().lower()
+    if unit_name not in _TIMEDELTA_UNIT_NAMES:
+        raise ValueError(f"Unidad de tiempo no reconocida en time.units: {units!r}")
+    reference = _parse_reference_date(getattr(time_var, "long_name", ""))
+    return [reference + timedelta(**{unit_name: float(v)}) for v in time_var[:]]
+
+
 def normalize_forecast_file(
     nc_bytes: bytes,
     captured_at: datetime,
@@ -319,7 +405,13 @@ def normalize_forecast_file(
             return []
 
         latitudes = dataset.variables["latitude"][:].tolist()
-        longitudes = dataset.variables["longitude"][:].tolist()
+        # El fichero real usa la convención [0, 360) para la longitud (p.ej.
+        # 356.15 en vez de -3.85, verificado en vivo, tarea 045); sin
+        # normalizar a [-180, 180) antes de comparar con `target_lon`,
+        # `_nearest_index` no encuentra realmente el punto más cercano a
+        # Madrid (todos los valores reales quedan igual de "lejos" de una
+        # longitud negativa) y el registro guarda una longitud sin sentido.
+        longitudes = [lon - 360 if lon > 180 else lon for lon in dataset.variables["longitude"][:].tolist()]
         lat_idx = _nearest_index(latitudes, target_lat)
         lon_idx = _nearest_index(longitudes, target_lon)
         # round(): la rejilla real es float32 (p.ej. 40.42499923706055 en vez de
@@ -329,17 +421,19 @@ def normalize_forecast_file(
         grid_lon = round(longitudes[lon_idx], 4)
 
         time_var = dataset.variables["time"]
-        valid_datetimes = netCDF4.num2date(
-            time_var[:], time_var.units, only_use_cftime_datetimes=False, only_use_python_datetimes=True
-        )
-        if not hasattr(valid_datetimes, "__len__"):
-            valid_datetimes = [valid_datetimes]
+        valid_datetimes = _parse_time_variable(time_var)
 
         if "forecast_reference_time" in dataset.variables:
             frt_var = dataset.variables["forecast_reference_time"]
             forecast_issued_at = netCDF4.num2date(
                 frt_var[...].item(), frt_var.units, only_use_cftime_datetimes=False, only_use_python_datetimes=True
             )
+        elif "since" not in time_var.units:
+            # Formato real (ver `_parse_time_variable`): sin variable
+            # `forecast_reference_time`, la fecha de referencia real está en
+            # `time.long_name`, no en el primer valor de `valid_datetimes`
+            # (que dependería de qué `leadtime_hour` se haya pedido).
+            forecast_issued_at = _parse_reference_date(getattr(time_var, "long_name", ""))
         else:
             forecast_issued_at = valid_datetimes[0]
 
@@ -350,7 +444,7 @@ def normalize_forecast_file(
             unit = getattr(values, "units", "µg/m3")
             for t_idx, valid_dt in enumerate(valid_datetimes):
                 # round(): mismo motivo que grid_lat/grid_lon, el dato fuente es float32.
-                value = round(float(values[t_idx, lat_idx, lon_idx]), 3)
+                value = round(_grid_value(values, t_idx, lat_idx, lon_idx), 3)
                 leadtime_hour = round((valid_dt - forecast_issued_at).total_seconds() / 3600)
                 records.append(
                     {
@@ -441,6 +535,13 @@ def lambda_handler(event, context):
     Reutiliza `fetch_forecast` tal cual: ya descarga y normaliza la
     previsión completa configurada (`config.pollutants` x
     `config.leadtime_hours`, no un recorte de muestra adicional).
+
+    `event` admite opcionalmente `run_date` (cadena `AAAA-MM-DD`) para forzar
+    la fecha de la corrida en vez de la fecha UTC de hoy (comportamiento por
+    defecto, sin cambios). Añadido en la tarea 045 para poder reprocesar/
+    verificar una corrida concreta cuando la de hoy aún no está publicada
+    (ver docstring del módulo, "Cadencia real de publicación": la corrida
+    diaria no está disponible hasta las 06:45/08:30 UTC).
     """
     config = CaptureConfig.from_env()
     if not config.api_key:
@@ -450,7 +551,8 @@ def lambda_handler(event, context):
             "identidad real) en https://ads.atmosphere.copernicus.eu/."
         )
 
-    records = fetch_forecast(config)
+    run_date = date.fromisoformat(event["run_date"]) if event and event.get("run_date") else None
+    records = fetch_forecast(config, run_date=run_date)
     logger.info("Previsión de calidad del aire capturada (captura completa): %d registros", len(records))
     writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
     out_path = writer.write_batch(records)
