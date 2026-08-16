@@ -1,4 +1,4 @@
-# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054 y 055)
+# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054, 055 y 056)
 
 Este directorio es el análogo de `ingesta/` para la fase 2 del proyecto
 (limpieza/normalización y agregación, ver memoria del TFM, apartados 5.5 y
@@ -11,28 +11,32 @@ La tarea 041 fue un **piloto de un único dataset** (tráfico — el más maduro
 mejor documentado de los 21 productores de `ingesta/`, ver doc/002, doc/035,
 doc/037, doc/039): estableció el patrón (estructura de código, motor de
 procesamiento, dónde vive la puerta de calidad, cómo se despliega). Las
-tareas 046, 047, 048, 049, 050, 053, 054 y 055 replican ese mismo patrón
-para un segundo, tercer, cuarto, quinto, sexto, séptimo, octavo y noveno
-dataset (`transporte_publico_emt`, llegadas de autobús de la EMT Madrid, ver
-doc/003, doc/024; `bicimad`, estado de estaciones de BiciMAD vía GBFS, ver
-doc/004; `aparcamientos`, ocupación de aparcamientos rotacionales, ver
-doc/005; `calidad_aire`, lecturas horarias de la red de estaciones de
-calidad del aire, ver doc/006; `meteorologia`, lecturas horarias de la red
-de estaciones meteorológicas, ver doc/008; `ruido`, contaminación acústica
-diaria de la Red Fija del SIVCA, ver doc/007; `aforos_peatones_bicicletas`,
-conteos horarios de peatones y bicicletas de la red de estaciones
-permanentes de aforo, ver `ingesta/capturas/aforos_peatones_bicicletas_madrid.py`;
+tareas 046, 047, 048, 049, 050, 053, 054, 055 y 056 replican ese mismo
+patrón para un segundo, tercer, cuarto, quinto, sexto, séptimo, octavo,
+noveno y décimo dataset (`transporte_publico_emt`, llegadas de autobús de la
+EMT Madrid, ver doc/003, doc/024; `bicimad`, estado de estaciones de
+BiciMAD vía GBFS, ver doc/004; `aparcamientos`, ocupación de aparcamientos
+rotacionales, ver doc/005; `calidad_aire`, lecturas horarias de la red de
+estaciones de calidad del aire, ver doc/006; `meteorologia`, lecturas
+horarias de la red de estaciones meteorológicas, ver doc/008; `ruido`,
+contaminación acústica diaria de la Red Fija del SIVCA, ver doc/007;
+`aforos_peatones_bicicletas`, conteos horarios de peatones y bicicletas de
+la red de estaciones permanentes de aforo, ver
+`ingesta/capturas/aforos_peatones_bicicletas_madrid.py`;
 `cartelera_cines_estrenos`, cartelera y horarios de cines de Madrid vía
-SensaCine, ver doc/023)
+SensaCine, ver doc/023; `agenda_eventos`, agenda de eventos culturales y de
+ocio de Madrid -- agenda municipal de datos.madrid.es + agenda turística de
+esmadrid.com --, ver `ingesta/capturas/agenda_eventos_madrid.py`)
 — ver "Segundo dataset: `transporte_publico_emt`", "Tercer dataset:
 `bicimad`", "Cuarto dataset: `aparcamientos`", "Quinto dataset:
 `calidad_aire`", "Sexto dataset: `meteorologia`", "Séptimo dataset: `ruido`",
-"Octavo dataset: `aforos_peatones_bicicletas`" y "Noveno dataset:
-`cartelera_cines_estrenos`" más abajo para las diferencias reales frente al
-piloto. **Los nueve siguen siendo solo código e infraestructura, sin
-aplicar nada en AWS** — mismo alcance que la tarea 001 con el lakehouse;
-aplicar (con revisión de plan de por medio) es una tarea posterior, igual
-que las tareas 014/015 lo fueron para esa infraestructura base.
+"Octavo dataset: `aforos_peatones_bicicletas`", "Noveno dataset:
+`cartelera_cines_estrenos`" y "Décimo dataset: `agenda_eventos`" más abajo
+para las diferencias reales frente al piloto. **Los diez siguen siendo solo
+código e infraestructura, sin aplicar nada en AWS** — mismo alcance que la
+tarea 001 con el lakehouse; aplicar (con revisión de plan de por medio) es
+una tarea posterior, igual que las tareas 014/015 lo fueron para esa
+infraestructura base.
 
 ## Motor de procesamiento: AWS Glue (Spark serverless)
 
@@ -105,6 +109,12 @@ procesamiento/
       ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
       glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona por showtime_datetime)
       glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
+    agenda_eventos/
+      transform.py               # Bronze -> Silver: normalización + puerta de calidad por evento (sin geo.py, ver más abajo)
+      aggregate.py                # Silver -> Gold: número de eventos por categoría/distrito/día
+      ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
+      glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona solo por fecha)
+      glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
   tests/
     fixtures/trafico_bronze_sample.json
     fixtures/transporte_publico_emt_bronze_sample.json
@@ -115,6 +125,7 @@ procesamiento/
     fixtures/ruido_bronze_sample.json
     fixtures/aforos_peatones_bicicletas_bronze_sample.json
     fixtures/cartelera_cines_estrenos_bronze_sample.json
+    fixtures/agenda_eventos_bronze_sample.json
     test_geo.py
     test_transform.py
     test_aggregate.py
@@ -134,6 +145,8 @@ procesamiento/
     test_aforos_peatones_bicicletas_aggregate.py
     test_cartelera_cines_estrenos_transform.py
     test_cartelera_cines_estrenos_aggregate.py
+    test_agenda_eventos_transform.py
+    test_agenda_eventos_aggregate.py
 ```
 
 Precedente directo: `ingesta/capturas/` + `ingesta/tests/` (un paquete por
@@ -631,6 +644,94 @@ película -- p.ej. detectar si hay doblada y V.O.S.E.), además de
 `movie_title`/`chain`/`cinema_name`/`address`/`postal_code`/`locality`
 conservados para legibilidad.
 
+## Décimo dataset: `agenda_eventos` (tarea 056)
+
+Replica la estructura de código del patrón sobre la agenda de eventos
+culturales y de ocio de Madrid (`ingesta/capturas/agenda_eventos_madrid.py`,
+dos fuentes combinadas: agenda municipal de datos.madrid.es y agenda
+turística de esmadrid.com, distinguidas por el campo `source`). **Sin
+`geo.py`**, pero por el mismo motivo que la mayoría del patrón (a diferencia
+de `cartelera_cines_estrenos`, que no tiene ninguna coordenada en absoluto):
+`normalize_municipal_event`/`normalize_esmadrid_event` ya entregan
+`location.lat`/`location.lon` en WGS84 para ambas fuentes.
+
+**Diferencia real frente al resto del patrón: como `cartelera_cines_estrenos`,
+no es una serie temporal de medidas, es un catálogo de eventos.** Cada fila
+de Silver es un hecho discreto -- un evento concreto, identificado por
+`event_id` -- no una magnitud numérica repetida en el tiempo. La puerta de
+calidad (`transform.validate_record`) exige los campos clave que pide el
+enunciado (`title`, `start_datetime` parseable, `source` en el catálogo
+cerrado de dos valores conocidos), más `event_id` (clave natural
+imprescindible para poder deduplicar reingestas en `aggregate.py`, mismo
+papel que `showtime_id` en `cartelera_cines_estrenos`) y `captured_at`/
+`ingested_at` timezone-aware.
+
+**Segunda diferencia: dos fuentes con huecos de esquema distintos, sin que
+ninguna sea "la correcta".** La agenda municipal siempre resuelve
+`district`/`neighborhood` desde su propio catálogo; la agenda de esMadrid
+**nunca** los publica (el XML de origen no trae esa columna). `district`/
+`neighborhood` no forman parte de la puerta de calidad -- exigirlos
+descartaría sistemáticamente el 100% de una de las dos fuentes.
+`start_datetime` también difiere de formato entre fuentes: el dato
+municipal trae un `datetime` completo sin zona horaria explícita (ya en
+hora de Madrid); esMadrid solo trae la **fecha** del primer rango del
+evento, sin hora (la hora real, cuando existe, queda en `schedule_text`
+como texto libre -- ver la "Simplificación deliberada" ya documentada en el
+docstring de `ingesta/capturas/agenda_eventos_madrid.py`).
+`validate_record` solo exige que `start_datetime` sea parseable
+(`datetime.fromisoformat` acepta ambos formatos), no que tenga hora ni que
+sea timezone-aware.
+
+**Tercera diferencia, explícita frente a `cartelera_cines_estrenos`: no se
+descartan eventos "ya pasados" respecto a la captura.** Una sesión de cine
+es un instante puntual futuro por construcción de la fuente; un evento de
+esta agenda puede ser una exposición de varios meses cuyo `start_datetime`
+ya quedó atrás en el momento de la captura pero que sigue vigente (evento
+real de muestra: "25 años del Museo de San Isidro...", inicio 2026-07-21,
+capturado el 2026-08-15). Comparar `start_datetime < captured_at` aquí
+descartaría eventos genuinamente en curso, así que esta puerta de calidad,
+a propósito, no reproduce esa regla de `cartelera_cines_estrenos`.
+
+**Decisión de agregación Silver → Gold**: el enunciado sugería "por
+barrio/distrito y día, o por categoría y día" como alternativas -- mismo
+patrón de dos sugerencias que ya resolvió `cartelera_cines_estrenos`
+incluyendo ambas dimensiones en la misma clave. Se agrupa por
+**`(category, district, fecha)`**, con `fecha` derivada del día en que el
+evento **empieza** (no el día de captura, mismo criterio que
+`showtime_datetime` en `cartelera_cines_estrenos`), para poder responder
+tanto "¿cuántos eventos de tal categoría hay hoy?" como "¿cuántos eventos
+hay hoy en tal distrito?" sin perder información en la propia agregación.
+Se usa `district`, no `neighborhood` (barrio): como esMadrid nunca publica
+ninguno de los dos, una granularidad más fina que distrito fragmentaría aún
+más una dimensión que ya es parcial por diseño de una de las dos fuentes.
+Cruzar `lat`/`lon` con `barrios_distritos_madrid` (point-in-polygon) para
+rellenar el distrito que falta en esMadrid queda fuera de alcance -- mismo
+razonamiento que la tarea 041 ya documentó para `trafico`: es el tipo de
+relación espacial que la tarea 043 (grafo Neo4j) modelará de forma
+explícita y reutilizable, no una heurística ad-hoc de esta tarea.
+`category`/`district` ausentes se agrupan bajo un sentinela
+(`"__sin_categoria__"`/`"__sin_distrito__"`) en vez de descartarse de la
+agregación -- mismo criterio que `aparcamientos.aggregate` con
+`fecha=__sin_medida__` (tarea 048): un evento sin categoría o sin distrito
+conocido sigue siendo un evento real y contable.
+
+Cada fila de Gold agrega `samples_count` (filas Silver, incluye
+reingestas), `events_count` (número de `event_id` **distintos** -- la
+magnitud principal de este dataset), `free_events_count` (eventos distintos
+con `free = true`, una pregunta habitual de un consumidor de una agenda
+cultural), `sources` (lista ordenada de `source` distintos presentes en el
+bucket, para poder distinguir un `__sin_distrito__` "porque esMadrid no
+publica distrito" de uno "porque faltó ese dato en un evento municipal
+concreto") y `first`/`last_start_datetime`.
+
+`glue_bronze_to_silver.py` de este dataset particiona Silver **solo por
+`fecha`** (sin `hora`), derivada con `substring(start_datetime, 1, 10)` en
+vez de `to_date(...)`: mismo motivo que `ruido` (tarea 053) -- una de las
+dos fuentes no publica ninguna hora de celebración, y forzar una hora
+inventada (p.ej. "00" por defecto del parseo) sería engañoso; el recorte de
+texto funciona igual para ambos formatos de origen porque los dos siempre
+empiezan por `YYYY-MM-DD`.
+
 ## Great Expectations: dónde corre, y por qué no es el único filtro
 
 **Decisión (pregunta explícita del enunciado): corre dentro del propio job
@@ -675,9 +776,9 @@ riesgo de agotar ese disco compartido, no por falta de intención. En
 consecuencia:
 
 - `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py` (de
-  **los nueve** datasets) importan `pyspark`/`great_expectations`/`awsglue`
+  **los diez** datasets) importan `pyspark`/`great_expectations`/`awsglue`
   a nivel de módulo y **no se han podido importar ni ejecutar en ninguna de
-  las nueve sesiones (041/046/047/048/049/050/053/054/055)**. Están escritos con el mismo
+  las diez sesiones (041/046/047/048/049/050/053/054/055/056)**. Están escritos con el mismo
   cuidado que el resto del proyecto y basados en la API pública documentada
   de Glue/GX (Glue: `awsglue.context.GlueContext`, `awsglue.job.Job`,
   estable desde hace años; GX: `sources.add_or_update_spark`/`Validator`,
@@ -697,12 +798,13 @@ consecuencia:
   `procesamiento/silver_gold/calidad_aire/__init__.py`,
   `procesamiento/silver_gold/meteorologia/__init__.py`,
   `procesamiento/silver_gold/ruido/__init__.py`,
-  `procesamiento/silver_gold/aforos_peatones_bicicletas/__init__.py` y
-  `procesamiento/silver_gold/cartelera_cines_estrenos/__init__.py`, que
+  `procesamiento/silver_gold/aforos_peatones_bicicletas/__init__.py`,
+  `procesamiento/silver_gold/cartelera_cines_estrenos/__init__.py` y
+  `procesamiento/silver_gold/agenda_eventos/__init__.py`, que
   exponen solo `transform`/`aggregate` (y `geo`, solo en tráfico) a
   propósito) — así el resto del paquete sigue siendo importable/testable en
   cualquier entorno sin Spark.
-- No se ha procesado ningún dato real de Bronze de ninguno de los nueve
+- No se ha procesado ningún dato real de Bronze de ninguno de los diez
   datasets (no hay Glue desplegado todavía): toda la verificación usa
   fixtures construidos a mano —
   `tests/fixtures/trafico_bronze_sample.json` (10 registros, 5 válidos + 5
@@ -754,7 +856,15 @@ consecuencia:
   rechazo por turnos (película/cine/identificador de sesión ausente,
   horario de sesión ausente/sin zona horaria, fecha de captura ausente/sin
   zona horaria, y una sesión cuyo horario ya había pasado en el momento de
-  la captura), ver "Noveno dataset" arriba).
+  la captura), ver "Noveno dataset" arriba) y
+  `tests/fixtures/agenda_eventos_bronze_sample.json` (17 registros: los 10
+  eventos reales de
+  `ingesta/capturas/samples/agenda_eventos_madrid_sample.json` -- 5
+  municipales + 5 de esMadrid, ambas fuentes válidas sin ninguna
+  modificación -- + 7 sintéticos que violan cada regla de rechazo por turnos
+  (`source` ausente/desconocida, `event_id` ausente, `title` ausente,
+  `start_datetime` ausente/no parseable, `captured_at` ausente/sin zona
+  horaria), ver "Décimo dataset" arriba).
 
 ## Terraform (`infra/terraform/glue.tf`)
 
@@ -762,9 +872,9 @@ Sin aplicar (ver arriba). Un bloque de recursos por dataset (`trafico`,
 tarea 041; `transporte_publico_emt`, tarea 046; `bicimad`, tarea 047;
 `aparcamientos`, tarea 048; `calidad_aire`, tarea 049; `meteorologia`, tarea
 050; `ruido`, tarea 053; `aforos_peatones_bicicletas`, tarea 054;
-`cartelera_cines_estrenos`, tarea 055), cada uno con su propio rol IAM
-acotado por prefijo — no se comparte rol entre datasets, mismo principio de
-mínimo privilegio que ya aplicaba `ingesta`:
+`cartelera_cines_estrenos`, tarea 055; `agenda_eventos`, tarea 056), cada
+uno con su propio rol IAM acotado por prefijo — no se comparte rol entre
+datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
 
 - `aws_glue_job.<dataset>_bronze_to_silver` / `<dataset>_silver_to_gold`:
   dos jobs por dataset (uno por transformación, no combinados — para poder
@@ -776,15 +886,16 @@ mínimo privilegio que ya aplicaba `ingesta`:
 - `aws_iam_role.glue_trafico` / `glue_transporte_publico_emt` / `glue_bicimad`
   / `glue_aparcamientos` / `glue_calidad_aire` / `glue_meteorologia` /
   `glue_ruido` / `glue_aforos_peatones_bicicletas` /
-  `glue_cartelera_cines_estrenos`: la política gestionada
-  `AWSGlueServiceRole` (lo que todo job de Glue necesita en su propio
-  nombre: API de Glue, logs bajo `/aws-glue/...`) más una política propia
-  acotada por prefijo — lectura de `bronze/<dataset>/*`, lectura+escritura
-  de `silver/<dataset>/*`, escritura de `gold/<tabla_gold>/*`, lectura del
-  script/librería en el bucket de artefactos (`aws_s3_bucket.build_artifacts`,
-  reutilizado de la tarea 032 para los nueve datasets en vez de crear un
-  bucket nuevo) y permisos acotados sobre el catálogo de Glue de las dos
-  tablas de cada dataset — ni un permiso más.
+  `glue_cartelera_cines_estrenos` / `glue_agenda_eventos`: la política
+  gestionada `AWSGlueServiceRole` (lo que todo job de Glue necesita en su
+  propio nombre: API de Glue, logs bajo `/aws-glue/...`) más una política
+  propia acotada por prefijo — lectura de `bronze/<dataset>/*`,
+  lectura+escritura de `silver/<dataset>/*`, escritura de
+  `gold/<tabla_gold>/*`, lectura del script/librería en el bucket de
+  artefactos (`aws_s3_bucket.build_artifacts`, reutilizado de la tarea 032
+  para los diez datasets en vez de crear un bucket nuevo) y permisos
+  acotados sobre el catálogo de Glue de las dos tablas de cada dataset — ni
+  un permiso más.
 - `aws_glue_catalog_database.silver`/`gold` (compartidas entre datasets, una
   base de datos por capa) + `aws_glue_catalog_table.trafico_silver`/
   `trafico_gold`/`transporte_publico_emt_silver`/`transporte_publico_emt_gold`/
@@ -792,50 +903,54 @@ mínimo privilegio que ya aplicaba `ingesta`:
   `calidad_aire_silver`/`calidad_aire_gold`/`meteorologia_silver`/
   `meteorologia_gold`/`ruido_silver`/`ruido_gold`/
   `aforos_peatones_bicicletas_silver`/`aforos_peatones_bicicletas_gold`/
-  `cartelera_cines_estrenos_silver`/`cartelera_cines_estrenos_gold`:
+  `cartelera_cines_estrenos_silver`/`cartelera_cines_estrenos_gold`/
+  `agenda_eventos_silver`/`agenda_eventos_gold`:
   catalogadas para poder consultarlas con Athena sin ningún paso adicional.
   Bronze deliberadamente **no** se cataloga: son lotes JSON crudos sin un
   esquema único garantizado entre los 21 productores, no pensados para
   consultarse vía SQL.
 - `data.archive_file.procesamiento_source` (**sin cambios en su
   definición**: ya empaquetaba todo `procesamiento/` salvo `tests/`, así
-  que cada subpaquete nuevo, incluido el de la tarea 055, se incluye
+  que cada subpaquete nuevo, incluido el de la tarea 056, se incluye
   automáticamente) + `aws_s3_object.*` por script de cada dataset, subidos
   al bucket de artefactos con el hash del contenido en la key (mismo patrón
   que `data.archive_file.ingesta_source`/`layer_source_key` de tareas
   anteriores) — un cambio de código sube a una key nueva sin pisar la
   anterior.
 
-`terraform validate` limpio (verificado en las nueve tareas, sin backend
+`terraform validate` limpio (verificado en las diez tareas, sin backend
 real inicializado — `terraform init -backend=false`); no se ha ejecutado
 `terraform plan` contra la cuenta real (necesitaría credenciales AWS que
 estas tareas no deben usar para aplicar nada).
 
 ## Relevante para tareas futuras
 
-- El patrón (fijado por la tarea 041, ya replicado ocho veces con la
-  046/047/048/049/050/053/054/055) para extender Bronze→Silver→Gold a más
-  fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py` (Python
-  puro, testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py` (GX,
-  ejecutado en Glue)/`glue_*.py` (entry points) — más `geo.py` **solo si la
-  fuente necesita reproyectar** (no es parte fija del patrón: ni
+- El patrón (fijado por la tarea 041, ya replicado nueve veces con la
+  046/047/048/049/050/053/054/055/056) para extender Bronze→Silver→Gold a
+  más fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py`
+  (Python puro, testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py`
+  (GX, ejecutado en Glue)/`glue_*.py` (entry points) — más `geo.py` **solo
+  si la fuente necesita reproyectar** (no es parte fija del patrón: ni
   `transporte_publico_emt`, ni `bicimad`, ni `aparcamientos`, ni
   `calidad_aire`, ni `meteorologia`, ni `ruido`, ni
-  `aforos_peatones_bicicletas` ni `cartelera_cines_estrenos` lo tienen —
-  las primeras siete porque sus fuentes ya entregan WGS84, la última porque
-  su esquema no tiene ninguna coordenada en absoluto, ver "Segundo
-  dataset"/"Tercer dataset"/"Cuarto dataset"/"Quinto dataset"/"Sexto
-  dataset"/"Séptimo dataset"/"Octavo dataset"/"Noveno dataset" arriba) —,
-  más un bloque en `glue.tf` con su propio rol IAM acotado por prefijo (no
-  un rol compartido entre datasets: mantiene el principio de mínimo
-  privilegio ya aplicado en `ingesta`). `cartelera_cines_estrenos` es
-  también el primer dataset del patrón que no es una serie temporal de
-  medidas sino un catálogo de hechos discretos (sesiones de cine) — si una
+  `aforos_peatones_bicicletas`, ni `cartelera_cines_estrenos` ni
+  `agenda_eventos` lo tienen — las primeras siete y la última porque sus
+  fuentes ya entregan WGS84, `cartelera_cines_estrenos` porque su esquema no
+  tiene ninguna coordenada en absoluto, ver "Segundo dataset"/"Tercer
+  dataset"/"Cuarto dataset"/"Quinto dataset"/"Sexto dataset"/"Séptimo
+  dataset"/"Octavo dataset"/"Noveno dataset"/"Décimo dataset" arriba) —, más
+  un bloque en `glue.tf` con su propio rol IAM acotado por prefijo (no un
+  rol compartido entre datasets: mantiene el principio de mínimo privilegio
+  ya aplicado en `ingesta`). `cartelera_cines_estrenos` fue el primer
+  dataset del patrón que no es una serie temporal de medidas sino un
+  catálogo de hechos discretos (sesiones de cine); `agenda_eventos` replica
+  ese mismo criterio para un segundo dataset de catálogo (eventos) — si una
   tarea futura añade otro dataset "de catálogo" en vez de "de medida", el
-  criterio a replicar es el de `aggregate.py` de este dataset: agregar un
-  **conteo** de hechos por las dimensiones relevantes, no un promedio/suma
-  de ninguna magnitud numérica (no hay ninguna en este tipo de fuente).
-- Antes de aplicar esta infraestructura: (1) smoke-test de los nueve
+  criterio a replicar es el de `aggregate.py` de cualquiera de los dos:
+  agregar un **conteo** de hechos por las dimensiones relevantes, no un
+  promedio/suma de ninguna magnitud numérica (no hay ninguna en este tipo de
+  fuente).
+- Antes de aplicar esta infraestructura: (1) smoke-test de los diez
   `ge_suite.py` contra un Glue Studio Notebook real (ver arriba) —
   `bicimad/ge_suite.py` y `aparcamientos/ge_suite.py` necesitan además
   confirmar que las columnas auxiliares que calculan sus respectivos
@@ -861,8 +976,14 @@ estas tareas no deben usar para aplicar nada).
   `expect_column_pair_values_a_to_be_greater_than_b` (comparación
   lexicográfica de dos columnas de texto ISO-8601, no de instantes reales,
   ver docstring de ese módulo) reproduce fielmente el resultado de
-  `transform.validate_record`, motivo `"showtime_already_passed"`; (2)
-  revisar si `great_expectations==0.18.19` (versión fijada en
+  `transform.validate_record`, motivo `"showtime_already_passed"`;
+  `agenda_eventos/ge_suite.py` es, como `aforos_peatones_bicicletas`, otro
+  que no necesita ninguna columna auxiliar (`source` es un catálogo cerrado
+  de dos valores, cubierto de forma nativa por
+  `expect_column_values_to_be_in_set`), pero conviene confirmar contra el
+  runtime real que `expect_column_values_to_not_be_null("start_datetime")`
+  no rechaza por error el formato "solo fecha" de esMadrid (ver "Décimo
+  dataset" arriba); (2) revisar si `great_expectations==0.18.19` (versión fijada en
   `var.great_expectations_pip_spec`) sigue siendo la última estable de la
   serie 0.18 en el momento de aplicar, y (3) el mismo patrón `terraform
   plan`/`apply` con revisión humana de por medio que ya usaron las tareas
@@ -878,7 +999,12 @@ estas tareas no deben usar para aplicar nada).
   siete tareas (`ruido` y `aforos_peatones_bicicletas` sí conservan
   `district`/`neighbourhood` o `district`/`district_code` en Silver/Gold,
   tomados de sus respectivos catálogos de origen, pero no los usan como
-  clave de agregación).
+  clave de agregación). `agenda_eventos` es distinto: sí usa `district` como
+  clave de agregación de Gold (ver "Décimo dataset" arriba), pero tampoco es
+  un point-in-polygon -- es el distrito que la propia agenda municipal ya
+  resuelve en su catálogo de origen (y que la agenda de esMadrid, al no
+  publicarlo, deja como sentinela `__sin_distrito__`), no una heurística
+  espacial calculada aquí.
 - El rango de plausibilidad por contaminante de `calidad_aire`
   (`transform.PLAUSIBLE_MAX_BY_POLLUTANT`, ver "Quinto dataset" arriba) es
   la primera pieza de la puerta de calidad del patrón que necesita una
@@ -1014,3 +1140,23 @@ estas tareas no deben usar para aplicar nada).
   replicar cualquier tarea futura que encuentre la misma situación (un
   productor de `ingesta/` que normaliza más de una forma de registro bajo
   un mismo dataset).
+- `agenda_eventos` es el primer dataset del patrón que combina, bajo un
+  único esquema Silver, **dos fuentes de origen distintas** cuyos campos
+  clave (`start_datetime`, `district`/`neighborhood`) tienen huecos
+  diferentes (ver "Décimo dataset" arriba): una fuente siempre resuelve
+  distrito/barrio y la otra nunca lo hace; una siempre trae hora de
+  celebración y la otra solo fecha. El criterio aplicado -- no exigir en la
+  puerta de calidad ningún campo que una de las dos fuentes nunca vaya a
+  tener, y usar sentinelas (`__sin_categoria__`/`__sin_distrito__`) en la
+  agregación de Gold en vez de descartar esos registros -- es el que
+  debería replicar cualquier tarea futura que combine varias fuentes con
+  cobertura de campos desigual bajo un mismo dataset (a diferencia de
+  `ruido`/`aforos_peatones_bicicletas`, donde el campo ausente es opcional
+  pero la fuente es única). Es también el segundo dataset del patrón (tras
+  `cartelera_cines_estrenos`) que es un catálogo de hechos discretos en vez
+  de una serie temporal de medidas, y el primero cuya agregación de Gold sí
+  usa una dimensión geográfica (`district`) como parte de la clave --
+  aunque, a diferencia de una agregación por distrito point-in-polygon
+  (pendiente de la tarea 043, ver bullet de arriba), aquí `district` viene
+  ya resuelto por el catálogo de origen de una de las dos fuentes, no
+  calculado en esta tarea.
