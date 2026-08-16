@@ -2,19 +2,19 @@
 id: 48
 slug: silver-gold-aparcamientos
 title: 'Silver/Gold: aparcamientos rotacionales (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/048-silver-gold-aparcamientos
-pr_number: null
-pr_url: null
+pr_number: 95
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/95
 attempts: 6
 next_retry_at: '2026-08-16T07:17:36.141798+00:00'
 last_error: You've hit your session limit · resets 5am (UTC)
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T07:17:42.951146+00:00'
+updated_at: '2026-08-16T07:28:09.230613+00:00'
 started_at: '2026-08-16T01:12:54.221061+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T07:28:09.230479+00:00'
 merged_at: null
 ---
 
