@@ -2,19 +2,19 @@
 id: 50
 slug: silver-gold-meteorologia
 title: 'Silver/Gold: meteorología (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/050-silver-gold-meteorologia
-pr_number: null
-pr_url: null
+pr_number: 97
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/97
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T07:40:54.202908+00:00'
+updated_at: '2026-08-16T07:51:54.788159+00:00'
 started_at: '2026-08-16T07:40:54.202884+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T07:51:54.788025+00:00'
 merged_at: null
 ---
 
