@@ -967,3 +967,452 @@ resource "aws_glue_job" "transporte_publico_emt_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_transporte_publico_emt]
 }
+
+# ---------------------------------------------------------------------------
+# Tarea 047: mismo patrón Bronze -> Silver -> Gold con AWS Glue, aplicado al
+# tercer dataset (`bicimad`, estado de estaciones de BiciMAD vía GBFS, ver
+# doc/004, `ingesta/capturas/bicimad.py` y
+# `procesamiento/silver_gold/bicimad/`). Alcance de ESTA tarea: igual que la
+# 041/046, solo código/infraestructura, sin `terraform apply` -- `terraform
+# plan`/`apply` de este bloque quedan para una tarea posterior con revisión
+# de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/bicimad/*`, `silver/bicimad/*`,
+# `gold/bicimad_por_estacion_hora/*`) -- no se comparte ningún rol con
+# `trafico`/`transporte_publico_emt`, mismo principio de mínimo privilegio
+# por dataset que ya aplicaba `ingesta` (ver `procesamiento/README.md`).
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_bicimad_prefix = "${var.project_name}-${var.environment}-bicimad"
+}
+
+resource "aws_s3_object" "glue_script_bicimad_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/bicimad_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_bicimad_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/bicimad_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_bicimad_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_bicimad" {
+  name = "${local.glue_bicimad_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de BiciMAD (tarea 047)."
+  assume_role_policy = data.aws_iam_policy_document.glue_bicimad_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_bicimad_service_role" {
+  role       = aws_iam_role.glue_bicimad.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_bicimad_data_access" {
+  statement {
+    sid    = "ReadBronzeBicimad"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/bicimad/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverBicimad"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/bicimad/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldBicimadPorEstacionHora"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/bicimad_por_estacion_hora/*"]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForBicimadPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "bicimad/*",
+        "bicimad_por_estacion_hora/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que `glue_trafico_data_access`/
+  # `glue_transporte_publico_emt_data_access`: bucket Silver, prefijo
+  # `glue-temp/` (compartido entre datasets -- no es dato persistente, solo
+  # shuffle spill/ficheros temporales de escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogBicimadTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_bicimad_data_access" {
+  name = "${local.glue_bicimad_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de BiciMAD a los buckets del lakehouse y al catalogo de Glue (tarea 047)."
+  policy      = data.aws_iam_policy_document.glue_bicimad_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_bicimad_data_access" {
+  role       = aws_iam_role.glue_bicimad.name
+  policy_arn = aws_iam_policy.glue_bicimad_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "bicimad_silver" {
+  name          = "bicimad"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Estado de estaciones de BiciMAD (GBFS), limpio/validado (tarea 047)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bicimad/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "station_id"
+      type = "string"
+    }
+    columns {
+      name = "name"
+      type = "string"
+    }
+    columns {
+      name = "address"
+      type = "string"
+    }
+    columns {
+      name = "measured_at"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+    columns {
+      name = "bikes_available"
+      type = "int"
+    }
+    columns {
+      name = "bikes_disabled"
+      type = "int"
+    }
+    columns {
+      name = "docks_available"
+      type = "int"
+    }
+    columns {
+      name = "docks_disabled"
+      type = "int"
+    }
+    columns {
+      name = "docks_total"
+      type = "int"
+    }
+    columns {
+      name = "status"
+      type = "string"
+    }
+    columns {
+      name = "is_renting"
+      type = "boolean"
+    }
+    columns {
+      name = "is_returning"
+      type = "boolean"
+    }
+    columns {
+      name = "occupancy_ratio"
+      type = "double"
+    }
+    columns {
+      name = "location"
+      type = "struct<lat:double,lon:double,srid:string>"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "bicimad_gold" {
+  name          = "bicimad_por_estacion_hora"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Estado de estaciones de BiciMAD agregado por estacion y hora (tarea 047)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bicimad_por_estacion_hora/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "station_id"
+      type = "string"
+    }
+    columns {
+      name = "name"
+      type = "string"
+    }
+    columns {
+      name = "hour"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "first_measured_at"
+      type = "string"
+    }
+    columns {
+      name = "last_measured_at"
+      type = "string"
+    }
+    columns {
+      name = "avg_bikes_available"
+      type = "double"
+    }
+    columns {
+      name = "avg_bikes_disabled"
+      type = "double"
+    }
+    columns {
+      name = "avg_docks_available"
+      type = "double"
+    }
+    columns {
+      name = "avg_docks_disabled"
+      type = "double"
+    }
+    columns {
+      name = "avg_occupancy_ratio"
+      type = "double"
+    }
+    columns {
+      name = "docks_total"
+      type = "int"
+    }
+    columns {
+      name = "lat"
+      type = "double"
+    }
+    columns {
+      name = "lon"
+      type = "double"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_bicimad" {
+  name              = "/aws-glue/jobs/${local.glue_bicimad_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "bicimad_bronze_to_silver" {
+  name        = "${local.glue_bicimad_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de BiciMAD: normalizacion, puerta de calidad (tarea 047)."
+
+  role_arn          = aws_iam_role.glue_bicimad.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_bicimad_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/bicimad/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bicimad/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/bicimad/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_bicimad]
+}
+
+resource "aws_glue_job" "bicimad_silver_to_gold" {
+  name        = "${local.glue_bicimad_prefix}-silver-to-gold"
+  description = "Silver -> Gold de BiciMAD: disponibilidad media de bicis/anclajes por estacion y hora (tarea 047)."
+
+  role_arn          = aws_iam_role.glue_bicimad.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_bicimad_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bicimad/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bicimad_por_estacion_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_bicimad]
+}
