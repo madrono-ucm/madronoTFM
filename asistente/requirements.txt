@@ -1,0 +1,16 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+
+# Tarea 044: SDK oficial del Model Context Protocol (Anthropic + comunidad,
+# https://github.com/modelcontextprocol/python-sdk), estándar de facto para
+# exponer tools/resources/prompts a agentes LLM de forma interoperable.
+# Versión instalada y verificada en esta tarea: 2.0.0 -- en esta versión la
+# clase de alto nivel para construir un servidor es `MCPServer`
+# (`mcp.server.mcpserver.server`); versiones anteriores del SDK exponían la
+# misma idea como `FastMCP` bajo `mcp.server.fastmcp`, ya no presente en el
+# paquete instalado. Ver docstring de `asistente/mcp_agent/server.py`.
+mcp>=2.0,<3
+
+# Requerido por fastapi.testclient.TestClient (asistente/tests/test_app.py);
+# fastapi solo lo instala automáticamente con el extra "standard".
+httpx>=0.27,<1
