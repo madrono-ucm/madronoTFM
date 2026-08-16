@@ -1,0 +1,122 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "5",
+    "name": "Nuestra Señora del Recuerdo",
+    "address": "Calle de la Hiedra",
+    "measured_at": "2026-08-15T12:23:55+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 333,
+    "total_spaces": 832,
+    "location": {"lat": 40.472181, "lon": -3.67916, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "7",
+    "name": "Avenida de Portugal",
+    "address": "Avda. de Portugal, s/n. Frente al nº 51",
+    "measured_at": "2026-08-15T12:23:04+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 301,
+    "total_spaces": 432,
+    "location": {"lat": 40.415415, "lon": -3.727515, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "9",
+    "name": "Paseo de Recoletos",
+    "address": "Paseo Recoletos",
+    "measured_at": "2026-08-15T12:23:58+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 167,
+    "total_spaces": 281,
+    "location": {"lat": 40.421191, "lon": -3.691953, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "12",
+    "name": "Almagro",
+    "address": "Almagro",
+    "measured_at": "2026-08-15T12:23:29+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 360,
+    "total_spaces": 462,
+    "location": {"lat": 40.429801, "lon": -3.693238, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "15",
+    "name": "Jacinto Benavente",
+    "address": "Plaza J. Benavente",
+    "measured_at": "2026-08-15T12:23:17+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 0,
+    "total_spaces": 280,
+    "location": {"lat": 40.414267, "lon": -3.703448, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "20",
+    "name": "Aparcamiento sin ocupacion en tiempo real",
+    "address": "Calle sin dato",
+    "measured_at": null,
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": null,
+    "total_spaces": null,
+    "location": {"lat": 40.42, "lon": -3.70, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": null,
+    "name": "Aparcamiento sin id",
+    "address": null,
+    "measured_at": "2026-08-15T12:23:00+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 10,
+    "total_spaces": 20,
+    "location": {"lat": 40.42, "lon": -3.70, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "21",
+    "name": "Aparcamiento con plazas libres negativas",
+    "address": null,
+    "measured_at": "2026-08-15T12:23:00+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": -1,
+    "total_spaces": 20,
+    "location": {"lat": 40.42, "lon": -3.70, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "22",
+    "name": "Aparcamiento con plazas totales negativas",
+    "address": null,
+    "measured_at": "2026-08-15T12:23:00+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 5,
+    "total_spaces": -20,
+    "location": {"lat": 40.42, "lon": -3.70, "srid": "EPSG:4326"}
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_aparcamientos_rotacionales",
+    "parking_id": "23",
+    "name": "Aparcamiento con libres por encima de totales",
+    "address": null,
+    "measured_at": "2026-08-15T12:23:00+02:00",
+    "ingested_at": "2026-08-15T12:24:06.342708+02:00",
+    "free_spaces": 25,
+    "total_spaces": 20,
+    "location": {"lat": 40.42, "lon": -3.70, "srid": "EPSG:4326"}
+  }
+]
