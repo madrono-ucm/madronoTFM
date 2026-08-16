@@ -4242,3 +4242,469 @@ resource "aws_glue_job" "cartelera_cines_estrenos_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_cartelera_cines_estrenos]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (tarea 041/046/047/048/049/050/053/054/055
+# extendido a un DÉCIMO dataset (`agenda_eventos`, agenda de eventos
+# culturales y de ocio de Madrid -- dos fuentes combinadas, dataset
+# municipal de datos.madrid.es y agenda turística de esmadrid.com -- ver
+# `ingesta/capturas/agenda_eventos_madrid.py` y
+# `procesamiento/silver_gold/agenda_eventos/`). Alcance de ESTA tarea: igual
+# que las anteriores, solo código/infraestructura, sin `terraform apply` --
+# `terraform plan`/`apply` de este bloque quedan para una tarea posterior
+# con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/agenda_eventos/*`, `silver/agenda_eventos/*`,
+# `gold/agenda_eventos_por_categoria_distrito_fecha/*`) -- no se comparte
+# ningún rol con el resto de datasets, mismo principio de mínimo privilegio
+# por dataset que ya aplicaba `ingesta`.
+#
+# Incluye desde el principio los dos statements de permisos que las tareas
+# 051/052 tuvieron que descubrir empíricamente y añadir a posteriori para
+# los seis primeros datasets (`WriteSilverQualityReports...` y el marcador
+# `_$folder$` de Gold), mismo criterio ya aplicado por `ruido`/
+# `aforos_peatones_bicicletas`/`cartelera_cines_estrenos` (tareas 053/054/055).
+#
+# La tabla Silver del catálogo declara una única `partition_keys` (`fecha`,
+# sin `hora`) -- mismo motivo que `ruido` (tarea 053): una de las dos
+# fuentes (`agenda_turismo_esmadrid`) no publica ninguna hora de
+# celebración, ver docstring de `glue_bronze_to_silver.py`.
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_agenda_eventos_prefix = "${var.project_name}-${var.environment}-agenda-eventos"
+}
+
+resource "aws_s3_object" "glue_script_agenda_eventos_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/agenda_eventos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_agenda_eventos_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/agenda_eventos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_agenda_eventos_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_agenda_eventos" {
+  name = "${local.glue_agenda_eventos_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de la agenda de eventos (tarea 056)."
+  assume_role_policy = data.aws_iam_policy_document.glue_agenda_eventos_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_agenda_eventos_service_role" {
+  role       = aws_iam_role.glue_agenda_eventos.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_agenda_eventos_data_access" {
+  statement {
+    sid    = "ReadBronzeAgendaEventos"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/agenda_eventos/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverAgendaEventos"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/agenda_eventos/*"]
+  }
+
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsAgendaEventos"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/agenda_eventos/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldAgendaEventosPorCategoriaDistritoFecha"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+    # el marcador `_$folder$` que crea el committer de Spark cuando el
+    # DataFrame de Gold sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/agenda_eventos_por_categoria_distrito_fecha/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/agenda_eventos_por_categoria_distrito_fecha_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForAgendaEventosPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "agenda_eventos/*",
+        "agenda_eventos_por_categoria_distrito_fecha/*",
+        "_quality_reports/agenda_eventos/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets --
+  # no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogAgendaEventosTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_agenda_eventos_data_access" {
+  name = "${local.glue_agenda_eventos_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de la agenda de eventos a los buckets del lakehouse y al catalogo de Glue (tarea 056)."
+  policy      = data.aws_iam_policy_document.glue_agenda_eventos_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_agenda_eventos_data_access" {
+  role       = aws_iam_role.glue_agenda_eventos.name
+  policy_arn = aws_iam_policy.glue_agenda_eventos_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "agenda_eventos_silver" {
+  name          = "agenda_eventos"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Eventos culturales y de ocio de Madrid (agenda municipal + esMadrid), limpios/validados (tarea 056)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/agenda_eventos/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "event_id"
+      type = "string"
+    }
+    columns {
+      name = "title"
+      type = "string"
+    }
+    columns {
+      name = "description"
+      type = "string"
+    }
+    columns {
+      name = "category"
+      type = "string"
+    }
+    columns {
+      name = "start_datetime"
+      type = "string"
+    }
+    columns {
+      name = "end_datetime"
+      type = "string"
+    }
+    columns {
+      name = "schedule_text"
+      type = "string"
+    }
+    columns {
+      name = "free"
+      type = "boolean"
+    }
+    columns {
+      name = "price_info"
+      type = "string"
+    }
+    columns {
+      name = "venue_name"
+      type = "string"
+    }
+    columns {
+      name = "address"
+      type = "string"
+    }
+    columns {
+      name = "district"
+      type = "string"
+    }
+    columns {
+      name = "neighborhood"
+      type = "string"
+    }
+    columns {
+      name = "postal_code"
+      type = "string"
+    }
+    columns {
+      name = "lat"
+      type = "double"
+    }
+    columns {
+      name = "lon"
+      type = "double"
+    }
+    columns {
+      name = "url"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "agenda_eventos_gold" {
+  name          = "agenda_eventos_por_categoria_distrito_fecha"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Numero de eventos culturales/de ocio agregado por categoria, distrito y dia de celebracion (tarea 056)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/agenda_eventos_por_categoria_distrito_fecha/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "category"
+      type = "string"
+    }
+    columns {
+      name = "district"
+      type = "string"
+    }
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "events_count"
+      type = "bigint"
+    }
+    columns {
+      name = "free_events_count"
+      type = "bigint"
+    }
+    columns {
+      name = "sources"
+      type = "array<string>"
+    }
+    columns {
+      name = "first_start_datetime"
+      type = "string"
+    }
+    columns {
+      name = "last_start_datetime"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_agenda_eventos" {
+  name              = "/aws-glue/jobs/${local.glue_agenda_eventos_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "agenda_eventos_bronze_to_silver" {
+  name        = "${local.glue_agenda_eventos_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de la agenda de eventos: normalizacion, puerta de calidad por evento (tarea 056)."
+
+  role_arn          = aws_iam_role.glue_agenda_eventos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_agenda_eventos_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/agenda_eventos/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/agenda_eventos/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/agenda_eventos/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_agenda_eventos]
+}
+
+resource "aws_glue_job" "agenda_eventos_silver_to_gold" {
+  name        = "${local.glue_agenda_eventos_prefix}-silver-to-gold"
+  description = "Silver -> Gold de la agenda de eventos: numero de eventos por categoria, distrito y dia (tarea 056)."
+
+  role_arn          = aws_iam_role.glue_agenda_eventos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_agenda_eventos_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/agenda_eventos/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/agenda_eventos_por_categoria_distrito_fecha/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_agenda_eventos]
+}
