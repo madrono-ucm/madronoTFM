@@ -1416,3 +1416,419 @@ resource "aws_glue_job" "bicimad_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_bicimad]
 }
+
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (Glue, tarea 041/046/047 extendido a un CUARTO
+# dataset (`aparcamientos`, ocupación de aparcamientos rotacionales de
+# Madrid vía el servicio SOAP de datos.madrid.es, ver doc/005,
+# `ingesta/capturas/aparcamientos_madrid.py` y
+# `procesamiento/silver_gold/aparcamientos/`). Alcance de ESTA tarea: igual
+# que la 041/046/047, solo código/infraestructura, sin `terraform apply` --
+# `terraform plan`/`apply` de este bloque quedan para una tarea posterior
+# con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/aparcamientos/*`, `silver/aparcamientos/*`,
+# `gold/aparcamientos_por_parking_hora/*`) -- no se comparte ningún rol con
+# `trafico`/`transporte_publico_emt`/`bicimad`, mismo principio de mínimo
+# privilegio por dataset que ya aplicaba `ingesta` (ver
+# `procesamiento/README.md`).
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_aparcamientos_prefix = "${var.project_name}-${var.environment}-aparcamientos"
+}
+
+resource "aws_s3_object" "glue_script_aparcamientos_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/aparcamientos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_aparcamientos_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/aparcamientos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_aparcamientos_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_aparcamientos" {
+  name = "${local.glue_aparcamientos_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de aparcamientos rotacionales (tarea 048)."
+  assume_role_policy = data.aws_iam_policy_document.glue_aparcamientos_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_aparcamientos_service_role" {
+  role       = aws_iam_role.glue_aparcamientos.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_aparcamientos_data_access" {
+  statement {
+    sid    = "ReadBronzeAparcamientos"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/aparcamientos/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverAparcamientos"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/aparcamientos/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldAparcamientosPorParkingHora"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/aparcamientos_por_parking_hora/*"]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForAparcamientosPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "aparcamientos/*",
+        "aparcamientos_por_parking_hora/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets
+  # -- no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogAparcamientosTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_aparcamientos_data_access" {
+  name = "${local.glue_aparcamientos_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de aparcamientos rotacionales a los buckets del lakehouse y al catalogo de Glue (tarea 048)."
+  policy      = data.aws_iam_policy_document.glue_aparcamientos_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_aparcamientos_data_access" {
+  role       = aws_iam_role.glue_aparcamientos.name
+  policy_arn = aws_iam_policy.glue_aparcamientos_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "aparcamientos_silver" {
+  name          = "aparcamientos"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Ocupación de aparcamientos rotacionales de Madrid, limpia/validada (tarea 048)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aparcamientos/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "parking_id"
+      type = "string"
+    }
+    columns {
+      name = "name"
+      type = "string"
+    }
+    columns {
+      name = "address"
+      type = "string"
+    }
+    columns {
+      name = "measured_at"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+    columns {
+      name = "free_spaces"
+      type = "int"
+    }
+    columns {
+      name = "total_spaces"
+      type = "int"
+    }
+    columns {
+      name = "occupancy_ratio"
+      type = "double"
+    }
+    columns {
+      name = "location"
+      type = "struct<lat:double,lon:double,srid:string>"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "aparcamientos_gold" {
+  name          = "aparcamientos_por_parking_hora"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Ocupación de aparcamientos rotacionales agregada por aparcamiento y hora (tarea 048)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aparcamientos_por_parking_hora/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "parking_id"
+      type = "string"
+    }
+    columns {
+      name = "name"
+      type = "string"
+    }
+    columns {
+      name = "hour"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "first_measured_at"
+      type = "string"
+    }
+    columns {
+      name = "last_measured_at"
+      type = "string"
+    }
+    columns {
+      name = "avg_free_spaces"
+      type = "double"
+    }
+    columns {
+      name = "avg_occupancy_ratio"
+      type = "double"
+    }
+    columns {
+      name = "total_spaces"
+      type = "int"
+    }
+    columns {
+      name = "lat"
+      type = "double"
+    }
+    columns {
+      name = "lon"
+      type = "double"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_aparcamientos" {
+  name              = "/aws-glue/jobs/${local.glue_aparcamientos_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "aparcamientos_bronze_to_silver" {
+  name        = "${local.glue_aparcamientos_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de aparcamientos rotacionales: normalizacion, puerta de calidad (tarea 048)."
+
+  role_arn          = aws_iam_role.glue_aparcamientos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_aparcamientos_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/aparcamientos/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aparcamientos/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/aparcamientos/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_aparcamientos]
+}
+
+resource "aws_glue_job" "aparcamientos_silver_to_gold" {
+  name        = "${local.glue_aparcamientos_prefix}-silver-to-gold"
+  description = "Silver -> Gold de aparcamientos rotacionales: ocupacion media por aparcamiento y hora (tarea 048)."
+
+  role_arn          = aws_iam_role.glue_aparcamientos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_aparcamientos_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aparcamientos/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aparcamientos_por_parking_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_aparcamientos]
+}
