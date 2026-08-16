@@ -1,0 +1,197 @@
+"""Job de AWS Glue: Bronze -> Silver del dataset `bicimad`.
+
+**No ejecutado en esta tarea** (mismo alcance de solo código/infraestructura,
+sin `terraform apply`, que `trafico/glue_bronze_to_silver.py`
+(tarea 041)/`transporte_publico_emt/glue_bronze_to_silver.py` (tarea 046),
+ver `procesamiento/README.md`): este script asume el entorno de ejecución
+real de un Glue Job Spark (runtime `glueetl`, `pyspark`/`awsglue`/
+`great_expectations` disponibles). No se ha podido importar ni ejecutar aquí
+(esta EC2 de desarrollo no tiene Spark instalado).
+
+Reutiliza toda la lógica de negocio de `transform.py` (normalización, puerta
+de calidad) tal cual -- este módulo solo es el "pegamento" de Spark/Glue:
+leer Bronze, aplicar `bronze_to_silver` fila a fila vía `rdd.mapPartitions`,
+añadir las columnas auxiliares de consistencia que necesita `ge_suite.py`
+(ver `_with_consistency_columns`) y escribir el resultado.
+
+Parámetros del job (`--<nombre>`, ver `glue.tf`):
+
+- `JOB_NAME`: nombre del job (estándar de Glue).
+- `bronze_path`: prefijo S3 de origen, p.ej.
+  `s3://madrono-tfm-dev-bronze-222234418587/bicimad/`.
+- `silver_path`: prefijo S3 de destino, p.ej.
+  `s3://madrono-tfm-dev-silver-222234418587/bicimad/`.
+- `quality_report_path`: prefijo S3 donde se escribe el informe de
+  validación de Great Expectations (un JSON por ejecución del job).
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+import great_expectations as gx
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from pyspark.sql import Row, SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    BooleanType,
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
+
+from procesamiento.silver_gold.bicimad.ge_suite import run_quality_report
+from procesamiento.silver_gold.bicimad.transform import bronze_to_silver
+
+MADRID_TZ = ZoneInfo("Europe/Madrid")
+
+LOCATION_SCHEMA = StructType(
+    [
+        StructField("lat", DoubleType(), True),
+        StructField("lon", DoubleType(), True),
+        StructField("srid", StringType(), True),
+    ]
+)
+
+SILVER_SCHEMA = StructType(
+    [
+        StructField("schema_version", IntegerType(), False),
+        StructField("source", StringType(), True),
+        StructField("station_id", StringType(), False),
+        StructField("name", StringType(), True),
+        StructField("address", StringType(), True),
+        StructField("measured_at", StringType(), False),
+        StructField("ingested_at", StringType(), False),
+        StructField("processed_at", StringType(), False),
+        StructField("bikes_available", IntegerType(), True),
+        StructField("bikes_disabled", IntegerType(), True),
+        StructField("docks_available", IntegerType(), True),
+        StructField("docks_disabled", IntegerType(), True),
+        StructField("docks_total", IntegerType(), True),
+        StructField("status", StringType(), True),
+        StructField("is_renting", BooleanType(), True),
+        StructField("is_returning", BooleanType(), True),
+        StructField("occupancy_ratio", DoubleType(), True),
+        StructField("location", LOCATION_SCHEMA, False),
+    ]
+)
+
+
+def _to_silver_row(silver_record: dict) -> Row:
+    location = silver_record["location"]
+    return Row(
+        schema_version=silver_record["schema_version"],
+        source=silver_record["source"],
+        station_id=silver_record["station_id"],
+        name=silver_record["name"],
+        address=silver_record["address"],
+        measured_at=silver_record["measured_at"],
+        ingested_at=silver_record["ingested_at"],
+        processed_at=silver_record["processed_at"],
+        bikes_available=silver_record["bikes_available"],
+        bikes_disabled=silver_record["bikes_disabled"],
+        docks_available=silver_record["docks_available"],
+        docks_disabled=silver_record["docks_disabled"],
+        docks_total=silver_record["docks_total"],
+        status=silver_record["status"],
+        is_renting=silver_record["is_renting"],
+        is_returning=silver_record["is_returning"],
+        occupancy_ratio=silver_record["occupancy_ratio"],
+        location=Row(
+            lat=location["lat"],
+            lon=location["lon"],
+            srid=location["srid"],
+        ),
+    )
+
+
+def _process_partition(rows, processed_at_iso: str):
+    """Aplica `bronze_to_silver` a una partición de filas Bronze (ejecuta en cada executor)."""
+    processed_at = datetime.fromisoformat(processed_at_iso)
+    bronze_records = [row.asDict(recursive=True) for row in rows]
+    silver_records, _rejected = bronze_to_silver(bronze_records, processed_at)
+    return [_to_silver_row(r) for r in silver_records]
+
+
+def _with_consistency_columns(silver_df):
+    """Añade las columnas auxiliares que `ge_suite.py` valida como `<= 0`.
+
+    GX no tiene una expectation nativa de "suma de columnas <= otra
+    columna" (ver docstring de `ge_suite.py`); se calcula aquí una vez, en
+    Spark, en vez de repetir la lógica de `transform.validate_record` como
+    una expresión de columnas separada.
+    """
+    return silver_df.withColumn(
+        "bikes_over_capacity",
+        (F.coalesce(F.col("bikes_available"), F.lit(0)) + F.coalesce(F.col("bikes_disabled"), F.lit(0)))
+        - F.col("docks_total"),
+    ).withColumn(
+        "docks_over_capacity",
+        (F.coalesce(F.col("docks_available"), F.lit(0)) + F.coalesce(F.col("docks_disabled"), F.lit(0)))
+        - F.col("docks_total"),
+    )
+
+
+def main() -> None:
+    args = getResolvedOptions(
+        sys.argv, ["JOB_NAME", "bronze_path", "silver_path", "quality_report_path"]
+    )
+
+    sc = SparkContext()
+    glue_context = GlueContext(sc)
+    spark: SparkSession = glue_context.spark_session
+    job = Job(glue_context)
+    job.init(args["JOB_NAME"], args)
+
+    processed_at = datetime.now(MADRID_TZ)
+
+    # Cada objeto Bronze es un array JSON de registros (ver
+    # `ingesta/capturas/bronze.py`, `write_batch`); `multiLine=True` hace
+    # que Spark expanda ese array en filas en vez de esperar NDJSON.
+    bronze_df = spark.read.option("multiLine", True).json(args["bronze_path"])
+
+    silver_rdd = bronze_df.rdd.mapPartitions(
+        lambda rows: _process_partition(rows, processed_at.isoformat())
+    )
+    silver_df = spark.createDataFrame(silver_rdd, schema=SILVER_SCHEMA)
+    silver_df.cache()
+
+    # Puerta de calidad Great Expectations (observabilidad/auditoría, ver
+    # docstring de `ge_suite.py`): corre sobre Silver ya filtrado por
+    # `bronze_to_silver`, en el mismo SparkSession.
+    gx_context = gx.get_context(mode="ephemeral")
+    quality_report = run_quality_report(gx_context, _with_consistency_columns(silver_df))
+    report_key = (
+        f"{args['quality_report_path'].rstrip('/')}/"
+        f"bicimad_{processed_at:%Y%m%dT%H%M%S}.json"
+    )
+    sc.parallelize([json.dumps(quality_report, ensure_ascii=False)], numSlices=1).saveAsTextFile(
+        report_key
+    )
+
+    # Mismo esquema de partición que Bronze (fecha=/hora=, hora de Madrid),
+    # para que un consumidor ya familiarizado con Bronze no tenga que
+    # aprender un esquema de partición distinto para Silver.
+    from pyspark.sql.functions import date_format, to_timestamp
+
+    silver_partitioned = silver_df.withColumn(
+        "fecha", date_format(to_timestamp("measured_at"), "yyyy-MM-dd")
+    ).withColumn("hora", date_format(to_timestamp("measured_at"), "HH"))
+
+    silver_partitioned.write.mode("append").partitionBy("fecha", "hora").parquet(
+        args["silver_path"]
+    )
+
+    job.commit()
+
+
+if __name__ == "__main__":
+    main()
