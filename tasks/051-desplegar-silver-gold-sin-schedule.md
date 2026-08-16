@@ -2,19 +2,19 @@
 id: 51
 slug: desplegar-silver-gold-sin-schedule
 title: Arreglar los dos bugs de Glue que bloquean Silver/Gold (sin verificación completa)
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: true
 branch: task/051-desplegar-silver-gold-sin-schedule
-pr_number: null
-pr_url: null
+pr_number: 98
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/98
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T14:41:39.808857+00:00'
+updated_at: '2026-08-16T14:52:35.107407+00:00'
 started_at: '2026-08-16T14:41:39.808827+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T14:52:35.107273+00:00'
 merged_at: null
 ---
 
