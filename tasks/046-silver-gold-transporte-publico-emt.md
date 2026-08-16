@@ -1,19 +1,19 @@
 ---
 id: 46
 slug: silver-gold-transporte-publico-emt
-title: "Silver/Gold: transporte público EMT (siguiendo el patrón de la tarea 041)"
-status: pending
+title: 'Silver/Gold: transporte público EMT (siguiendo el patrón de la tarea 041)'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/046-silver-gold-transporte-publico-emt
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-16T09:30:00+00:00"
-updated_at: "2026-08-16T09:30:00+00:00"
-started_at: null
+created_at: '2026-08-16T09:30:00+00:00'
+updated_at: '2026-08-16T00:51:31.755268+00:00'
+started_at: '2026-08-16T00:51:31.755243+00:00'
 submitted_at: null
 merged_at: null
 ---
