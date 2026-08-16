@@ -2271,3 +2271,422 @@ resource "aws_glue_job" "calidad_aire_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_calidad_aire]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (Glue, tarea 041/046/047/048/049 extendido a un
+# SEXTO dataset (`meteorologia`, lecturas horarias de la red de estaciones
+# meteorológicas de Madrid, ver doc/008,
+# `ingesta/capturas/meteorologia_madrid.py` y
+# `procesamiento/silver_gold/meteorologia/`). Alcance de ESTA tarea: igual
+# que la 041/046/047/048/049, solo código/infraestructura, sin `terraform
+# apply` -- `terraform plan`/`apply` de este bloque quedan para una tarea
+# posterior con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/meteorologia/*`, `silver/meteorologia/*`,
+# `gold/meteorologia_por_estacion_magnitud_hora/*`) -- no se comparte ningún
+# rol con `trafico`/`transporte_publico_emt`/`bicimad`/`aparcamientos`/
+# `calidad_aire`, mismo principio de mínimo privilegio por dataset que ya
+# aplicaba `ingesta` (ver `procesamiento/README.md`).
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_meteorologia_prefix = "${var.project_name}-${var.environment}-meteorologia"
+}
+
+resource "aws_s3_object" "glue_script_meteorologia_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/meteorologia_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_meteorologia_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/meteorologia_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_meteorologia_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_meteorologia" {
+  name = "${local.glue_meteorologia_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de meteorología (tarea 050)."
+  assume_role_policy = data.aws_iam_policy_document.glue_meteorologia_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_meteorologia_service_role" {
+  role       = aws_iam_role.glue_meteorologia.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_meteorologia_data_access" {
+  statement {
+    sid    = "ReadBronzeMeteorologia"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/meteorologia/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverMeteorologia"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/meteorologia/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldMeteorologiaPorEstacionMagnitudHora"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/meteorologia_por_estacion_magnitud_hora/*"]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForMeteorologiaPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "meteorologia/*",
+        "meteorologia_por_estacion_magnitud_hora/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets
+  # -- no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogMeteorologiaTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_meteorologia_data_access" {
+  name = "${local.glue_meteorologia_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de meteorologia a los buckets del lakehouse y al catalogo de Glue (tarea 050)."
+  policy      = data.aws_iam_policy_document.glue_meteorologia_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_meteorologia_data_access" {
+  role       = aws_iam_role.glue_meteorologia.name
+  policy_arn = aws_iam_policy.glue_meteorologia_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "meteorologia_silver" {
+  name          = "meteorologia"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Lecturas meteorológicas de la red de estaciones de Madrid, limpias/validadas y pivotadas a formato largo (tarea 050)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/meteorologia/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "station_id"
+      type = "string"
+    }
+    columns {
+      name = "station_name"
+      type = "string"
+    }
+    columns {
+      name = "station_address"
+      type = "string"
+    }
+    columns {
+      name = "magnitude"
+      type = "string"
+    }
+    columns {
+      name = "value"
+      type = "double"
+    }
+    columns {
+      name = "measured_at"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+    columns {
+      name = "location"
+      type = "struct<lat:double,lon:double,srid:string,altitude_m:int>"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "meteorologia_gold" {
+  name          = "meteorologia_por_estacion_magnitud_hora"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Meteorología agregada por estación, magnitud y hora (tarea 050)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/meteorologia_por_estacion_magnitud_hora/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "station_id"
+      type = "string"
+    }
+    columns {
+      name = "station_name"
+      type = "string"
+    }
+    columns {
+      name = "magnitude"
+      type = "string"
+    }
+    columns {
+      name = "hour"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "first_measured_at"
+      type = "string"
+    }
+    columns {
+      name = "last_measured_at"
+      type = "string"
+    }
+    columns {
+      name = "avg_value"
+      type = "double"
+    }
+    columns {
+      name = "max_value"
+      type = "double"
+    }
+    columns {
+      name = "min_value"
+      type = "double"
+    }
+    columns {
+      name = "lat"
+      type = "double"
+    }
+    columns {
+      name = "lon"
+      type = "double"
+    }
+    columns {
+      name = "altitude_m"
+      type = "int"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_meteorologia" {
+  name              = "/aws-glue/jobs/${local.glue_meteorologia_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "meteorologia_bronze_to_silver" {
+  name        = "${local.glue_meteorologia_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de meteorologia: pivote ancho->largo, puerta de calidad por magnitud (tarea 050)."
+
+  role_arn          = aws_iam_role.glue_meteorologia.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_meteorologia_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/meteorologia/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/meteorologia/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/meteorologia/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_meteorologia]
+}
+
+resource "aws_glue_job" "meteorologia_silver_to_gold" {
+  name        = "${local.glue_meteorologia_prefix}-silver-to-gold"
+  description = "Silver -> Gold de meteorologia: valor medio/max/min por estacion, magnitud y hora (tarea 050)."
+
+  role_arn          = aws_iam_role.glue_meteorologia.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_meteorologia_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/meteorologia/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/meteorologia_por_estacion_magnitud_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_meteorologia]
+}
