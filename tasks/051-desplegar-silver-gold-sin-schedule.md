@@ -3,7 +3,7 @@ id: 51
 slug: desplegar-silver-gold-sin-schedule
 title: Desplegar Glue Silver/Gold en AWS (sin schedule) y verificar con una carga
   puntual
-status: in_progress
+status: failed
 force: false
 allow_infra_apply: true
 branch: task/051-desplegar-silver-gold-sin-schedule
@@ -11,9 +11,9 @@ pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
-last_error: null
+last_error: claude finalizó sin crear ningún commit
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T14:10:56.636788+00:00'
+updated_at: '2026-08-16T14:18:25.479195+00:00'
 started_at: '2026-08-16T14:10:56.636764+00:00'
 submitted_at: null
 merged_at: null
