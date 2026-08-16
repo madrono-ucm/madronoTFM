@@ -2,18 +2,18 @@
 id: 55
 slug: silver-gold-cartelera-cines
 title: 'Silver/Gold: cartelera de cines (siguiendo el patrón de la tarea 041)'
-status: pending
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/055-silver-gold-cartelera-cines
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-16T20:00:00+00:00'
-started_at: null
+updated_at: '2026-08-16T19:51:45.232243+00:00'
+started_at: '2026-08-16T19:51:45.232220+00:00'
 submitted_at: null
 merged_at: null
 ---
