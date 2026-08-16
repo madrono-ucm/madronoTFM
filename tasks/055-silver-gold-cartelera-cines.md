@@ -2,17 +2,20 @@
 id: 55
 slug: silver-gold-cartelera-cines
 title: 'Silver/Gold: cartelera de cines (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: failed
 force: true
 allow_infra_apply: false
 branch: task/055-silver-gold-cartelera-cines
 pr_number: null
 pr_url: null
-attempts: 0
+attempts: 1
 next_retry_at: null
-last_error: null
+last_error: 'InputTokens":11338803,"cacheCreationInputTokens":222907,"webSearchRequests":0,"costUSD":5.9915439,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
+  maximum budget ($6)"],"type":"result","duration_ms":805721,"uuid":"288b3ad4-da12-40d7-8df0-5319ba71771b"}
+
+  '
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-16T19:32:10.625285+00:00'
+updated_at: '2026-08-16T19:45:39.929107+00:00'
 started_at: '2026-08-16T19:32:10.625261+00:00'
 submitted_at: null
 merged_at: null
