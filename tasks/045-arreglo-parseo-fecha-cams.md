@@ -1,19 +1,19 @@
 ---
 id: 45
 slug: arreglo-parseo-fecha-cams
-title: "Arreglar el parseo de fechas NetCDF de CAMS (ValueError en producción real)"
-status: pending
+title: Arreglar el parseo de fechas NetCDF de CAMS (ValueError en producción real)
+status: in_progress
 force: true
 allow_infra_apply: true
-branch: null
+branch: task/045-arreglo-parseo-fecha-cams
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-15T10:25:00+00:00"
-updated_at: "2026-08-15T10:25:00+00:00"
-started_at: null
+created_at: '2026-08-15T10:25:00+00:00'
+updated_at: '2026-08-16T00:11:27.719463+00:00'
+started_at: '2026-08-16T00:11:27.719437+00:00'
 submitted_at: null
 merged_at: null
 ---
