@@ -2,7 +2,7 @@
 id: 49
 slug: silver-gold-calidad-aire
 title: 'Silver/Gold: calidad del aire (siguiendo el patrón de la tarea 041)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/049-silver-gold-calidad-aire
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T07:38:45.375800+00:00'
+updated_at: '2026-08-16T07:39:51.645252+00:00'
 started_at: '2026-08-16T07:30:18.726997+00:00'
 submitted_at: '2026-08-16T07:38:45.375661+00:00'
-merged_at: null
+merged_at: '2026-08-16T07:38:48Z'
 ---
 
 ## Contexto
