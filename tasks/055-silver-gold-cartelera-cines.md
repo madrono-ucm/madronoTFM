@@ -2,21 +2,18 @@
 id: 55
 slug: silver-gold-cartelera-cines
 title: 'Silver/Gold: cartelera de cines (siguiendo el patrón de la tarea 041)'
-status: failed
+status: pending
 force: true
 allow_infra_apply: false
-branch: task/055-silver-gold-cartelera-cines
+branch: null
 pr_number: null
 pr_url: null
-attempts: 1
+attempts: 0
 next_retry_at: null
-last_error: 'InputTokens":11338803,"cacheCreationInputTokens":222907,"webSearchRequests":0,"costUSD":5.9915439,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
-  maximum budget ($6)"],"type":"result","duration_ms":805721,"uuid":"288b3ad4-da12-40d7-8df0-5319ba71771b"}
-
-  '
+last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-16T19:45:39.929107+00:00'
-started_at: '2026-08-16T19:32:10.625261+00:00'
+updated_at: '2026-08-16T20:00:00+00:00'
+started_at: null
 submitted_at: null
 merged_at: null
 ---
@@ -33,9 +30,16 @@ funcionando en producción (doc/033).
 053-054)**: esta fuente no es una serie temporal de medidas (no tiene un
 `value` numérico por hora), sino un **catálogo de sesiones/proyecciones**
 (película, cine, horario). La agregación de Gold debe reflejar esa
-naturaleza distinta — decide con criterio propio (p.ej. número de sesiones
-por película/día, o por cine/día) y documenta por qué, en vez de forzar el
-patrón `(id, fecha, hora)` de medida-numérica de los datasets anteriores.
+naturaleza distinta, no el patrón `(id, fecha, hora)` de medida-numérica de
+los datasets anteriores — **usa "número de sesiones por película y día" como
+agregación de Gold, sin dar más vueltas a alternativas**: es una decisión ya
+tomada, documenta brevemente por qué encaja, no reabras el diseño.
+
+**Un primer intento de esta tarea agotó el presupuesto ($6, ~11.3M tokens,
+~13 min) sin comitear nada** — probablemente por dedicar demasiado tiempo a
+deliberar el diseño de la agregación de Gold en vez de implementar. Por eso
+esta vez la decisión ya viene tomada (ver arriba) y el alcance de red se
+acota explícitamente abajo.
 
 ## Objetivo
 
@@ -47,9 +51,9 @@ estructura de subpaquete que `procesamiento/silver_gold/trafico/` (sin
   película, cine, horario de sesión), descarta registros incompletos o con
   fechas de sesión ya pasadas respecto a `ingested_at` si el dato lo
   permitiera.
-- `aggregate.py`: agregación Silver→Gold razonable para un catálogo de
-  sesiones (ver arriba) — documenta la decisión en
-  `procesamiento/README.md`.
+- `aggregate.py`: agregación Silver→Gold por `(película, fecha)` — número de
+  sesiones ese día, cines distintos que la proyectan (ver arriba, decisión ya
+  tomada). Documenta brevemente en `procesamiento/README.md`.
 - `ge_suite.py`: mismas expectativas que `transform.validate_record`,
   declarativas.
 - `glue_bronze_to_silver.py` / `glue_silver_to_gold.py`: entry points reales
@@ -71,6 +75,12 @@ estructura de subpaquete que `procesamiento/silver_gold/trafico/` (sin
 - Alcance: solo este dataset.
 - NO ejecutes `terraform apply` ni ningún comando `aws` con efectos reales.
 - NO instales `pyspark`/`great_expectations` en esta EC2.
+- **Usa el fixture existente `ingesta/capturas/samples/
+  cartelera_cines_madrid_sample.json` tal cual, sin volver a scrapear las
+  webs de cines** — esta tarea es sobre `procesamiento/`, no sobre mejorar la
+  captura; no hace falta ningún dato nuevo de red.
+- No dediques tiempo a evaluar alternativas de diseño para la agregación de
+  Gold — ya está decidida arriba.
 
 ## Criterios de aceptación
 
