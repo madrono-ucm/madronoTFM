@@ -2,19 +2,19 @@
 id: 52
 slug: verificar-silver-gold-completo
 title: Verificar Bronze→Silver→Gold de extremo a extremo para los 6 datasets
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: true
 branch: task/052-verificar-silver-gold-completo
-pr_number: null
-pr_url: null
+pr_number: 99
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/99
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-16T15:06:51.568129+00:00'
+updated_at: '2026-08-16T15:31:14.115106+00:00'
 started_at: '2026-08-16T15:06:51.568106+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T15:31:14.114976+00:00'
 merged_at: null
 ---
 
