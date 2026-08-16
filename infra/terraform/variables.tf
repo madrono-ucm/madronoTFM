@@ -188,9 +188,24 @@ variable "great_expectations_pip_spec" {
     `procesamiento/silver_gold/trafico/ge_suite.py` para el porqué de esta
     versión y de que la puerta de calidad "real" viva en Python puro
     (`transform.validate_record`), no en GX.
+
+    Incluye además `urllib3<2` (tarea 051): el runtime base de Glue 4.0 trae
+    preinstalado un `boto3`/`botocore` cuyo `httpsession.py` importa
+    `DEFAULT_CIPHERS` de `urllib3.util.ssl_`, símbolo eliminado en la serie
+    2.x de `urllib3`. Sin este pin, el propio `pip install` de
+    `great_expectations` arrastra `urllib3>=2` como dependencia transitiva
+    (a través de `requests`) y sobrescribe la versión 1.26.x que el
+    `boto3`/`botocore` ya instalado en el runtime necesita, rompiendo su
+    importación (`ImportError: cannot import name 'DEFAULT_CIPHERS'`) en
+    cualquier código del job que use `boto3` después de esa instalación
+    (incluida la escritura del informe de calidad a S3 vía `boto3`, ver
+    `glue_bronze_to_silver.py`). `--additional-python-modules` acepta una
+    lista separada por comas resuelta en una única invocación de `pip`, así
+    que el resolutor de dependencias instala ambos paquetes de forma
+    consistente en vez de en dos pasos separados.
   EOT
   type        = string
-  default     = "great_expectations==0.18.19"
+  default     = "great_expectations==0.18.19,urllib3<2"
 }
 
 # ---------------------------------------------------------------------------
