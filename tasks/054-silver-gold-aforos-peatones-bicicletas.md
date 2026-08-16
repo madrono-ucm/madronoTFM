@@ -3,17 +3,17 @@ id: 54
 slug: silver-gold-aforos-peatones-bicicletas
 title: 'Silver/Gold: aforos de peatones y bicicletas (siguiendo el patrón de la tarea
   041)'
-status: in_progress
+status: blocked
 force: true
 allow_infra_apply: false
 branch: task/054-silver-gold-aforos-peatones-bicicletas
 pr_number: null
 pr_url: null
-attempts: 2
-next_retry_at: '2026-08-16T16:58:56.974177+00:00'
+attempts: 3
+next_retry_at: '2026-08-16T17:19:15.150891+00:00'
 last_error: You've hit your session limit · resets 7pm (UTC)
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-16T16:59:17.530127+00:00'
+updated_at: '2026-08-16T16:59:21.225716+00:00'
 started_at: '2026-08-16T16:35:25.983318+00:00'
 submitted_at: null
 merged_at: null
