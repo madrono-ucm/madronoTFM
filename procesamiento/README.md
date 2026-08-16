@@ -1,21 +1,24 @@
-# `procesamiento/` — Bronze → Silver → Gold (tarea 041, piloto de tráfico)
+# `procesamiento/` — Bronze → Silver → Gold (tareas 041 y 046)
 
 Este directorio es el análogo de `ingesta/` para la fase 2 del proyecto
 (limpieza/normalización y agregación, ver memoria del TFM, apartados 5.5 y
 6.2-6.4): mientras `ingesta/` lleva datos reales de las fuentes de Madrid a
 la capa Bronze del lakehouse, `procesamiento/` transforma Bronze en Silver
-(datos limpios, reproyectados, validados) y Silver en Gold (datos agregados,
+(datos limpios, normalizados, validados) y Silver en Gold (datos agregados,
 listos para consumo analítico/BI o para el grafo de la tarea 043).
 
-Esta tarea (041) es un **piloto de un único dataset** (tráfico — el más
-maduro y mejor documentado de los 21 productores de `ingesta/`, ver
-doc/002, doc/035, doc/037, doc/039): establece el patrón (estructura de
-código, motor de procesamiento, dónde vive la puerta de calidad, cómo se
-despliega) antes de extenderlo al resto de fuentes en tareas futuras. **Solo
-se ha escrito código e infraestructura, sin aplicar nada en AWS** —mismo
-alcance que la tarea 001 con el lakehouse; aplicar (con revisión de plan de
-por medio) es una tarea posterior, igual que las tareas 014/015 lo fueron
-para esa infraestructura base.
+La tarea 041 fue un **piloto de un único dataset** (tráfico — el más maduro y
+mejor documentado de los 21 productores de `ingesta/`, ver doc/002, doc/035,
+doc/037, doc/039): estableció el patrón (estructura de código, motor de
+procesamiento, dónde vive la puerta de calidad, cómo se despliega). La tarea
+046 replica ese mismo patrón para un segundo dataset (`transporte_publico_emt`,
+llegadas de autobús de la EMT Madrid, ver doc/003, doc/024) — ver "Segundo
+dataset: `transporte_publico_emt`" más abajo para las diferencias reales
+frente al piloto (no tiene reproyección ni una `location` fija por punto de
+medida). **Ambos siguen siendo solo código e infraestructura, sin aplicar
+nada en AWS** — mismo alcance que la tarea 001 con el lakehouse; aplicar (con
+revisión de plan de por medio) es una tarea posterior, igual que las tareas
+014/015 lo fueron para esa infraestructura base.
 
 ## Motor de procesamiento: AWS Glue (Spark serverless)
 
@@ -40,11 +43,20 @@ procesamiento/
       ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
       glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver)
       glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
+    transporte_publico_emt/
+      transform.py               # Bronze -> Silver: normalización + puerta de calidad (sin geo.py, ver más abajo)
+      aggregate.py                # Silver -> Gold: agregación por parada/línea/hora
+      ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
+      glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver)
+      glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
   tests/
     fixtures/trafico_bronze_sample.json
+    fixtures/transporte_publico_emt_bronze_sample.json
     test_geo.py
     test_transform.py
     test_aggregate.py
+    test_transporte_publico_emt_transform.py
+    test_transporte_publico_emt_aggregate.py
 ```
 
 Precedente directo: `ingesta/capturas/` + `ingesta/tests/` (un paquete por
@@ -176,6 +188,44 @@ producir exactamente el mismo esquema que `aggregate.aggregate_silver_to_gold`;
 un cambio en una debe reflejarse en la otra (documentado también en el
 docstring de ambos módulos).
 
+## Segundo dataset: `transporte_publico_emt` (tarea 046)
+
+Replica el patrón de `trafico` (mismos ficheros, mismo motor Glue, mismo
+criterio de GX-como-observabilidad-no-filtro) sobre las llegadas de autobús
+de la EMT Madrid (`ingesta/capturas/transporte_publico_madrid.py`, ver
+doc/003 y doc/024). Tres diferencias reales frente al piloto, cada una
+documentada también en el docstring del módulo correspondiente:
+
+- **Sin `geo.py`**: `normalize_record` ya entrega `location.lat`/`location.lon`
+  en WGS84 (coordenadas GeoJSON de la propia API MobilityLabs) — no hace
+  falta ninguna reproyección, así que este subpaquete no tiene ningún
+  fichero `geo.py`.
+- **No existe `measured_at`**: la API MobilityLabs es un servicio de tiempo
+  real que en cada llamada devuelve la estimación de espera *vigente en ese
+  instante* (`estimate_arrive_sec`, segundos) — no hay una "hora de medida"
+  distinta de la hora de captura. `ingested_at` hace de equivalente exacto
+  de `measured_at` en la puerta de calidad y en la clave de agregación de
+  Gold (ver `transform.py`/`aggregate.py`).
+- **`location` es la posición del autobús, no de la parada**: cambia en
+  cada muestra (el autobús se mueve), a diferencia de tráfico donde el
+  sensor tiene una posición fija. Por eso Gold de este dataset **no
+  incluye `lat`/`lon`** — agregar la posición del autobús no tendría el
+  mismo significado que agregar la posición fija de un punto de medida (ver
+  `aggregate.py`).
+
+La puerta de calidad (`transform.validate_record`) exige `stop_id`/`line`/
+`ingested_at` no nulos, `estimate_arrive_sec` en un rango de plausibilidad
+laxo (0-120 minutos, igual de no-oficial que los rangos de tráfico — la API
+no publica ningún máximo documentado) y `distance_bus_m` no negativo, y
+descarta cualquier registro que arrastre claves propias de la respuesta de
+login/error de la API (`accessToken`/`code`/`description`) — una señal de
+que un payload de autenticación se coló en Bronze en vez de una llegada
+normalizada, en vez de una llegada real.
+
+Gold agrega por **`(stop_id, line, fecha, hora)`**, no solo por `stop_id`:
+una parada suele dar servicio a varias líneas con frecuencias muy distintas,
+mezclarlas en una sola media no tendría sentido.
+
 ## Great Expectations: dónde corre, y por qué no es el único filtro
 
 **Decisión (pregunta explícita del enunciado): corre dentro del propio job
@@ -219,89 +269,117 @@ marshmallow...) localmente para probarlos de verdad se ha descartado por
 riesgo de agotar ese disco compartido, no por falta de intención. En
 consecuencia:
 
-- `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py`
-  importan `pyspark`/`great_expectations`/`awsglue` a nivel de módulo y
-  **no se han podido importar ni ejecutar en esta sesión**. Están escritos
-  con el mismo cuidado que el resto del proyecto y basados en la API
-  pública documentada de Glue/GX (Glue: `awsglue.context.GlueContext`,
-  `awsglue.job.Job`, estable desde hace años; GX: `sources.
-  add_or_update_spark`/`Validator`, API "Fluent" estable en la serie
-  0.17-0.18 — versión fijada en `var.great_expectations_pip_spec`,
-  `infra/terraform/variables.tf`), pero **no verificados por ejecución
-  real**. Antes del primer `terraform apply` de esta infraestructura,
-  conviene una prueba de humo en un notebook/endpoint de desarrollo de Glue
-  (`aws glue start-job-run` contra un lote pequeño, o un Glue Studio
-  Notebook interactivo) para confirmar la sintaxis exacta contra la versión
-  real del runtime, antes de dejarlo correr contra Bronze de producción.
-- Ningún test de este proyecto importa esos tres módulos (ver
-  `procesamiento/silver_gold/trafico/__init__.py`, que expone solo
-  `geo`/`transform`/`aggregate` a propósito) — así el resto del paquete
-  sigue siendo importable/testable en cualquier entorno sin Spark.
-- No se ha procesado ningún dato real de Bronze (no hay Glue desplegado
-  todavía): toda la verificación de esta tarea usa el fixture
-  `tests/fixtures/trafico_bronze_sample.json` (10 registros de ejemplo, 5
-  válidos + 5 que violan cada regla de la puerta de calidad por turnos,
-  construido a mano — incluye el punto real de doc/002 para verificar la
-  reproyección contra una coordenada de producción conocida).
+- `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py` (de
+  **ambos** datasets) importan `pyspark`/`great_expectations`/`awsglue` a
+  nivel de módulo y **no se han podido importar ni ejecutar en ninguna de
+  las dos sesiones (041/046)**. Están escritos con el mismo cuidado que el
+  resto del proyecto y basados en la API pública documentada de Glue/GX
+  (Glue: `awsglue.context.GlueContext`, `awsglue.job.Job`, estable desde
+  hace años; GX: `sources.add_or_update_spark`/`Validator`, API "Fluent"
+  estable en la serie 0.17-0.18 — versión fijada en
+  `var.great_expectations_pip_spec`, `infra/terraform/variables.tf`), pero
+  **no verificados por ejecución real**. Antes del primer `terraform apply`
+  de esta infraestructura, conviene una prueba de humo en un
+  notebook/endpoint de desarrollo de Glue (`aws glue start-job-run` contra
+  un lote pequeño, o un Glue Studio Notebook interactivo) para confirmar la
+  sintaxis exacta contra la versión real del runtime, antes de dejarlo
+  correr contra Bronze de producción.
+- Ningún test de este proyecto importa esos tres módulos por dataset (ver
+  `procesamiento/silver_gold/trafico/__init__.py` y
+  `procesamiento/silver_gold/transporte_publico_emt/__init__.py`, que
+  exponen solo `transform`/`aggregate` (y `geo`, solo en tráfico) a
+  propósito) — así el resto del paquete sigue siendo importable/testable en
+  cualquier entorno sin Spark.
+- No se ha procesado ningún dato real de Bronze de ninguno de los dos
+  datasets (no hay Glue desplegado todavía): toda la verificación usa
+  fixtures construidos a mano —
+  `tests/fixtures/trafico_bronze_sample.json` (10 registros, 5 válidos + 5
+  que violan cada regla de la puerta de calidad por turnos, incluye el
+  punto real de doc/002 para verificar la reproyección) y
+  `tests/fixtures/transporte_publico_emt_bronze_sample.json` (10 registros,
+  mismo criterio 5 válidos + 5 rechazados, con formas reales tomadas de
+  `ingesta/capturas/samples/transporte_publico_madrid_sample.json`).
 
 ## Terraform (`infra/terraform/glue.tf`)
 
-Sin aplicar (ver arriba). Recursos declarados:
+Sin aplicar (ver arriba). Un bloque de recursos por dataset (`trafico`,
+tarea 041; `transporte_publico_emt`, tarea 046), cada uno con su propio rol
+IAM acotado por prefijo — no se comparte rol entre datasets, mismo
+principio de mínimo privilegio que ya aplicaba `ingesta`:
 
-- `aws_glue_job.trafico_bronze_to_silver` / `trafico_silver_to_gold`: dos
-  jobs (uno por transformación, no combinados — para poder reintentar/
-  reejecutar cada etapa de forma independiente, p.ej. volver a agregar Gold
-  sin releer Bronze). `glue_version = "4.0"`, `worker_type = "G.1X"`,
-  `number_of_workers = 2` (mínimo permitido) — variables en `variables.tf`
-  para poder subir esto sin tocar `.tf` cuando el volumen crezca.
-- `aws_iam_role.glue_trafico`: la política gestionada
-  `AWSGlueServiceRole` (lo que todo job de Glue necesita en su propio
-  nombre: API de Glue, logs bajo `/aws-glue/...`) más una política propia
-  acotada por prefijo — lectura de `bronze/trafico/*`, lectura+escritura de
-  `silver/trafico/*`, escritura de `gold/trafico_por_punto_hora/*`, lectura
-  del script/librería en el bucket de artefactos (`aws_s3_bucket.build_artifacts`,
-  reutilizado de la tarea 032 en vez de crear un bucket nuevo solo para dos
-  ficheros .py y un .zip pequeño) y permisos acotados sobre el catálogo de
-  Glue de las dos tablas de este dataset — ni un permiso más.
-- `aws_glue_catalog_database.silver`/`gold` + `aws_glue_catalog_table.trafico_silver`/
-  `trafico_gold`: catalogadas para poder consultarlas con Athena sin ningún
-  paso adicional. Bronze deliberadamente **no** se cataloga: son lotes JSON
-  crudos sin un esquema único garantizado entre los 21 productores, no
-  pensados para consultarse vía SQL.
-- `data.archive_file.procesamiento_source` + `aws_s3_object.*`: empaquetan
-  `procesamiento/` (salvo `tests/`) y los dos scripts de job, subidos al
-  bucket de artefactos con el hash del contenido en la key (mismo patrón
-  que `data.archive_file.ingesta_source`/`layer_source_key` de tareas
+- `aws_glue_job.<dataset>_bronze_to_silver` / `<dataset>_silver_to_gold`:
+  dos jobs por dataset (uno por transformación, no combinados — para poder
+  reintentar/reejecutar cada etapa de forma independiente, p.ej. volver a
+  agregar Gold sin releer Bronze). `glue_version = "4.0"`,
+  `worker_type = "G.1X"`, `number_of_workers = 2` (mínimo permitido) —
+  variables compartidas en `variables.tf` para poder subir esto sin tocar
+  `.tf` cuando el volumen crezca.
+- `aws_iam_role.glue_trafico` / `glue_transporte_publico_emt`: la política
+  gestionada `AWSGlueServiceRole` (lo que todo job de Glue necesita en su
+  propio nombre: API de Glue, logs bajo `/aws-glue/...`) más una política
+  propia acotada por prefijo — lectura de `bronze/<dataset>/*`,
+  lectura+escritura de `silver/<dataset>/*`, escritura de
+  `gold/<tabla_gold>/*`, lectura del script/librería en el bucket de
+  artefactos (`aws_s3_bucket.build_artifacts`, reutilizado de la tarea 032
+  para ambos datasets en vez de crear un bucket nuevo) y permisos acotados
+  sobre el catálogo de Glue de las dos tablas de cada dataset — ni un
+  permiso más.
+- `aws_glue_catalog_database.silver`/`gold` (compartidas entre datasets, una
+  base de datos por capa) + `aws_glue_catalog_table.trafico_silver`/
+  `trafico_gold`/`transporte_publico_emt_silver`/`transporte_publico_emt_gold`:
+  catalogadas para poder consultarlas con Athena sin ningún paso adicional.
+  Bronze deliberadamente **no** se cataloga: son lotes JSON crudos sin un
+  esquema único garantizado entre los 21 productores, no pensados para
+  consultarse vía SQL.
+- `data.archive_file.procesamiento_source` (**sin cambios en su
+  definición**: ya empaquetaba todo `procesamiento/` salvo `tests/`, así
+  que el subpaquete nuevo de la tarea 046 se incluye automáticamente) +
+  `aws_s3_object.*` por script de cada dataset, subidos al bucket de
+  artefactos con el hash del contenido en la key (mismo patrón que
+  `data.archive_file.ingesta_source`/`layer_source_key` de tareas
   anteriores) — un cambio de código sube a una key nueva sin pisar la
   anterior.
 
-`terraform validate` limpio (verificado en esta tarea, sin backend real
+`terraform validate` limpio (verificado en ambas tareas, sin backend real
 inicializado — `terraform init -backend=false`); no se ha ejecutado
 `terraform plan` contra la cuenta real (necesitaría credenciales AWS que
-esta tarea no debe usar para aplicar nada).
+estas tareas no deben usar para aplicar nada).
 
 ## Relevante para tareas futuras
 
-- Este piloto fija el patrón para extender Bronze→Silver→Gold al resto de
-  fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py`
-  (Python puro, testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py`
-  (GX, ejecutado en Glue)/`glue_*.py` (entry points), más un bloque en
-  `glue.tf` con su propio rol IAM acotado por prefijo (no un rol
-  compartido entre datasets: mantiene el principio de mínimo privilegio ya
-  aplicado en `ingesta`).
-- Antes de aplicar esta infraestructura: (1) smoke-test de `ge_suite.py`
-  contra un Glue Studio Notebook real (ver arriba), (2) revisar si
-  `great_expectations==0.18.19` (versión fijada en
+- El patrón (fijado por la tarea 041, ya replicado dos veces con la 046) para
+  extender Bronze→Silver→Gold a más fuentes: un subpaquete
+  `silver_gold/<dataset>/` con `transform.py` (Python puro, testable)/
+  `aggregate.py` (idem, de referencia)/`ge_suite.py` (GX, ejecutado en
+  Glue)/`glue_*.py` (entry points) — más `geo.py` **solo si la fuente
+  necesita reproyectar** (no es parte fija del patrón: `transporte_publico_emt`
+  no lo tiene porque su fuente ya entrega WGS84, ver "Segundo dataset"
+  arriba) —, más un bloque en `glue.tf` con su propio rol IAM acotado por
+  prefijo (no un rol compartido entre datasets: mantiene el principio de
+  mínimo privilegio ya aplicado en `ingesta`).
+- Antes de aplicar esta infraestructura: (1) smoke-test de ambos
+  `ge_suite.py` contra un Glue Studio Notebook real (ver arriba), (2)
+  revisar si `great_expectations==0.18.19` (versión fijada en
   `var.great_expectations_pip_spec`) sigue siendo la última estable de la
   serie 0.18 en el momento de aplicar, y (3) el mismo patrón
   `terraform plan`/`apply` con revisión humana de por medio que ya usaron
   las tareas 015/030/039 para la infraestructura ya desplegada.
-- La agregación por distrito (en vez de por punto de medida) queda
+- La agregación por distrito (en vez de por punto de medida/parada) queda
   pendiente de la tarea 043 (grafo Neo4j de relaciones espaciales) — no se
   ha aproximado con una heurística ad-hoc a propósito, ver "Transformación
-  Silver → Gold" arriba.
+  Silver → Gold" arriba. Aplica igual a `transporte_publico_emt`: la parada
+  (`stop_id`) tampoco se ha cruzado con ningún distrito/barrio en esta
+  tarea.
 - `intensity_ratio` (intensidad / intensidad de saturación) es la magnitud
-  pensada para comparar puntos de medida con capacidades distintas; si una
-  tarea futura necesita comparar directamente con otros datasets de
-  movilidad (BiciMAD, EMT), esta es la columna de Silver/Gold más
-  directamente reutilizable como "nivel de congestión" normalizado.
+  pensada para comparar puntos de medida de tráfico con capacidades
+  distintas. `transporte_publico_emt` no tiene ninguna magnitud análoga
+  todavía (el tiempo de espera en segundos ya es una unidad universal, no
+  necesita normalizarse) — si una tarea futura quisiera un "índice de
+  servicio" comparable entre paradas/líneas con frecuencias muy distintas,
+  sería la magnitud natural a añadir a `aggregate.py` de este dataset.
+- El campo `location` de `transporte_publico_emt` (posición del autobús, no
+  de la parada) se conserva en Silver por trazabilidad pero no se agrega en
+  Gold ni se usa como ubicación de la parada. Si una tarea futura necesita
+  la ubicación real de cada parada (p.ej. para el grafo Neo4j, tarea 043),
+  la fuente correcta es el catálogo de paradas de la EMT (fuera del alcance
+  de la 003/024/046), no derivarla de las posiciones de autobús observadas.
