@@ -1,4 +1,4 @@
-# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053 y 054)
+# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054 y 055)
 
 Este directorio es el análogo de `ingesta/` para la fase 2 del proyecto
 (limpieza/normalización y agregación, ver memoria del TFM, apartados 5.5 y
@@ -11,9 +11,9 @@ La tarea 041 fue un **piloto de un único dataset** (tráfico — el más maduro
 mejor documentado de los 21 productores de `ingesta/`, ver doc/002, doc/035,
 doc/037, doc/039): estableció el patrón (estructura de código, motor de
 procesamiento, dónde vive la puerta de calidad, cómo se despliega). Las
-tareas 046, 047, 048, 049, 050, 053 y 054 replican ese mismo patrón para un
-segundo, tercer, cuarto, quinto, sexto, séptimo y octavo dataset
-(`transporte_publico_emt`, llegadas de autobús de la EMT Madrid, ver
+tareas 046, 047, 048, 049, 050, 053, 054 y 055 replican ese mismo patrón
+para un segundo, tercer, cuarto, quinto, sexto, séptimo, octavo y noveno
+dataset (`transporte_publico_emt`, llegadas de autobús de la EMT Madrid, ver
 doc/003, doc/024; `bicimad`, estado de estaciones de BiciMAD vía GBFS, ver
 doc/004; `aparcamientos`, ocupación de aparcamientos rotacionales, ver
 doc/005; `calidad_aire`, lecturas horarias de la red de estaciones de
@@ -21,16 +21,18 @@ calidad del aire, ver doc/006; `meteorologia`, lecturas horarias de la red
 de estaciones meteorológicas, ver doc/008; `ruido`, contaminación acústica
 diaria de la Red Fija del SIVCA, ver doc/007; `aforos_peatones_bicicletas`,
 conteos horarios de peatones y bicicletas de la red de estaciones
-permanentes de aforo, ver `ingesta/capturas/aforos_peatones_bicicletas_madrid.py`)
+permanentes de aforo, ver `ingesta/capturas/aforos_peatones_bicicletas_madrid.py`;
+`cartelera_cines_estrenos`, cartelera y horarios de cines de Madrid vía
+SensaCine, ver doc/023)
 — ver "Segundo dataset: `transporte_publico_emt`", "Tercer dataset:
 `bicimad`", "Cuarto dataset: `aparcamientos`", "Quinto dataset:
-`calidad_aire`", "Sexto dataset: `meteorologia`", "Séptimo dataset: `ruido`"
-y "Octavo dataset: `aforos_peatones_bicicletas`" más abajo para las
-diferencias reales frente al piloto. **Los ocho siguen siendo solo código e
-infraestructura, sin aplicar nada en AWS** — mismo alcance que la tarea 001
-con el lakehouse; aplicar (con revisión de plan de por medio) es una tarea
-posterior, igual que las tareas 014/015 lo fueron para esa infraestructura
-base.
+`calidad_aire`", "Sexto dataset: `meteorologia`", "Séptimo dataset: `ruido`",
+"Octavo dataset: `aforos_peatones_bicicletas`" y "Noveno dataset:
+`cartelera_cines_estrenos`" más abajo para las diferencias reales frente al
+piloto. **Los nueve siguen siendo solo código e infraestructura, sin
+aplicar nada en AWS** — mismo alcance que la tarea 001 con el lakehouse;
+aplicar (con revisión de plan de por medio) es una tarea posterior, igual
+que las tareas 014/015 lo fueron para esa infraestructura base.
 
 ## Motor de procesamiento: AWS Glue (Spark serverless)
 
@@ -97,6 +99,12 @@ procesamiento/
       ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
       glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver)
       glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
+    cartelera_cines_estrenos/
+      transform.py               # Bronze -> Silver: normalización + puerta de calidad por sesión (sin geo.py, ver más abajo)
+      aggregate.py                # Silver -> Gold: número de sesiones por película/cine/día
+      ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
+      glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona por showtime_datetime)
+      glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
   tests/
     fixtures/trafico_bronze_sample.json
     fixtures/transporte_publico_emt_bronze_sample.json
@@ -106,6 +114,7 @@ procesamiento/
     fixtures/meteorologia_bronze_sample.json
     fixtures/ruido_bronze_sample.json
     fixtures/aforos_peatones_bicicletas_bronze_sample.json
+    fixtures/cartelera_cines_estrenos_bronze_sample.json
     test_geo.py
     test_transform.py
     test_aggregate.py
@@ -123,6 +132,8 @@ procesamiento/
     test_ruido_aggregate.py
     test_aforos_peatones_bicicletas_transform.py
     test_aforos_peatones_bicicletas_aggregate.py
+    test_cartelera_cines_estrenos_transform.py
+    test_cartelera_cines_estrenos_aggregate.py
 ```
 
 Precedente directo: `ingesta/capturas/` + `ingesta/tests/` (un paquete por
@@ -545,6 +556,81 @@ ubicación fija, mismo criterio que `bicimad`/`aparcamientos`/`calidad_aire`/
 `address_notes` conservados para legibilidad (mismo criterio que `unit`/
 `pollutant_name` en `calidad_aire`).
 
+## Noveno dataset: `cartelera_cines_estrenos` (tarea 055)
+
+Replica la estructura de código del patrón sobre la cartelera y horarios de
+cines de Madrid (`ingesta/capturas/cartelera_cines_madrid.py`, agregador
+SensaCine para Cinesa y Yelmo, ver doc/023). **Sin `geo.py`**, pero por un
+motivo distinto al resto de datasets ya extendidos (que no lo necesitan
+porque su fuente ya entrega WGS84): el esquema de este dataset no tiene
+ninguna coordenada en absoluto -- ni la ubicación de un cine forma parte de
+los campos capturados.
+
+**Diferencia real frente a los ocho datasets anteriores: no es una serie
+temporal de medidas, es un catálogo de sesiones de cine.** Los ocho
+datasets anteriores miden una magnitud numérica repetidamente en el tiempo
+(intensidad, ocupación, un contaminante, un conteo...); aquí cada fila de
+Silver es un hecho discreto y único -- una sesión de cine concreta
+(película + cine + horario), identificada por `showtime_id` -- no una
+medida que tenga sentido promediar. Por eso ni la puerta de calidad ni la
+agregación de Gold siguen el patrón numérico del resto (ver
+`transform.py`/`aggregate.py` para el razonamiento completo).
+
+**Bronze mezcla dos tipos de registro bajo el mismo `DATASET_NAME`
+(`"cartelera_cines_estrenos"`), y este subpaquete solo procesa uno**:
+sesiones concretas (`normalize_showtime`: película + cine + horario +
+identificador de sesión) y estrenos semanales (`normalize_premiere`:
+`record_type == "estreno_semana"`, película + fecha de estreno, sin cine ni
+horario -- una lista nacional de estrenos, no desglosada por cine). El
+enunciado de la tarea exige explícitamente "título de la película, cine,
+horario de sesión" como campos clave de la puerta de calidad, lo que solo
+tiene sentido para el primer tipo; `transform.validate_record` rechaza
+cualquier registro de estreno semanal con el motivo
+`"not_a_screening_session"` en vez de forzarlo en el mismo esquema. Los
+estrenos semanales quedan fuera del alcance de este subpaquete -- si una
+tarea futura quiere tratarlos como su propia entidad, el criterio a seguir
+es un dataset/tabla Silver/Gold aparte, no este mismo esquema de sesiones.
+
+**Aviso importante, descubierto en esta sesión**: el único escritor
+programado de Bronze de este dataset hoy es `lambda_handler`
+(`ingesta/capturas/cartelera_cines_madrid.py`), y envuelve **únicamente
+`sweep_premieres`** -- no hay ningún schedule que escriba sesiones
+(`fetch_cinema_showtimes` es solo bajo demanda, pensado para un futuro
+servicio conversacional, sin handler Lambda propio). Confirmado en
+`doc/033-conectar-lambda-layer-verificar.md`: la única invocación real
+registrada de este dataset escribió 6 registros, los 6 de tipo
+`estreno_semana`. Con el estado actual de `ingesta/`, esta puerta de
+calidad rechazaría el 100% de los lotes reales de Bronze capturados hasta
+ahora -- no hay todavía ningún escritor programado que produzca sesiones.
+No se ha corregido aquí (fuera de alcance: esta tarea es solo
+`procesamiento/`); queda como bloqueante real para una tarea futura, ver
+"Relevante para tareas futuras" más abajo.
+
+La puerta de calidad también descarta sesiones cuyo horario ya ha pasado en
+el momento de la captura (`showtime_datetime < ingested_at`, motivo
+`"showtime_already_passed"`, pedido explícitamente por el enunciado): una
+cartelera es, por construcción, una lista de sesiones *futuras* respecto al
+momento en que se consulta.
+
+**Decisión de agregación Silver → Gold**: el enunciado sugería "número de
+sesiones por película/día, o por cine/día" como alternativas; se decidió
+incluir **ambas** dimensiones en la misma clave --
+`(movie_url, cinema_id, fecha)` (`movie_url`, no `movie_title`, como
+identificador estable de la película: la URL de la ficha en SensaCine no
+cambia, un título como texto libre en teoría sí podría colisionar) -- en
+vez de elegir solo una, para que un consumidor de Gold pueda obtener
+cualquiera de las dos vistas (sumando `sessions_count` por `movie_url` o
+por `cinema_id`) sin perder información en la propia agregación; perder
+cualquiera de las dos dimensiones haría irreversible la otra vista. Cada
+fila agrega `samples_count` (filas Silver, incluye reingestas) y
+`sessions_count` (número de `showtime_id` **distintos** -- la magnitud
+principal de este dataset, no reingestas contadas como sesiones nuevas),
+`first`/`last_showtime_datetime`, y `language_versions` (lista ordenada de
+versiones de idioma distintas disponibles ese día en ese cine para esa
+película -- p.ej. detectar si hay doblada y V.O.S.E.), además de
+`movie_title`/`chain`/`cinema_name`/`address`/`postal_code`/`locality`
+conservados para legibilidad.
+
 ## Great Expectations: dónde corre, y por qué no es el único filtro
 
 **Decisión (pregunta explícita del enunciado): corre dentro del propio job
@@ -589,9 +675,9 @@ riesgo de agotar ese disco compartido, no por falta de intención. En
 consecuencia:
 
 - `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py` (de
-  **los ocho** datasets) importan `pyspark`/`great_expectations`/`awsglue`
+  **los nueve** datasets) importan `pyspark`/`great_expectations`/`awsglue`
   a nivel de módulo y **no se han podido importar ni ejecutar en ninguna de
-  las ocho sesiones (041/046/047/048/049/050/053/054)**. Están escritos con el mismo
+  las nueve sesiones (041/046/047/048/049/050/053/054/055)**. Están escritos con el mismo
   cuidado que el resto del proyecto y basados en la API pública documentada
   de Glue/GX (Glue: `awsglue.context.GlueContext`, `awsglue.job.Job`,
   estable desde hace años; GX: `sources.add_or_update_spark`/`Validator`,
@@ -610,12 +696,13 @@ consecuencia:
   `procesamiento/silver_gold/aparcamientos/__init__.py`,
   `procesamiento/silver_gold/calidad_aire/__init__.py`,
   `procesamiento/silver_gold/meteorologia/__init__.py`,
-  `procesamiento/silver_gold/ruido/__init__.py` y
-  `procesamiento/silver_gold/aforos_peatones_bicicletas/__init__.py`, que
+  `procesamiento/silver_gold/ruido/__init__.py`,
+  `procesamiento/silver_gold/aforos_peatones_bicicletas/__init__.py` y
+  `procesamiento/silver_gold/cartelera_cines_estrenos/__init__.py`, que
   exponen solo `transform`/`aggregate` (y `geo`, solo en tráfico) a
   propósito) — así el resto del paquete sigue siendo importable/testable en
   cualquier entorno sin Spark.
-- No se ha procesado ningún dato real de Bronze de ninguno de los ocho
+- No se ha procesado ningún dato real de Bronze de ninguno de los nueve
   datasets (no hay Glue desplegado todavía): toda la verificación usa
   fixtures construidos a mano —
   `tests/fixtures/trafico_bronze_sample.json` (10 registros, 5 válidos + 5
@@ -658,16 +745,26 @@ consecuencia:
   -- 3 estaciones de peatones + 2 de bicicletas -- + 8 que violan cada
   regla de rechazo por turnos (`station_id` ausente, `mode` inválido,
   `measured_at` ausente/sin zona horaria, `ingested_at` ausente/sin zona
-  horaria, conteo ausente y conteo negativo), ver "Octavo dataset" arriba).
+  horaria, conteo ausente y conteo negativo), ver "Octavo dataset" arriba) y
+  `tests/fixtures/cartelera_cines_estrenos_bronze_sample.json` (15
+  registros: 6 sesiones reales de
+  `ingesta/capturas/samples/cartelera_cines_madrid_sample.json` -- 2 cines,
+  varias películas -- + 1 registro de estreno semanal real (rechazado por
+  `"not_a_screening_session"`) + 8 sintéticos que violan cada regla de
+  rechazo por turnos (película/cine/identificador de sesión ausente,
+  horario de sesión ausente/sin zona horaria, fecha de captura ausente/sin
+  zona horaria, y una sesión cuyo horario ya había pasado en el momento de
+  la captura), ver "Noveno dataset" arriba).
 
 ## Terraform (`infra/terraform/glue.tf`)
 
 Sin aplicar (ver arriba). Un bloque de recursos por dataset (`trafico`,
 tarea 041; `transporte_publico_emt`, tarea 046; `bicimad`, tarea 047;
 `aparcamientos`, tarea 048; `calidad_aire`, tarea 049; `meteorologia`, tarea
-050; `ruido`, tarea 053; `aforos_peatones_bicicletas`, tarea 054), cada uno
-con su propio rol IAM acotado por prefijo — no se comparte rol entre
-datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
+050; `ruido`, tarea 053; `aforos_peatones_bicicletas`, tarea 054;
+`cartelera_cines_estrenos`, tarea 055), cada uno con su propio rol IAM
+acotado por prefijo — no se comparte rol entre datasets, mismo principio de
+mínimo privilegio que ya aplicaba `ingesta`:
 
 - `aws_glue_job.<dataset>_bronze_to_silver` / `<dataset>_silver_to_gold`:
   dos jobs por dataset (uno por transformación, no combinados — para poder
@@ -678,13 +775,14 @@ datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
   `.tf` cuando el volumen crezca.
 - `aws_iam_role.glue_trafico` / `glue_transporte_publico_emt` / `glue_bicimad`
   / `glue_aparcamientos` / `glue_calidad_aire` / `glue_meteorologia` /
-  `glue_ruido` / `glue_aforos_peatones_bicicletas`: la política gestionada
+  `glue_ruido` / `glue_aforos_peatones_bicicletas` /
+  `glue_cartelera_cines_estrenos`: la política gestionada
   `AWSGlueServiceRole` (lo que todo job de Glue necesita en su propio
   nombre: API de Glue, logs bajo `/aws-glue/...`) más una política propia
   acotada por prefijo — lectura de `bronze/<dataset>/*`, lectura+escritura
   de `silver/<dataset>/*`, escritura de `gold/<tabla_gold>/*`, lectura del
   script/librería en el bucket de artefactos (`aws_s3_bucket.build_artifacts`,
-  reutilizado de la tarea 032 para los ocho datasets en vez de crear un
+  reutilizado de la tarea 032 para los nueve datasets en vez de crear un
   bucket nuevo) y permisos acotados sobre el catálogo de Glue de las dos
   tablas de cada dataset — ni un permiso más.
 - `aws_glue_catalog_database.silver`/`gold` (compartidas entre datasets, una
@@ -693,42 +791,51 @@ datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
   `bicimad_silver`/`bicimad_gold`/`aparcamientos_silver`/`aparcamientos_gold`/
   `calidad_aire_silver`/`calidad_aire_gold`/`meteorologia_silver`/
   `meteorologia_gold`/`ruido_silver`/`ruido_gold`/
-  `aforos_peatones_bicicletas_silver`/`aforos_peatones_bicicletas_gold`:
+  `aforos_peatones_bicicletas_silver`/`aforos_peatones_bicicletas_gold`/
+  `cartelera_cines_estrenos_silver`/`cartelera_cines_estrenos_gold`:
   catalogadas para poder consultarlas con Athena sin ningún paso adicional.
   Bronze deliberadamente **no** se cataloga: son lotes JSON crudos sin un
   esquema único garantizado entre los 21 productores, no pensados para
   consultarse vía SQL.
 - `data.archive_file.procesamiento_source` (**sin cambios en su
   definición**: ya empaquetaba todo `procesamiento/` salvo `tests/`, así
-  que cada subpaquete nuevo, incluido el de la tarea 054, se incluye
+  que cada subpaquete nuevo, incluido el de la tarea 055, se incluye
   automáticamente) + `aws_s3_object.*` por script de cada dataset, subidos
   al bucket de artefactos con el hash del contenido en la key (mismo patrón
   que `data.archive_file.ingesta_source`/`layer_source_key` de tareas
   anteriores) — un cambio de código sube a una key nueva sin pisar la
   anterior.
 
-`terraform validate` limpio (verificado en las ocho tareas, sin backend
+`terraform validate` limpio (verificado en las nueve tareas, sin backend
 real inicializado — `terraform init -backend=false`); no se ha ejecutado
 `terraform plan` contra la cuenta real (necesitaría credenciales AWS que
 estas tareas no deben usar para aplicar nada).
 
 ## Relevante para tareas futuras
 
-- El patrón (fijado por la tarea 041, ya replicado siete veces con la
-  046/047/048/049/050/053/054) para extender Bronze→Silver→Gold a más
+- El patrón (fijado por la tarea 041, ya replicado ocho veces con la
+  046/047/048/049/050/053/054/055) para extender Bronze→Silver→Gold a más
   fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py` (Python
   puro, testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py` (GX,
   ejecutado en Glue)/`glue_*.py` (entry points) — más `geo.py` **solo si la
   fuente necesita reproyectar** (no es parte fija del patrón: ni
   `transporte_publico_emt`, ni `bicimad`, ni `aparcamientos`, ni
-  `calidad_aire`, ni `meteorologia`, ni `ruido` ni
-  `aforos_peatones_bicicletas` lo tienen porque sus fuentes ya entregan
-  WGS84, ver "Segundo dataset"/"Tercer dataset"/"Cuarto dataset"/"Quinto
-  dataset"/"Sexto dataset"/"Séptimo dataset"/"Octavo dataset" arriba) —, más
-  un bloque en `glue.tf` con su propio rol IAM acotado por prefijo (no un rol
-  compartido entre datasets: mantiene el principio de mínimo privilegio ya
-  aplicado en `ingesta`).
-- Antes de aplicar esta infraestructura: (1) smoke-test de los ocho
+  `calidad_aire`, ni `meteorologia`, ni `ruido`, ni
+  `aforos_peatones_bicicletas` ni `cartelera_cines_estrenos` lo tienen —
+  las primeras siete porque sus fuentes ya entregan WGS84, la última porque
+  su esquema no tiene ninguna coordenada en absoluto, ver "Segundo
+  dataset"/"Tercer dataset"/"Cuarto dataset"/"Quinto dataset"/"Sexto
+  dataset"/"Séptimo dataset"/"Octavo dataset"/"Noveno dataset" arriba) —,
+  más un bloque en `glue.tf` con su propio rol IAM acotado por prefijo (no
+  un rol compartido entre datasets: mantiene el principio de mínimo
+  privilegio ya aplicado en `ingesta`). `cartelera_cines_estrenos` es
+  también el primer dataset del patrón que no es una serie temporal de
+  medidas sino un catálogo de hechos discretos (sesiones de cine) — si una
+  tarea futura añade otro dataset "de catálogo" en vez de "de medida", el
+  criterio a replicar es el de `aggregate.py` de este dataset: agregar un
+  **conteo** de hechos por las dimensiones relevantes, no un promedio/suma
+  de ninguna magnitud numérica (no hay ninguna en este tipo de fuente).
+- Antes de aplicar esta infraestructura: (1) smoke-test de los nueve
   `ge_suite.py` contra un Glue Studio Notebook real (ver arriba) —
   `bicimad/ge_suite.py` y `aparcamientos/ge_suite.py` necesitan además
   confirmar que las columnas auxiliares que calculan sus respectivos
@@ -749,7 +856,12 @@ estas tareas no deben usar para aplicar nada).
   propia lógica de agregación de Gold; `aforos_peatones_bicicletas/ge_suite.py`
   es el único que no necesita ninguna columna auxiliar (`mode` solo admite
   dos valores fijos, cubierto de forma nativa por
-  `expect_column_values_to_be_in_set`, ver "Octavo dataset" arriba); (2)
+  `expect_column_values_to_be_in_set`, ver "Octavo dataset" arriba);
+  `cartelera_cines_estrenos/ge_suite.py` necesita confirmar que
+  `expect_column_pair_values_a_to_be_greater_than_b` (comparación
+  lexicográfica de dos columnas de texto ISO-8601, no de instantes reales,
+  ver docstring de ese módulo) reproduce fielmente el resultado de
+  `transform.validate_record`, motivo `"showtime_already_passed"`; (2)
   revisar si `great_expectations==0.18.19` (versión fijada en
   `var.great_expectations_pip_spec`) sigue siendo la última estable de la
   serie 0.18 en el momento de aplicar, y (3) el mismo patrón `terraform
@@ -872,3 +984,33 @@ estas tareas no deben usar para aplicar nada).
   valores (a diferencia de `pollutant`/`magnitude`, catálogos abiertos), así
   que su `ge_suite.py` no necesita ninguna columna auxiliar de Spark:
   `expect_column_values_to_be_in_set` basta de forma nativa.
+- **Bloqueante real para poder usar `cartelera_cines_estrenos` en
+  producción, descubierto en la tarea 055** (ver "Noveno dataset" arriba):
+  el único escritor programado de Bronze de este dataset
+  (`lambda_handler` en `ingesta/capturas/cartelera_cines_madrid.py`) solo
+  invoca `sweep_premieres` (estrenos semanales, sin cine ni horario) — no
+  hay ningún schedule que escriba sesiones concretas
+  (`fetch_cinema_showtimes`, la función con la que este subpaquete de
+  Silver/Gold sí sabe trabajar). Confirmado con el registro real de
+  `doc/033-conectar-lambda-layer-verificar.md`: la única invocación
+  registrada de este dataset escribió 6 registros, los 6 de tipo
+  `estreno_semana`, ninguno de tipo sesión. Con el estado actual de
+  `ingesta/`, este Silver/Gold rechazaría el 100% de los lotes reales de
+  Bronze capturados hasta ahora. Antes de poder verificar este dataset con
+  datos reales (mismo tipo de verificación que hicieron las tareas
+  051/052 para los primeros seis), hace falta una tarea de `ingesta/` que
+  añada un escritor programado de sesiones — p.ej. un `lambda_handler`
+  adicional (o ampliar el existente) que recorra `CINEMAS` con
+  `fetch_cinema_showtimes` en vez de (o además de) `sweep_premieres`.
+- `cartelera_cines_estrenos` es el primer dataset del patrón donde Bronze
+  mezcla, bajo el mismo `DATASET_NAME`, dos formas de registro genuinamente
+  distintas (sesiones de cine vs. estrenos semanales, sin ningún campo
+  numérico compartido ni una etiqueta común tipo `pollutant`/`mode`) en vez
+  de una única forma con algunos campos opcionales. El criterio aplicado
+  aquí — que la puerta de calidad rechace explícitamente, con un motivo de
+  rechazo propio y documentado (`"not_a_screening_session"`), el tipo de
+  registro que no encaja en el esquema de este subpaquete, en vez de
+  intentar unificar ambos en una sola tabla Silver — es el que debería
+  replicar cualquier tarea futura que encuentre la misma situación (un
+  productor de `ingesta/` que normaliza más de una forma de registro bajo
+  un mismo dataset).

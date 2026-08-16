@@ -3773,3 +3773,472 @@ resource "aws_glue_job" "aforos_peatones_bicicletas_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_aforos_peatones_bicicletas]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (tarea 041/046/047/048/049/050/053/054 extendido a
+# un NOVENO dataset (`cartelera_cines_estrenos`, cartelera y horarios de
+# cines de Madrid vía SensaCine, ver doc/023,
+# `ingesta/capturas/cartelera_cines_madrid.py` y
+# `procesamiento/silver_gold/cartelera_cines_estrenos/`). Alcance de ESTA
+# tarea: igual que las anteriores, solo código/infraestructura, sin
+# `terraform apply` -- `terraform plan`/`apply` de este bloque quedan para
+# una tarea posterior con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/cartelera_cines_estrenos/*`,
+# `silver/cartelera_cines_estrenos/*`,
+# `gold/cartelera_cines_estrenos_por_pelicula_cine_fecha/*`) -- no se
+# comparte ningún rol con el resto de datasets, mismo principio de mínimo
+# privilegio por dataset que ya aplicaba `ingesta`.
+#
+# Incluye desde el principio los dos statements de permisos que las tareas
+# 051/052 tuvieron que descubrir empíricamente y añadir a posteriori para
+# los seis primeros datasets (`WriteSilverQualityReports...` y el marcador
+# `_$folder$` de Gold), mismo criterio ya aplicado por `ruido`/
+# `aforos_peatones_bicicletas` (tareas 053/054).
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_cartelera_cines_estrenos_prefix = "${var.project_name}-${var.environment}-cartelera-cines-estrenos"
+}
+
+resource "aws_s3_object" "glue_script_cartelera_cines_estrenos_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/cartelera_cines_estrenos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_cartelera_cines_estrenos_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/cartelera_cines_estrenos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_cartelera_cines_estrenos_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_cartelera_cines_estrenos" {
+  name = "${local.glue_cartelera_cines_estrenos_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de cartelera de cines (tarea 055)."
+  assume_role_policy = data.aws_iam_policy_document.glue_cartelera_cines_estrenos_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_cartelera_cines_estrenos_service_role" {
+  role       = aws_iam_role.glue_cartelera_cines_estrenos.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_cartelera_cines_estrenos_data_access" {
+  statement {
+    sid    = "ReadBronzeCarteleraCinesEstrenos"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/cartelera_cines_estrenos/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverCarteleraCinesEstrenos"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/cartelera_cines_estrenos/*"]
+  }
+
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsCarteleraCinesEstrenos"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/cartelera_cines_estrenos/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldCarteleraCinesEstrenosPorPeliculaCineFecha"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+    # el marcador `_$folder$` que crea el committer de Spark cuando el
+    # DataFrame de Gold sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/cartelera_cines_estrenos_por_pelicula_cine_fecha/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/cartelera_cines_estrenos_por_pelicula_cine_fecha_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForCarteleraCinesEstrenosPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "cartelera_cines_estrenos/*",
+        "cartelera_cines_estrenos_por_pelicula_cine_fecha/*",
+        "_quality_reports/cartelera_cines_estrenos/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets --
+  # no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogCarteleraCinesEstrenosTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_cartelera_cines_estrenos_data_access" {
+  name = "${local.glue_cartelera_cines_estrenos_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de cartelera de cines a los buckets del lakehouse y al catalogo de Glue (tarea 055)."
+  policy      = data.aws_iam_policy_document.glue_cartelera_cines_estrenos_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_cartelera_cines_estrenos_data_access" {
+  role       = aws_iam_role.glue_cartelera_cines_estrenos.name
+  policy_arn = aws_iam_policy.glue_cartelera_cines_estrenos_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "cartelera_cines_estrenos_silver" {
+  name          = "cartelera_cines_estrenos"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Sesiones de cine (pelicula, cine, horario) de la cartelera de Madrid, limpias/validadas (tarea 055)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cartelera_cines_estrenos/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "cinema_id"
+      type = "string"
+    }
+    columns {
+      name = "chain"
+      type = "string"
+    }
+    columns {
+      name = "cinema_name"
+      type = "string"
+    }
+    columns {
+      name = "address"
+      type = "string"
+    }
+    columns {
+      name = "postal_code"
+      type = "string"
+    }
+    columns {
+      name = "locality"
+      type = "string"
+    }
+    columns {
+      name = "screen_count"
+      type = "int"
+    }
+    columns {
+      name = "movie_title"
+      type = "string"
+    }
+    columns {
+      name = "movie_url"
+      type = "string"
+    }
+    columns {
+      name = "language_version"
+      type = "string"
+    }
+    columns {
+      name = "experiences"
+      type = "array<string>"
+    }
+    columns {
+      name = "showtime_datetime"
+      type = "string"
+    }
+    columns {
+      name = "showtime_id"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "cartelera_cines_estrenos_gold" {
+  name          = "cartelera_cines_estrenos_por_pelicula_cine_fecha"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Numero de sesiones de cine agregado por pelicula, cine y dia (tarea 055)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/cartelera_cines_estrenos_por_pelicula_cine_fecha/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "movie_url"
+      type = "string"
+    }
+    columns {
+      name = "cinema_id"
+      type = "string"
+    }
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "movie_title"
+      type = "string"
+    }
+    columns {
+      name = "chain"
+      type = "string"
+    }
+    columns {
+      name = "cinema_name"
+      type = "string"
+    }
+    columns {
+      name = "address"
+      type = "string"
+    }
+    columns {
+      name = "postal_code"
+      type = "string"
+    }
+    columns {
+      name = "locality"
+      type = "string"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "sessions_count"
+      type = "bigint"
+    }
+    columns {
+      name = "first_showtime_datetime"
+      type = "string"
+    }
+    columns {
+      name = "last_showtime_datetime"
+      type = "string"
+    }
+    columns {
+      name = "language_versions"
+      type = "array<string>"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_cartelera_cines_estrenos" {
+  name              = "/aws-glue/jobs/${local.glue_cartelera_cines_estrenos_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "cartelera_cines_estrenos_bronze_to_silver" {
+  name        = "${local.glue_cartelera_cines_estrenos_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de cartelera de cines: normalizacion, puerta de calidad por sesion (tarea 055)."
+
+  role_arn          = aws_iam_role.glue_cartelera_cines_estrenos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_cartelera_cines_estrenos_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/cartelera_cines_estrenos/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cartelera_cines_estrenos/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/cartelera_cines_estrenos/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_cartelera_cines_estrenos]
+}
+
+resource "aws_glue_job" "cartelera_cines_estrenos_silver_to_gold" {
+  name        = "${local.glue_cartelera_cines_estrenos_prefix}-silver-to-gold"
+  description = "Silver -> Gold de cartelera de cines: numero de sesiones por pelicula, cine y dia (tarea 055)."
+
+  role_arn          = aws_iam_role.glue_cartelera_cines_estrenos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_cartelera_cines_estrenos_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cartelera_cines_estrenos/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/cartelera_cines_estrenos_por_pelicula_cine_fecha/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_cartelera_cines_estrenos]
+}
