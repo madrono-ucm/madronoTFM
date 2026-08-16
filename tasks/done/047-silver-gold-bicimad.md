@@ -2,7 +2,7 @@
 id: 47
 slug: silver-gold-bicimad
 title: 'Silver/Gold: BiciMAD (siguiendo el patrón de la tarea 041)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/047-silver-gold-bicimad
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T09:30:00+00:00'
-updated_at: '2026-08-16T01:10:45.072620+00:00'
+updated_at: '2026-08-16T01:11:51.683095+00:00'
 started_at: '2026-08-16T01:02:39.682695+00:00'
 submitted_at: '2026-08-16T01:10:45.072446+00:00'
-merged_at: null
+merged_at: '2026-08-16T01:10:48Z'
 ---
 
 ## Contexto
