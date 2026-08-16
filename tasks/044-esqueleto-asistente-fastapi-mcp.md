@@ -2,19 +2,19 @@
 id: 44
 slug: esqueleto-asistente-fastapi-mcp
 title: Esqueleto del asistente conversacional (FastAPI + agente MCP)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/044-esqueleto-asistente-fastapi-mcp
-pr_number: null
-pr_url: null
+pr_number: 91
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/91
 attempts: 6
 next_retry_at: '2026-08-16T00:00:12.520214+00:00'
 last_error: You've hit your session limit · resets 9:40pm (UTC)
 created_at: '2026-08-15T09:49:55+00:00'
-updated_at: '2026-08-16T00:00:53.361195+00:00'
+updated_at: '2026-08-16T00:09:17.439452+00:00'
 started_at: '2026-08-15T18:28:44.449045+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T00:09:17.439315+00:00'
 merged_at: null
 ---
 
