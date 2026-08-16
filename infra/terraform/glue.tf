@@ -155,6 +155,23 @@ data "aws_iam_policy_document" "glue_trafico_data_access" {
     resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/trafico/*"]
   }
 
+  # Informe de calidad de Great Expectations (tarea 051 arregló su escritura
+  # vía `boto3.put_object` directo, pero nunca se concedió el permiso IAM
+  # sobre este prefijo -- confirmado como bloqueante real en el job de
+  # sanidad de la 051, `AccessDenied` en `s3:PutObject` sobre
+  # `_quality_reports/trafico/*`).
+  statement {
+    sid    = "WriteSilverQualityReportsTrafico"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/trafico/*"]
+  }
+
   statement {
     sid    = "WriteGoldTraficoPorPuntoHora"
     effect = "Allow"
@@ -164,7 +181,17 @@ data "aws_iam_policy_document" "glue_trafico_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/trafico_por_punto_hora/*"]
+    # El segundo recurso cubre el marcador de directorio vacío
+    # `<prefijo>_$folder$` que EMRFS escribe en la raíz del prefijo cuando el
+    # DataFrame de Gold sale sin filas (job de sanidad de la tarea 052:
+    # `AccessDenied` real en un `aparcamientos_por_parking_hora_$folder$`
+    # ausente de la política -- el patrón `<prefijo>/*` no lo cubre, falta la
+    # barra). Se añade a los 6 datasets por construcción idéntica del
+    # committer, no solo al que falló.
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/trafico_por_punto_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/trafico_por_punto_hora_$folder$",
+    ]
   }
 
   statement {
@@ -184,6 +211,7 @@ data "aws_iam_policy_document" "glue_trafico_data_access" {
       values = [
         "trafico/*",
         "trafico_por_punto_hora/*",
+        "_quality_reports/trafico/*",
         "glue-temp/*",
       ]
     }
@@ -640,6 +668,20 @@ data "aws_iam_policy_document" "glue_transporte_publico_emt_data_access" {
     resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/transporte_publico_emt/*"]
   }
 
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsTransportePublicoEmt"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/transporte_publico_emt/*"]
+  }
+
   statement {
     sid    = "WriteGoldTransportePublicoEmtPorParadaHora"
     effect = "Allow"
@@ -649,7 +691,11 @@ data "aws_iam_policy_document" "glue_transporte_publico_emt_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/transporte_publico_emt_por_parada_hora/*"]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052).
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/transporte_publico_emt_por_parada_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/transporte_publico_emt_por_parada_hora_$folder$",
+    ]
   }
 
   statement {
@@ -669,6 +715,7 @@ data "aws_iam_policy_document" "glue_transporte_publico_emt_data_access" {
       values = [
         "transporte_publico_emt/*",
         "transporte_publico_emt_por_parada_hora/*",
+        "_quality_reports/transporte_publico_emt/*",
         "glue-temp/*",
       ]
     }
@@ -1052,6 +1099,20 @@ data "aws_iam_policy_document" "glue_bicimad_data_access" {
     resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/bicimad/*"]
   }
 
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsBicimad"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/bicimad/*"]
+  }
+
   statement {
     sid    = "WriteGoldBicimadPorEstacionHora"
     effect = "Allow"
@@ -1061,7 +1122,11 @@ data "aws_iam_policy_document" "glue_bicimad_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/bicimad_por_estacion_hora/*"]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052).
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/bicimad_por_estacion_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/bicimad_por_estacion_hora_$folder$",
+    ]
   }
 
   statement {
@@ -1081,6 +1146,7 @@ data "aws_iam_policy_document" "glue_bicimad_data_access" {
       values = [
         "bicimad/*",
         "bicimad_por_estacion_hora/*",
+        "_quality_reports/bicimad/*",
         "glue-temp/*",
       ]
     }
@@ -1504,6 +1570,20 @@ data "aws_iam_policy_document" "glue_aparcamientos_data_access" {
     resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/aparcamientos/*"]
   }
 
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsAparcamientos"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/aparcamientos/*"]
+  }
+
   statement {
     sid    = "WriteGoldAparcamientosPorParkingHora"
     effect = "Allow"
@@ -1513,7 +1593,12 @@ data "aws_iam_policy_document" "glue_aparcamientos_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/aparcamientos_por_parking_hora/*"]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+    # el que provocó el `AccessDenied` real, ver doc/052.
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/aparcamientos_por_parking_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/aparcamientos_por_parking_hora_$folder$",
+    ]
   }
 
   statement {
@@ -1533,6 +1618,7 @@ data "aws_iam_policy_document" "glue_aparcamientos_data_access" {
       values = [
         "aparcamientos/*",
         "aparcamientos_por_parking_hora/*",
+        "_quality_reports/aparcamientos/*",
         "glue-temp/*",
       ]
     }
@@ -1919,6 +2005,20 @@ data "aws_iam_policy_document" "glue_calidad_aire_data_access" {
     resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/calidad_aire/*"]
   }
 
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsCalidadAire"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/calidad_aire/*"]
+  }
+
   statement {
     sid    = "WriteGoldCalidadAirePorEstacionContaminanteHora"
     effect = "Allow"
@@ -1928,7 +2028,11 @@ data "aws_iam_policy_document" "glue_calidad_aire_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/calidad_aire_por_estacion_contaminante_hora/*"]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052).
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/calidad_aire_por_estacion_contaminante_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/calidad_aire_por_estacion_contaminante_hora_$folder$",
+    ]
   }
 
   statement {
@@ -1948,6 +2052,7 @@ data "aws_iam_policy_document" "glue_calidad_aire_data_access" {
       values = [
         "calidad_aire/*",
         "calidad_aire_por_estacion_contaminante_hora/*",
+        "_quality_reports/calidad_aire/*",
         "glue-temp/*",
       ]
     }
@@ -2358,6 +2463,20 @@ data "aws_iam_policy_document" "glue_meteorologia_data_access" {
     resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/meteorologia/*"]
   }
 
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsMeteorologia"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/meteorologia/*"]
+  }
+
   statement {
     sid    = "WriteGoldMeteorologiaPorEstacionMagnitudHora"
     effect = "Allow"
@@ -2367,7 +2486,11 @@ data "aws_iam_policy_document" "glue_meteorologia_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/meteorologia_por_estacion_magnitud_hora/*"]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052).
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/meteorologia_por_estacion_magnitud_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/meteorologia_por_estacion_magnitud_hora_$folder$",
+    ]
   }
 
   statement {
@@ -2387,6 +2510,7 @@ data "aws_iam_policy_document" "glue_meteorologia_data_access" {
       values = [
         "meteorologia/*",
         "meteorologia_por_estacion_magnitud_hora/*",
+        "_quality_reports/meteorologia/*",
         "glue-temp/*",
       ]
     }
