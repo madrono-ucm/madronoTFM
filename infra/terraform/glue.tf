@@ -555,3 +555,415 @@ resource "aws_glue_job" "trafico_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_trafico]
 }
+
+# ---------------------------------------------------------------------------
+# Tarea 046: mismo patrón Bronze -> Silver -> Gold con AWS Glue, aplicado al
+# segundo dataset (`transporte_publico_emt`, llegadas de autobús de la EMT
+# Madrid, ver doc/003, doc/024 y `procesamiento/silver_gold/transporte_publico_emt/`).
+# Alcance de ESTA tarea: igual que la 041, solo código/infraestructura, sin
+# `terraform apply` -- `terraform plan`/`apply` de este bloque quedan para una
+# tarea posterior con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/transporte_publico_emt/*`, `silver/transporte_publico_emt/*`,
+# `gold/transporte_publico_emt_por_parada_hora/*`) -- no se comparte el rol
+# `glue_trafico`, mismo principio de mínimo privilegio por dataset que ya
+# aplicaba `ingesta` (ver `procesamiento/README.md`, "Relevante para tareas
+# futuras" de la tarea 041).
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_transporte_publico_emt_prefix = "${var.project_name}-${var.environment}-transporte-publico-emt"
+}
+
+resource "aws_s3_object" "glue_script_transporte_publico_emt_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/transporte_publico_emt_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_transporte_publico_emt_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/transporte_publico_emt_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_transporte_publico_emt_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_transporte_publico_emt" {
+  name = "${local.glue_transporte_publico_emt_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de transporte publico EMT (tarea 046)."
+  assume_role_policy = data.aws_iam_policy_document.glue_transporte_publico_emt_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_transporte_publico_emt_service_role" {
+  role       = aws_iam_role.glue_transporte_publico_emt.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_transporte_publico_emt_data_access" {
+  statement {
+    sid    = "ReadBronzeTransportePublicoEmt"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/transporte_publico_emt/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverTransportePublicoEmt"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/transporte_publico_emt/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldTransportePublicoEmtPorParadaHora"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["gold"].arn}/transporte_publico_emt_por_parada_hora/*"]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForTransportePublicoEmtPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "transporte_publico_emt/*",
+        "transporte_publico_emt_por_parada_hora/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que `glue_trafico_data_access`:
+  # bucket Silver, prefijo `glue-temp/` (compartido entre datasets -- no es
+  # dato persistente, solo shuffle spill/ficheros temporales de escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogTransportePublicoEmtTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_transporte_publico_emt_data_access" {
+  name = "${local.glue_transporte_publico_emt_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de transporte publico EMT a los buckets del lakehouse y al catalogo de Glue (tarea 046)."
+  policy      = data.aws_iam_policy_document.glue_transporte_publico_emt_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_transporte_publico_emt_data_access" {
+  role       = aws_iam_role.glue_transporte_publico_emt.name
+  policy_arn = aws_iam_policy.glue_transporte_publico_emt_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "transporte_publico_emt_silver" {
+  name          = "transporte_publico_emt"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Llegadas de autobus EMT Madrid, limpias/validadas (tarea 046)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/transporte_publico_emt/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "stop_id"
+      type = "string"
+    }
+    columns {
+      name = "line"
+      type = "string"
+    }
+    columns {
+      name = "bus_id"
+      type = "bigint"
+    }
+    columns {
+      name = "destination"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+    columns {
+      name = "estimate_arrive_sec"
+      type = "int"
+    }
+    columns {
+      name = "distance_bus_m"
+      type = "int"
+    }
+    columns {
+      name = "is_head"
+      type = "boolean"
+    }
+    columns {
+      name = "deviation_sec"
+      type = "int"
+    }
+    columns {
+      name = "position_type_bus"
+      type = "string"
+    }
+    columns {
+      name = "location"
+      type = "struct<lat:double,lon:double,srid:string>"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "transporte_publico_emt_gold" {
+  name          = "transporte_publico_emt_por_parada_hora"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Llegadas de autobus EMT Madrid agregadas por parada, linea y hora (tarea 046)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/transporte_publico_emt_por_parada_hora/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "stop_id"
+      type = "string"
+    }
+    columns {
+      name = "line"
+      type = "string"
+    }
+    columns {
+      name = "hour"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "first_ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "last_ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "avg_estimate_arrive_sec"
+      type = "double"
+    }
+    columns {
+      name = "min_estimate_arrive_sec"
+      type = "int"
+    }
+    columns {
+      name = "max_estimate_arrive_sec"
+      type = "int"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_transporte_publico_emt" {
+  name              = "/aws-glue/jobs/${local.glue_transporte_publico_emt_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "transporte_publico_emt_bronze_to_silver" {
+  name        = "${local.glue_transporte_publico_emt_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de transporte publico EMT: normalizacion, puerta de calidad (tarea 046)."
+
+  role_arn          = aws_iam_role.glue_transporte_publico_emt.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_transporte_publico_emt_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/transporte_publico_emt/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/transporte_publico_emt/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/transporte_publico_emt/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_transporte_publico_emt]
+}
+
+resource "aws_glue_job" "transporte_publico_emt_silver_to_gold" {
+  name        = "${local.glue_transporte_publico_emt_prefix}-silver-to-gold"
+  description = "Silver -> Gold de transporte publico EMT: espera media/minima por parada, linea y hora (tarea 046)."
+
+  role_arn          = aws_iam_role.glue_transporte_publico_emt.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_transporte_publico_emt_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/transporte_publico_emt/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/transporte_publico_emt_por_parada_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_transporte_publico_emt]
+}
