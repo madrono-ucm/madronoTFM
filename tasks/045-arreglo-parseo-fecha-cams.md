@@ -2,19 +2,19 @@
 id: 45
 slug: arreglo-parseo-fecha-cams
 title: Arreglar el parseo de fechas NetCDF de CAMS (ValueError en producción real)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: true
 branch: task/045-arreglo-parseo-fecha-cams
-pr_number: null
-pr_url: null
+pr_number: 92
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/92
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-15T10:25:00+00:00'
-updated_at: '2026-08-16T00:11:27.719463+00:00'
+updated_at: '2026-08-16T00:28:11.832699+00:00'
 started_at: '2026-08-16T00:11:27.719437+00:00'
-submitted_at: null
+submitted_at: '2026-08-16T00:28:11.832532+00:00'
 merged_at: null
 ---
 
