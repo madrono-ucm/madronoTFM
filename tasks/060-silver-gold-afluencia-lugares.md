@@ -47,9 +47,11 @@ viene en WGS84):
   `null`, cada valor de `typical_by_hour` entre 0-100 cuando esté presente;
   no descartes registros solo por tener `live_pct` a `null` (es un valor
   válido documentado en la tarea 012, no un error).
-- `aggregate.py`: agregación Silver→Gold razonable (p.ej. por lugar y
-  día/hora, cruzando `live_pct` puntual con el patrón `typical_by_hour` de
-  ese mismo registro) — decide con criterio propio y documenta.
+- `aggregate.py`: agregación Silver→Gold ya decidida, no dediques tiempo a
+  evaluar alternativas — por `(place_id, fecha, hora)`: `live_pct` medio
+  cuando esté disponible, junto con el valor de `typical_by_hour`
+  correspondiente a ese día de la semana/hora tomado del mismo registro.
+  Implementa directamente.
 - `ge_suite.py`: mismas expectativas que `transform.validate_record`,
   declarativas.
 - `glue_bronze_to_silver.py` / `glue_silver_to_gold.py`: entry points reales
@@ -74,6 +76,10 @@ viene en WGS84):
 - NO instales `pyspark`/`great_expectations` en esta EC2.
 - No intentes obtener ni configurar `GOOGLE_MAPS_API_KEY` — sigue fuera de
   alcance de esta tarea (ver `doc/012-...md`).
+- No dediques tiempo a evaluar alternativas de diseño para la agregación de
+  Gold — ya está decidida arriba. Las tareas 055 y 057 agotaron el
+  presupuesto ($6, sin comitear nada) precisamente por deliberar demasiado
+  este tipo de decisión en datasets no numéricos — no repitas ese patrón.
 
 ## Criterios de aceptación
 
