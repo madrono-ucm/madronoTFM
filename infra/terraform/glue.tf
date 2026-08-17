@@ -6309,3 +6309,443 @@ resource "aws_glue_job" "cams_calidad_aire_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_cams_calidad_aire]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (Glue, tarea 041/046/047/048/049/050/053/054/055/
+# 056/057/058/059 extendido a un DECIMOCUARTO dataset (`afluencia_lugares`,
+# afluencia estimada de lugares conocidos de Madrid vía la librería
+# `populartimes`, ver doc/012 y
+# `procesamiento/silver_gold/afluencia_lugares/`). Alcance de ESTA tarea:
+# igual que el resto del patrón, solo código/infraestructura, sin
+# `terraform apply` -- `terraform plan`/`apply` de este bloque quedan para
+# una tarea posterior con revisión de plan de por medio.
+#
+# Este dataset sigue bloqueado en producción (sin `GOOGLE_MAPS_API_KEY`
+# real, ver doc/012): la infraestructura se deja lista igualmente, mismo
+# criterio que la propia tarea 012 dejó el código de ingesta listo sin poder
+# ejecutar una captura real.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/afluencia_lugares/*`, `silver/afluencia_lugares/*`,
+# `gold/afluencia_lugares_por_lugar_fecha_hora/*`) -- no se comparte ningún
+# rol con el resto de datasets del patrón, mismo principio de mínimo
+# privilegio por dataset que ya aplicaba `ingesta` (ver
+# `procesamiento/README.md`).
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_afluencia_lugares_prefix = "${var.project_name}-${var.environment}-afluencia-lugares"
+}
+
+resource "aws_s3_object" "glue_script_afluencia_lugares_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/afluencia_lugares_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_afluencia_lugares_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/afluencia_lugares_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_afluencia_lugares_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_afluencia_lugares" {
+  name = "${local.glue_afluencia_lugares_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de afluencia de lugares (tarea 060)."
+  assume_role_policy = data.aws_iam_policy_document.glue_afluencia_lugares_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_afluencia_lugares_service_role" {
+  role       = aws_iam_role.glue_afluencia_lugares.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_afluencia_lugares_data_access" {
+  statement {
+    sid    = "ReadBronzeAfluenciaLugares"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/afluencia_lugares/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverAfluenciaLugares"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/afluencia_lugares/*"]
+  }
+
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051,
+  # incluido desde el principio en este dataset (igual que 053-059).
+  statement {
+    sid    = "WriteSilverQualityReportsAfluenciaLugares"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/afluencia_lugares/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldAfluenciaLugaresPorLugarFechaHora"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052).
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/afluencia_lugares_por_lugar_fecha_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/afluencia_lugares_por_lugar_fecha_hora_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForAfluenciaLugaresPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "afluencia_lugares/*",
+        "afluencia_lugares_por_lugar_fecha_hora/*",
+        "_quality_reports/afluencia_lugares/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets
+  # -- no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogAfluenciaLugaresTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_afluencia_lugares_data_access" {
+  name = "${local.glue_afluencia_lugares_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de afluencia de lugares a los buckets del lakehouse y al catalogo de Glue (tarea 060)."
+  policy      = data.aws_iam_policy_document.glue_afluencia_lugares_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_afluencia_lugares_data_access" {
+  role       = aws_iam_role.glue_afluencia_lugares.name
+  policy_arn = aws_iam_policy.glue_afluencia_lugares_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "afluencia_lugares_silver" {
+  name          = "afluencia_lugares"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Afluencia estimada (en vivo y patrón típico) de lugares conocidos de Madrid, limpia/validada (tarea 060)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/afluencia_lugares/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "place_id"
+      type = "string"
+    }
+    columns {
+      name = "name"
+      type = "string"
+    }
+    columns {
+      name = "query"
+      type = "string"
+    }
+    columns {
+      name = "address"
+      type = "string"
+    }
+    columns {
+      name = "lat"
+      type = "double"
+    }
+    columns {
+      name = "lon"
+      type = "double"
+    }
+    columns {
+      name = "live_pct"
+      type = "int"
+    }
+    columns {
+      name = "typical_by_hour"
+      type = "struct<lunes:array<int>,martes:array<int>,miercoles:array<int>,jueves:array<int>,viernes:array<int>,sabado:array<int>,domingo:array<int>>"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "afluencia_lugares_gold" {
+  name          = "afluencia_lugares_por_lugar_fecha_hora"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Afluencia de lugares de Madrid agregada por lugar, fecha y hora: afluencia en vivo media y valor típico correspondiente (tarea 060)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/afluencia_lugares_por_lugar_fecha_hora/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "place_id"
+      type = "string"
+    }
+    columns {
+      name = "name"
+      type = "string"
+    }
+    columns {
+      name = "hour"
+      type = "int"
+    }
+    columns {
+      name = "day_of_week"
+      type = "string"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "avg_live_pct"
+      type = "double"
+    }
+    columns {
+      name = "typical_pct"
+      type = "double"
+    }
+    columns {
+      name = "lat"
+      type = "double"
+    }
+    columns {
+      name = "lon"
+      type = "double"
+    }
+    columns {
+      name = "first_ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "last_ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_afluencia_lugares" {
+  name              = "/aws-glue/jobs/${local.glue_afluencia_lugares_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "afluencia_lugares_bronze_to_silver" {
+  name        = "${local.glue_afluencia_lugares_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de afluencia de lugares: normalización, puerta de calidad de live_pct/typical_by_hour (tarea 060)."
+
+  role_arn          = aws_iam_role.glue_afluencia_lugares.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_afluencia_lugares_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/afluencia_lugares/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/afluencia_lugares/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/afluencia_lugares/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_afluencia_lugares]
+}
+
+resource "aws_glue_job" "afluencia_lugares_silver_to_gold" {
+  name        = "${local.glue_afluencia_lugares_prefix}-silver-to-gold"
+  description = "Silver -> Gold de afluencia de lugares: afluencia en vivo media y valor típico por lugar/fecha/hora (tarea 060)."
+
+  role_arn          = aws_iam_role.glue_afluencia_lugares.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_afluencia_lugares_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/afluencia_lugares/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/afluencia_lugares_por_lugar_fecha_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_afluencia_lugares]
+}
