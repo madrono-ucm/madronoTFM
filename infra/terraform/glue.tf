@@ -5172,3 +5172,705 @@ resource "aws_glue_job" "bluesky_menciones_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_bluesky_menciones]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (tarea 041/046/047/048/049/050/053/054/055/056/057
+# extendido a un DUODÉCIMO dataset (`aemet_prevision_avisos`, previsión diaria
+# y avisos meteorológicos de AEMET OpenData -- ver
+# `ingesta/capturas/aemet_prevision_avisos.py` y
+# `procesamiento/silver_gold/aemet_prevision_avisos/`). Alcance de ESTA
+# tarea: igual que las anteriores, solo código/infraestructura, sin
+# `terraform apply` -- `terraform plan`/`apply` de este bloque quedan para
+# una tarea posterior con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM.
+#
+# DESVIACIÓN DELIBERADA del prefijo único `aemet_prevision_avisos/*` que
+# sugería el enunciado de esta tarea: `ingesta/capturas/aemet_prevision_avisos.py`
+# ya fija, en producción, DOS nombres de dataset Bronze distintos
+# (`DATASET_PREDICCION = "aemet_prevision"`, `DATASET_AVISOS = "aemet_avisos"`,
+# usados tal cual por `BronzeWriter`/`lambda_handler`) -- son dos prefijos S3
+# reales (`bronze/aemet_prevision/*`, `bronze/aemet_avisos/*`), no uno
+# combinado. Un rol acotado al prefijo que sugería el enunciado no tendría
+# permiso para leer ningún dato real. Silver mantiene la misma separación
+# que Bronze ya tiene fijada (`silver/aemet_prevision/*`,
+# `silver/aemet_avisos/*`); Gold usa nombres propios por agregación
+# (`gold/aemet_prevision_por_municipio_leadtime/*`,
+# `gold/aemet_avisos_por_zona_fecha_nivel/*`) -- ver docstring de
+# `procesamiento/silver_gold/aemet_prevision_avisos/transform.py`,
+# "Prefijos S3 reales de Bronze", para el razonamiento completo. Sí se
+# comparte UN ÚNICO rol IAM y UN ÚNICO par de jobs de Glue (Bronze->Silver,
+# Silver->Gold) entre las dos formas de dato -- "job de Glue x2" tal como
+# pide el enunciado, no cuatro jobs -- porque comparten productor,
+# credencial (`AEMET_API_KEY`) y cadencia real de scheduling (ver
+# `ingesta/README.md`, "Cadencia real de publicación").
+#
+# Incluye desde el principio los dos statements de permisos que las tareas
+# 051/052 tuvieron que descubrir empíricamente y añadir a posteriori para
+# los seis primeros datasets (`WriteSilverQualityReports...` y el marcador
+# `_$folder$` de Gold, aquí uno por cada tabla Gold), mismo criterio ya
+# aplicado por el resto del patrón desde la tarea 053.
+#
+# Las tablas Silver del catálogo declaran una única `partition_keys`
+# (`fecha`, sin `hora`): la previsión es diaria (sin resolución horaria
+# real, mismo criterio que `ruido`/`agenda_eventos`) y los avisos, aunque sí
+# traen hora de inicio de vigencia, no tienen volumen suficiente para
+# justificar una partición horaria adicional.
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_aemet_prevision_avisos_prefix = "${var.project_name}-${var.environment}-aemet-prevision-avisos"
+}
+
+resource "aws_s3_object" "glue_script_aemet_prevision_avisos_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/aemet_prevision_avisos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_aemet_prevision_avisos_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/aemet_prevision_avisos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_aemet_prevision_avisos_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_aemet_prevision_avisos" {
+  name = "${local.glue_aemet_prevision_avisos_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de la previsión y avisos de AEMET (tarea 058)."
+  assume_role_policy = data.aws_iam_policy_document.glue_aemet_prevision_avisos_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_aemet_prevision_avisos_service_role" {
+  role       = aws_iam_role.glue_aemet_prevision_avisos.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_aemet_prevision_avisos_data_access" {
+  statement {
+    sid    = "ReadBronzeAemetPrevision"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/aemet_prevision/*"]
+  }
+
+  statement {
+    sid    = "ReadBronzeAemetAvisos"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/aemet_avisos/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverAemetPrevision"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/aemet_prevision/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverAemetAvisos"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/aemet_avisos/*"]
+  }
+
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsAemetPrevisionAvisos"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/aemet_prevision_avisos/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldAemetPrevisionPorMunicipioLeadtime"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+    # el marcador `_$folder$` que crea el committer de Spark cuando el
+    # DataFrame de Gold sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/aemet_prevision_por_municipio_leadtime/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/aemet_prevision_por_municipio_leadtime_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "WriteGoldAemetAvisosPorZonaFechaNivel"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/aemet_avisos_por_zona_fecha_nivel/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/aemet_avisos_por_zona_fecha_nivel_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForAemetPrevisionAvisosPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "aemet_prevision/*",
+        "aemet_avisos/*",
+        "aemet_prevision_por_municipio_leadtime/*",
+        "aemet_avisos_por_zona_fecha_nivel/*",
+        "_quality_reports/aemet_prevision_avisos/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets --
+  # no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogAemetPrevisionAvisosTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_aemet_prevision_avisos_data_access" {
+  name = "${local.glue_aemet_prevision_avisos_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de la prevision y avisos de AEMET a los buckets del lakehouse y al catalogo de Glue (tarea 058)."
+  policy      = data.aws_iam_policy_document.glue_aemet_prevision_avisos_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_aemet_prevision_avisos_data_access" {
+  role       = aws_iam_role.glue_aemet_prevision_avisos.name
+  policy_arn = aws_iam_policy.glue_aemet_prevision_avisos_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "aemet_prevision_silver" {
+  name          = "aemet_prevision"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Prevision diaria de AEMET por municipio, limpia/validada (tarea 058)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_prevision/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "municipio_code"
+      type = "string"
+    }
+    columns {
+      name = "municipio_name"
+      type = "string"
+    }
+    columns {
+      name = "province"
+      type = "string"
+    }
+    columns {
+      name = "elaborated_at"
+      type = "string"
+    }
+    columns {
+      name = "valid_date"
+      type = "string"
+    }
+    columns {
+      name = "sky_state"
+      type = "string"
+    }
+    columns {
+      name = "sky_state_code"
+      type = "string"
+    }
+    columns {
+      name = "precipitation_probability_pct"
+      type = "double"
+    }
+    columns {
+      name = "temperature_max_c"
+      type = "double"
+    }
+    columns {
+      name = "temperature_min_c"
+      type = "double"
+    }
+    columns {
+      name = "thermal_sensation_max_c"
+      type = "double"
+    }
+    columns {
+      name = "thermal_sensation_min_c"
+      type = "double"
+    }
+    columns {
+      name = "humidity_max_pct"
+      type = "double"
+    }
+    columns {
+      name = "humidity_min_pct"
+      type = "double"
+    }
+    columns {
+      name = "wind_direction"
+      type = "string"
+    }
+    columns {
+      name = "wind_speed_kmh"
+      type = "double"
+    }
+    columns {
+      name = "wind_gust_max_kmh"
+      type = "double"
+    }
+    columns {
+      name = "uv_max"
+      type = "double"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "aemet_avisos_silver" {
+  name          = "aemet_avisos"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Avisos meteorologicos vigentes de AEMET, limpios/validados (tarea 058)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_avisos/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "identifier"
+      type = "string"
+    }
+    columns {
+      name = "sent_at"
+      type = "string"
+    }
+    columns {
+      name = "zone"
+      type = "string"
+    }
+    columns {
+      name = "level"
+      type = "string"
+    }
+    columns {
+      name = "phenomenon"
+      type = "string"
+    }
+    columns {
+      name = "probability"
+      type = "string"
+    }
+    columns {
+      name = "severity"
+      type = "string"
+    }
+    columns {
+      name = "urgency"
+      type = "string"
+    }
+    columns {
+      name = "certainty"
+      type = "string"
+    }
+    columns {
+      name = "effective_from"
+      type = "string"
+    }
+    columns {
+      name = "effective_until"
+      type = "string"
+    }
+    columns {
+      name = "headline"
+      type = "string"
+    }
+    columns {
+      name = "description"
+      type = "string"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "aemet_prevision_gold" {
+  name          = "aemet_prevision_por_municipio_leadtime"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Prevision de AEMET agregada por municipio y horizonte (leadtime en dias), valores medios/maximos (tarea 058)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "municipio_code"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aemet_prevision_por_municipio_leadtime/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "leadtime_days"
+      type = "int"
+    }
+    columns {
+      name = "municipio_name"
+      type = "string"
+    }
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "avg_temperature_max_c"
+      type = "double"
+    }
+    columns {
+      name = "max_temperature_max_c"
+      type = "double"
+    }
+    columns {
+      name = "avg_temperature_min_c"
+      type = "double"
+    }
+    columns {
+      name = "min_temperature_min_c"
+      type = "double"
+    }
+    columns {
+      name = "avg_precipitation_probability_pct"
+      type = "double"
+    }
+    columns {
+      name = "max_precipitation_probability_pct"
+      type = "double"
+    }
+    columns {
+      name = "first_valid_date"
+      type = "string"
+    }
+    columns {
+      name = "last_valid_date"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "aemet_avisos_gold" {
+  name          = "aemet_avisos_por_zona_fecha_nivel"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Numero de avisos meteorologicos activos de AEMET agregado por zona, dia de inicio de vigencia y nivel (tarea 058)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aemet_avisos_por_zona_fecha_nivel/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "zone"
+      type = "string"
+    }
+    columns {
+      name = "level"
+      type = "string"
+    }
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "alerts_count"
+      type = "bigint"
+    }
+    columns {
+      name = "phenomena"
+      type = "array<string>"
+    }
+    columns {
+      name = "first_effective_from"
+      type = "string"
+    }
+    columns {
+      name = "last_effective_until"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_aemet_prevision_avisos" {
+  name              = "/aws-glue/jobs/${local.glue_aemet_prevision_avisos_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "aemet_prevision_avisos_bronze_to_silver" {
+  name        = "${local.glue_aemet_prevision_avisos_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de la prevision y avisos de AEMET: normalizacion y puerta de calidad de ambas formas de dato (tarea 058)."
+
+  role_arn          = aws_iam_role.glue_aemet_prevision_avisos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_aemet_prevision_avisos_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_prevision_path"            = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/aemet_prevision/"
+    "--bronze_avisos_path"               = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/aemet_avisos/"
+    "--silver_prevision_path"            = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_prevision/"
+    "--silver_avisos_path"               = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_avisos/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/aemet_prevision_avisos/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_aemet_prevision_avisos]
+}
+
+resource "aws_glue_job" "aemet_prevision_avisos_silver_to_gold" {
+  name        = "${local.glue_aemet_prevision_avisos_prefix}-silver-to-gold"
+  description = "Silver -> Gold de la prevision y avisos de AEMET: prevision por municipio/horizonte y avisos por zona/dia/nivel (tarea 058)."
+
+  role_arn          = aws_iam_role.glue_aemet_prevision_avisos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_aemet_prevision_avisos_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_prevision_path"            = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_prevision/"
+    "--silver_avisos_path"               = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_avisos/"
+    "--gold_prevision_path"              = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aemet_prevision_por_municipio_leadtime/"
+    "--gold_avisos_path"                 = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aemet_avisos_por_zona_fecha_nivel/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_aemet_prevision_avisos]
+}
