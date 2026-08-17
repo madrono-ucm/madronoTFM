@@ -3,19 +3,19 @@ id: 59
 slug: silver-gold-cams-calidad-aire
 title: 'Silver/Gold: previsión de calidad del aire CAMS (siguiendo el patrón de la
   tarea 041)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/059-silver-gold-cams-calidad-aire
-pr_number: null
-pr_url: null
+pr_number: 106
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/106
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-17T20:00:55.715210+00:00'
+updated_at: '2026-08-17T20:10:14.791282+00:00'
 started_at: '2026-08-17T20:00:55.715188+00:00'
-submitted_at: null
+submitted_at: '2026-08-17T20:10:14.791137+00:00'
 merged_at: null
 ---
 
