@@ -2,17 +2,20 @@
 id: 57
 slug: silver-gold-bluesky-menciones
 title: 'Silver/Gold: menciones de Bluesky (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: failed
 force: true
 allow_infra_apply: false
 branch: task/057-silver-gold-bluesky-menciones
 pr_number: null
 pr_url: null
-attempts: 6
+attempts: 7
 next_retry_at: '2026-08-17T01:29:20.480111+00:00'
-last_error: You've hit your session limit · resets 12:10am (UTC)
+last_error: 'ens":11687828,"cacheCreationInputTokens":205600,"webSearchRequests":0,"costUSD":5.993393399999999,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
+  maximum budget ($6)"],"type":"result","duration_ms":798967,"uuid":"f91419be-4709-44e7-a1ff-aab9af3d4609"}
+
+  '
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-17T01:29:27.891297+00:00'
+updated_at: '2026-08-17T01:42:49.776879+00:00'
 started_at: '2026-08-16T20:08:04.760968+00:00'
 submitted_at: null
 merged_at: null
