@@ -1,4 +1,4 @@
-# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054, 055, 056 y 057)
+# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054, 055, 056, 057 y 058)
 
 Este directorio es el análogo de `ingesta/` para la fase 2 del proyecto
 (limpieza/normalización y agregación, ver memoria del TFM, apartados 5.5 y
@@ -11,17 +11,17 @@ La tarea 041 fue un **piloto de un único dataset** (tráfico — el más maduro
 mejor documentado de los 21 productores de `ingesta/`, ver doc/002, doc/035,
 doc/037, doc/039): estableció el patrón (estructura de código, motor de
 procesamiento, dónde vive la puerta de calidad, cómo se despliega). Las
-tareas 046, 047, 048, 049, 050, 053, 054, 055, 056 y 057 replican ese mismo
-patrón para un segundo, tercer, cuarto, quinto, sexto, séptimo, octavo,
-noveno, décimo y undécimo dataset (`transporte_publico_emt`, llegadas de
-autobús de la EMT Madrid, ver doc/003, doc/024; `bicimad`, estado de
-estaciones de BiciMAD vía GBFS, ver doc/004; `aparcamientos`, ocupación de
-aparcamientos rotacionales, ver doc/005; `calidad_aire`, lecturas horarias
-de la red de estaciones de calidad del aire, ver doc/006; `meteorologia`,
-lecturas horarias de la red de estaciones meteorológicas, ver doc/008;
-`ruido`, contaminación acústica diaria de la Red Fija del SIVCA, ver
-doc/007; `aforos_peatones_bicicletas`, conteos horarios de peatones y
-bicicletas de la red de estaciones permanentes de aforo, ver
+tareas 046, 047, 048, 049, 050, 053, 054, 055, 056, 057 y 058 replican ese
+mismo patrón para un segundo, tercer, cuarto, quinto, sexto, séptimo,
+octavo, noveno, décimo, undécimo y duodécimo dataset (`transporte_publico_emt`,
+llegadas de autobús de la EMT Madrid, ver doc/003, doc/024; `bicimad`,
+estado de estaciones de BiciMAD vía GBFS, ver doc/004; `aparcamientos`,
+ocupación de aparcamientos rotacionales, ver doc/005; `calidad_aire`,
+lecturas horarias de la red de estaciones de calidad del aire, ver doc/006;
+`meteorologia`, lecturas horarias de la red de estaciones meteorológicas,
+ver doc/008; `ruido`, contaminación acústica diaria de la Red Fija del
+SIVCA, ver doc/007; `aforos_peatones_bicicletas`, conteos horarios de
+peatones y bicicletas de la red de estaciones permanentes de aforo, ver
 `ingesta/capturas/aforos_peatones_bicicletas_madrid.py`;
 `cartelera_cines_estrenos`, cartelera y horarios de cines de Madrid vía
 SensaCine, ver doc/023; `agenda_eventos`, agenda de eventos culturales y de
@@ -30,17 +30,22 @@ esmadrid.com --, ver `ingesta/capturas/agenda_eventos_madrid.py`;
 `bluesky_menciones`, menciones públicas de lugares/distritos de Madrid en
 Bluesky -- búsqueda puntual por lugar + barrido programado por distrito,
 ambos bajo un mismo campo `mode` --, ver
-`ingesta/capturas/bluesky_menciones_madrid.py`)
+`ingesta/capturas/bluesky_menciones_madrid.py`; `aemet_prevision_avisos`,
+previsión diaria por municipio y avisos meteorológicos vigentes de AEMET
+OpenData -- dos formas de dato de un mismo productor, tratadas por separado
+de principio a fin --, ver doc/018 y
+`ingesta/capturas/aemet_prevision_avisos.py`)
 — ver "Segundo dataset: `transporte_publico_emt`", "Tercer dataset:
 `bicimad`", "Cuarto dataset: `aparcamientos`", "Quinto dataset:
 `calidad_aire`", "Sexto dataset: `meteorologia`", "Séptimo dataset: `ruido`",
 "Octavo dataset: `aforos_peatones_bicicletas`", "Noveno dataset:
-`cartelera_cines_estrenos`", "Décimo dataset: `agenda_eventos`" y "Undécimo
-dataset: `bluesky_menciones`" más abajo para las diferencias reales frente
-al piloto. **Los once siguen siendo solo código e infraestructura, sin
-aplicar nada en AWS** — mismo alcance que la tarea 001 con el lakehouse;
-aplicar (con revisión de plan de por medio) es una tarea posterior, igual
-que las tareas 014/015 lo fueron para esa infraestructura base.
+`cartelera_cines_estrenos`", "Décimo dataset: `agenda_eventos`", "Undécimo
+dataset: `bluesky_menciones`" y "Duodécimo dataset: `aemet_prevision_avisos`"
+más abajo para las diferencias reales frente al piloto. **Los doce siguen
+siendo solo código e infraestructura, sin aplicar nada en AWS** — mismo
+alcance que la tarea 001 con el lakehouse; aplicar (con revisión de plan de
+por medio) es una tarea posterior, igual que las tareas 014/015 lo fueron
+para esa infraestructura base.
 
 ## Motor de procesamiento: AWS Glue (Spark serverless)
 
@@ -125,6 +130,12 @@ procesamiento/
       ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
       glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona por created_at)
       glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
+    aemet_prevision_avisos/
+      transform.py               # Bronze -> Silver: DOS puertas de calidad independientes, previsión y avisos (sin geo.py, ver más abajo)
+      aggregate.py                # Silver -> Gold: DOS agregaciones independientes, por municipio/leadtime y por zona/fecha/nivel
+      ge_suite.py                  # DOS suites de Great Expectations, una por forma de dato (requiere pyspark + GX)
+      glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, procesa ambas formas de dato en un único job)
+      glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold, idem)
   tests/
     fixtures/trafico_bronze_sample.json
     fixtures/transporte_publico_emt_bronze_sample.json
@@ -137,6 +148,8 @@ procesamiento/
     fixtures/cartelera_cines_estrenos_bronze_sample.json
     fixtures/agenda_eventos_bronze_sample.json
     fixtures/bluesky_menciones_bronze_sample.json
+    fixtures/aemet_prevision_bronze_sample.json
+    fixtures/aemet_avisos_bronze_sample.json
     test_geo.py
     test_transform.py
     test_aggregate.py
@@ -160,6 +173,8 @@ procesamiento/
     test_agenda_eventos_aggregate.py
     test_bluesky_menciones_transform.py
     test_bluesky_menciones_aggregate.py
+    test_aemet_prevision_avisos_transform.py
+    test_aemet_prevision_avisos_aggregate.py
 ```
 
 Precedente directo: `ingesta/capturas/` + `ingesta/tests/` (un paquete por
@@ -833,6 +848,111 @@ antes de parsear (ver docstring de `transform.py`) precisamente para
 evitarlo -- primer caso del patrón donde esto importa, porque es el primer
 dataset cuyos timestamps clave no los genera `ingesta/capturas/bronze.py`.
 
+## Duodécimo dataset: `aemet_prevision_avisos` (tarea 058)
+
+Replica la estructura de código del patrón sobre la previsión diaria y los
+avisos meteorológicos vigentes de AEMET OpenData
+(`ingesta/capturas/aemet_prevision_avisos.py`, ver doc/018). **Sin
+`geo.py`**: ninguna de las dos formas de dato trae ninguna coordenada
+(previsión: municipio por código INE; avisos: zona por nombre de área CCAA).
+
+**Diferencia real frente a todo el resto del patrón: dos formas de dato
+completamente distintas bajo un mismo productor, sin ningún campo en
+común.** Los once datasets anteriores, aunque varíen entre serie temporal
+numérica (`trafico`...) y catálogo de hechos discretos
+(`cartelera_cines_estrenos`, `agenda_eventos`) o incluso dos `mode` bajo un
+mismo esquema (`bluesky_menciones`), siempre comparten un único esquema
+Silver por dataset. Aquí `ingesta/capturas/aemet_prevision_avisos.py` ya
+escribe, en producción, **dos** Bronze datasets con nombre propio
+(`DATASET_PREDICCION = "aemet_prevision"`, `DATASET_AVISOS = "aemet_avisos"`)
+y esquemas que no comparten ni un solo campo de negocio: la previsión trae
+`municipio_code`/`valid_date`/magnitudes meteorológicas; los avisos traen
+`identifier`/`zone`/`level`/CAP. El enunciado de esta tarea pedía
+explícitamente no forzar un único esquema de agregación para ambas, así que
+este subpaquete trata ambas formas de dato como dos flujos independientes
+de principio a fin: dos puertas de calidad
+(`validate_prevision_record`/`validate_aviso_record`), dos normalizadores,
+dos agregaciones (`aggregate_prevision_silver_to_gold`/
+`aggregate_avisos_silver_to_gold`), dos suites de Great Expectations y dos
+pares de prefijos S3 -- pero **un único** rol IAM y **un único** par de
+jobs de Glue (Bronze→Silver, Silver→Gold, "job de Glue x2" tal como pedía
+el enunciado, no cuatro), porque ambas formas comparten productor,
+credencial (`AEMET_API_KEY`) y cadencia real de scheduling.
+
+**Desviación deliberada de la sugerencia de prefijo único del enunciado.**
+El enunciado sugería acotar el rol IAM a un único prefijo
+`aemet_prevision_avisos/*` en las tres capas. Eso no es viable: los nombres
+de dataset Bronze ya están fijados en producción por
+`ingesta/capturas/aemet_prevision_avisos.py` (`"aemet_prevision"`/
+`"aemet_avisos"`, usados tal cual por `BronzeWriter`), así que un rol
+acotado al prefijo combinado que sugería el enunciado no tendría permiso
+para leer ningún dato Bronze real. Silver mantiene la misma separación de
+prefijos que Bronze ya tiene fijada (`silver/aemet_prevision/*`,
+`silver/aemet_avisos/*`); Gold usa nombres propios por agregación
+(`gold/aemet_prevision_por_municipio_leadtime/*`,
+`gold/aemet_avisos_por_zona_fecha_nivel/*`). El subpaquete de
+`procesamiento/` sí se llama `aemet_prevision_avisos` (agrupa el código de
+ambas formas, mismo productor/enunciado) -- la desviación es solo en los
+prefijos S3 reales, documentada con detalle en el docstring de
+`transform.py` y en `infra/terraform/glue.tf`.
+
+**Previsión: puerta de calidad.** `validate_prevision_record` exige,
+siguiendo el enunciado: `municipio_code` no nulo, `valid_date` parseable y
+no ya pasada respecto a `ingested_at` (`valid_date < ingested_at.date()` se
+rechaza con `"valid_date_already_passed"`; el mismo día, `leadtime_days ==
+0`, sí es válido -- es un dato legítimo y frecuente, la previsión "de hoy"),
+y rangos plausibles de `temperature_max_c`/`temperature_min_c` (`[-20, 50]`,
+mismo rango que `meteorologia.PLAUSIBLE_RANGE_BY_MAGNITUDE["temperature_c"]`)
+y `precipitation_probability_pct` (`[0, 100]`, rango físico exacto). Otros
+campos (`sky_state`, `humidity_*`, `wind_*`, `uv_max`) no forman parte de la
+puerta de calidad -- el enunciado no los pide como clave ni tienen un rango
+definido aquí, y `ingesta/README.md` ya documenta que algunos (p.ej.
+`wind_gust_max_kmh`) son legítimamente `null` en días sin dato, incluso con
+datos reales.
+
+**Silver normaliza tipos numéricos a `float`; Bronze no.**
+`ingesta/README.md` documenta a propósito que Bronze conserva los tipos tal
+como los publica AEMET (`precipitation_probability_pct`/`wind_speed_kmh`
+llegan como *string*, p.ej. `"75"`, por "honestidad sobre cómo lo publica la
+fuente"). Silver, en cambio, sigue el mismo criterio que
+`meteorologia`/`calidad_aire` (`value: float`): `transform._to_float`
+normaliza todos los campos numéricos a `float` (acepta `str`/`int`/`float`,
+`None` si no es parseable), para que `aggregate.py` -- y cualquier
+consumidor de Gold -- no tenga que adivinar el tipo campo a campo.
+
+**Avisos: puerta de calidad.** `validate_aviso_record` exige `identifier`
+(clave natural para deduplicar reingestas en `aggregate.py`), `zone`,
+`phenomenon` y `effective_from` parseable (necesario para poder agrupar por
+día en `aggregate.py`) no nulos, y `level` dentro del catálogo cerrado de
+AEMET (`{"amarillo", "naranja", "rojo"}`, documentado en la página de ayuda
+oficial de AEMET citada en `ingesta/capturas/aemet_prevision_avisos.py`).
+
+**Agregación de previsión: `(municipio_code, leadtime_days)`, valores
+medios/máximos por horizonte.** `leadtime_days` (`valid_date -
+ingested_at.date()`, en días) agrupa previsiones de días de calendario
+distintos capturadas en momentos distintos bajo el mismo horizonte de
+antelación -- responde "en general, ¿qué pinta tiene la previsión a 1 día
+vista?", no "qué pasó un día concreto" (eso ya lo responde Silver fila a
+fila, sin agregar). No se guarda como columna aparte en Silver, se deriva en
+`aggregate.py`/el job de Glue -- mismo criterio que `bluesky_menciones`/
+`cartelera_cines_estrenos` derivan `hour`/`fecha` de un timestamp en vez de
+duplicarlo. Cada fila de Gold agrega `avg`/`max` de `temperature_max_c` y
+`avg`/`min` de `temperature_min_c` (el máximo del máximo y el mínimo del
+mínimo son los extremos que importan de cada magnitud) y `avg`/`max` de
+`precipitation_probability_pct` -- exactamente "valores medios/máximos"
+sobre las mismas dos magnitudes que ya acota la puerta de calidad.
+
+**Agregación de avisos: `(zone, fecha, level)`, conteo de avisos activos.**
+`fecha` es el día de `effective_from` (cuándo empieza a estar vigente el
+aviso), no el de `ingested_at` -- mismo criterio que
+`cartelera_cines_estrenos`/`agenda_eventos`/`bluesky_menciones`: la pregunta
+que responde esta agregación es "qué avisos estuvieron activos tal día en
+tal zona", no "cuándo corrió el barrido". `alerts_count` (número de
+`identifier` **distintos**) es la magnitud principal -- "conteo de avisos
+activos" tal como pedía el enunciado --, separada de `samples_count` (filas
+Silver, incluye reingestas del mismo aviso vigente capturado varias veces
+mientras sigue activo).
+
 ## Great Expectations: dónde corre, y por qué no es el único filtro
 
 **Decisión (pregunta explícita del enunciado): corre dentro del propio job
@@ -877,9 +997,9 @@ riesgo de agotar ese disco compartido, no por falta de intención. En
 consecuencia:
 
 - `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py` (de
-  **los once** datasets) importan `pyspark`/`great_expectations`/`awsglue`
+  **los doce** datasets) importan `pyspark`/`great_expectations`/`awsglue`
   a nivel de módulo y **no se han podido importar ni ejecutar en ninguna de
-  las once sesiones (041/046/047/048/049/050/053/054/055/056/057)**. Están escritos con el mismo
+  las doce sesiones (041/046/047/048/049/050/053/054/055/056/057/058)**. Están escritos con el mismo
   cuidado que el resto del proyecto y basados en la API pública documentada
   de Glue/GX (Glue: `awsglue.context.GlueContext`, `awsglue.job.Job`,
   estable desde hace años; GX: `sources.add_or_update_spark`/`Validator`,
@@ -901,12 +1021,13 @@ consecuencia:
   `procesamiento/silver_gold/ruido/__init__.py`,
   `procesamiento/silver_gold/aforos_peatones_bicicletas/__init__.py`,
   `procesamiento/silver_gold/cartelera_cines_estrenos/__init__.py`,
-  `procesamiento/silver_gold/agenda_eventos/__init__.py` y
-  `procesamiento/silver_gold/bluesky_menciones/__init__.py`, que
+  `procesamiento/silver_gold/agenda_eventos/__init__.py`,
+  `procesamiento/silver_gold/bluesky_menciones/__init__.py` y
+  `procesamiento/silver_gold/aemet_prevision_avisos/__init__.py`, que
   exponen solo `transform`/`aggregate` (y `geo`, solo en tráfico) a
   propósito) — así el resto del paquete sigue siendo importable/testable en
   cualquier entorno sin Spark.
-- No se ha procesado ningún dato real de Bronze de ninguno de los once
+- No se ha procesado ningún dato real de Bronze de ninguno de los doce
   datasets (no hay Glue desplegado todavía): toda la verificación usa
   fixtures construidos a mano —
   `tests/fixtures/trafico_bronze_sample.json` (10 registros, 5 válidos + 5
@@ -976,7 +1097,27 @@ consecuencia:
   rechazo por turnos (`mode` ausente/inválido, `match_term` ausente,
   `text` vacío, `post_hash` ausente, `created_at` ausente/no parseable/sin
   zona horaria, `captured_at` ausente/sin zona horaria), ver "Undécimo
-  dataset" arriba).
+  dataset" arriba) y `tests/fixtures/aemet_prevision_bronze_sample.json`
+  (11 registros: 3 días reales de previsión de
+  `ingesta/capturas/samples/aemet_prevision_madrid_sample.json` + 8
+  sintéticos que violan cada regla de rechazo por turnos —
+  `municipio_code` ausente, `valid_date` ausente/no parseable,
+  `captured_at` ausente/sin zona horaria, `valid_date` ya pasada respecto a
+  `captured_at`, `temperature_max_c`/`temperature_min_c` fuera de rango,
+  `precipitation_probability_pct` fuera de rango) junto con
+  `tests/fixtures/aemet_avisos_bronze_sample.json` (8 registros: el único
+  aviso real de `ingesta/capturas/samples/aemet_avisos_madrid_sample.json`
+  + 7 sintéticos que violan cada regla de rechazo por turnos —
+  `identifier`/`zone`/`phenomenon`/`effective_from` ausente, `level`
+  inválido, `captured_at` ausente/sin zona horaria), ver "Duodécimo
+  dataset" arriba. `AEMET_API_KEY` sigue sin estar disponible como variable
+  de entorno en esta EC2 de desarrollo (mismo motivo que las tareas 038/045,
+  ver doc/018 y `ingesta/README.md`): se intentó regenerar la muestra en
+  esta sesión (`python3 -m ingesta.capturas.aemet_prevision_avisos`) y
+  falló explícitamente con el mismo mensaje de `AEMET_API_KEY no está
+  configurada` documentado por esas tareas, así que los fixtures de este
+  dataset se construyeron a partir de las muestras `is_mock: true` ya
+  commiteadas, sin ningún cambio.
 
 ## Terraform (`infra/terraform/glue.tf`)
 
@@ -985,9 +1126,13 @@ tarea 041; `transporte_publico_emt`, tarea 046; `bicimad`, tarea 047;
 `aparcamientos`, tarea 048; `calidad_aire`, tarea 049; `meteorologia`, tarea
 050; `ruido`, tarea 053; `aforos_peatones_bicicletas`, tarea 054;
 `cartelera_cines_estrenos`, tarea 055; `agenda_eventos`, tarea 056;
-`bluesky_menciones`, tarea 057), cada uno con su propio rol IAM acotado por
-prefijo — no se comparte rol entre datasets, mismo principio de mínimo
-privilegio que ya aplicaba `ingesta`:
+`bluesky_menciones`, tarea 057; `aemet_prevision_avisos`, tarea 058), cada
+uno con su propio rol IAM acotado por prefijo — no se comparte rol entre
+datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`.
+`aemet_prevision_avisos` es la única excepción parcial: **un** rol IAM y
+**un** par de jobs de Glue cubren, a propósito, las dos formas de dato de
+ese productor (previsión y avisos) en vez de cuatro jobs — ver "Duodécimo
+dataset" arriba para el porqué:
 
 - `aws_glue_job.<dataset>_bronze_to_silver` / `<dataset>_silver_to_gold`:
   dos jobs por dataset (uno por transformación, no combinados — para poder
@@ -1000,16 +1145,19 @@ privilegio que ya aplicaba `ingesta`:
   / `glue_aparcamientos` / `glue_calidad_aire` / `glue_meteorologia` /
   `glue_ruido` / `glue_aforos_peatones_bicicletas` /
   `glue_cartelera_cines_estrenos` / `glue_agenda_eventos` /
-  `glue_bluesky_menciones`: la política
+  `glue_bluesky_menciones` / `glue_aemet_prevision_avisos`: la política
   gestionada `AWSGlueServiceRole` (lo que todo job de Glue necesita en su
   propio nombre: API de Glue, logs bajo `/aws-glue/...`) más una política
   propia acotada por prefijo — lectura de `bronze/<dataset>/*`,
   lectura+escritura de `silver/<dataset>/*`, escritura de
   `gold/<tabla_gold>/*`, lectura del script/librería en el bucket de
   artefactos (`aws_s3_bucket.build_artifacts`, reutilizado de la tarea 032
-  para los once datasets en vez de crear un bucket nuevo) y permisos
-  acotados sobre el catálogo de Glue de las dos tablas de cada dataset — ni
-  un permiso más.
+  para los doce datasets en vez de crear un bucket nuevo) y permisos
+  acotados sobre el catálogo de Glue de las tablas de cada dataset — ni un
+  permiso más. `glue_aemet_prevision_avisos` es la excepción: su política
+  acota DOS prefijos Bronze/Silver (`aemet_prevision/*`/`aemet_avisos/*` en
+  cada capa) y DOS tablas Gold, no uno de cada — ver "Duodécimo dataset"
+  arriba.
 - `aws_glue_catalog_database.silver`/`gold` (compartidas entre datasets, una
   base de datos por capa) + `aws_glue_catalog_table.trafico_silver`/
   `trafico_gold`/`transporte_publico_emt_silver`/`transporte_publico_emt_gold`/
@@ -1019,29 +1167,35 @@ privilegio que ya aplicaba `ingesta`:
   `aforos_peatones_bicicletas_silver`/`aforos_peatones_bicicletas_gold`/
   `cartelera_cines_estrenos_silver`/`cartelera_cines_estrenos_gold`/
   `agenda_eventos_silver`/`agenda_eventos_gold`/
-  `bluesky_menciones_silver`/`bluesky_menciones_gold`:
+  `bluesky_menciones_silver`/`bluesky_menciones_gold`/
+  `aemet_prevision_silver`/`aemet_avisos_silver`/`aemet_prevision_gold`/
+  `aemet_avisos_gold` (cuatro tablas, no dos, para `aemet_prevision_avisos`
+  — dos formas de dato, ver "Duodécimo dataset" arriba):
   catalogadas para poder consultarlas con Athena sin ningún paso adicional.
   Bronze deliberadamente **no** se cataloga: son lotes JSON crudos sin un
   esquema único garantizado entre los 21 productores, no pensados para
   consultarse vía SQL.
 - `data.archive_file.procesamiento_source` (**sin cambios en su
   definición**: ya empaquetaba todo `procesamiento/` salvo `tests/`, así
-  que cada subpaquete nuevo, incluido el de la tarea 057, se incluye
+  que cada subpaquete nuevo, incluido el de la tarea 058, se incluye
   automáticamente) + `aws_s3_object.*` por script de cada dataset, subidos
   al bucket de artefactos con el hash del contenido en la key (mismo patrón
   que `data.archive_file.ingesta_source`/`layer_source_key` de tareas
   anteriores) — un cambio de código sube a una key nueva sin pisar la
   anterior.
 
-`terraform validate` limpio (verificado en las once tareas, sin backend
-real inicializado — `terraform init -backend=false`); no se ha ejecutado
+`terraform validate` limpio (verificado en las doce tareas, sin backend
+real inicializado — `terraform init -backend=false`, tras limpiar
+`__pycache__/*.pyc` generados por `python3 -m unittest`, mismo problema
+preexistente documentado en doc/046, no introducido por esta tarea);
+`terraform fmt -check -diff glue.tf` sin diferencias. No se ha ejecutado
 `terraform plan` contra la cuenta real (necesitaría credenciales AWS que
 estas tareas no deben usar para aplicar nada).
 
 ## Relevante para tareas futuras
 
-- El patrón (fijado por la tarea 041, ya replicado diez veces con la
-  046/047/048/049/050/053/054/055/056/057) para extender Bronze→Silver→Gold a
+- El patrón (fijado por la tarea 041, ya replicado once veces con la
+  046/047/048/049/050/053/054/055/056/057/058) para extender Bronze→Silver→Gold a
   más fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py`
   (Python puro, testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py`
   (GX, ejecutado en Glue)/`glue_*.py` (entry points) — más `geo.py` **solo
@@ -1065,7 +1219,7 @@ estas tareas no deben usar para aplicar nada).
   agregar un **conteo** de hechos por las dimensiones relevantes, no un
   promedio/suma de ninguna magnitud numérica (no hay ninguna en este tipo de
   fuente).
-- Antes de aplicar esta infraestructura: (1) smoke-test de los diez
+- Antes de aplicar esta infraestructura: (1) smoke-test de los doce
   `ge_suite.py` contra un Glue Studio Notebook real (ver arriba) —
   `bicimad/ge_suite.py` y `aparcamientos/ge_suite.py` necesitan además
   confirmar que las columnas auxiliares que calculan sus respectivos
@@ -1098,7 +1252,11 @@ estas tareas no deben usar para aplicar nada).
   `expect_column_values_to_be_in_set`), pero conviene confirmar contra el
   runtime real que `expect_column_values_to_not_be_null("start_datetime")`
   no rechaza por error el formato "solo fecha" de esMadrid (ver "Décimo
-  dataset" arriba); (2) revisar si `great_expectations==0.18.19` (versión fijada en
+  dataset" arriba); las dos suites de `aemet_prevision_avisos/ge_suite.py`
+  necesitan la misma confirmación que `cartelera_cines_estrenos` para
+  `expect_column_pair_values_a_to_be_greater_than_b` (comparación
+  lexicográfica de `valid_date`/`ingested_at` como texto, no de instantes
+  reales, ver "Duodécimo dataset" arriba); (2) revisar si `great_expectations==0.18.19` (versión fijada en
   `var.great_expectations_pip_spec`) sigue siendo la última estable de la
   serie 0.18 en el momento de aplicar, y (3) el mismo patrón `terraform
   plan`/`apply` con revisión humana de por medio que ya usaron las tareas
@@ -1120,6 +1278,23 @@ estas tareas no deben usar para aplicar nada).
   resuelve en su catálogo de origen (y que la agenda de esMadrid, al no
   publicarlo, deja como sentinela `__sin_distrito__`), no una heurística
   espacial calculada aquí.
+- `aemet_prevision_avisos` es el primer dataset del patrón cuyo productor
+  escribe, en producción, **más de un dataset Bronze con nombre propio**
+  (`aemet_prevision`/`aemet_avisos`, ver "Duodécimo dataset" arriba) en vez
+  de un único dataset con un campo discriminador (`mode`, como
+  `bluesky_menciones`) o dos tipos de registro mezclados bajo el mismo
+  nombre (`cartelera_cines_estrenos`). Si una tarea futura encuentra la
+  misma forma (un productor con varios `BronzeWriter(dataset=...)`
+  distintos), el criterio a replicar es este: tratar cada forma de dato como
+  un flujo Silver/Gold independiente de principio a fin (puerta de calidad,
+  normalizador, agregación y prefijos S3 propios), pero compartir un único
+  rol IAM y un único par de jobs de Glue si de verdad comparten productor,
+  credencial y cadencia — no forzar ni un esquema Silver único ni tampoco
+  cuatro jobs de Glue separados. Documentar explícitamente, como se ha hecho
+  aquí, cualquier desviación entre el prefijo S3 que sugiera el enunciado de
+  la tarea y los nombres de dataset Bronze que la ingesta ya tenga fijados
+  en producción — seguir el enunciado al pie de la letra en ese punto
+  habría producido un rol IAM sin permisos para leer ningún dato real.
 - El rango de plausibilidad por contaminante de `calidad_aire`
   (`transform.PLAUSIBLE_MAX_BY_POLLUTANT`, ver "Quinto dataset" arriba) es
   la primera pieza de la puerta de calidad del patrón que necesita una
