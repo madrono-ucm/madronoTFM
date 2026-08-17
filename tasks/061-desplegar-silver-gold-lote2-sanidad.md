@@ -3,17 +3,17 @@ id: 61
 slug: desplegar-silver-gold-lote2-sanidad
 title: Desplegar Glue Silver/Gold para el segundo lote (8 datasets) y verificar con
   un job de sanidad
-status: in_progress
+status: blocked
 force: false
 allow_infra_apply: true
 branch: task/061-desplegar-silver-gold-lote2-sanidad
 pr_number: null
 pr_url: null
-attempts: 0
-next_retry_at: null
-last_error: null
+attempts: 1
+next_retry_at: '2026-08-17T22:58:47.256999+00:00'
+last_error: You've hit your session limit · resets 12:30am (UTC)
 created_at: '2026-08-17T21:50:00+00:00'
-updated_at: '2026-08-17T22:49:08.477673+00:00'
+updated_at: '2026-08-17T22:54:39.445221+00:00'
 started_at: '2026-08-17T22:49:08.477649+00:00'
 submitted_at: null
 merged_at: null
