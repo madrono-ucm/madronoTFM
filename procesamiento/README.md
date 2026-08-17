@@ -1,4 +1,4 @@
-# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054, 055 y 056)
+# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054, 055, 056 y 057)
 
 Este directorio es el análogo de `ingesta/` para la fase 2 del proyecto
 (limpieza/normalización y agregación, ver memoria del TFM, apartados 5.5 y
@@ -11,32 +11,36 @@ La tarea 041 fue un **piloto de un único dataset** (tráfico — el más maduro
 mejor documentado de los 21 productores de `ingesta/`, ver doc/002, doc/035,
 doc/037, doc/039): estableció el patrón (estructura de código, motor de
 procesamiento, dónde vive la puerta de calidad, cómo se despliega). Las
-tareas 046, 047, 048, 049, 050, 053, 054, 055 y 056 replican ese mismo
+tareas 046, 047, 048, 049, 050, 053, 054, 055, 056 y 057 replican ese mismo
 patrón para un segundo, tercer, cuarto, quinto, sexto, séptimo, octavo,
-noveno y décimo dataset (`transporte_publico_emt`, llegadas de autobús de la
-EMT Madrid, ver doc/003, doc/024; `bicimad`, estado de estaciones de
-BiciMAD vía GBFS, ver doc/004; `aparcamientos`, ocupación de aparcamientos
-rotacionales, ver doc/005; `calidad_aire`, lecturas horarias de la red de
-estaciones de calidad del aire, ver doc/006; `meteorologia`, lecturas
-horarias de la red de estaciones meteorológicas, ver doc/008; `ruido`,
-contaminación acústica diaria de la Red Fija del SIVCA, ver doc/007;
-`aforos_peatones_bicicletas`, conteos horarios de peatones y bicicletas de
-la red de estaciones permanentes de aforo, ver
+noveno, décimo y undécimo dataset (`transporte_publico_emt`, llegadas de
+autobús de la EMT Madrid, ver doc/003, doc/024; `bicimad`, estado de
+estaciones de BiciMAD vía GBFS, ver doc/004; `aparcamientos`, ocupación de
+aparcamientos rotacionales, ver doc/005; `calidad_aire`, lecturas horarias
+de la red de estaciones de calidad del aire, ver doc/006; `meteorologia`,
+lecturas horarias de la red de estaciones meteorológicas, ver doc/008;
+`ruido`, contaminación acústica diaria de la Red Fija del SIVCA, ver
+doc/007; `aforos_peatones_bicicletas`, conteos horarios de peatones y
+bicicletas de la red de estaciones permanentes de aforo, ver
 `ingesta/capturas/aforos_peatones_bicicletas_madrid.py`;
 `cartelera_cines_estrenos`, cartelera y horarios de cines de Madrid vía
 SensaCine, ver doc/023; `agenda_eventos`, agenda de eventos culturales y de
 ocio de Madrid -- agenda municipal de datos.madrid.es + agenda turística de
-esmadrid.com --, ver `ingesta/capturas/agenda_eventos_madrid.py`)
+esmadrid.com --, ver `ingesta/capturas/agenda_eventos_madrid.py`;
+`bluesky_menciones`, menciones públicas de lugares/distritos de Madrid en
+Bluesky -- búsqueda puntual por lugar + barrido programado por distrito,
+ambos bajo un mismo campo `mode` --, ver
+`ingesta/capturas/bluesky_menciones_madrid.py`)
 — ver "Segundo dataset: `transporte_publico_emt`", "Tercer dataset:
 `bicimad`", "Cuarto dataset: `aparcamientos`", "Quinto dataset:
 `calidad_aire`", "Sexto dataset: `meteorologia`", "Séptimo dataset: `ruido`",
 "Octavo dataset: `aforos_peatones_bicicletas`", "Noveno dataset:
-`cartelera_cines_estrenos`" y "Décimo dataset: `agenda_eventos`" más abajo
-para las diferencias reales frente al piloto. **Los diez siguen siendo solo
-código e infraestructura, sin aplicar nada en AWS** — mismo alcance que la
-tarea 001 con el lakehouse; aplicar (con revisión de plan de por medio) es
-una tarea posterior, igual que las tareas 014/015 lo fueron para esa
-infraestructura base.
+`cartelera_cines_estrenos`", "Décimo dataset: `agenda_eventos`" y "Undécimo
+dataset: `bluesky_menciones`" más abajo para las diferencias reales frente
+al piloto. **Los once siguen siendo solo código e infraestructura, sin
+aplicar nada en AWS** — mismo alcance que la tarea 001 con el lakehouse;
+aplicar (con revisión de plan de por medio) es una tarea posterior, igual
+que las tareas 014/015 lo fueron para esa infraestructura base.
 
 ## Motor de procesamiento: AWS Glue (Spark serverless)
 
@@ -115,6 +119,12 @@ procesamiento/
       ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
       glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona solo por fecha)
       glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
+    bluesky_menciones/
+      transform.py               # Bronze -> Silver: puerta de calidad + deduplicación de duplicados exactos por lote (sin geo.py, ver más abajo)
+      aggregate.py                # Silver -> Gold: número de menciones por término/modo/hora
+      ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
+      glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona por created_at)
+      glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
   tests/
     fixtures/trafico_bronze_sample.json
     fixtures/transporte_publico_emt_bronze_sample.json
@@ -126,6 +136,7 @@ procesamiento/
     fixtures/aforos_peatones_bicicletas_bronze_sample.json
     fixtures/cartelera_cines_estrenos_bronze_sample.json
     fixtures/agenda_eventos_bronze_sample.json
+    fixtures/bluesky_menciones_bronze_sample.json
     test_geo.py
     test_transform.py
     test_aggregate.py
@@ -147,6 +158,8 @@ procesamiento/
     test_cartelera_cines_estrenos_aggregate.py
     test_agenda_eventos_transform.py
     test_agenda_eventos_aggregate.py
+    test_bluesky_menciones_transform.py
+    test_bluesky_menciones_aggregate.py
 ```
 
 Precedente directo: `ingesta/capturas/` + `ingesta/tests/` (un paquete por
@@ -732,6 +745,94 @@ inventada (p.ej. "00" por defecto del parseo) sería engañoso; el recorte de
 texto funciona igual para ambos formatos de origen porque los dos siempre
 empiezan por `YYYY-MM-DD`.
 
+## Undécimo dataset: `bluesky_menciones` (tarea 057)
+
+Replica la estructura de código del patrón sobre las menciones públicas de
+lugares/distritos de Madrid en Bluesky
+(`ingesta/capturas/bluesky_menciones_madrid.py`, dos modos combinados bajo
+un campo `mode`: `"bajo_demanda"` -- búsqueda puntual de un lugar, pensada
+para el asistente conversacional -- y `"distrito_sweep"` -- barrido general
+por distrito + términos de evento, pensado para un productor programado
+cada hora). **Sin `geo.py`**: Bluesky no publica ninguna coordenada del
+post (a diferencia de la mayoría del patrón, ni siquiera hace falta
+reproyectar nada porque no hay ninguna posición geográfica en absoluto,
+mismo motivo que `cartelera_cines_estrenos`).
+
+**Diferencia real frente al resto del patrón: texto libre, no una medida
+numérica ni un catálogo de hechos con clave natural fuerte.** Los diez
+datasets anteriores son series temporales de una magnitud numérica o
+catálogos de hechos discretos (`showtime_id`, `event_id`). Este dataset son
+publicaciones de texto libre -- no hay ninguna magnitud que tenga un "rango
+plausible", así que la puerta de calidad (`transform.validate_record`) se
+centra en integridad estructural (`mode` en el catálogo cerrado de dos
+valores, `match_term`, `text` no vacío, `post_hash`, `created_at`/
+`captured_at` timezone-aware), tal como pedía el enunciado.
+
+**A diferencia de `cartelera_cines_estrenos` (que rechazaba por completo uno
+de los dos tipos de registro que mezclaba Bronze), aquí los dos `mode` son
+datos legítimos.** El enunciado de la tarea 057 describe ambos modos como
+parte del mismo dataset, con `mode` como campo a conservar y a usar como
+dimensión de agregación ("separado por mode"), no como filtro de exclusión.
+
+**Puerta de calidad, segunda parte: duplicados exactos dentro del mismo
+lote.** El enunciado pide explícitamente descartar "contenido vacío o
+duplicados exactos". El contenido vacío (`text` vacío o solo espacios) se
+detecta por registro, igual que el resto de reglas. Los duplicados exactos,
+en cambio, no se pueden detectar mirando un único registro -- hace falta
+comparar contra el resto del lote. `ingesta/capturas/bluesky_menciones_madrid.py`
+ya anticipó este problema: `post_hash` (SHA-256 truncado del texto) existe
+precisamente como "clave de deduplicación barata entre términos de búsqueda
+solapados" (ver docstring de ese módulo, sección "Privacidad") -- un mismo
+post real puede coincidir con más de un término de búsqueda del mismo
+barrido (p.ej. un post sobre un concierto puede coincidir tanto con la
+búsqueda de su distrito como con el término de evento "concierto"). Por eso
+`transform.bronze_to_silver` (no `validate_record`, que solo ve un registro
+a la vez) descarta, dentro del mismo lote, cualquier registro cuyo
+`post_hash` ya se haya visto, con el motivo `"duplicate_exact_content"` --
+una desviación deliberada del resto del patrón (donde `validate_record`
+basta porque cada regla es puramente por registro), documentada en detalle
+en el docstring de `transform.py` para que no se confunda con un descuido.
+Esto no deduplica entre lotes/ejecuciones distintas -- esa deduplicación la
+sigue haciendo `aggregate.py`, contando `post_hash` distintos.
+
+**Decisión de agregación Silver → Gold: `(mode, match_term, fecha, hora)`.**
+El enunciado pedía "conteo de menciones por lugar/distrito y periodo
+(día/hora, según la cadencia real del productor) separado por mode". Se
+eligió granularidad horaria, no solo diaria: a diferencia de `ruido`/
+`agenda_eventos` (agregación diaria porque su fuente no tiene ninguna
+resolución horaria real), cada post de Bluesky trae un `created_at` con
+resolución de segundos, y `search_district_sweep` está pensado para un
+productor programado cada hora -- la misma cadencia que ya usan la mayoría
+de datasets del patrón. El periodo se deriva de `created_at` (cuándo se
+escribió el post), no de `ingested_at` (cuándo corrió el barrido): la
+búsqueda de Bluesky no está acotada a "solo lo último", así que un lote
+puede mezclar posts de días distintos, y la pregunta que tiene sentido
+responder es "cuándo se habló de este lugar", no "cuándo se ejecutó el
+scraper" -- mismo criterio que `cartelera_cines_estrenos`/`agenda_eventos`
+usaron con `showtime_datetime`/`start_datetime` en vez de `ingested_at`.
+
+Cada fila de Gold agrega `samples_count` (filas Silver, incluye reingestas
+entre lotes distintos), `mentions_count` (número de `post_hash`
+**distintos** -- la magnitud principal de este dataset), `langs` (lista
+ordenada de idiomas distintos presentes), `total_like_count`/
+`total_repost_count`/`total_reply_count`/`total_quote_count` (sumas de los
+contadores públicos que Bluesky ya expone por post -- no es ningún análisis
+de sentimiento ni clasificación de texto, fuera de alcance de esta tarea,
+solo una suma numérica de campos que ya existen en Silver, dando una señal
+barata de "cuánta atención" recibió un lugar/término) y
+`first`/`last_created_at`.
+
+**Timestamps de Bluesky en formato `Z` (UTC), no `+02:00`.** A diferencia
+del resto de timestamps del patrón (generados por `now_madrid()`, siempre
+con offset explícito), `created_at`/`indexed_at` los genera la propia API de
+Bluesky con el sufijo `Z`. Esto importa porque **AWS Glue 4.0 ejecuta Python
+3.10**, y `datetime.fromisoformat` solo entiende `Z` directamente desde
+Python 3.11 -- en 3.10 lanzaría `ValueError` y rechazaría por error el 100%
+de los registros reales. `transform._parse_iso` normaliza `Z` a `+00:00`
+antes de parsear (ver docstring de `transform.py`) precisamente para
+evitarlo -- primer caso del patrón donde esto importa, porque es el primer
+dataset cuyos timestamps clave no los genera `ingesta/capturas/bronze.py`.
+
 ## Great Expectations: dónde corre, y por qué no es el único filtro
 
 **Decisión (pregunta explícita del enunciado): corre dentro del propio job
@@ -776,9 +877,9 @@ riesgo de agotar ese disco compartido, no por falta de intención. En
 consecuencia:
 
 - `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py` (de
-  **los diez** datasets) importan `pyspark`/`great_expectations`/`awsglue`
+  **los once** datasets) importan `pyspark`/`great_expectations`/`awsglue`
   a nivel de módulo y **no se han podido importar ni ejecutar en ninguna de
-  las diez sesiones (041/046/047/048/049/050/053/054/055/056)**. Están escritos con el mismo
+  las once sesiones (041/046/047/048/049/050/053/054/055/056/057)**. Están escritos con el mismo
   cuidado que el resto del proyecto y basados en la API pública documentada
   de Glue/GX (Glue: `awsglue.context.GlueContext`, `awsglue.job.Job`,
   estable desde hace años; GX: `sources.add_or_update_spark`/`Validator`,
@@ -799,12 +900,13 @@ consecuencia:
   `procesamiento/silver_gold/meteorologia/__init__.py`,
   `procesamiento/silver_gold/ruido/__init__.py`,
   `procesamiento/silver_gold/aforos_peatones_bicicletas/__init__.py`,
-  `procesamiento/silver_gold/cartelera_cines_estrenos/__init__.py` y
-  `procesamiento/silver_gold/agenda_eventos/__init__.py`, que
+  `procesamiento/silver_gold/cartelera_cines_estrenos/__init__.py`,
+  `procesamiento/silver_gold/agenda_eventos/__init__.py` y
+  `procesamiento/silver_gold/bluesky_menciones/__init__.py`, que
   exponen solo `transform`/`aggregate` (y `geo`, solo en tráfico) a
   propósito) — así el resto del paquete sigue siendo importable/testable en
   cualquier entorno sin Spark.
-- No se ha procesado ningún dato real de Bronze de ninguno de los diez
+- No se ha procesado ningún dato real de Bronze de ninguno de los once
   datasets (no hay Glue desplegado todavía): toda la verificación usa
   fixtures construidos a mano —
   `tests/fixtures/trafico_bronze_sample.json` (10 registros, 5 válidos + 5
@@ -864,7 +966,17 @@ consecuencia:
   modificación -- + 7 sintéticos que violan cada regla de rechazo por turnos
   (`source` ausente/desconocida, `event_id` ausente, `title` ausente,
   `start_datetime` ausente/no parseable, `captured_at` ausente/sin zona
-  horaria), ver "Décimo dataset" arriba).
+  horaria), ver "Décimo dataset" arriba) y
+  `tests/fixtures/bluesky_menciones_bronze_sample.json` (16 registros: 5
+  posts reales de
+  `ingesta/capturas/samples/bluesky_menciones_madrid_sample.json` -- 3 del
+  modo `bajo_demanda`, 2 del modo `distrito_sweep` -- + 1 duplicado exacto
+  de uno de ellos (mismo `post_hash`, otro `match_term`, para probar
+  `"duplicate_exact_content"`) + 10 sintéticos que violan cada regla de
+  rechazo por turnos (`mode` ausente/inválido, `match_term` ausente,
+  `text` vacío, `post_hash` ausente, `created_at` ausente/no parseable/sin
+  zona horaria, `captured_at` ausente/sin zona horaria), ver "Undécimo
+  dataset" arriba).
 
 ## Terraform (`infra/terraform/glue.tf`)
 
@@ -872,9 +984,10 @@ Sin aplicar (ver arriba). Un bloque de recursos por dataset (`trafico`,
 tarea 041; `transporte_publico_emt`, tarea 046; `bicimad`, tarea 047;
 `aparcamientos`, tarea 048; `calidad_aire`, tarea 049; `meteorologia`, tarea
 050; `ruido`, tarea 053; `aforos_peatones_bicicletas`, tarea 054;
-`cartelera_cines_estrenos`, tarea 055; `agenda_eventos`, tarea 056), cada
-uno con su propio rol IAM acotado por prefijo — no se comparte rol entre
-datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
+`cartelera_cines_estrenos`, tarea 055; `agenda_eventos`, tarea 056;
+`bluesky_menciones`, tarea 057), cada uno con su propio rol IAM acotado por
+prefijo — no se comparte rol entre datasets, mismo principio de mínimo
+privilegio que ya aplicaba `ingesta`:
 
 - `aws_glue_job.<dataset>_bronze_to_silver` / `<dataset>_silver_to_gold`:
   dos jobs por dataset (uno por transformación, no combinados — para poder
@@ -886,14 +999,15 @@ datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
 - `aws_iam_role.glue_trafico` / `glue_transporte_publico_emt` / `glue_bicimad`
   / `glue_aparcamientos` / `glue_calidad_aire` / `glue_meteorologia` /
   `glue_ruido` / `glue_aforos_peatones_bicicletas` /
-  `glue_cartelera_cines_estrenos` / `glue_agenda_eventos`: la política
+  `glue_cartelera_cines_estrenos` / `glue_agenda_eventos` /
+  `glue_bluesky_menciones`: la política
   gestionada `AWSGlueServiceRole` (lo que todo job de Glue necesita en su
   propio nombre: API de Glue, logs bajo `/aws-glue/...`) más una política
   propia acotada por prefijo — lectura de `bronze/<dataset>/*`,
   lectura+escritura de `silver/<dataset>/*`, escritura de
   `gold/<tabla_gold>/*`, lectura del script/librería en el bucket de
   artefactos (`aws_s3_bucket.build_artifacts`, reutilizado de la tarea 032
-  para los diez datasets en vez de crear un bucket nuevo) y permisos
+  para los once datasets en vez de crear un bucket nuevo) y permisos
   acotados sobre el catálogo de Glue de las dos tablas de cada dataset — ni
   un permiso más.
 - `aws_glue_catalog_database.silver`/`gold` (compartidas entre datasets, una
@@ -904,29 +1018,30 @@ datasets, mismo principio de mínimo privilegio que ya aplicaba `ingesta`:
   `meteorologia_gold`/`ruido_silver`/`ruido_gold`/
   `aforos_peatones_bicicletas_silver`/`aforos_peatones_bicicletas_gold`/
   `cartelera_cines_estrenos_silver`/`cartelera_cines_estrenos_gold`/
-  `agenda_eventos_silver`/`agenda_eventos_gold`:
+  `agenda_eventos_silver`/`agenda_eventos_gold`/
+  `bluesky_menciones_silver`/`bluesky_menciones_gold`:
   catalogadas para poder consultarlas con Athena sin ningún paso adicional.
   Bronze deliberadamente **no** se cataloga: son lotes JSON crudos sin un
   esquema único garantizado entre los 21 productores, no pensados para
   consultarse vía SQL.
 - `data.archive_file.procesamiento_source` (**sin cambios en su
   definición**: ya empaquetaba todo `procesamiento/` salvo `tests/`, así
-  que cada subpaquete nuevo, incluido el de la tarea 056, se incluye
+  que cada subpaquete nuevo, incluido el de la tarea 057, se incluye
   automáticamente) + `aws_s3_object.*` por script de cada dataset, subidos
   al bucket de artefactos con el hash del contenido en la key (mismo patrón
   que `data.archive_file.ingesta_source`/`layer_source_key` de tareas
   anteriores) — un cambio de código sube a una key nueva sin pisar la
   anterior.
 
-`terraform validate` limpio (verificado en las diez tareas, sin backend
+`terraform validate` limpio (verificado en las once tareas, sin backend
 real inicializado — `terraform init -backend=false`); no se ha ejecutado
 `terraform plan` contra la cuenta real (necesitaría credenciales AWS que
 estas tareas no deben usar para aplicar nada).
 
 ## Relevante para tareas futuras
 
-- El patrón (fijado por la tarea 041, ya replicado nueve veces con la
-  046/047/048/049/050/053/054/055/056) para extender Bronze→Silver→Gold a
+- El patrón (fijado por la tarea 041, ya replicado diez veces con la
+  046/047/048/049/050/053/054/055/056/057) para extender Bronze→Silver→Gold a
   más fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py`
   (Python puro, testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py`
   (GX, ejecutado en Glue)/`glue_*.py` (entry points) — más `geo.py` **solo
@@ -1160,3 +1275,20 @@ estas tareas no deben usar para aplicar nada).
   (pendiente de la tarea 043, ver bullet de arriba), aquí `district` viene
   ya resuelto por el catálogo de origen de una de las dos fuentes, no
   calculado en esta tarea.
+- `bluesky_menciones` es el primer dataset del patrón cuyo Bronze es texto
+  libre (contenido de un post) en vez de una magnitud numérica o un catálogo
+  de hechos con clave natural fuerte, y el primero cuya puerta de calidad
+  necesita deduplicar duplicados exactos **dentro del mismo lote** (por
+  `post_hash`) en `bronze_to_silver`, no solo por registro en
+  `validate_record` -- ver "Undécimo dataset" arriba para el razonamiento
+  completo y por qué es una desviación deliberada del resto del patrón. Es
+  también el primer dataset cuyos timestamps clave (`created_at`/
+  `indexed_at`) no los genera `ingesta/capturas/bronze.py:now_madrid()`
+  sino la propia API de la fuente externa, con el sufijo `Z` en vez de un
+  offset explícito -- si una tarea futura añade un dataset cuya fuente
+  externa entregue sus propios timestamps en formato distinto al del resto
+  del patrón, conviene revisar primero si `datetime.fromisoformat` los
+  parsea tal cual bajo **Python 3.10** (el runtime real de Glue 4.0, no la
+  versión de Python de esta EC2 de desarrollo, que puede ser más reciente y
+  ocultar el problema en los tests locales) antes de asumir que basta con
+  `_parse_iso` tal como lo tenía el resto del patrón.
