@@ -46,8 +46,11 @@ estructura de subpaquete que `procesamiento/silver_gold/trafico/`:
   plausibles de temperatura/probabilidad de precipitación) y para avisos
   (campos clave no nulos, nivel de aviso dentro de los valores válidos de
   AEMET — amarillo/naranja/rojo).
-- `aggregate.py`: agregación Silver→Gold razonable para cada una de las dos
-  formas de dato — decide con criterio propio y documenta.
+- `aggregate.py`: agregación Silver→Gold ya decidida, no dediques tiempo a
+  evaluar alternativas — para previsión, por `(municipio_o_zona,
+  leadtime_día)`: valores medios/máximos previstos para ese horizonte; para
+  avisos, por `(zona, fecha, nivel)`: conteo de avisos activos. Implementa
+  directamente.
 - `ge_suite.py`: mismas expectativas que `transform.validate_record`,
   declarativas.
 - `glue_bronze_to_silver.py` / `glue_silver_to_gold.py`: entry points reales
@@ -72,6 +75,10 @@ estructura de subpaquete que `procesamiento/silver_gold/trafico/`:
   tener `AEMET_API_KEY` disponible en esta EC2, documenta que es por eso
   (mismo criterio que las tareas 038/045) y sigue adelante con el fixture
   disponible.
+- No dediques tiempo a evaluar alternativas de diseño para la agregación de
+  Gold — ya está decidida arriba. Las tareas 055 y 057 agotaron el
+  presupuesto ($6, sin comitear nada) precisamente por deliberar demasiado
+  este tipo de decisión en datasets no numéricos — no repitas ese patrón.
 
 ## Criterios de aceptación
 

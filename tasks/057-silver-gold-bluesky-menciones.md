@@ -2,21 +2,18 @@
 id: 57
 slug: silver-gold-bluesky-menciones
 title: 'Silver/Gold: menciones de Bluesky (siguiendo el patrón de la tarea 041)'
-status: failed
+status: pending
 force: true
 allow_infra_apply: false
-branch: task/057-silver-gold-bluesky-menciones
+branch: null
 pr_number: null
 pr_url: null
-attempts: 7
-next_retry_at: '2026-08-17T01:29:20.480111+00:00'
-last_error: 'ens":11687828,"cacheCreationInputTokens":205600,"webSearchRequests":0,"costUSD":5.993393399999999,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
-  maximum budget ($6)"],"type":"result","duration_ms":798967,"uuid":"f91419be-4709-44e7-a1ff-aab9af3d4609"}
-
-  '
+attempts: 0
+next_retry_at: null
+last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-17T01:42:49.776879+00:00'
-started_at: '2026-08-16T20:08:04.760968+00:00'
+updated_at: '2026-08-17T19:45:00+00:00'
+started_at: null
 submitted_at: null
 merged_at: null
 ---
@@ -33,10 +30,18 @@ la sección correspondiente de `ingesta/README.md`).
 publicaciones de texto libre (contenido, autor, timestamp, lugar/distrito
 buscado), no una medida numérica. No hay ninguna puerta de calidad de
 "rango plausible" aquí — la puerta de calidad debe centrarse en integridad
-estructural (campos clave presentes) y quizás en descartar contenido vacío o
-duplicados exactos. La agregación de Gold es previsiblemente un conteo de
-menciones por lugar/distrito y periodo — decide con criterio propio y
-documenta.
+estructural (campos clave presentes) y descartar contenido vacío o
+duplicados exactos. **La agregación de Gold ya está decidida: conteo de
+menciones por `(lugar_o_distrito, mode, fecha)`** — no dediques tiempo a
+evaluar alternativas, implementa esta directamente.
+
+**Un intento anterior de esta tarea agotó el presupuesto ($6, ~11.7M
+tokens, ~13 min) sin comitear nada** (tras varios reintentos previos por
+límite de sesión, ya resueltos) — mismo patrón que le pasó a la tarea 055
+(cartelera de cines), probablemente por deliberar demasiado el diseño de la
+agregación en vez de implementar directamente. Por eso esta vez la decisión
+ya viene tomada (ver arriba) y el alcance de red se acota explícitamente
+abajo.
 
 ## Objetivo
 
@@ -46,9 +51,8 @@ de subpaquete que `procesamiento/silver_gold/trafico/` (sin `geo.py`):
 - `transform.py`: puerta de calidad — campos clave no nulos (`mode`,
   contenido del post, `measured_at`/timestamp de la publicación, lugar o
   distrito asociado), descarta registros sin contenido o duplicados exactos.
-- `aggregate.py`: agregación Silver→Gold — conteo de menciones por
-  lugar/distrito y periodo (día/hora, decide con criterio según la cadencia
-  real del productor) separado por `mode`.
+- `aggregate.py`: agregación Silver→Gold por `(lugar_o_distrito, mode,
+  fecha)` — conteo de menciones (ver arriba, decisión ya tomada).
 - `ge_suite.py`: mismas expectativas que `transform.validate_record`,
   declarativas.
 - `glue_bronze_to_silver.py` / `glue_silver_to_gold.py`: entry points reales
@@ -72,6 +76,12 @@ de subpaquete que `procesamiento/silver_gold/trafico/` (sin `geo.py`):
 - No intentes ningún análisis de sentimiento/NLP sobre el contenido de los
   posts — está fuera de alcance de esta tarea, es puramente estructuración
   Bronze→Silver→Gold.
+- **Usa el fixture existente `ingesta/capturas/samples/
+  bluesky_menciones_madrid_sample.json` tal cual, sin volver a consultar la
+  API de Bluesky** — esta tarea es sobre `procesamiento/`, no sobre mejorar
+  la captura.
+- No dediques tiempo a evaluar alternativas de diseño para la agregación de
+  Gold — ya está decidida arriba.
 
 ## Criterios de aceptación
 

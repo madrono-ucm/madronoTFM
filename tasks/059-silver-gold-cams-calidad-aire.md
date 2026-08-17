@@ -48,10 +48,10 @@ viene en WGS84 según `doc/045`):
   `valid_datetime`/`leadtime_hour`, `forecast_issued_at`, valor), rango
   plausible por contaminante (mismo criterio que `calidad_aire`, tarea 049,
   pero para previsión en vez de medida real).
-- `aggregate.py`: agregación Silver→Gold por `(pollutant, leadtime_hour)` o
-  por día de validez — decide con criterio propio (¿interesa más comparar
-  previsiones con el mismo horizonte de antelación, o agrupar por el día que
-  predicen?) y documenta.
+- `aggregate.py`: agregación Silver→Gold ya decidida, no dediques tiempo a
+  evaluar alternativas — por `(pollutant, fecha_validez)` (el día que
+  predicen, no el horizonte de antelación): valor medio/máximo previsto ese
+  día para ese contaminante. Implementa directamente.
 - `ge_suite.py`: mismas expectativas que `transform.validate_record`,
   declarativas.
 - `glue_bronze_to_silver.py` / `glue_silver_to_gold.py`: entry points reales
@@ -75,6 +75,10 @@ viene en WGS84 según `doc/045`):
 - Si al regenerar la muestra local sigue devolviendo `is_mock: true` por no
   tener `CAMS_ADS_API_KEY` disponible en esta EC2, documenta que es por eso
   y sigue adelante con el fixture disponible.
+- No dediques tiempo a evaluar alternativas de diseño para la agregación de
+  Gold — ya está decidida arriba. Las tareas 055 y 057 agotaron el
+  presupuesto ($6, sin comitear nada) precisamente por deliberar demasiado
+  este tipo de decisión en datasets no numéricos — no repitas ese patrón.
 
 ## Criterios de aceptación
 
