@@ -5874,3 +5874,438 @@ resource "aws_glue_job" "aemet_prevision_avisos_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_aemet_prevision_avisos]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (Glue, tarea 041/046/047/048/049/050/053/054/055/
+# 056/057/058 extendido a un DECIMOTERCER dataset (`cams_calidad_aire`,
+# previsión de calidad del aire de Copernicus CAMS para Madrid, ver doc/019,
+# doc/045, `ingesta/capturas/cams_calidad_aire_madrid.py` y
+# `procesamiento/silver_gold/cams_calidad_aire/`). Alcance de ESTA tarea:
+# igual que el resto del patrón, solo código/infraestructura, sin
+# `terraform apply` -- `terraform plan`/`apply` de este bloque quedan para
+# una tarea posterior con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/cams_calidad_aire/*`, `silver/cams_calidad_aire/*`,
+# `gold/cams_calidad_aire_por_contaminante_fecha_validez/*`) -- no se
+# comparte ningún rol con el resto de datasets del patrón, mismo principio
+# de mínimo privilegio por dataset que ya aplicaba `ingesta` (ver
+# `procesamiento/README.md`).
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_cams_calidad_aire_prefix = "${var.project_name}-${var.environment}-cams-calidad-aire"
+}
+
+resource "aws_s3_object" "glue_script_cams_calidad_aire_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/cams_calidad_aire_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_cams_calidad_aire_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/cams_calidad_aire_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_cams_calidad_aire_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_cams_calidad_aire" {
+  name = "${local.glue_cams_calidad_aire_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de la previsión de calidad del aire CAMS (tarea 059)."
+  assume_role_policy = data.aws_iam_policy_document.glue_cams_calidad_aire_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_cams_calidad_aire_service_role" {
+  role       = aws_iam_role.glue_cams_calidad_aire.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_cams_calidad_aire_data_access" {
+  statement {
+    sid    = "ReadBronzeCamsCalidadAire"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/cams_calidad_aire/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverCamsCalidadAire"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/cams_calidad_aire/*"]
+  }
+
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051,
+  # incluido desde el principio en este dataset (igual que 053-058).
+  statement {
+    sid    = "WriteSilverQualityReportsCamsCalidadAire"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/cams_calidad_aire/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldCamsCalidadAirePorContaminanteFechaValidez"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052).
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/cams_calidad_aire_por_contaminante_fecha_validez/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/cams_calidad_aire_por_contaminante_fecha_validez_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForCamsCalidadAirePrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "cams_calidad_aire/*",
+        "cams_calidad_aire_por_contaminante_fecha_validez/*",
+        "_quality_reports/cams_calidad_aire/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets
+  # -- no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogCamsCalidadAireTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_cams_calidad_aire_data_access" {
+  name = "${local.glue_cams_calidad_aire_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de la previsión de calidad del aire CAMS a los buckets del lakehouse y al catalogo de Glue (tarea 059)."
+  policy      = data.aws_iam_policy_document.glue_cams_calidad_aire_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_cams_calidad_aire_data_access" {
+  role       = aws_iam_role.glue_cams_calidad_aire.name
+  policy_arn = aws_iam_policy.glue_cams_calidad_aire_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "cams_calidad_aire_silver" {
+  name          = "cams_calidad_aire"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Previsión horaria de calidad del aire de Copernicus CAMS para Madrid, limpia/validada (tarea 059)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cams_calidad_aire/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "pollutant"
+      type = "string"
+    }
+    columns {
+      name = "pollutant_code"
+      type = "string"
+    }
+    columns {
+      name = "value"
+      type = "double"
+    }
+    columns {
+      name = "unit"
+      type = "string"
+    }
+    columns {
+      name = "valid_datetime"
+      type = "string"
+    }
+    columns {
+      name = "forecast_issued_at"
+      type = "string"
+    }
+    columns {
+      name = "leadtime_hour"
+      type = "int"
+    }
+    columns {
+      name = "model"
+      type = "string"
+    }
+    columns {
+      name = "latitude"
+      type = "double"
+    }
+    columns {
+      name = "longitude"
+      type = "double"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "cams_calidad_aire_gold" {
+  name          = "cams_calidad_aire_por_contaminante_fecha_validez"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Previsión de calidad del aire CAMS agregada por contaminante y día que predicen (valor medio/máximo, tarea 059)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "pollutant"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/cams_calidad_aire_por_contaminante_fecha_validez/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "pollutant_code"
+      type = "string"
+    }
+    columns {
+      name = "unit"
+      type = "string"
+    }
+    columns {
+      name = "fecha_validez"
+      type = "string"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "avg_value"
+      type = "double"
+    }
+    columns {
+      name = "max_value"
+      type = "double"
+    }
+    columns {
+      name = "leadtime_hours"
+      type = "array<int>"
+    }
+    columns {
+      name = "first_forecast_issued_at"
+      type = "string"
+    }
+    columns {
+      name = "last_forecast_issued_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_cams_calidad_aire" {
+  name              = "/aws-glue/jobs/${local.glue_cams_calidad_aire_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "cams_calidad_aire_bronze_to_silver" {
+  name        = "${local.glue_cams_calidad_aire_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de la previsión de calidad del aire CAMS: normalización, puerta de calidad por contaminante (tarea 059)."
+
+  role_arn          = aws_iam_role.glue_cams_calidad_aire.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_cams_calidad_aire_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/cams_calidad_aire/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cams_calidad_aire/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/cams_calidad_aire/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_cams_calidad_aire]
+}
+
+resource "aws_glue_job" "cams_calidad_aire_silver_to_gold" {
+  name        = "${local.glue_cams_calidad_aire_prefix}-silver-to-gold"
+  description = "Silver -> Gold de la previsión de calidad del aire CAMS: valor medio/máximo por contaminante y día que predicen (tarea 059)."
+
+  role_arn          = aws_iam_role.glue_cams_calidad_aire.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_cams_calidad_aire_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cams_calidad_aire/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/cams_calidad_aire_por_contaminante_fecha_validez/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_cams_calidad_aire]
+}
