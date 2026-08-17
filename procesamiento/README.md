@@ -1,4 +1,4 @@
-# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054, 055, 056, 057, 058 y 059)
+# `procesamiento/` — Bronze → Silver → Gold (tareas 041, 046, 047, 048, 049, 050, 053, 054, 055, 056, 057, 058, 059 y 060)
 
 Este directorio es el análogo de `ingesta/` para la fase 2 del proyecto
 (limpieza/normalización y agregación, ver memoria del TFM, apartados 5.5 y
@@ -11,9 +11,10 @@ La tarea 041 fue un **piloto de un único dataset** (tráfico — el más maduro
 mejor documentado de los 21 productores de `ingesta/`, ver doc/002, doc/035,
 doc/037, doc/039): estableció el patrón (estructura de código, motor de
 procesamiento, dónde vive la puerta de calidad, cómo se despliega). Las
-tareas 046, 047, 048, 049, 050, 053, 054, 055, 056, 057, 058 y 059 replican
-ese mismo patrón para un segundo, tercer, cuarto, quinto, sexto, séptimo,
-octavo, noveno, décimo, undécimo, duodécimo y decimotercer dataset (`transporte_publico_emt`,
+tareas 046, 047, 048, 049, 050, 053, 054, 055, 056, 057, 058, 059 y 060
+replican ese mismo patrón para un segundo, tercer, cuarto, quinto, sexto,
+séptimo, octavo, noveno, décimo, undécimo, duodécimo, decimotercer y
+decimocuarto dataset (`transporte_publico_emt`,
 llegadas de autobús de la EMT Madrid, ver doc/003, doc/024; `bicimad`,
 estado de estaciones de BiciMAD vía GBFS, ver doc/004; `aparcamientos`,
 ocupación de aparcamientos rotacionales, ver doc/005; `calidad_aire`,
@@ -38,19 +39,23 @@ de principio a fin --, ver doc/018 y
 horaria de calidad del aire a 4 días vista de Copernicus CAMS para Madrid --
 una rejilla espacial con horizonte de antelación (`leadtime_hour`), no una
 medida puntual del instante actual --, ver doc/019, doc/045 y
-`ingesta/capturas/cams_calidad_aire_madrid.py`)
+`ingesta/capturas/cams_calidad_aire_madrid.py`; `afluencia_lugares`,
+afluencia estimada (en vivo y patrón típico) de lugares conocidos de Madrid
+vía la librería de terceros `populartimes` -- fuente aún bloqueada, sin
+`GOOGLE_MAPS_API_KEY` real disponible --, ver doc/012 y
+`ingesta/capturas/afluencia_lugares_madrid.py`)
 — ver "Segundo dataset: `transporte_publico_emt`", "Tercer dataset:
 `bicimad`", "Cuarto dataset: `aparcamientos`", "Quinto dataset:
 `calidad_aire`", "Sexto dataset: `meteorologia`", "Séptimo dataset: `ruido`",
 "Octavo dataset: `aforos_peatones_bicicletas`", "Noveno dataset:
 `cartelera_cines_estrenos`", "Décimo dataset: `agenda_eventos`", "Undécimo
-dataset: `bluesky_menciones`", "Duodécimo dataset: `aemet_prevision_avisos`"
-y "Decimotercer dataset: `cams_calidad_aire`" más abajo para las diferencias
-reales frente al piloto. **Los trece siguen siendo solo código e
-infraestructura, sin aplicar nada en AWS** — mismo alcance que la tarea 001
-con el lakehouse; aplicar (con revisión de plan de por medio) es una tarea
-posterior, igual que las tareas 014/015 lo fueron para esa infraestructura
-base.
+dataset: `bluesky_menciones`", "Duodécimo dataset: `aemet_prevision_avisos`",
+"Decimotercer dataset: `cams_calidad_aire`" y "Decimocuarto dataset:
+`afluencia_lugares`" más abajo para las diferencias reales frente al piloto.
+**Los catorce siguen siendo solo código e infraestructura, sin aplicar nada
+en AWS** — mismo alcance que la tarea 001 con el lakehouse; aplicar (con
+revisión de plan de por medio) es una tarea posterior, igual que las tareas
+014/015 lo fueron para esa infraestructura base.
 
 ## Motor de procesamiento: AWS Glue (Spark serverless)
 
@@ -147,6 +152,12 @@ procesamiento/
       ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
       glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona por valid_datetime)
       glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
+    afluencia_lugares/
+      transform.py               # Bronze -> Silver: puerta de calidad de live_pct/typical_by_hour, ambos de presencia opcional (sin geo.py, ver más abajo)
+      aggregate.py                # Silver -> Gold: live_pct medio + valor típico correspondiente, por lugar/fecha/hora
+      ge_suite.py                  # Suite de Great Expectations (requiere pyspark + GX)
+      glue_bronze_to_silver.py      # Entry point real del job de Glue (Bronze->Silver, particiona por ingested_at)
+      glue_silver_to_gold.py         # Entry point real del job de Glue (Silver->Gold)
   tests/
     fixtures/trafico_bronze_sample.json
     fixtures/transporte_publico_emt_bronze_sample.json
@@ -162,6 +173,7 @@ procesamiento/
     fixtures/aemet_prevision_bronze_sample.json
     fixtures/aemet_avisos_bronze_sample.json
     fixtures/cams_calidad_aire_bronze_sample.json
+    fixtures/afluencia_lugares_bronze_sample.json
     test_geo.py
     test_transform.py
     test_aggregate.py
@@ -189,6 +201,8 @@ procesamiento/
     test_aemet_prevision_avisos_aggregate.py
     test_cams_calidad_aire_transform.py
     test_cams_calidad_aire_aggregate.py
+    test_afluencia_lugares_transform.py
+    test_afluencia_lugares_aggregate.py
 ```
 
 Precedente directo: `ingesta/capturas/` + `ingesta/tests/` (un paquete por
@@ -1022,6 +1036,51 @@ agrupación). Cada fila de Gold agrega `samples_count`, `avg_value`/
 `max_value` y `first`/`last_forecast_issued_at` (qué corridas contribuyeron
 a esa fila).
 
+## Decimocuarto dataset: `afluencia_lugares` (tarea 060)
+
+Replica la estructura de código del patrón sobre la afluencia estimada
+(popularidad tipo Google) de una muestra de lugares conocidos de Madrid
+(`ingesta/capturas/afluencia_lugares_madrid.py`, ver doc/012). **Sin
+`geo.py`**: `normalize_record` ya entrega `location.lat`/`location.lon` en
+WGS84 (resuelto por la propia API "Find Place" de Google) -- no hace falta
+ninguna reproyección; `lat`/`lon` se aplanan a columnas de primer nivel en
+Silver, mismo criterio que `agenda_eventos` (tarea 056).
+
+**Este dataset sigue bloqueado**: no existe ninguna forma autónoma de dar de
+alta una cuenta de Google Cloud en este pipeline (ver doc/012), así que no
+hay ninguna `GOOGLE_MAPS_API_KEY` real disponible -- tanto la muestra local
+como cualquier dato en Bronze seguirán siendo `"is_mock": true` hasta que se
+obtenga esa clave. Igual que hizo la propia tarea 012 en su día, esto no
+impide escribir ni verificar este subpaquete: la lógica se verifica contra
+el fixture mock existente, y el código queda listo para funcionar tal cual
+el día que haya clave real.
+
+**Diferencia real frente al resto del patrón: dos magnitudes independientes,
+ambas de presencia opcional dentro del mismo registro.** Cada registro
+puede traer `live_pct` (afluencia en vivo, 0-100, `null` cuando Google no
+tiene datos suficientes en el instante de la captura, o cuando procede del
+handler Lambda de patrón típico que la fuerza a `null` a propósito) y
+`typical_by_hour` (patrón habitual por día de la semana, `null` cuando
+Google no tiene datos suficientes de ningún día para ese lugar -- caso real
+de muestra, "Plaza Mayor", con ambas magnitudes a `null`). `validate_record`
+NO descarta un registro solo por tener cualquiera de las dos a `null` (tal
+como pide el enunciado): cuando están presentes, cada valor debe estar en
+`0-100`, mismo tipo de magnitud que `occupancy_pct`/`load_pct` en `trafico`.
+
+**Agregación decidida por el enunciado, no evaluada aquí: `(place_id, fecha,
+hora)`, `live_pct` medio junto con el valor típico correspondiente.** El día
+de la semana y la hora se derivan de `ingested_at` (único timestamp de este
+dataset). Como todos los registros de un mismo bucket comparten, por
+construcción de la clave, el mismo día de la semana y la misma hora, el
+valor de `typical_by_hour` correspondiente a esa combinación es en
+principio el mismo para todos ellos salvo que a alguno le falte
+`typical_by_hour` -- por eso se promedia (`typical_pct`) igual que
+`live_pct` (`avg_live_pct`) en vez de tomar solo el primero, mismo criterio
+de "ignora ausentes, promedia presentes" en toda métrica de este dataset. Un
+lugar sin ningún dato disponible en un bucket (caso "Plaza Mayor") sigue
+produciendo una fila de Gold, con `avg_live_pct`/`typical_pct` a `null` en
+vez de descartarse -- `samples_count` sí las cuenta.
+
 ## Great Expectations: dónde corre, y por qué no es el único filtro
 
 **Decisión (pregunta explícita del enunciado): corre dentro del propio job
@@ -1066,9 +1125,9 @@ riesgo de agotar ese disco compartido, no por falta de intención. En
 consecuencia:
 
 - `ge_suite.py`, `glue_bronze_to_silver.py` y `glue_silver_to_gold.py` (de
-  **los trece** datasets) importan `pyspark`/`great_expectations`/`awsglue`
+  **los catorce** datasets) importan `pyspark`/`great_expectations`/`awsglue`
   a nivel de módulo y **no se han podido importar ni ejecutar en ninguna de
-  las trece sesiones (041/046/047/048/049/050/053/054/055/056/057/058/059)**. Están escritos con el mismo
+  las catorce sesiones (041/046/047/048/049/050/053/054/055/056/057/058/059/060)**. Están escritos con el mismo
   cuidado que el resto del proyecto y basados en la API pública documentada
   de Glue/GX (Glue: `awsglue.context.GlueContext`, `awsglue.job.Job`,
   estable desde hace años; GX: `sources.add_or_update_spark`/`Validator`,
@@ -1091,12 +1150,14 @@ consecuencia:
   `procesamiento/silver_gold/aforos_peatones_bicicletas/__init__.py`,
   `procesamiento/silver_gold/cartelera_cines_estrenos/__init__.py`,
   `procesamiento/silver_gold/agenda_eventos/__init__.py`,
-  `procesamiento/silver_gold/bluesky_menciones/__init__.py` y
-  `procesamiento/silver_gold/aemet_prevision_avisos/__init__.py`, que
+  `procesamiento/silver_gold/bluesky_menciones/__init__.py`,
+  `procesamiento/silver_gold/aemet_prevision_avisos/__init__.py`,
+  `procesamiento/silver_gold/cams_calidad_aire/__init__.py` y
+  `procesamiento/silver_gold/afluencia_lugares/__init__.py`, que
   exponen solo `transform`/`aggregate` (y `geo`, solo en tráfico) a
   propósito) — así el resto del paquete sigue siendo importable/testable en
   cualquier entorno sin Spark.
-- No se ha procesado ningún dato real de Bronze de ninguno de los doce
+- No se ha procesado ningún dato real de Bronze de ninguno de los catorce
   datasets (no hay Glue desplegado todavía): toda la verificación usa
   fixtures construidos a mano —
   `tests/fixtures/trafico_bronze_sample.json` (10 registros, 5 válidos + 5
@@ -1201,7 +1262,18 @@ consecuencia:
   (credenciales y licencia ya aceptadas, ver doc/045) y la muestra
   commiteada ya es un lote real (`is_mock: false`), no simulado -- no hizo
   falta ningún fixture sintético base, solo los sintéticos que violan cada
-  regla de rechazo.
+  regla de rechazo, y `tests/fixtures/afluencia_lugares_bronze_sample.json`
+  (11 registros: los 5 lugares reales de
+  `ingesta/capturas/samples/afluencia_lugares_madrid_sample.json` -- todos
+  válidos, incluida "Plaza Mayor" con `live_pct`/`typical_by_hour` ambos
+  `null` -- + 6 sintéticos que violan cada regla de rechazo por turnos
+  (`place_id` ausente, `name` ausente, `captured_at` ausente/sin zona
+  horaria, `live_pct` fuera de rango, un valor de `typical_by_hour` fuera de
+  rango), ver "Decimocuarto dataset" arriba. Este dataset sigue bloqueado
+  (sin `GOOGLE_MAPS_API_KEY` real, ver doc/012): no se ha intentado
+  regenerar la muestra en esta sesión porque no hay ninguna forma autónoma
+  de obtener esa credencial, mismo bloqueo ya documentado por la propia
+  tarea 012.
 
 ## Terraform (`infra/terraform/glue.tf`)
 
@@ -1211,7 +1283,8 @@ tarea 041; `transporte_publico_emt`, tarea 046; `bicimad`, tarea 047;
 050; `ruido`, tarea 053; `aforos_peatones_bicicletas`, tarea 054;
 `cartelera_cines_estrenos`, tarea 055; `agenda_eventos`, tarea 056;
 `bluesky_menciones`, tarea 057; `aemet_prevision_avisos`, tarea 058;
-`cams_calidad_aire`, tarea 059), cada uno con su propio rol IAM acotado por
+`cams_calidad_aire`, tarea 059; `afluencia_lugares`, tarea 060), cada uno
+con su propio rol IAM acotado por
 prefijo — no se comparte rol entre datasets, mismo principio de mínimo
 privilegio que ya aplicaba `ingesta`. `aemet_prevision_avisos` es la única
 excepción parcial: **un** rol IAM y **un** par de jobs de Glue cubren, a
@@ -1230,7 +1303,7 @@ vez de cuatro jobs — ver "Duodécimo dataset" arriba para el porqué:
   `glue_ruido` / `glue_aforos_peatones_bicicletas` /
   `glue_cartelera_cines_estrenos` / `glue_agenda_eventos` /
   `glue_bluesky_menciones` / `glue_aemet_prevision_avisos` /
-  `glue_cams_calidad_aire`: la política
+  `glue_cams_calidad_aire` / `glue_afluencia_lugares`: la política
   gestionada `AWSGlueServiceRole` (lo que todo job de Glue necesita en su
   propio nombre: API de Glue, logs bajo `/aws-glue/...`) más una política
   propia acotada por prefijo — lectura de `bronze/<dataset>/*`,
@@ -1256,21 +1329,22 @@ vez de cuatro jobs — ver "Duodécimo dataset" arriba para el porqué:
   `aemet_prevision_silver`/`aemet_avisos_silver`/`aemet_prevision_gold`/
   `aemet_avisos_gold` (cuatro tablas, no dos, para `aemet_prevision_avisos`
   — dos formas de dato, ver "Duodécimo dataset" arriba)/
-  `cams_calidad_aire_silver`/`cams_calidad_aire_gold`:
+  `cams_calidad_aire_silver`/`cams_calidad_aire_gold`/
+  `afluencia_lugares_silver`/`afluencia_lugares_gold`:
   catalogadas para poder consultarlas con Athena sin ningún paso adicional.
   Bronze deliberadamente **no** se cataloga: son lotes JSON crudos sin un
   esquema único garantizado entre los 21 productores, no pensados para
   consultarse vía SQL.
 - `data.archive_file.procesamiento_source` (**sin cambios en su
   definición**: ya empaquetaba todo `procesamiento/` salvo `tests/`, así
-  que cada subpaquete nuevo, incluido el de la tarea 059, se incluye
+  que cada subpaquete nuevo, incluido el de la tarea 060, se incluye
   automáticamente) + `aws_s3_object.*` por script de cada dataset, subidos
   al bucket de artefactos con el hash del contenido en la key (mismo patrón
   que `data.archive_file.ingesta_source`/`layer_source_key` de tareas
   anteriores) — un cambio de código sube a una key nueva sin pisar la
   anterior.
 
-`terraform validate` limpio (verificado en las trece tareas, sin backend
+`terraform validate` limpio (verificado en las catorce tareas, sin backend
 real inicializado — `terraform init -backend=false`, tras limpiar
 `__pycache__/*.pyc` generados por `python3 -m unittest`, mismo problema
 preexistente documentado en doc/046, no introducido por esta tarea);
@@ -1280,23 +1354,25 @@ estas tareas no deben usar para aplicar nada).
 
 ## Relevante para tareas futuras
 
-- El patrón (fijado por la tarea 041, ya replicado once veces con la
-  046/047/048/049/050/053/054/055/056/057/058) para extender Bronze→Silver→Gold a
+- El patrón (fijado por la tarea 041, ya replicado doce veces con la
+  046/047/048/049/050/053/054/055/056/057/058/059) para extender Bronze→Silver→Gold a
   más fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py`
   (Python puro, testable)/`aggregate.py` (idem, de referencia)/`ge_suite.py`
   (GX, ejecutado en Glue)/`glue_*.py` (entry points) — más `geo.py` **solo
   si la fuente necesita reproyectar** (no es parte fija del patrón: ni
   `transporte_publico_emt`, ni `bicimad`, ni `aparcamientos`, ni
   `calidad_aire`, ni `meteorologia`, ni `ruido`, ni
-  `aforos_peatones_bicicletas`, ni `cartelera_cines_estrenos` ni
-  `agenda_eventos` lo tienen — las primeras siete y la última porque sus
-  fuentes ya entregan WGS84, `cartelera_cines_estrenos` porque su esquema no
-  tiene ninguna coordenada en absoluto, ver "Segundo dataset"/"Tercer
-  dataset"/"Cuarto dataset"/"Quinto dataset"/"Sexto dataset"/"Séptimo
-  dataset"/"Octavo dataset"/"Noveno dataset"/"Décimo dataset" arriba) —, más
-  un bloque en `glue.tf` con su propio rol IAM acotado por prefijo (no un
-  rol compartido entre datasets: mantiene el principio de mínimo privilegio
-  ya aplicado en `ingesta`). `cartelera_cines_estrenos` fue el primer
+  `aforos_peatones_bicicletas`, ni `cartelera_cines_estrenos`, ni
+  `agenda_eventos`, ni `cams_calidad_aire` ni `afluencia_lugares` lo tienen
+  — todos porque sus fuentes ya entregan WGS84 (o, en
+  `cartelera_cines_estrenos`, porque su esquema no tiene ninguna coordenada
+  en absoluto), ver "Segundo dataset"/"Tercer dataset"/"Cuarto
+  dataset"/"Quinto dataset"/"Sexto dataset"/"Séptimo dataset"/"Octavo
+  dataset"/"Noveno dataset"/"Décimo dataset"/"Decimotercer dataset"/
+  "Decimocuarto dataset" arriba) —, más un bloque en `glue.tf` con su propio
+  rol IAM acotado por prefijo (no un rol compartido entre datasets: mantiene
+  el principio de mínimo privilegio ya aplicado en `ingesta`).
+  `cartelera_cines_estrenos` fue el primer
   dataset del patrón que no es una serie temporal de medidas sino un
   catálogo de hechos discretos (sesiones de cine); `agenda_eventos` replica
   ese mismo criterio para un segundo dataset de catálogo (eventos) — si una
@@ -1305,7 +1381,7 @@ estas tareas no deben usar para aplicar nada).
   agregar un **conteo** de hechos por las dimensiones relevantes, no un
   promedio/suma de ninguna magnitud numérica (no hay ninguna en este tipo de
   fuente).
-- Antes de aplicar esta infraestructura: (1) smoke-test de los trece
+- Antes de aplicar esta infraestructura: (1) smoke-test de los catorce
   `ge_suite.py` contra un Glue Studio Notebook real (ver arriba) —
   `bicimad/ge_suite.py` y `aparcamientos/ge_suite.py` necesitan además
   confirmar que las columnas auxiliares que calculan sus respectivos
@@ -1346,7 +1422,19 @@ estas tareas no deben usar para aplicar nada).
   como `calidad_aire`/`meteorologia`, otro que necesita confirmar su columna
   auxiliar de rango por etiqueta (`value_over_plausible_max`, calculada con
   la tabla propia `PLAUSIBLE_MAX_BY_POLLUTANT` de este dataset, no la de
-  `calidad_aire` -- ver "Decimotercer dataset" arriba); (2) revisar si `great_expectations==0.18.19` (versión fijada en
+  `calidad_aire` -- ver "Decimotercer dataset" arriba);
+  `afluencia_lugares/ge_suite.py` necesita la misma confirmación que
+  `bicimad`/`aparcamientos`/`calidad_aire`/`meteorologia`/`cams_calidad_aire`
+  para sus dos columnas auxiliares
+  (`typical_by_hour_min_value`/`typical_by_hour_max_value`, calculadas
+  aplanando los 7 arrays del struct `typical_by_hour`, ver "Decimocuarto
+  dataset" arriba), y además es el primer dataset del patrón cuyo job
+  Silver→Gold (`glue_silver_to_gold.py`) necesita indexar dinámicamente un
+  campo de un struct por el valor de otra columna (`typical_by_hour.<día>`,
+  aproximado con una cadena `when/otherwise` por día, ver docstring de ese
+  módulo) -- conviene confirmar contra el runtime real que produce
+  exactamente el mismo resultado que `aggregate._typical_value_for`;
+  (2) revisar si `great_expectations==0.18.19` (versión fijada en
   `var.great_expectations_pip_spec`) sigue siendo la última estable de la
   serie 0.18 en el momento de aplicar, y (3) el mismo patrón `terraform
   plan`/`apply` con revisión humana de por medio que ya usaron las tareas
@@ -1574,3 +1662,35 @@ estas tareas no deben usar para aplicar nada).
   versión de Python de esta EC2 de desarrollo, que puede ser más reciente y
   ocultar el problema en los tests locales) antes de asumir que basta con
   `_parse_iso` tal como lo tenía el resto del patrón.
+- `afluencia_lugares` (tarea 060) es el primer dataset del patrón cuyo
+  registro trae **dos magnitudes numéricas independientes, cada una de
+  presencia opcional por separado** (`live_pct`, `typical_by_hour`) dentro
+  del mismo registro -- a diferencia de `aparcamientos` (tarea 048, donde
+  varios campos se ausentan juntos, todos o ninguno, según si el
+  aparcamiento comparte ocupación en tiempo real) o de `agenda_eventos`
+  (tarea 056, donde los campos ausentes dependen de la fuente, no varían
+  registro a registro dentro de la misma fuente). El criterio a replicar
+  para un caso similar: la puerta de calidad no descarta un registro solo
+  por tener una de las magnitudes a `null` -- cada una se valida (rango,
+  estructura) **solo cuando está presente**, de forma independiente entre
+  sí, y `aggregate.py` promedia/combina ignorando los `null` en vez de
+  descartar el registro completo. Es también el primer dataset del patrón
+  con un campo anidado de forma fija pero no escalar (`typical_by_hour`,
+  `dict[día_es, list[24 valores]]`), modelado en el job de Glue real como
+  un `StructType` de 7 campos `array<int>` (uno por día) en vez de un
+  `MapType` genérico -- más natural para Parquet/Athena al ser un conjunto
+  de claves fijo y conocido de antemano.
+- `afluencia_lugares` sigue siendo, junto con `aemet_prevision_avisos`
+  cuando le faltaba `AEMET_API_KEY` en tareas anteriores, uno de los pocos
+  datasets del patrón sin ninguna captura real posible en este entorno: no
+  hay forma autónoma de dar de alta una `GOOGLE_MAPS_API_KEY` (ver doc/012).
+  A diferencia de AEMET (que si acaba obteniendo su clave, ya tiene datos
+  reales previos), este dataset no ha tenido nunca ningún dato real -- toda
+  la infraestructura de esta tarea queda escrita y validada solo contra el
+  fixture mock, sin ningún precedente de ejecución contra la API real de
+  Google. Antes de aplicar esta infraestructura en concreto, además del
+  resto de comprobaciones de esta lista, conviene confirmar manualmente
+  (fuera de este pipeline autónomo) que `populartimes.get_id` sigue
+  funcionando contra Google en el momento de activar una `GOOGLE_MAPS_API_KEY`
+  real -- es scraping de un endpoint no documentado (ver doc/012), con
+  riesgo real de romperse sin aviso.
