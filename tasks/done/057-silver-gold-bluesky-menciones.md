@@ -2,7 +2,7 @@
 id: 57
 slug: silver-gold-bluesky-menciones
 title: 'Silver/Gold: menciones de Bluesky (siguiendo el patrón de la tarea 041)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/057-silver-gold-bluesky-menciones
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-17T19:42:59.184770+00:00'
+updated_at: '2026-08-17T19:44:06.895170+00:00'
 started_at: '2026-08-17T19:41:53.376433+00:00'
 submitted_at: '2026-08-17T19:42:59.184632+00:00'
-merged_at: null
+merged_at: '2026-08-17T19:43:03Z'
 ---
 
 ## Contexto
