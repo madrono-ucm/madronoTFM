@@ -1,19 +1,20 @@
 ---
 id: 59
 slug: silver-gold-cams-calidad-aire
-title: "Silver/Gold: previsión de calidad del aire CAMS (siguiendo el patrón de la tarea 041)"
-status: pending
+title: 'Silver/Gold: previsión de calidad del aire CAMS (siguiendo el patrón de la
+  tarea 041)'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/059-silver-gold-cams-calidad-aire
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-16T14:45:00+00:00"
-updated_at: "2026-08-16T14:45:00+00:00"
-started_at: null
+created_at: '2026-08-16T14:45:00+00:00'
+updated_at: '2026-08-17T20:00:55.715210+00:00'
+started_at: '2026-08-17T20:00:55.715188+00:00'
 submitted_at: null
 merged_at: null
 ---
