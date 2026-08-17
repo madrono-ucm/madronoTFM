@@ -4708,3 +4708,467 @@ resource "aws_glue_job" "agenda_eventos_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_agenda_eventos]
 }
+
+# ---------------------------------------------------------------------------
+# Bronze -> Silver -> Gold (tarea 041/046/047/048/049/050/053/054/055/056
+# extendido a un UNDÉCIMO dataset (`bluesky_menciones`, menciones públicas de
+# lugares/distritos de Madrid en Bluesky -- dos modos combinados bajo un
+# campo `mode`: búsqueda puntual por lugar y barrido programado por distrito
+# -- ver `ingesta/capturas/bluesky_menciones_madrid.py` y
+# `procesamiento/silver_gold/bluesky_menciones/`). Alcance de ESTA tarea:
+# igual que las anteriores, solo código/infraestructura, sin `terraform
+# apply` -- `terraform plan`/`apply` de este bloque quedan para una tarea
+# posterior con revisión de plan de por medio.
+#
+# Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
+# ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
+# ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
+# prefijo (`bronze/bluesky_menciones/*`, `silver/bluesky_menciones/*`,
+# `gold/bluesky_menciones_por_termino_modo_hora/*`) -- no se comparte ningún
+# rol con el resto de datasets, mismo principio de mínimo privilegio por
+# dataset que ya aplicaba `ingesta`.
+#
+# Incluye desde el principio los dos statements de permisos que las tareas
+# 051/052 tuvieron que descubrir empíricamente y añadir a posteriori para
+# los seis primeros datasets (`WriteSilverQualityReports...` y el marcador
+# `_$folder$` de Gold), mismo criterio ya aplicado por el resto del patrón
+# desde la tarea 053.
+#
+# La tabla Silver del catálogo declara dos `partition_keys` (`fecha`/`hora`,
+# el patrón horario estándar): a diferencia de `ruido`/`agenda_eventos`
+# (agregación solo diaria, porque su fuente no tiene resolución horaria
+# real), cada post de Bluesky trae un `created_at` con resolución de
+# segundos y el modo `distrito_sweep` está pensado para un productor
+# programado cada hora, ver docstring de `aggregate.py`.
+# ---------------------------------------------------------------------------
+
+locals {
+  glue_bluesky_menciones_prefix = "${var.project_name}-${var.environment}-bluesky-menciones"
+}
+
+resource "aws_s3_object" "glue_script_bluesky_menciones_bronze_to_silver" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/bluesky_menciones_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_bronze_to_silver.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_bronze_to_silver.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_bronze_to_silver.py")
+}
+
+resource "aws_s3_object" "glue_script_bluesky_menciones_silver_to_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/bluesky_menciones_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_silver_to_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_silver_to_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_silver_to_gold.py")
+}
+
+data "aws_iam_policy_document" "glue_bluesky_menciones_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "glue_bluesky_menciones" {
+  name = "${local.glue_bluesky_menciones_prefix}-glue-role"
+
+  description        = "Rol asumido por los jobs de Glue de Bronze->Silver->Gold de las menciones de Bluesky (tarea 057)."
+  assume_role_policy = data.aws_iam_policy_document.glue_bluesky_menciones_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_bluesky_menciones_service_role" {
+  role       = aws_iam_role.glue_bluesky_menciones.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
+}
+
+data "aws_iam_policy_document" "glue_bluesky_menciones_data_access" {
+  statement {
+    sid    = "ReadBronzeBlueskyMenciones"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/bluesky_menciones/*"]
+  }
+
+  statement {
+    sid    = "ReadWriteSilverBlueskyMenciones"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/bluesky_menciones/*"]
+  }
+
+  # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+  # hueco de permisos detectado por el job de sanidad de la tarea 051.
+  statement {
+    sid    = "WriteSilverQualityReportsBlueskyMenciones"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/_quality_reports/bluesky_menciones/*"]
+  }
+
+  statement {
+    sid    = "WriteGoldBlueskyMencionesPorTerminoModoHora"
+    effect = "Allow"
+
+    actions = [
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
+    # el marcador `_$folder$` que crea el committer de Spark cuando el
+    # DataFrame de Gold sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/bluesky_menciones_por_termino_modo_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/bluesky_menciones_por_termino_modo_hora_$folder$",
+    ]
+  }
+
+  statement {
+    sid    = "ListLakehouseBucketsForBlueskyMencionesPrefixes"
+    effect = "Allow"
+
+    actions = ["s3:ListBucket"]
+    resources = [
+      aws_s3_bucket.lakehouse["bronze"].arn,
+      aws_s3_bucket.lakehouse["silver"].arn,
+      aws_s3_bucket.lakehouse["gold"].arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values = [
+        "bluesky_menciones/*",
+        "bluesky_menciones_por_termino_modo_hora/*",
+        "_quality_reports/bluesky_menciones/*",
+        "glue-temp/*",
+      ]
+    }
+  }
+
+  statement {
+    sid    = "ReadOwnScriptAndLibrary"
+    effect = "Allow"
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.build_artifacts.arn}/glue-scripts/*", "${aws_s3_bucket.build_artifacts.arn}/glue-libs/*"]
+  }
+
+  # Directorio `--TempDir`, mismo criterio que el resto de datasets del
+  # patrón: bucket Silver, prefijo `glue-temp/` (compartido entre datasets --
+  # no es dato persistente, solo shuffle spill/ficheros temporales de
+  # escritura).
+  statement {
+    sid    = "GlueTempDir"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts",
+    ]
+    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/glue-temp/*"]
+  }
+
+  statement {
+    sid    = "GlueCatalogBlueskyMencionesTables"
+    effect = "Allow"
+
+    actions = [
+      "glue:GetDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:BatchCreatePartition",
+      "glue:CreatePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
+      "glue:BatchGetPartition",
+    ]
+    resources = [
+      "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:catalog",
+      aws_glue_catalog_database.silver.arn,
+      aws_glue_catalog_database.gold.arn,
+      "${aws_glue_catalog_database.silver.arn}/*",
+      "${aws_glue_catalog_database.gold.arn}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_bluesky_menciones_data_access" {
+  name = "${local.glue_bluesky_menciones_prefix}-data-access"
+
+  description = "Acceso minimo (lectura/escritura acotada por prefijo) de Bronze->Silver->Gold de las menciones de Bluesky a los buckets del lakehouse y al catalogo de Glue (tarea 057)."
+  policy      = data.aws_iam_policy_document.glue_bluesky_menciones_data_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "glue_bluesky_menciones_data_access" {
+  role       = aws_iam_role.glue_bluesky_menciones.name
+  policy_arn = aws_iam_policy.glue_bluesky_menciones_data_access.arn
+}
+
+resource "aws_glue_catalog_table" "bluesky_menciones_silver" {
+  name          = "bluesky_menciones"
+  database_name = aws_glue_catalog_database.silver.name
+  description   = "Menciones publicas de lugares/distritos de Madrid en Bluesky, limpias/validadas (tarea 057)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "fecha"
+    type = "string"
+  }
+  partition_keys {
+    name = "hora"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bluesky_menciones/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "source"
+      type = "string"
+    }
+    columns {
+      name = "mode"
+      type = "string"
+    }
+    columns {
+      name = "match_term"
+      type = "string"
+    }
+    columns {
+      name = "post_hash"
+      type = "string"
+    }
+    columns {
+      name = "text"
+      type = "string"
+    }
+    columns {
+      name = "lang"
+      type = "string"
+    }
+    columns {
+      name = "created_at"
+      type = "string"
+    }
+    columns {
+      name = "indexed_at"
+      type = "string"
+    }
+    columns {
+      name = "like_count"
+      type = "int"
+    }
+    columns {
+      name = "repost_count"
+      type = "int"
+    }
+    columns {
+      name = "reply_count"
+      type = "int"
+    }
+    columns {
+      name = "quote_count"
+      type = "int"
+    }
+    columns {
+      name = "ingested_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_glue_catalog_table" "bluesky_menciones_gold" {
+  name          = "bluesky_menciones_por_termino_modo_hora"
+  database_name = aws_glue_catalog_database.gold.name
+  description   = "Numero de menciones de Bluesky agregado por termino de busqueda (lugar/distrito/evento), modo y hora (tarea 057)."
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification        = "parquet"
+    "parquet.compression" = "SNAPPY"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "string"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bluesky_menciones_por_termino_modo_hora/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "mode"
+      type = "string"
+    }
+    columns {
+      name = "match_term"
+      type = "string"
+    }
+    columns {
+      name = "hour"
+      type = "int"
+    }
+    columns {
+      name = "schema_version"
+      type = "int"
+    }
+    columns {
+      name = "samples_count"
+      type = "bigint"
+    }
+    columns {
+      name = "mentions_count"
+      type = "bigint"
+    }
+    columns {
+      name = "langs"
+      type = "array<string>"
+    }
+    columns {
+      name = "total_like_count"
+      type = "bigint"
+    }
+    columns {
+      name = "total_repost_count"
+      type = "bigint"
+    }
+    columns {
+      name = "total_reply_count"
+      type = "bigint"
+    }
+    columns {
+      name = "total_quote_count"
+      type = "bigint"
+    }
+    columns {
+      name = "first_created_at"
+      type = "string"
+    }
+    columns {
+      name = "last_created_at"
+      type = "string"
+    }
+    columns {
+      name = "processed_at"
+      type = "string"
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_group" "glue_bluesky_menciones" {
+  name              = "/aws-glue/jobs/${local.glue_bluesky_menciones_prefix}"
+  retention_in_days = var.lambda_log_retention_days
+}
+
+resource "aws_glue_job" "bluesky_menciones_bronze_to_silver" {
+  name        = "${local.glue_bluesky_menciones_prefix}-bronze-to-silver"
+  description = "Bronze -> Silver de las menciones de Bluesky: normalizacion, puerta de calidad y deduplicacion de duplicados exactos por lote (tarea 057)."
+
+  role_arn          = aws_iam_role.glue_bluesky_menciones.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_bluesky_menciones_bronze_to_silver.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/bluesky_menciones/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bluesky_menciones/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/bluesky_menciones/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_bluesky_menciones]
+}
+
+resource "aws_glue_job" "bluesky_menciones_silver_to_gold" {
+  name        = "${local.glue_bluesky_menciones_prefix}-silver-to-gold"
+  description = "Silver -> Gold de las menciones de Bluesky: numero de menciones por termino, modo y hora (tarea 057)."
+
+  role_arn          = aws_iam_role.glue_bluesky_menciones.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = var.glue_job_timeout_minutes
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_bluesky_menciones_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bluesky_menciones/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bluesky_menciones_por_termino_modo_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_bluesky_menciones]
+}
