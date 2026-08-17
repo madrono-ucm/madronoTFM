@@ -2,19 +2,19 @@
 id: 60
 slug: silver-gold-afluencia-lugares
 title: 'Silver/Gold: afluencia de lugares (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/060-silver-gold-afluencia-lugares
-pr_number: null
-pr_url: null
+pr_number: 107
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/107
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-17T20:12:24.695120+00:00'
+updated_at: '2026-08-17T20:23:43.811496+00:00'
 started_at: '2026-08-17T20:12:24.695098+00:00'
-submitted_at: null
+submitted_at: '2026-08-17T20:23:43.811351+00:00'
 merged_at: null
 ---
 
