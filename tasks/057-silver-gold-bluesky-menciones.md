@@ -2,19 +2,19 @@
 id: 57
 slug: silver-gold-bluesky-menciones
 title: 'Silver/Gold: menciones de Bluesky (siguiendo el patrón de la tarea 041)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/057-silver-gold-bluesky-menciones
-pr_number: null
-pr_url: null
+pr_number: 104
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/104
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-17T19:41:53.376456+00:00'
+updated_at: '2026-08-17T19:42:59.184770+00:00'
 started_at: '2026-08-17T19:41:53.376433+00:00'
-submitted_at: null
+submitted_at: '2026-08-17T19:42:59.184632+00:00'
 merged_at: null
 ---
 
