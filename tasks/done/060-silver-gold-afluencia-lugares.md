@@ -2,7 +2,7 @@
 id: 60
 slug: silver-gold-afluencia-lugares
 title: 'Silver/Gold: afluencia de lugares (siguiendo el patrón de la tarea 041)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/060-silver-gold-afluencia-lugares
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-16T14:45:00+00:00'
-updated_at: '2026-08-17T20:23:43.811496+00:00'
+updated_at: '2026-08-17T20:24:51.241793+00:00'
 started_at: '2026-08-17T20:12:24.695098+00:00'
 submitted_at: '2026-08-17T20:23:43.811351+00:00'
-merged_at: null
+merged_at: '2026-08-17T20:23:48Z'
 ---
 
 ## Contexto
