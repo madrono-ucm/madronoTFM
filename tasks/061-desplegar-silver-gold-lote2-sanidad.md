@@ -1,99 +1,113 @@
 ---
 id: 61
 slug: desplegar-silver-gold-lote2-sanidad
-title: Desplegar Glue Silver/Gold para el segundo lote (8 datasets) y verificar con
-  un job de sanidad
-status: failed
+title: "Desplegar Glue Silver/Gold para el segundo lote (8 datasets) y verificar con un job de sanidad"
+status: pending
 force: false
 allow_infra_apply: true
-branch: task/061-desplegar-silver-gold-lote2-sanidad
+branch: null
 pr_number: null
 pr_url: null
-attempts: 5
-next_retry_at: '2026-08-18T01:49:47.605903+00:00'
-last_error: claude finalizó sin crear ningún commit
-created_at: '2026-08-17T21:50:00+00:00'
-updated_at: '2026-08-18T02:06:05.970741+00:00'
-started_at: '2026-08-17T22:49:08.477649+00:00'
+attempts: 0
+next_retry_at: null
+last_error: null
+created_at: "2026-08-17T21:50:00+00:00"
+updated_at: "2026-08-18T21:50:00+00:00"
+started_at: null
 submitted_at: null
 merged_at: null
 ---
 
 ## Contexto
 
-Las tareas 053-060 escribieron (sin aplicar) el código y el Terraform de
-Glue para 8 datasets más: `ruido`, `aforos_peatones_bicicletas`,
-`cartelera_cines_estrenos`, `agenda_eventos`, `bluesky_menciones`,
-`aemet_prevision_avisos`, `cams_calidad_aire`, `afluencia_lugares`. Ninguno
-se ha aplicado nunca contra AWS real. El primer lote de 6 (`trafico`,
-`transporte_publico_emt`, `bicimad`, `aparcamientos`, `calidad_aire`,
-`meteorologia`) ya está desplegado y verificado (tareas 051/052).
+**Esta tarea ya se ha intentado y terminó sin crear ningún commit**, pese a
+que `terraform apply` y los jobs de sanidad sí se ejecutaron contra AWS
+real — mismo patrón que le pasó dos veces a la tarea 051. La buena noticia,
+verificada manualmente fuera de la sesión de `claude` (con `aws glue
+get-job-runs`, ya que el runner del agente no conserva la salida completa de
+un intento que termina "ok" sin commits):
 
-**Aprendizaje de la tarea 051 (dos intentos fallidos sin commit)**: aplicar
-toda la infraestructura y lanzar la matriz completa de verificación en una
-sola tarea agotó el tiempo/turnos disponibles antes de comitear nada, dos
-veces seguidas. Por eso esta tarea, igual que la 051 reducida, se limita a
-**aplicar + un único job de sanidad por dataset** (no la matriz completa
-Bronze→Silver→Gold de los 8 × 2 etapas) — la verificación completa es la
-tarea 062, deliberadamente separada.
+- **`terraform apply` de `glue.tf` SÍ se ejecutó y sigue aplicado**: los 8
+  jobs de Bronze→Silver (y previsiblemente los 8 de Silver→Gold) existen ya
+  en `eu-west-1`. **No hace falta volver a aplicar infraestructura nueva.**
+- **6 de los 8 datasets completaron su job de sanidad (Bronze→Silver) CON
+  ÉXITO**: `ruido`, `aforos_peatones_bicicletas`, `agenda_eventos`,
+  `bluesky_menciones`, `aemet_prevision_avisos`, `cams_calidad_aire`. No
+  hace falta repetir su verificación en esta tarea.
+- **2 datasets fallan, ambos por el mismo motivo, ya diagnosticado**:
+  `cartelera_cines_estrenos` y `afluencia_lugares`:
 
-**`force: false` deliberado**: quiero revisar el resultado antes de
-fusionar.
+  ```
+  s3:PutObject on resource ".../madrono-tfm-dev-silver-.../
+  cartelera_cines_estrenos_$folder$" ... AccessDenied
+  ```
+  (mismo error para `afluencia_lugares_$folder$`)
 
-**Excepción de alcance** (`allow_infra_apply: true`): permiso para
-`terraform apply` de los recursos de `infra/terraform/glue.tf` para estos 8
-datasets y para lanzar manualmente los Glue jobs (`aws glue start-job-run`).
+  **Causa raíz (ya identificada, no hace falta re-investigar)**: la tarea
+  051 ya había descubierto y arreglado este mismo tipo de hueco de permisos
+  para el nivel **Gold** de todos los datasets (el marcador `_$folder$` que
+  escribe el committer de Spark cuando el DataFrame sale vacío en esa
+  ejecución) — se ve reflejado en el comentario "hueco de permisos
+  detectado por el job de sanidad de la tarea 051" que ya aparece en
+  `infra/terraform/glue.tf` para estos datasets. Pero para
+  `cartelera_cines_estrenos` y `afluencia_lugares`, el mismo problema
+  también ocurre al nivel **Silver** (su Silver sale vacío en esta
+  ejecución concreta, algo que no le pasó a los otros 6), y la política IAM
+  correspondiente (`data.aws_iam_policy_document.
+  glue_cartelera_cines_estrenos_data_access`, statement
+  `ReadWriteSilverCarteleraCinesEstrenos`; y el equivalente para
+  `afluencia_lugares`) **solo tiene el recurso
+  `.../silver/<dataset>/*`, sin el marcador `.../silver/<dataset>_$folder$`**
+  — a diferencia del statement de Gold del mismo fichero, que ya tiene
+  ambos.
 
 ## Objetivo
 
-Aplicar la infraestructura de Glue para los 8 datasets y lanzar, para cada
-uno, **un único job de sanidad** (Bronze→Silver) que confirme que el código
-arranca y corre sin errores de plataforma (no hace falta validar el
-resultado exhaustivamente todavía, eso es la 062).
+Arreglar el hueco de permisos IAM en esos dos datasets (añadir el recurso
+`_$folder$` que falta al nivel Silver, igual que ya existe al nivel Gold) y
+confirmar con un reintento del job de sanidad que los 8 datasets completan.
 
 ## Alcance concreto
 
-1. `terraform plan` sobre `infra/terraform/glue.tf`: confirma qué se va a
-   crear para estos 8 datasets (jobs de Glue, roles IAM, tablas de catálogo)
-   — no debe incluir ningún trigger/schedule de Glue todavía (eso es la
-   tarea 064, posterior y deliberadamente separada). Si algo de lo escrito
-   en 053-060 incluyera un trigger por error, elimínalo antes de aplicar.
-2. `terraform apply`.
-3. Para cada uno de los 8 datasets, lanza `aws glue start-job-run` del job
-   Bronze→Silver contra el lote más reciente ya presente en Bronze real
-   (`s3://madrono-tfm-dev-bronze-222234418587/<dataset>/...`), espera a que
-   termine, y confirma que no falla por un problema de plataforma (import
-   error, tipo de dato no serializable al escribir el DataFrame de Spark —
-   presta atención especial a los campos de tipo lista/array como
-   `language_versions`, `phenomena`, `langs`, que no existían en el primer
-   lote y podrían necesitar un tratamiento distinto en Spark).
-4. Si algún job falla por un bug de código real (no de permisos/
-   credenciales), arréglalo — mismo criterio que la tarea 051 con
-   `saveAsTextFile`. Si el arreglo es sistemático (afecta a varios
-   datasets), corrígelo en todos los que aplique, no solo en el primero que
-   encuentres.
+1. En `infra/terraform/glue.tf`, en
+   `data.aws_iam_policy_document.glue_cartelera_cines_estrenos_data_access`
+   (statement `ReadWriteSilverCarteleraCinesEstrenos`) y en
+   `data.aws_iam_policy_document.glue_afluencia_lugares_data_access`
+   (statement equivalente), añade a `resources` la entrada
+   `"${aws_s3_bucket.lakehouse["silver"].arn}/<dataset>_$folder$"` (mismo
+   patrón que ya usa el statement de Gold de esos mismos ficheros).
+2. Revisa si algún otro de los 8 datasets de esta tarea tiene el mismo hueco
+   al nivel Silver (aunque no haya fallado esta vez, podría fallar en una
+   futura ejecución cuyo Silver también salga vacío) — si lo encuentras,
+   arréglalo igual, no hace falta esperar a que falle primero.
+3. `terraform plan` (el único cambio esperado: estas políticas IAM, nada
+   más — la infraestructura ya está aplicada, ver Contexto) y
+   `terraform apply`.
+4. Relanza `aws glue start-job-run` del job Bronze→Silver de
+   `cartelera_cines_estrenos` y `afluencia_lugares`, espera a que terminen,
+   y confirma que ya no fallan por este motivo.
 5. Documenta en `doc/061-desplegar-silver-gold-lote2-sanidad.md` el
-   resultado del job de sanidad por dataset (éxito, o el error exacto si
-   sigue fallando tras un intento razonable de arreglo).
+   resultado del job de sanidad de los 8 datasets (los 6 que ya completaron
+   con éxito, más el resultado del reintento de los otros 2).
 
 ## Restricciones
 
 - NO lances la matriz completa de verificación (Bronze→Silver→Gold × 8
-  datasets) — eso es la tarea 062.
+  datasets, con comprobación de contenido) — eso es la tarea 062.
 - NO crees ningún trigger/schedule de Glue — eso es la tarea 064.
 - NO ejecutes `terraform destroy`.
 - NO toques `infra/terraform/lambda.tf` ni el primer lote de 6 datasets ya
   desplegado.
 - **Antes de terminar, confirma que dejas un commit real** (código +
-  `doc/061-...md`) aunque algún dataset siga fallando — un resultado
-  parcial documentado es mucho más útil que terminar sin commitear nada
-  (el motivo por el que la tarea 051 tuvo que reintentarse dos veces).
+  `doc/061-...md`) — un resultado parcial documentado es mucho más útil que
+  terminar sin commitear nada, que es exactamente lo que ya falló una vez
+  en esta misma tarea.
 
 ## Criterios de aceptación
 
-- Los recursos de `infra/terraform/glue.tf` para los 8 datasets están
-  aplicados en AWS real, sin ningún trigger/schedule.
-- Cada uno de los 8 datasets tiene al menos un job de sanidad ejecutado,
-  documentado (éxito o error exacto).
+- El hueco de permisos IAM (`_$folder$` a nivel Silver) está corregido para
+  `cartelera_cines_estrenos` y `afluencia_lugares`, y para cualquier otro
+  dataset de este lote que compartiera el mismo hueco.
+- Los 8 datasets completan su job de sanidad Bronze→Silver sin error.
 - `doc/061-desplegar-silver-gold-lote2-sanidad.md` documenta el resultado.
 - Hay un commit real con estos cambios.
