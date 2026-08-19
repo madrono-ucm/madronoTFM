@@ -1,19 +1,19 @@
 ---
 id: 64
 slug: diseno-scheduling-silver-gold
-title: "Diseñar y escribir (sin aplicar) el scheduling de Silver/Gold para los 14 datasets"
-status: pending
+title: Diseñar y escribir (sin aplicar) el scheduling de Silver/Gold para los 14 datasets
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/064-diseno-scheduling-silver-gold
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-17T21:50:00+00:00"
-updated_at: "2026-08-17T21:50:00+00:00"
-started_at: null
+created_at: '2026-08-17T21:50:00+00:00'
+updated_at: '2026-08-19T23:16:56.547277+00:00'
+started_at: '2026-08-19T23:16:56.547252+00:00'
 submitted_at: null
 merged_at: null
 ---
