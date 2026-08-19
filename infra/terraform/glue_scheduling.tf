@@ -185,6 +185,15 @@ resource "aws_glue_trigger" "scheduled_bronze_to_silver_hourly" {
   actions {
     job_name = local.glue_bronze_to_silver_jobs[each.value].name
   }
+
+  # `start_on_creation` es un argumento de solo escritura: la API de Glue
+  # (GetTrigger) no lo devuelve, así que tras un `terraform import` (tarea
+  # 065, ver `doc/065-aplicar-scheduling-silver-gold.md`) el estado no puede
+  # refrescarlo y `terraform plan` lo marcaría como diff perpetuo aunque el
+  # trigger ya esté `ACTIVATED` en AWS real -- se ignora explícitamente.
+  lifecycle {
+    ignore_changes = [start_on_creation]
+  }
 }
 
 resource "aws_glue_trigger" "conditional_silver_to_gold_hourly" {
@@ -205,6 +214,10 @@ resource "aws_glue_trigger" "conditional_silver_to_gold_hourly" {
       state    = "SUCCEEDED"
     }
   }
+
+  lifecycle {
+    ignore_changes = [start_on_creation]
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -222,6 +235,10 @@ resource "aws_glue_trigger" "scheduled_bronze_to_silver_daily" {
 
   actions {
     job_name = local.glue_bronze_to_silver_jobs[each.key].name
+  }
+
+  lifecycle {
+    ignore_changes = [start_on_creation]
   }
 }
 
@@ -242,5 +259,9 @@ resource "aws_glue_trigger" "conditional_silver_to_gold_daily" {
       job_name = local.glue_bronze_to_silver_jobs[each.key].name
       state    = "SUCCEEDED"
     }
+  }
+
+  lifecycle {
+    ignore_changes = [start_on_creation]
   }
 }
