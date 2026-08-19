@@ -2,7 +2,7 @@
 id: 62
 slug: verificar-silver-gold-lote2-completo
 title: Verificar Bronze→Silver→Gold de extremo a extremo para el segundo lote (8 datasets)
-status: in_progress
+status: failed
 force: false
 allow_infra_apply: true
 branch: task/062-verificar-silver-gold-lote2-completo
@@ -10,9 +10,9 @@ pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
-last_error: null
+last_error: claude finalizó sin crear ningún commit
 created_at: '2026-08-17T21:50:00+00:00'
-updated_at: '2026-08-19T22:00:22.399300+00:00'
+updated_at: '2026-08-19T22:05:04.463069+00:00'
 started_at: '2026-08-19T22:00:22.399268+00:00'
 submitted_at: null
 merged_at: null
