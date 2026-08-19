@@ -3,19 +3,19 @@ id: 63
 slug: verificar-silver-gold-lote2-completo-parte2
 title: Verificar Silver→Gold para el segundo lote, parte 2/2 (AEMET, CAMS, cartelera,
   afluencia)
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: true
 branch: task/063-verificar-silver-gold-lote2-completo-parte2
-pr_number: null
-pr_url: null
+pr_number: 110
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/110
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-19T22:45:00+00:00'
-updated_at: '2026-08-19T22:58:50.520091+00:00'
+updated_at: '2026-08-19T23:05:42.308216+00:00'
 started_at: '2026-08-19T22:58:50.520068+00:00'
-submitted_at: null
+submitted_at: '2026-08-19T23:05:42.308059+00:00'
 merged_at: null
 ---
 
