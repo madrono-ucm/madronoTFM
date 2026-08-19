@@ -1,5 +1,5 @@
 ---
-id: 63
+id: 64
 slug: diseno-scheduling-silver-gold
 title: "Diseñar y escribir (sin aplicar) el scheduling de Silver/Gold para los 14 datasets"
 status: pending
@@ -20,9 +20,9 @@ merged_at: null
 
 ## Contexto
 
-Con las tareas 051/052 (lote 1, 6 datasets) y 061/062 (lote 2, 8 datasets)
-verificadas contra AWS real, los 14 datasets de Silver/Gold funcionan con
-carga manual puntual. Hasta ahora, deliberadamente, ninguna se ha programado
+Con las tareas 051/052 (lote 1, 6 datasets) y 061/062/063 (lote 2, 8
+datasets) verificadas contra AWS real, los 14 datasets de Silver/Gold
+funcionan con carga manual puntual. Hasta ahora, deliberadamente, ninguna se ha programado
 — esta tarea diseña ese scheduling (sin aplicarlo todavía, mismo patrón que
 `doc/029-terraform-lambda-eventbridge-plan.md` hizo para Lambda antes de
 aplicarlo en la tarea 030).
