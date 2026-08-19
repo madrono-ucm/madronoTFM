@@ -2,19 +2,19 @@
 id: 64
 slug: diseno-scheduling-silver-gold
 title: Diseñar y escribir (sin aplicar) el scheduling de Silver/Gold para los 14 datasets
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/064-diseno-scheduling-silver-gold
-pr_number: null
-pr_url: null
+pr_number: 111
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/111
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-17T21:50:00+00:00'
-updated_at: '2026-08-19T23:16:56.547277+00:00'
+updated_at: '2026-08-19T23:24:41.172295+00:00'
 started_at: '2026-08-19T23:16:56.547252+00:00'
-submitted_at: null
+submitted_at: '2026-08-19T23:24:41.172154+00:00'
 merged_at: null
 ---
 
