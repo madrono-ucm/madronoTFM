@@ -1352,8 +1352,121 @@ preexistente documentado en doc/046, no introducido por esta tarea);
 `terraform plan` contra la cuenta real (necesitaría credenciales AWS que
 estas tareas no deben usar para aplicar nada).
 
+## Scheduling de Silver/Gold (`infra/terraform/glue_scheduling.tf`, tarea 064)
+
+Hasta esta tarea, los 28 jobs de Glue (dos por dataset) de las tareas
+041/046-050/053-060 solo se habían lanzado a mano (`aws glue
+start-job-run`, tareas 051/052/061/062/063). Esta tarea diseña y escribe
+(**sin aplicar**, mismo patrón que la 041/029 antes de sus respectivos
+`apply`) el scheduling recurrente con `aws_glue_trigger` nativo de Glue —
+no Step Functions ni EventBridge Scheduler invocando la API de Glue, mismo
+principio de coste/complejidad mínima que el resto del proyecto (Glue no
+cobra por el trigger en sí, solo por el DPU-hora de los jobs que lanza).
+
+Dos triggers encadenados por dataset (28 en total, en fichero propio
+`glue_scheduling.tf` en vez de ampliar aún más `glue.tf`, que ya supera las
+6800 líneas):
+
+- Uno `SCHEDULED` (cron) que lanza el job Bronze→Silver.
+- Uno `CONDITIONAL`, con un predicado sobre ese mismo job Bronze→Silver en
+  estado `SUCCEEDED`, que lanza el job Silver→Gold — así Silver→Gold nunca
+  corre sobre un Silver a medias o corrupto; si Bronze→Silver falla, esa
+  ejecución simplemente no dispara Silver→Gold. No hace falta un
+  `aws_glue_workflow`: un trigger `CONDITIONAL` que vigila el estado de un
+  job y lanza otro es un patrón standalone soportado directamente por la
+  API de Glue.
+
+Ambos con `start_on_creation = true`: quedan activos en cuanto se aplique
+el fichero, sin un paso manual adicional (coherente con
+`aws_scheduler_schedule` de `lambda.tf`, que tampoco necesita activación
+manual).
+
+### Cadencia por grupo, contrastada contra `local.schedules` (`lambda.tf`)
+
+| Grupo | Datasets | Cadencia Silver/Gold | Cron (UTC, ver limitación abajo) |
+|---|---|---|---|
+| Casi tiempo real (Bronze cada 5-15 min) | `trafico`, `transporte_publico_emt`, `bicimad`, `aparcamientos`, `calidad_aire`, `meteorologia` | Cada hora, minuto 10 | `cron(10 * * * ? *)` |
+| Diario (Bronze 1x/día o más espaciado, o agregado diario) | `ruido`, `agenda_eventos`, `bluesky_menciones`, `afluencia_lugares`, `aforos_peatones_bicicletas` | 1x/día, 08:00 CEST | `cron(0 6 * * ? *)` |
+| Diario, retrasado 15 min | `cartelera_cines_estrenos`, `aemet_prevision_avisos` | 1x/día, 08:15 CEST | `cron(15 6 * * ? *)` |
+| Diario, definido en UTC | `cams_calidad_aire` | 1x/día, 15 min tras el Bronze más tardío (09:00 UTC) | `cron(15 9 * * ? *)` |
+
+El grupo horario no necesita ajuste por dataset: el más lento de los seis
+(`aparcamientos`) llega cada 15 min, y `calidad_aire`/`meteorologia` llegan
+como muy tarde en el minuto 55 de cada hora — el minuto 10 de la hora
+siguiente da margen de sobra a los seis.
+
+El grupo diario sí se ha contrastado dataset a dataset contra
+`local.schedules`, tal como pedía el enunciado, con dos ajustes sobre el
+valor por defecto (08:00 Madrid):
+
+- `cartelera_cines_estrenos`: su único Bronze del día llega a las 08:00
+  Madrid (`local.schedules.cartelera_cines_estrenos`) — el mismo instante
+  que el valor por defecto. Se retrasa 15 min para no competir con él.
+- `aemet_prevision_avisos`: su Bronze más tardío del día (avisos) *también*
+  llega a las 08:00 Madrid (`local.schedules.aemet_avisos_0800`, aparte de
+  los de 11:00/18:00 del mismo día y 23:50 del día anterior) — mismo
+  motivo, se retrasa 15 min. El resto de datasets del grupo tiene su Bronze
+  más tardío del día antes de las 08:00 (`ruido` 07:00 laborables,
+  `agenda_eventos`/`afluencia_lugares`/`aforos_peatones_bicicletas` 06:00) o
+  llega de forma continua (`bluesky_menciones`, cada hora), así que no
+  necesitan ajuste.
+- `cams_calidad_aire` se define directamente en UTC en vez de convertir
+  desde Madrid: su Bronze más tardío ya está expresado en UTC
+  (`local.schedules.cams_0900_utc`, 09:00 UTC, precisamente para no
+  depender del cambio de hora español) — 15 min después, 09:15 UTC.
+
+`aemet_prevision_avisos` comparte una única pareja de triggers, no dos
+independientes: a diferencia de Bronze, donde Lambda sí separa "previsión"
+y "avisos" en `local.schedules` con cadencias distintas, Silver/Gold de
+este dataset ya es un único job Glue por etapa
+(`aws_glue_job.aemet_prevision_avisos_bronze_to_silver` / `..._silver_to_gold`,
+tarea 058) que procesa ambas formas en la misma ejecución y escribe a los
+dos destinos Gold correspondientes (ver "Duodécimo dataset" y
+`doc/063-verificar-silver-gold-lote2-completo-parte2.md`) — no hay dos jobs
+Silver/Gold entre los que repartir triggers.
+
+### Limitación de zona horaria, verificada contra la documentación de AWS
+
+A diferencia de `aws_scheduler_schedule` (EventBridge Scheduler, usado por
+`lambda.tf` para Bronze), el campo `schedule` de `aws_glue_trigger` **no
+admite zona horaria**: un cron `SCHEDULED` de Glue se interpreta siempre en
+UTC, sin ningún parámetro para cambiarlo. Para el grupo horario esto no
+importa ("cada hora, minuto 10" es la misma cadencia en cualquier zona,
+porque el desfase Madrid-UTC es siempre un número entero de horas). Para el
+grupo diario sí es una limitación real: los cron de este fichero están
+calculados para caer a las 08:00/08:15 en horario de verano (CEST, vigente
+en la fecha de esta tarea); en horario de invierno (CET) la misma ejecución
+caerá una hora más tarde en local (09:00/09:15 CET). No se corrige en esta
+tarea (alternar dos cron a mano dos veces al año excede su alcance, que
+pide implementar la cadencia ya decidida) — un desfase de hasta una hora es
+aceptable para un job diario cuyo único requisito es "haber corrido después
+del último Bronze del día", y se sigue cumpliendo ese margen en las dos
+estaciones para los ocho datasets del grupo.
+
+`terraform validate` limpio (`terraform init -backend=false`);
+`terraform fmt -check -diff glue_scheduling.tf` sin diferencias. No se ha
+ejecutado `terraform plan`/`apply` — queda para una tarea posterior con
+revisión de plan de por medio, mismo patrón que las tareas 015/030/039 para
+la infraestructura ya desplegada.
+
 ## Relevante para tareas futuras
 
+- Antes de aplicar `glue_scheduling.tf` (tarea 064): dos bugs reales,
+  documentados y sin corregir, empezarían a fallar en cada ejecución
+  recurrente en vez de solo en la ejecución puntual que los descubrió —
+  conviene resolverlos primero, no aplicar el scheduling y descubrirlos de
+  nuevo vía alarmas. (1) `aparcamientos_silver_to_gold` tiene un bug de
+  agregación real, documentado en la tarea 052, aún sin corregir. (2)
+  `cartelera_cines_estrenos_silver_to_gold` (y potencialmente cualquier
+  otro `glue_silver_to_gold.py` del patrón) falla con `AnalysisException`
+  en vez de producir un Gold vacío cuando su Silver de origen no tiene
+  ningún objeto, y a `aws_glue_job.afluencia_lugares_silver_to_gold` le
+  falta el argumento `--extra-py-files` que sí llevan los jobs
+  Bronze→Silver del patrón — los dos documentados en la tarea 063 (ver
+  "Decimocuarto dataset" y `doc/063-verificar-silver-gold-lote2-completo-parte2.md`).
+  Ninguno se ha corregido en esta tarea: el enunciado de la 064 acota el
+  alcance a los triggers (`aws_glue_trigger`), no a los jobs
+  (`aws_glue_job`) ni al código de `procesamiento/`.
 - El patrón (fijado por la tarea 041, ya replicado doce veces con la
   046/047/048/049/050/053/054/055/056/057/058/059) para extender Bronze→Silver→Gold a
   más fuentes: un subpaquete `silver_gold/<dataset>/` con `transform.py`
