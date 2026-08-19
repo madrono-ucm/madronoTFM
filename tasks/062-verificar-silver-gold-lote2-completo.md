@@ -1,19 +1,20 @@
 ---
 id: 62
 slug: verificar-silver-gold-lote2-completo
-title: "Verificar Silver→Gold para el segundo lote, parte 1/2 (ruido, aforos, agenda de eventos, Bluesky)"
-status: pending
+title: Verificar Silver→Gold para el segundo lote, parte 1/2 (ruido, aforos, agenda
+  de eventos, Bluesky)
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/062-verificar-silver-gold-lote2-completo
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-17T21:50:00+00:00"
-updated_at: "2026-08-19T22:45:00+00:00"
-started_at: null
+created_at: '2026-08-17T21:50:00+00:00'
+updated_at: '2026-08-19T22:36:23.271406+00:00'
+started_at: '2026-08-19T22:36:23.271383+00:00'
 submitted_at: null
 merged_at: null
 ---
