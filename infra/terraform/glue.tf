@@ -2900,7 +2900,16 @@ data "aws_iam_policy_document" "glue_ruido_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/ruido/*"]
+    # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052)
+    # y en el statement de Gold de este mismo fichero: el marcador
+    # `_$folder$` que crea el committer de Spark cuando el DataFrame de
+    # Silver sale vacío (hueco detectado por la tarea 061 para
+    # `cartelera_cines_estrenos`/`afluencia_lugares`, corregido aquí en
+    # todos los datasets del segundo lote antes de que llegue a fallar).
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/ruido/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/ruido_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -3402,7 +3411,13 @@ data "aws_iam_policy_document" "glue_aforos_peatones_bicicletas_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/aforos_peatones_bicicletas/*"]
+    # Ver comentario equivalente en el statement de Silver de `ruido`
+    # (tarea 061): marcador `_$folder$` para cuando el DataFrame de Silver
+    # sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/aforos_peatones_bicicletas/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/aforos_peatones_bicicletas_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -3863,7 +3878,15 @@ data "aws_iam_policy_document" "glue_cartelera_cines_estrenos_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/cartelera_cines_estrenos/*"]
+    # Hueco de permisos detectado por el job de sanidad de la tarea 061:
+    # falta el marcador `_$folder$` que crea el committer de Spark cuando
+    # el DataFrame de Silver sale vacío (mismo problema que ya se corrigió
+    # a nivel Gold en la tarea 051, ver comentario del statement de Gold
+    # de este mismo fichero).
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/cartelera_cines_estrenos/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/cartelera_cines_estrenos_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -4337,7 +4360,13 @@ data "aws_iam_policy_document" "glue_agenda_eventos_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/agenda_eventos/*"]
+    # Ver comentario equivalente en el statement de Silver de `ruido`
+    # (tarea 061): marcador `_$folder$` para cuando el DataFrame de Silver
+    # sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/agenda_eventos/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/agenda_eventos_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -4805,7 +4834,13 @@ data "aws_iam_policy_document" "glue_bluesky_menciones_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/bluesky_menciones/*"]
+    # Ver comentario equivalente en el statement de Silver de `ruido`
+    # (tarea 061): marcador `_$folder$` para cuando el DataFrame de Silver
+    # sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/bluesky_menciones/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/bluesky_menciones_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -5291,7 +5326,13 @@ data "aws_iam_policy_document" "glue_aemet_prevision_avisos_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/aemet_prevision/*"]
+    # Ver comentario equivalente en el statement de Silver de `ruido`
+    # (tarea 061): marcador `_$folder$` para cuando el DataFrame de Silver
+    # sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/aemet_prevision/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/aemet_prevision_$folder$",
+    ]
   }
 
   statement {
@@ -5304,7 +5345,10 @@ data "aws_iam_policy_document" "glue_aemet_prevision_avisos_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/aemet_avisos/*"]
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/aemet_avisos/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/aemet_avisos_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -5958,7 +6002,13 @@ data "aws_iam_policy_document" "glue_cams_calidad_aire_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/cams_calidad_aire/*"]
+    # Ver comentario equivalente en el statement de Silver de `ruido`
+    # (tarea 061): marcador `_$folder$` para cuando el DataFrame de Silver
+    # sale vacío.
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/cams_calidad_aire/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/cams_calidad_aire_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -6328,11 +6378,20 @@ resource "aws_glue_job" "cams_calidad_aire_silver_to_gold" {
 # Reutiliza el mismo artefacto de librería (`data.archive_file.procesamiento_source`
 # ya empaqueta TODO `procesamiento/`, incluido este subpaquete nuevo, sin
 # ningún cambio en esa definición) pero con su PROPIO rol IAM acotado por
-# prefijo (`bronze/afluencia_lugares/*`, `silver/afluencia_lugares/*`,
-# `gold/afluencia_lugares_por_lugar_fecha_hora/*`) -- no se comparte ningún
-# rol con el resto de datasets del patrón, mismo principio de mínimo
-# privilegio por dataset que ya aplicaba `ingesta` (ver
+# prefijo (`bronze/afluencia_lugares_patron_tipico/*` -- el nombre de
+# dataset Bronze real que escribe `DATASET_NAME` en
+# `ingesta/capturas/afluencia_lugares_madrid.py`, no `afluencia_lugares` --,
+# `silver/afluencia_lugares/*`, `gold/afluencia_lugares_por_lugar_fecha_hora/*`)
+# -- no se comparte ningún rol con el resto de datasets del patrón, mismo
+# principio de mínimo privilegio por dataset que ya aplicaba `ingesta` (ver
 # `procesamiento/README.md`).
+#
+# NOTA (tarea 061): esta sección se aplicó contra AWS real por primera vez
+# en un intento previo de la tarea 061 que no llegó a commitear sus
+# cambios (ver doc/061); ese intento ya había corregido el prefijo Bronze
+# de esta nota (`afluencia_lugares` -> `afluencia_lugares_patron_tipico`)
+# directamente en AWS, así que el código aquí se restaura para que
+# coincida con lo ya aplicado.
 # ---------------------------------------------------------------------------
 
 locals {
@@ -6384,8 +6443,16 @@ data "aws_iam_policy_document" "glue_afluencia_lugares_data_access" {
     sid    = "ReadBronzeAfluenciaLugares"
     effect = "Allow"
 
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/afluencia_lugares/*"]
+    actions = ["s3:GetObject"]
+    # El nombre de dataset Bronze real que escribe
+    # `ingesta/capturas/afluencia_lugares_madrid.py` (`DATASET_NAME`) es
+    # `afluencia_lugares_patron_tipico`, no `afluencia_lugares` -- este
+    # statement quedó con el prefijo equivocado desde la tarea 060 (un
+    # intento previo de la tarea 061 ya lo había corregido y aplicado
+    # contra AWS real sin llegar a commitear el cambio; se restaura aquí
+    # para que el código commiteado coincida con la infraestructura ya
+    # aplicada).
+    resources = ["${aws_s3_bucket.lakehouse["bronze"].arn}/afluencia_lugares_patron_tipico/*"]
   }
 
   statement {
@@ -6398,7 +6465,15 @@ data "aws_iam_policy_document" "glue_afluencia_lugares_data_access" {
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
-    resources = ["${aws_s3_bucket.lakehouse["silver"].arn}/afluencia_lugares/*"]
+    # Hueco de permisos detectado por el job de sanidad de la tarea 061:
+    # falta el marcador `_$folder$` que crea el committer de Spark cuando
+    # el DataFrame de Silver sale vacío (mismo problema que ya se corrigió
+    # a nivel Gold en la tarea 051, ver comentario del statement de Gold
+    # de este mismo fichero).
+    resources = [
+      "${aws_s3_bucket.lakehouse["silver"].arn}/afluencia_lugares/*",
+      "${aws_s3_bucket.lakehouse["silver"].arn}/afluencia_lugares_$folder$",
+    ]
   }
 
   # Ver comentario equivalente en `glue_trafico_data_access` (tarea 052):
@@ -6447,6 +6522,7 @@ data "aws_iam_policy_document" "glue_afluencia_lugares_data_access" {
       test     = "StringLike"
       variable = "s3:prefix"
       values = [
+        "afluencia_lugares_patron_tipico/*",
         "afluencia_lugares/*",
         "afluencia_lugares_por_lugar_fecha_hora/*",
         "_quality_reports/afluencia_lugares/*",
@@ -6712,9 +6788,11 @@ resource "aws_glue_job" "afluencia_lugares_bronze_to_silver" {
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
-    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/afluencia_lugares/"
-    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/afluencia_lugares/"
-    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/afluencia_lugares/"
+    # Ver comentario en `ReadBronzeAfluenciaLugares` de este mismo fichero:
+    # el dataset Bronze real es `afluencia_lugares_patron_tipico`.
+    "--bronze_path"         = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/afluencia_lugares_patron_tipico/"
+    "--silver_path"         = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/afluencia_lugares/"
+    "--quality_report_path" = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/afluencia_lugares/"
   }
 
   depends_on = [aws_cloudwatch_log_group.glue_afluencia_lugares]
