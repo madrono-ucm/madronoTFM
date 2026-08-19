@@ -1,5 +1,5 @@
 ---
-id: 64
+id: 65
 slug: aplicar-scheduling-silver-gold
 title: "Aplicar el scheduling de Silver/Gold en producción y verificar un disparo real"
 status: pending
@@ -20,7 +20,7 @@ merged_at: null
 
 ## Contexto
 
-La tarea 063 escribió (sin aplicar) los `aws_glue_trigger` que programan
+La tarea 064 escribió (sin aplicar) los `aws_glue_trigger` que programan
 Silver/Gold para los 14 datasets. Esta tarea los aplica en AWS real —
 **a partir de este `apply`, Silver/Gold pasa de carga manual puntual a
 producción continua automática**, igual que en su día la tarea 030 hizo
@@ -62,7 +62,7 @@ humana.
    quedó correctamente creado y habilitado (`aws glue get-trigger`), aunque
    no fuerces su disparo — documenta cuáles verificaste de extremo a extremo
    y cuáles solo confirmaste como creados.
-5. Documenta en `doc/064-aplicar-scheduling-silver-gold.md` el resultado
+5. Documenta en `doc/065-aplicar-scheduling-silver-gold.md` el resultado
    detallado de los 3 disparos forzados, y la lista de los 14 triggers
    confirmados como creados/habilitados.
 
@@ -74,7 +74,7 @@ humana.
   dos veces, etc.), documenta el problema exacto — no intentes depurarlo
   más allá de un intento razonable, sería una tarea de seguimiento.
 - **Antes de terminar, confirma que dejas un commit real** con
-  `doc/064-...md`, aunque no hayas podido verificar los 14 de extremo a
+  `doc/065-...md`, aunque no hayas podido verificar los 14 de extremo a
   extremo.
 
 ## Criterios de aceptación
@@ -84,5 +84,5 @@ humana.
 - Al menos 3 datasets representativos tienen una cadena
   SCHEDULED→CONDITIONAL verificada de extremo a extremo con un disparo real
   (forzado o automático).
-- `doc/064-aplicar-scheduling-silver-gold.md` documenta el resultado.
+- `doc/065-aplicar-scheduling-silver-gold.md` documenta el resultado.
 - Hay un commit real con estos cambios.

@@ -1,84 +1,89 @@
 ---
 id: 62
 slug: verificar-silver-gold-lote2-completo
-title: Verificar Bronze→Silver→Gold de extremo a extremo para el segundo lote (8 datasets)
-status: failed
+title: "Verificar Silver→Gold para el segundo lote, parte 1/2 (ruido, aforos, agenda de eventos, Bluesky)"
+status: pending
 force: false
 allow_infra_apply: true
-branch: task/062-verificar-silver-gold-lote2-completo
+branch: null
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
-last_error: claude finalizó sin crear ningún commit
-created_at: '2026-08-17T21:50:00+00:00'
-updated_at: '2026-08-19T22:05:04.463069+00:00'
-started_at: '2026-08-19T22:00:22.399268+00:00'
+last_error: null
+created_at: "2026-08-17T21:50:00+00:00"
+updated_at: "2026-08-19T22:45:00+00:00"
+started_at: null
 submitted_at: null
 merged_at: null
 ---
 
 ## Contexto
 
-La tarea 061 aplicó la infraestructura de Glue para el segundo lote de 8
-datasets (`ruido`, `aforos_peatones_bicicletas`, `cartelera_cines_estrenos`,
-`agenda_eventos`, `bluesky_menciones`, `aemet_prevision_avisos`,
-`cams_calidad_aire`, `afluencia_lugares`) y confirmó con un job de sanidad
-por dataset que arrancan sin errores de plataforma. Esta tarea completa la
-verificación real: una carga manual y puntual (sigue sin querer producción
-continua todavía — eso es la tarea 064) para cada uno, confirmando que
-Bronze→Silver→Gold produce lo esperado.
+**Esta tarea ya se ha intentado dos veces y las dos terminó sin crear
+ningún commit** (mismo patrón que las tareas 051/061). La primera vez
+cubría los 8 datasets del segundo lote a la vez, y probablemente por eso se
+quedó sin turnos/tiempo antes de comitear. Por eso se reduce a 4 datasets
+(el resto, `aemet_prevision_avisos`, `cams_calidad_aire`,
+`cartelera_cines_estrenos`, `afluencia_lugares`, es la tarea 063, creada
+aparte).
 
-La infraestructura ya está aplicada (tarea 061) — esta tarea no debería
-necesitar `terraform apply` salvo que encuentres algo que corregir.
+**Verificado manualmente fuera de la sesión de `claude` (con `aws s3 ls` y
+`aws glue get-job-runs`), no hace falta repetirlo**: el segundo intento SÍ
+llegó a relanzar y completar con éxito el job Bronze→Silver de los 8
+datasets del lote (ejecución real del 2026-08-19 ~22:01-22:06 UTC), y
+Silver ya tiene datos reales para estos 4:
 
-**`force: false` deliberado**: quiero revisar los resultados reales antes de
-decidir programar esto en producción (tarea 064).
+| Dataset | Partición Silver más reciente |
+|---|---|
+| `ruido` | `ruido/fecha=2026-08-17/...` (2026-08-19T22:05:14Z) |
+| `aforos_peatones_bicicletas` | `aforos_peatones_bicicletas/fecha=2024-06-30/hora=21/...` (2026-08-19T22:05:06Z) |
+| `agenda_eventos` | `agenda_eventos/fecha=2029-07-01/...` (2026-08-19T22:06:41Z) |
+| `bluesky_menciones` | `bluesky_menciones/fecha=2026-08-19/hora=20/...` (2026-08-19T22:05:32Z) |
+
+**No hace falta volver a lanzar el job Bronze→Silver de estos 4 — ya está
+hecho y verificado.** El trabajo que falta es solo la etapa Silver→Gold
+(nunca se llegó a lanzar en los dos intentos anteriores) y su verificación.
 
 ## Objetivo
 
-Para cada uno de los 8 datasets, lanzar el job Bronze→Silver contra el lote
-más reciente ya presente en Bronze, y el job Silver→Gold correspondiente
-(recuerda que `aemet_prevision_avisos` tiene dos pares de jobs, previsión y
-avisos, si así se implementó), y verificar que el resultado es el esperado.
+Para estos 4 datasets, lanzar el job Silver→Gold contra el Silver ya
+existente (arriba) y verificar que Gold contiene la agregación esperada.
 
 ## Alcance concreto
 
-1. Para cada dataset: `aws glue start-job-run` del job Bronze→Silver,
-   espera a que termine, y confirma en S3 que Silver contiene los registros
-   esperados (esquema correcto, puerta de calidad aplicada) y que el informe
-   de Great Expectations se escribió correctamente.
-2. Lanza el job Silver→Gold correspondiente y confirma que Gold tiene la
-   agregación esperada (compara a mano al menos un grupo de agregación
-   contra los registros Silver de origen, por dataset) — usa como
-   referencia la salida real que ya se generó localmente contra los
-   fixtures (ver conversación/commit de las tareas 053-060) para saber qué
-   forma debe tener el resultado.
+1. Para cada uno de los 4 datasets: `aws glue start-job-run` del job
+   Silver→Gold, espera a que termine (`aws glue get-job-run`).
+2. Confirma en S3 que Gold contiene el resultado esperado — compara a mano
+   al menos un grupo de agregación contra los registros Silver de origen,
+   por dataset (usa como referencia la forma de salida que ya se validó
+   localmente contra los fixtures en las tareas 053-060: agregación por
+   `(id, fecha, hora)` para ruido/aforos/bluesky, por `(categoría/lugar,
+   fecha)` para agenda_eventos — revisa el `aggregate.py` de cada uno si
+   tienes dudas de la clave exacta).
 3. Documenta en `doc/062-verificar-silver-gold-lote2-completo.md`, por
-   dataset: si la carga completó sin error, cuánto tardó, cuántos registros
-   entraron/salieron de cada etapa, y cualquier discrepancia con lo
-   esperado.
-4. Si algún dataset falla por un problema real de código, documenta el
-   error exacto — no intentes depurarlo más allá de un intento razonable,
-   sería una tarea de seguimiento.
-5. Si el coste/tiempo de alguna ejecución resulta sorprendentemente alto,
-   documéntalo (relevante para decidir la cadencia de la tarea 064).
+   dataset: cuánto tardó Silver→Gold, cuántos registros entraron/salieron,
+   y cualquier discrepancia con lo esperado.
+4. Si algún dataset falla, documenta el error exacto — no intentes
+   depurarlo más allá de un intento razonable, sería una tarea de
+   seguimiento.
 
 ## Restricciones
 
-- NO crees ningún trigger/schedule de Glue — eso es la tarea 064.
+- Alcance: solo estos 4 datasets (`ruido`, `aforos_peatones_bicicletas`,
+  `agenda_eventos`, `bluesky_menciones`) — los otros 4 son la tarea 063.
+- NO relances el job Bronze→Silver de estos 4 — ya está hecho, ver Contexto.
+- NO crees ningún trigger/schedule de Glue — eso es la tarea 065.
 - NO ejecutes `terraform destroy`.
 - NO toques `infra/terraform/lambda.tf` ni el primer lote de 6 datasets.
 - **Antes de terminar, confirma que dejas un commit real** con
-  `doc/062-...md`, aunque algún dataset siga fallando — prioriza dejar
-  documentados los datasets que sí completaste antes de quedarte sin
-  presupuesto, en vez de arriesgarte a terminar sin nada comiteado.
+  `doc/062-...md` — un resultado parcial documentado es mucho más útil que
+  terminar sin commitear nada, que es exactamente lo que ya falló dos veces
+  en esta misma tarea.
 
 ## Criterios de aceptación
 
-- Cada uno de los 8 datasets tiene al menos una ejecución real y verificada
-  de Bronze→Silver→Gold, documentada con los resultados reales (o, si
-  alguno falla, el error exacto documentado).
-- `doc/062-verificar-silver-gold-lote2-completo.md` documenta el resultado
-  detallado, dataset por dataset.
+- Los 4 datasets tienen una ejecución real y verificada de Silver→Gold,
+  documentada con los resultados reales obtenidos.
+- `doc/062-verificar-silver-gold-lote2-completo.md` documenta el resultado.
 - Hay un commit real con estos cambios.
