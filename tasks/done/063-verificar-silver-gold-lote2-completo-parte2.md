@@ -3,7 +3,7 @@ id: 63
 slug: verificar-silver-gold-lote2-completo-parte2
 title: Verificar Silver→Gold para el segundo lote, parte 2/2 (AEMET, CAMS, cartelera,
   afluencia)
-status: in_review
+status: done
 force: false
 allow_infra_apply: true
 branch: task/063-verificar-silver-gold-lote2-completo-parte2
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-19T22:45:00+00:00'
-updated_at: '2026-08-19T23:05:42.308216+00:00'
+updated_at: '2026-08-19T23:15:54.032410+00:00'
 started_at: '2026-08-19T22:58:50.520068+00:00'
 submitted_at: '2026-08-19T23:05:42.308059+00:00'
-merged_at: null
+merged_at: '2026-08-19T23:15:03Z'
 ---
 
 ## Contexto
