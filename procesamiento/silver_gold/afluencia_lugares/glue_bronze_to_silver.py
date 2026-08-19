@@ -24,7 +24,11 @@ Parámetros del job (`--<nombre>`, ver `glue.tf`):
 
 - `JOB_NAME`: nombre del job (estándar de Glue).
 - `bronze_path`: prefijo S3 de origen, p.ej.
-  `s3://madrono-tfm-dev-bronze-222234418587/afluencia_lugares/`.
+  `s3://madrono-tfm-dev-bronze-222234418587/afluencia_lugares_patron_tipico/`
+  (nombre real del dataset Bronze que escribe
+  `ingesta/capturas/afluencia_lugares_madrid.py::DATASET_NAME`, distinto del
+  nombre `afluencia_lugares` usado en Silver/Gold -- corregido en la tarea
+  061, ver doc/061).
 - `silver_path`: prefijo S3 de destino, p.ej.
   `s3://madrono-tfm-dev-silver-222234418587/afluencia_lugares/`.
 - `quality_report_path`: prefijo S3 donde se escribe el informe de
