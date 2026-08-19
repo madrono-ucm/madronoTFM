@@ -2,17 +2,20 @@
 id: 65
 slug: aplicar-scheduling-silver-gold
 title: Aplicar el scheduling de Silver/Gold en producción y verificar un disparo real
-status: in_progress
+status: failed
 force: false
 allow_infra_apply: true
 branch: task/065-aplicar-scheduling-silver-gold
 pr_number: null
 pr_url: null
-attempts: 0
+attempts: 1
 next_retry_at: null
-last_error: null
+last_error: 'ens":14450204,"cacheCreationInputTokens":146361,"webSearchRequests":0,"costUSD":6.033850200000002,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
+  maximum budget ($6)"],"type":"result","duration_ms":970980,"uuid":"f088ab77-6b2b-4fa9-915b-09e4e622c4c9"}
+
+  '
 created_at: '2026-08-17T21:50:00+00:00'
-updated_at: '2026-08-19T23:26:52.080432+00:00'
+updated_at: '2026-08-19T23:43:06.844607+00:00'
 started_at: '2026-08-19T23:26:52.080408+00:00'
 submitted_at: null
 merged_at: null
