@@ -286,3 +286,42 @@ variable "kafka_allowed_cidr_blocks" {
     error_message = "kafka_allowed_cidr_blocks no debe abrir el puerto de Kafka a Internet (0.0.0.0/0 / ::/0): debe quedar acotado a la VPC u otros CIDR internos del proyecto."
   }
 }
+
+# ---------------------------------------------------------------------------
+# Tarea 066: capa de consulta SQL sobre Silver/Gold con Amazon Athena.
+# ---------------------------------------------------------------------------
+
+variable "athena_bytes_scanned_cutoff" {
+  description = <<-EOT
+    Salvaguarda de coste (bytes) del workgroup de Athena: cualquier consulta
+    que supere este límite de bytes escaneados se cancela automáticamente.
+    1 GiB (1073741824) por defecto: generoso frente al volumen real de esta
+    tarea (Silver completo ~392MB, Gold ~5.8MB -- ver
+    doc/066-consulta-athena-silver-gold.md), de sobra para que ninguna
+    consulta legítima sobre un único dataset se acerque al límite, pero
+    corta en seco un `JOIN` sin condición o una consulta que escanee muchas
+    más particiones de las esperadas. Revisar al alza si el volumen de
+    Silver/Gold crece significativamente.
+  EOT
+  type        = number
+  default     = 1073741824
+}
+
+variable "athena_results_expiration_days" {
+  description = "Días tras los que expiran (se borran) los resultados de consulta guardados en el bucket dedicado de Athena. Son completamente reproducibles (basta con relanzar la consulta), así que no hace falta conservarlos más que unos pocos días."
+  type        = number
+  default     = 7
+}
+
+variable "athena_query_trusted_services" {
+  description = <<-EOT
+    Service principals de AWS (p.ej. "quicksight.amazonaws.com") a los que,
+    además de la propia cuenta AWS del proyecto (root, siempre permitido),
+    se concede `sts:AssumeRole` sobre `aws_iam_role.athena_query`. Vacío por
+    defecto: a fecha de esta tarea no existe ningún consumidor concreto
+    (dashboard BI, Lambda) de esta capa de consulta -- rellena esto cuando
+    se elija uno, sin tener que tocar `athena.tf`.
+  EOT
+  type        = list(string)
+  default     = []
+}
