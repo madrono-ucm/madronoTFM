@@ -1,19 +1,19 @@
 ---
 id: 66
 slug: consulta-athena-silver-gold
-title: "Capa de consulta SQL sobre Silver/Gold con Amazon Athena"
-status: pending
+title: Capa de consulta SQL sobre Silver/Gold con Amazon Athena
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/066-consulta-athena-silver-gold
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-20T09:00:00+00:00"
-updated_at: "2026-08-20T09:00:00+00:00"
-started_at: null
+created_at: '2026-08-20T09:00:00+00:00'
+updated_at: '2026-08-20T01:37:31.418420+00:00'
+started_at: '2026-08-20T01:37:31.418395+00:00'
 submitted_at: null
 merged_at: null
 ---
