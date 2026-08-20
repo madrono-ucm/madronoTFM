@@ -1,0 +1,6 @@
+# Solo necesario para `grafo.cypher.Neo4jLoader` (ejecutar sentencias
+# contra una instancia Neo4j real). `grafo/nodos.py`, `grafo/relaciones.py`
+# y las funciones `*_query()` de `grafo/cypher.py` son Python puro y no lo
+# necesitan -- ver el docstring de `grafo/cypher.py`. No instalado en esta
+# EC2 (no hace falta para los tests, ver `grafo/README.md`).
+neo4j>=5,<6
