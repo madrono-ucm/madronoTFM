@@ -1,19 +1,19 @@
 ---
 id: 67
 slug: etl-grafo-neo4j-nodos
-title: "ETL de carga de nodos del grafo Neo4j (sin conexión real, sigue bloqueado)"
-status: pending
+title: ETL de carga de nodos del grafo Neo4j (sin conexión real, sigue bloqueado)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/067-etl-grafo-neo4j-nodos
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-20T09:00:00+00:00"
-updated_at: "2026-08-20T09:00:00+00:00"
-started_at: null
+created_at: '2026-08-20T09:00:00+00:00'
+updated_at: '2026-08-20T21:43:20.625659+00:00'
+started_at: '2026-08-20T21:43:20.625633+00:00'
 submitted_at: null
 merged_at: null
 ---
