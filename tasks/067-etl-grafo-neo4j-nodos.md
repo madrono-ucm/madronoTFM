@@ -2,19 +2,19 @@
 id: 67
 slug: etl-grafo-neo4j-nodos
 title: ETL de carga de nodos del grafo Neo4j (sin conexión real, sigue bloqueado)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/067-etl-grafo-neo4j-nodos
-pr_number: null
-pr_url: null
+pr_number: 114
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/114
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-20T09:00:00+00:00'
-updated_at: '2026-08-20T21:43:20.625659+00:00'
+updated_at: '2026-08-20T21:51:21.881970+00:00'
 started_at: '2026-08-20T21:43:20.625633+00:00'
-submitted_at: null
+submitted_at: '2026-08-20T21:51:21.881825+00:00'
 merged_at: null
 ---
 
