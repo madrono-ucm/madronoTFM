@@ -100,3 +100,18 @@ output "kafka_topic_names" {
   description = "Nombre de cada topic inicial de Kafka, por clave de local.kafka_topics (tarea 042)."
   value       = local.kafka_topic_names
 }
+
+output "athena_workgroup_name" {
+  description = "Nombre del workgroup de Athena para consultar Silver/Gold (tarea 066). Úsalo con `aws athena start-query-execution --work-group <este-valor>`."
+  value       = aws_athena_workgroup.silver_gold.name
+}
+
+output "athena_results_bucket_name" {
+  description = "Nombre del bucket S3 dedicado a resultados de consulta de Athena (tarea 066)."
+  value       = aws_s3_bucket.athena_results.bucket
+}
+
+output "athena_query_role_arn" {
+  description = "ARN del rol IAM de mínimo privilegio para consultar Silver/Gold vía Athena (tarea 066)."
+  value       = aws_iam_role.athena_query.arn
+}
