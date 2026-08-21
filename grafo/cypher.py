@@ -113,6 +113,40 @@ def pertenece_a_query(relacion: dict) -> "tuple[str, dict]":
     }
 
 
+def ubicado_en_query(relacion: dict) -> "tuple[str, dict]":
+    """`(n)-[:UBICADO_EN]->(b:Barrio)`. `n` se busca solo por `id`, sin
+    restringir el label (`:Lugar`/`:EstacionMedida`/`:ParadaTransporte`): los
+    prefijos `fuente` de cada label (ver `grafo/nodos.py`) no se solapan
+    entre sí, así que `id` ya es único en la práctica en todo el grafo, no
+    solo dentro de su propio label/constraint."""
+    query = (
+        "MATCH (n {id: $nodo_id}), (b:Barrio {codigo: $barrio_codigo}) "
+        "MERGE (n)-[:UBICADO_EN]->(b)"
+    )
+    return query, {
+        "nodo_id": relacion["nodo_id"],
+        "barrio_codigo": relacion["barrio_codigo"],
+    }
+
+
+def proximo_a_query(relacion: dict) -> "tuple[str, dict]":
+    """`(a)-[:PROXIMO_A {distancia_m}]->(b)`, un único sentido por pareja
+    (ver `grafo.relaciones.proximo_a`). `SET` (no solo en el `MERGE`) para
+    que recargar la misma pareja actualice `distancia_m` si cambiara (p. ej.
+    si se corrige la ubicación de alguno de los dos nodos en una carga
+    posterior)."""
+    query = (
+        "MATCH (a {id: $origen_id}), (b {id: $destino_id}) "
+        "MERGE (a)-[r:PROXIMO_A]->(b) "
+        "SET r.distancia_m = $distancia_m"
+    )
+    return query, {
+        "origen_id": relacion["origen_id"],
+        "destino_id": relacion["destino_id"],
+        "distancia_m": relacion["distancia_m"],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Ejecución real (import perezoso de `neo4j`).
 # ---------------------------------------------------------------------------
@@ -173,3 +207,9 @@ class Neo4jLoader:
 
     def load_pertenece_a(self, relaciones: "Iterable[dict]") -> None:
         self._run_all(pertenece_a_query(r) for r in relaciones)
+
+    def load_ubicado_en(self, relaciones: "Iterable[dict]") -> None:
+        self._run_all(ubicado_en_query(r) for r in relaciones)
+
+    def load_proximo_a(self, relaciones: "Iterable[dict]") -> None:
+        self._run_all(proximo_a_query(r) for r in relaciones)
