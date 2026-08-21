@@ -14,17 +14,19 @@ La tarea 067 escribió la transformación (`nodos.py`/`relaciones.py`/
 leer nada real. La tarea 069 añadió `extract.py` (y el entry point
 `cargar_grafo.py`), que sí consulta datos reales de esta cuenta AWS
 (`eu-west-1`, `222234418587`): Athena para Gold (tareas 066/068) y S3 directo
-para las tres fuentes Bronze-only.
+para las tres fuentes Bronze-only. La tarea 070 añade las dos relaciones
+espaciales genéricas del esquema, `UBICADO_EN` y `PROXIMO_A` (`geo.py`,
+ampliación de `relaciones.py`/`cypher.py`/`cargar_grafo.py`).
 
-**Alcance de esta tarea, acotado a propósito**: los nodos de los 5 labels
-del esquema (`:Distrito`, `:Barrio`, `:Lugar`, `:EstacionMedida`,
-`:ParadaTransporte` — el enunciado los agrupa como "4 tipos" contando
-Distrito/Barrio como una única jerarquía administrativa) y la relación
-`PERTENECE_A` (Barrio→Distrito, un simple lookup por código de distrito).
-Las otras 3 relaciones del esquema
-(`UBICADO_EN`, point-in-polygon; `PROXIMO_A`, proximidad genérica;
-`CONECTADO_CON`, adyacencia real de red de transporte) son, deliberadamente,
-tareas de seguimiento separadas — no están implementadas aquí.
+**Alcance cubierto a día de la tarea 070**: los nodos de los 5 labels del
+esquema (`:Distrito`, `:Barrio`, `:Lugar`, `:EstacionMedida`,
+`:ParadaTransporte` — el enunciado de la tarea 067 los agrupaba como "4
+tipos" contando Distrito/Barrio como una única jerarquía administrativa) y
+3 de las 4 relaciones: `PERTENECE_A` (Barrio→Distrito, tarea 067),
+`UBICADO_EN` (point-in-polygon contra los barrios, tarea 070) y `PROXIMO_A`
+(proximidad genérica por Haversine, tarea 070). Solo queda
+`CONECTADO_CON` (adyacencia real de red de transporte) como tarea de
+seguimiento separada (071) — deliberadamente no implementada aquí.
 
 **Sigue sin existir ninguna instancia Neo4j real** (bloqueo de alta manual en
 `https://console.neo4j.io`, documentado en `infra/neo4j/README.md` desde la
@@ -37,7 +39,8 @@ código puro, testado con fixtures, sin conectar a nada.
 |---|---|---|
 | `extract.py` | No | Consulta Athena (Gold, tareas 066/068) o lee JSON de S3 (Bronze-only) y devuelve `list[dict]` en el formato que esperan `nodos.py`/`relaciones.py`. Solo depende de `boto3` (tarea 069). |
 | `nodos.py` | No | Convierte un registro Gold/Bronze en el `dict` de propiedades de un nodo (`<tipo>_from_<origen>`), y una lista de registros en una lista de nodos deduplicados por `id`/`codigo` (`<tipo>s_from_<origen>`). |
-| `relaciones.py` | No | `PERTENECE_A` (Barrio→Distrito) a partir de un nodo `:Barrio` ya construido por `nodos.py`. |
+| `geo.py` | No | Point-in-polygon (ray casting sobre GeoJSON `Polygon`/`MultiPolygon`) y distancia Haversine, ambos Python puro sin dependencias de geometría (tarea 070). |
+| `relaciones.py` | No | `PERTENECE_A` (Barrio→Distrito, tarea 067); `UBICADO_EN` y `PROXIMO_A` (tarea 070, usan `geo.py`). |
 | `cypher.py` | Solo `Neo4jLoader`, de forma perezosa | Traduce esos `dict` a sentencias `MERGE` parametrizadas (funciones `*_query()`, Python puro) y las ejecuta contra una instancia real (`Neo4jLoader`, que hace `from neo4j import GraphDatabase` dentro de `__init__`, no a nivel de módulo). |
 | `cargar_grafo.py` | Solo al importar `Neo4jLoader` (perezoso hasta instanciarlo) | Entry point que encadena `extract.py` → `nodos.py`/`relaciones.py` → `cypher.py`. No ejecutado contra ninguna instancia real (tarea 069). |
 | `requirements.txt` | — | `neo4j` (solo para `Neo4jLoader`, no instalado en esta EC2) y `boto3` (para `extract.py`, ya instalado). |
@@ -123,6 +126,73 @@ metro con trasbordo, p. ej.) aparece en varias rutas.
   pero el alcance concreto (4 tipos de nodo) no incluye ningún label que
   derive de callejero (vías/cruces) — queda disponible para cuando una tarea
   futura lo necesite (p. ej., como referencia geométrica para `UBICADO_EN`).
+
+## `UBICADO_EN` y `PROXIMO_A` (tarea 070)
+
+`grafo/geo.py` implementa, en Python puro (sin `shapely` ni ninguna otra
+dependencia de geometría — mismo criterio que evitó `pyproj` en la
+reproyección de tráfico de la tarea 041, `procesamiento/silver_gold/trafico/
+geo.py`):
+
+- **Point-in-polygon por ray casting** (`_point_in_ring`/
+  `_point_in_polygon_coords`/`point_in_geometry`), sobre las coordenadas
+  GeoJSON reales de `barrios_distritos_madrid` (`geometry.coordinates`,
+  formato `[longitud, latitud]` por punto — no `[lat, lon]`). Soporta
+  `Polygon` (con huecos, si los hubiera) y también `MultiPolygon`, aunque el
+  fixture real commiteado (`ingesta/capturas/samples/
+  barrios_distritos_madrid_barrios_sample.json`, 6 barrios de muestra) solo
+  trae `"type": "Polygon"` — se soporta `MultiPolygon` de forma defensiva
+  por si el dataset completo (no solo la muestra) incluye algún barrio con
+  varias partes desconectadas.
+- **Distancia Haversine** (`haversine_m`), radio terrestre medio 6371 km.
+
+`grafo/relaciones.py` añade dos funciones que usan `geo.py`:
+
+- `ubicado_en(nodos_con_ubicacion, barrios)`: un `{nodo_id, barrio_codigo}`
+  por cada nodo (`:Lugar`/`:EstacionMedida`/`:ParadaTransporte`, cualquiera
+  con `ubicacion`) que cae dentro de algún barrio. **`barrios` son los
+  registros Bronce crudos** de `barrios_distritos_madrid`
+  (`extract.fetch_barrios_bronze()`, con `neighbourhood_id` + `geometry`),
+  **no** los nodos `:Barrio` ya construidos por `nodos.barrios_from_bronze`
+  — esos no conservan la geometría (`schema.cypher` no define ninguna
+  propiedad de geometría para `:Barrio`, solo `codigo`/`nombre`/
+  `distrito_codigo`), así que no serviría pasarlos. Esta es la decisión que
+  la tarea 069 dejaba abierta ("decidir si se extiende `nodos.py` o si el
+  point-in-polygon vive en un módulo separado con acceso al Bronze crudo"):
+  se ha optado por lo segundo, sin tocar `nodos.py` (ya testado, y su
+  contrato — un nodo `:Barrio` con exactamente las propiedades del esquema —
+  no debería cargar datos que no le corresponden a él).
+- `proximo_a(nodos_con_ubicacion, umbral_m=300)`: un `{origen_id, destino_id,
+  distancia_m}` por cada pareja de nodos con `ubicacion` y **`tipo`**
+  (la propiedad de `nodos.py`, p. ej. `"trafico"`, `"bicimad"`,
+  `"poi_turistico"` — no el label de Neo4j) distintos, cuya distancia
+  Haversine no supera el umbral (300 m por defecto, fijado por el
+  enunciado). Dos nodos del mismo `tipo` no generan relación entre sí (ya
+  comparten semántica por ser del mismo tipo de sensor/lugar — dos
+  `:EstacionMedida` de tráfico no aportan nada relacionándose entre ellas),
+  pero dos nodos del mismo label de Neo4j con `tipo` distinto sí (una
+  `:EstacionMedida` de tráfico y una de ruido, por ejemplo). No se limita el
+  número de relaciones por nodo (zonas densas del centro pueden generar
+  decenas), tal como pedía el enunciado — es información real, no ruido. La
+  relación se genera en un único sentido por pareja (`a -> b`), igual que
+  documenta `schema.cypher`.
+
+`grafo/cypher.py` añade `ubicado_en_query()`/`proximo_a_query()` (y
+`Neo4jLoader.load_ubicado_en`/`load_proximo_a`). `ubicado_en_query` hace
+`MATCH (n {id: $nodo_id})` **sin restringir el label**: los prefijos
+`fuente` de `id` de los tres labels con ubicación no se solapan entre sí
+(ver tabla de arriba), así que `id` ya es único en la práctica en todo el
+grafo, no solo dentro de su propio constraint `UNIQUE` por label — no hace
+falta saber a qué label pertenece cada nodo para construir el `MATCH`.
+
+**Nota de rendimiento, no resuelta aquí**: `proximo_a` compara todas las
+parejas de nodos (`O(n²)`) — con los volúmenes reales de esta cuenta a
+fecha de la tarea 069 (~4700 `trafico` + ~700 `bicimad` + ~30 `calidad_aire`/
+`ruido` + ...) son unas pocas decenas de millones de comparaciones, factible
+en Python pero no instantáneo. No se ha optimizado con ningún índice
+espacial (p. ej. un grid de celdas de ~300 m) porque el enunciado no lo pedía
+y añadiría complejidad sin datos reales que la justifiquen todavía — si el
+volumen de nodos crece mucho, sería la primera optimización a considerar.
 
 ## `extract.py` (tarea 069): la capa de lectura real
 
@@ -229,30 +299,12 @@ para el caso de un dataset sin datos.
 
 ## Cómo se cargaría (cuando exista una instancia real)
 
-```python
-from grafo import extract, nodos, relaciones
-from grafo.cypher import Neo4jLoader
-
-# NEO4J_URI / NEO4J_USERNAME / NEO4J_PASSWORD / NEO4J_DATABASE:
-# ver infra/neo4j/README.md, "Cómo se conectaría el proyecto" -- no
-# redefinidas aquí.
-with Neo4jLoader(uri, username, password, database) as loader:
-    barrio_nodes = nodos.barrios_from_bronze(extract.fetch_barrios_bronze())
-
-    loader.load_distritos(nodos.distritos_from_bronze(extract.fetch_distritos_bronze()))
-    loader.load_barrios(barrio_nodes)
-    loader.load_estaciones_medida(nodos.estaciones_medida_from_trafico_gold(extract.fetch_estaciones_trafico()))
-    loader.load_estaciones_medida(nodos.estaciones_medida_from_calidad_aire_gold(extract.fetch_estaciones_calidad_aire()))
-    loader.load_estaciones_medida(nodos.estaciones_medida_from_ruido_gold(extract.fetch_estaciones_ruido()))
-    loader.load_paradas_transporte(nodos.paradas_transporte_from_transporte_publico_emt_gold(extract.fetch_paradas_emt()))
-    loader.load_paradas_transporte(nodos.paradas_transporte_from_bicimad_gold(extract.fetch_paradas_bicimad()))
-    loader.load_paradas_transporte(nodos.paradas_transporte_from_crtm_bronze(extract.fetch_paradas_crtm_bronze()))
-    loader.load_lugares(nodos.lugares_from_poi_bronze(extract.fetch_poi_bronze()))
-    loader.load_lugares(nodos.lugares_from_aparcamientos_gold(extract.fetch_lugares_aparcamientos()))
-    loader.load_lugares(nodos.lugares_from_cartelera_cines_gold(extract.fetch_lugares_cartelera_cines()))
-
-    loader.load_pertenece_a(relaciones.pertenece_a_from_barrios(barrio_nodes))
-```
+Ver `grafo/cargar_grafo.py::cargar_grafo()` para el bloque completo (nodos +
+`PERTENECE_A`/`UBICADO_EN`/`PROXIMO_A`), no repetido aquí. Resumen: junta las
+listas de nodos con ubicación (`estaciones_medida + paradas_transporte +
+lugares`) y las pasa a `relaciones.ubicado_en`/`relaciones.proximo_a` junto
+con los registros Bronce crudos de barrios (`extract.fetch_barrios_bronze()`,
+no los nodos `:Barrio` ya transformados, ver arriba).
 
 Este mismo bloque, encapsulado, es `grafo/cargar_grafo.py::cargar_grafo()`
 (`python3 -m grafo.cargar_grafo` como script). **No se ha ejecutado nunca
@@ -263,7 +315,7 @@ Cypher completa. Requiere ejecutar antes `infra/neo4j/schema/schema.cypher`
 
 ## Tests
 
-`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 46
+`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 70
 tests, ejecutados en esta EC2 sin el driver `neo4j` instalado —
 confirmado con `python3 -c "import neo4j"` fallando con
 `ModuleNotFoundError` antes de correr los tests):
@@ -279,10 +331,22 @@ confirmado con `python3 -c "import neo4j"` fallando con
   ejecutando `aggregate.py` sobre Silver, y ni Silver ni Gold están
   commiteados como fixtures), así que se replican a mano las claves exactas
   que produce cada `aggregate_silver_to_gold` real.
+- `test_geo.py` (tarea 070): point-in-polygon y Haversine verificados con
+  datos reales — el barrio "011" Palacio del fixture commiteado y un punto
+  real conocido dentro de él (Palacio Real de Madrid, 40.4180/-3.7143), un
+  punto claramente fuera de Madrid (Barcelona) para el caso negativo, y dos
+  distancias Haversine con un orden de magnitud conocido (Puerta del Sol -
+  Plaza Mayor, ~365 m; Madrid - Barcelona, ~505 km).
+- `test_relaciones.py::UbicadoEnTests`/`ProximoATests` (tarea 070): casos de
+  `ubicado_en`/`proximo_a` sobre fixtures pequeñas construidas a mano
+  (algunas reutilizando los mismos puntos reales de `test_geo.py`), incluido
+  el caso "no limita el número de relaciones por nodo" (20 vecinos dentro
+  del umbral generan 20 relaciones, no un subconjunto).
 - `test_cypher.py`: verifica las sentencias/parámetros generados por las
-  funciones `*_query()` por inspección de la cadena, y confirma que
-  `Neo4jLoader(...)` falla con `ImportError` (no con un error oscuro) si se
-  instancia sin el driver instalado.
+  funciones `*_query()` (incluidas `ubicado_en_query`/`proximo_a_query`,
+  tarea 070) por inspección de la cadena, y confirma que `Neo4jLoader(...)`
+  falla con `ImportError` (no con un error oscuro) si se instancia sin el
+  driver instalado.
 - `test_extract.py` (tarea 069, 15 tests): mockea `boto3` por completo
   (`FakeAthenaClient`/`FakeS3Client`, inyectados vía el parámetro
   `athena_client`/`s3_client` de cada función de `extract.py`) — sin
@@ -295,16 +359,20 @@ confirmado con `python3 -c "import neo4j"` fallando con
 
 ## Relevante para tareas futuras
 
-- Las 3 relaciones restantes (`UBICADO_EN`, `PROXIMO_A`, `CONECTADO_CON`)
-  son el siguiente trabajo natural sobre este mismo directorio — probablemente
-  un `grafo/relaciones.py` ampliado (o módulos nuevos, `grafo/ubicado_en.py`
-  etc., si la lógica geométrica lo justifica) más funciones `*_query()`
-  adicionales en `cypher.py`. `UBICADO_EN` necesita las geometrías de
-  `barrios_distritos_madrid` (ya cargadas por `nodos.py` para
-  `:Distrito`/`:Barrio`, pero el polígono en sí — `geometry` — no se ha
-  conservado en el `dict` de nodo, solo `codigo`/`nombre`/`distrito_codigo`;
-  habrá que decidir si extenderlo o mantener el point-in-polygon en un
-  módulo separado con acceso al Bronze crudo).
+- **Resuelto por la tarea 070**: `UBICADO_EN` y `PROXIMO_A` ya están
+  implementadas (`grafo/geo.py`, ampliación de `relaciones.py`/`cypher.py`/
+  `cargar_grafo.py`, ver la sección dedicada arriba). Solo queda
+  `CONECTADO_CON` (adyacencia real de red de transporte: dos paradas
+  consecutivas de una misma línea, ver `schema.cypher`) como siguiente
+  trabajo natural sobre este mismo directorio — necesita datos de
+  secuencia/orden de paradas por línea, que ninguna función de `extract.py`
+  expone todavía (los `fetch_paradas_*` actuales devuelven paradas sueltas,
+  no secuencias ordenadas); probablemente haga falta ampliar `extract.py`
+  antes de poder construir esta relación, sobre todo para
+  `crtm_red_transporte_madrid`, cuyo Bronze sí trae `stops` en el orden de
+  la ruta (`route_id`, ver `nodos.paradas_transporte_from_crtm_route_bronze`)
+  pero esa información no ha llegado nunca a `extract.fetch_paradas_crtm_
+  bronze()`, que solo la lista de paradas.
 - **Resuelto por la tarea 069**: `extract.py` ya lee Gold real vía Athena y
   Bronze-only real vía S3 — la nota anterior de la tarea 067 ("decidir cómo
   se resuelve el import de `procesamiento/silver_gold/*` para leer Gold/
@@ -314,21 +382,16 @@ confirmado con `python3 -c "import neo4j"` fallando con
 - El bloqueo real (alta manual de AuraDB Free) sigue siendo el mismo que
   documentó la tarea 043 — ninguna tarea de ETL puede resolverlo, solo un
   humano completando el flujo de `https://console.neo4j.io`. Con `extract.py`
-  ya escrito, la siguiente tarea de grafo con una instancia real disponible
-  podría ejecutar `grafo/cargar_grafo.py` end-to-end sin más cambios.
-- Las 3 relaciones restantes (`UBICADO_EN`, `PROXIMO_A`, `CONECTADO_CON`)
-  son el siguiente trabajo natural sobre este mismo directorio — probablemente
-  un `grafo/relaciones.py` ampliado (o módulos nuevos, `grafo/ubicado_en.py`
-  etc., si la lógica geométrica lo justifica) más funciones `*_query()`
-  adicionales en `cypher.py`. `UBICADO_EN` necesita las geometrías de
-  `barrios_distritos_madrid` (ya cargadas por `nodos.py` para
-  `:Distrito`/`:Barrio`, pero el polígono en sí — `geometry` — no se ha
-  conservado en el `dict` de nodo, solo `codigo`/`nombre`/`distrito_codigo`;
-  habrá que decidir si extenderlo o mantener el point-in-polygon en un
-  módulo separado con acceso al Bronze crudo). Esas relaciones también
-  necesitarán su propia extracción real (p. ej. `PROXIMO_A` sobre las
-  ubicaciones que ya devuelve `extract.py`), reutilizable desde este mismo
-  módulo.
+  ya escrito y las 3 relaciones de esta tarea implementadas, la siguiente
+  tarea de grafo con una instancia real disponible podría ejecutar
+  `grafo/cargar_grafo.py` end-to-end sin más cambios (salvo `CONECTADO_CON`,
+  que seguiría sin cargarse hasta la tarea 071).
+- `relaciones.proximo_a` es `O(n²)` en el número de nodos con ubicación —
+  ver la nota de rendimiento en la sección dedicada arriba. No es un
+  problema con los volúmenes reales de hoy, pero si una tarea futura amplía
+  mucho la captura de algún dataset (p. ej. más paradas EMT, ver más abajo)
+  convendría revisar si sigue siendo aceptable antes de ejecutar
+  `cargar_grafo.py` contra una instancia real.
 - **`transporte_publico_emt_por_parada_hora` Gold solo tiene 1 parada
   distinta** (`stop_id = "71"`) en las 8 particiones reales de esta sesión —
   no es un límite de la consulta de esta tarea, es el estado real de la

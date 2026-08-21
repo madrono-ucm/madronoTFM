@@ -12,6 +12,8 @@ from grafo.cypher import (
     lugar_query,
     parada_transporte_query,
     pertenece_a_query,
+    proximo_a_query,
+    ubicado_en_query,
 )
 
 
@@ -93,6 +95,24 @@ class PerteneceAQueryTests(unittest.TestCase):
         self.assertIn("MATCH (b:Barrio {codigo: $barrio_codigo})", query)
         self.assertIn("MERGE (b)-[:PERTENECE_A]->(d)", query)
         self.assertEqual(params, {"barrio_codigo": "011", "distrito_codigo": "01"})
+
+
+class UbicadoEnQueryTests(unittest.TestCase):
+    def test_ubicado_en_query(self):
+        query, params = ubicado_en_query({"nodo_id": "poi_madrid:1", "barrio_codigo": "011"})
+        self.assertIn("MATCH (n {id: $nodo_id})", query)
+        self.assertIn("MATCH (n {id: $nodo_id}), (b:Barrio {codigo: $barrio_codigo})", query)
+        self.assertIn("MERGE (n)-[:UBICADO_EN]->(b)", query)
+        self.assertEqual(params, {"nodo_id": "poi_madrid:1", "barrio_codigo": "011"})
+
+
+class ProximoAQueryTests(unittest.TestCase):
+    def test_proximo_a_query(self):
+        query, params = proximo_a_query({"origen_id": "trafico:1", "destino_id": "ruido:1", "distancia_m": 42.5})
+        self.assertIn("MATCH (a {id: $origen_id}), (b {id: $destino_id})", query)
+        self.assertIn("MERGE (a)-[r:PROXIMO_A]->(b)", query)
+        self.assertIn("r.distancia_m = $distancia_m", query)
+        self.assertEqual(params, {"origen_id": "trafico:1", "destino_id": "ruido:1", "distancia_m": 42.5})
 
 
 class Neo4jLoaderSinDriverTests(unittest.TestCase):
