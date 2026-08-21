@@ -2,7 +2,7 @@
 id: 71
 slug: grafo-relacion-conectado-con
 title: 'Grafo: relación CONECTADO_CON (adyacencia real de la red de transporte)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/071-grafo-relacion-conectado-con
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-21T09:30:00+00:00'
-updated_at: '2026-08-21T20:58:58.696048+00:00'
+updated_at: '2026-08-21T21:00:01.357263+00:00'
 started_at: '2026-08-21T20:51:05.727409+00:00'
 submitted_at: '2026-08-21T20:58:58.696020+00:00'
-merged_at: null
+merged_at: '2026-08-21T20:58:31Z'
 ---
 
 ## Contexto
