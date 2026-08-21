@@ -129,6 +129,65 @@ def ubicado_en_query(relacion: dict) -> "tuple[str, dict]":
     }
 
 
+def _ubicacion_on_create(alias: str, prefix: str) -> str:
+    """`SET` de `ubicacion` para un nodo recién `MERGE`-ado por `ON CREATE`:
+    a diferencia de `_UBICACION_SET` (que conserva el valor existente si no
+    llegan coordenadas nuevas, pensado para un nodo que ya podía tener
+    `ubicacion`), aquí el nodo es nuevo -- no hay nada que conservar --, así
+    que sin coordenadas el valor queda `NULL` directamente."""
+    return (
+        f"{alias}.ubicacion = CASE WHEN ${prefix}_lat IS NOT NULL AND ${prefix}_lon IS NOT NULL "
+        f"THEN point({{latitude: ${prefix}_lat, longitude: ${prefix}_lon, crs: 'wgs-84'}}) ELSE NULL END"
+    )
+
+
+def conectado_con_query(relacion: dict) -> "tuple[str, dict]":
+    """`(origen:ParadaTransporte)-[:CONECTADO_CON {modo, linea}]->(destino:
+    ParadaTransporte)` -- adyacencia real de la red de transporte (tarea
+    071, ver `grafo.relaciones.conectado_con`).
+
+    Los extremos se `MERGE` (no `MATCH`) con `ON CREATE SET`: en el flujo
+    normal (`cargar_grafo.py`) ya existen, cargados antes vía
+    `nodos.paradas_transporte_from_crtm_bronze`, pero el enunciado de la
+    tarea 071 pide explícitamente no descartar la relación si algún
+    `stop_id` no tuviera nodo correspondiente -- `ON CREATE SET` solo rellena
+    propiedades en el nodo nuevo, sin tocar un nodo que ya existiera con
+    datos más completos.
+
+    `linea` forma parte del propio patrón `MERGE` de la relación, no solo de
+    un `SET` posterior: dos paradas consecutivas pueden estar conectadas por
+    más de una línea (p. ej. dos autobuses que comparten un tramo), y cada
+    una debe quedar como una relación `CONECTADO_CON` distinta -- si `linea`
+    no formara parte del patrón de `MERGE`, cargar una segunda línea sobre
+    el mismo par de paradas sobrescribiría la primera en vez de añadir una
+    relación nueva.
+    """
+    query = (
+        "MERGE (a:ParadaTransporte {id: $origen_id}) "
+        "ON CREATE SET a.tipo = $modo, a.fuente = 'crtm_red_transporte_madrid', "
+        + _ubicacion_on_create("a", "origen")
+        + " "
+        "MERGE (b:ParadaTransporte {id: $destino_id}) "
+        "ON CREATE SET b.tipo = $modo, b.fuente = 'crtm_red_transporte_madrid', "
+        + _ubicacion_on_create("b", "destino")
+        + " "
+        "MERGE (a)-[r:CONECTADO_CON {linea: $linea}]->(b) "
+        "SET r.modo = $modo"
+    )
+    origen_ubicacion = relacion["origen"].get("ubicacion") or {}
+    destino_ubicacion = relacion["destino"].get("ubicacion") or {}
+    return query, {
+        "origen_id": relacion["origen"]["id"],
+        "destino_id": relacion["destino"]["id"],
+        "modo": relacion["modo"],
+        "linea": relacion["linea"],
+        "origen_lat": origen_ubicacion.get("lat"),
+        "origen_lon": origen_ubicacion.get("lon"),
+        "destino_lat": destino_ubicacion.get("lat"),
+        "destino_lon": destino_ubicacion.get("lon"),
+    }
+
+
 def proximo_a_query(relacion: dict) -> "tuple[str, dict]":
     """`(a)-[:PROXIMO_A {distancia_m}]->(b)`, un único sentido por pareja
     (ver `grafo.relaciones.proximo_a`). `SET` (no solo en el `MERGE`) para
@@ -213,3 +272,6 @@ class Neo4jLoader:
 
     def load_proximo_a(self, relaciones: "Iterable[dict]") -> None:
         self._run_all(proximo_a_query(r) for r in relaciones)
+
+    def load_conectado_con(self, relaciones: "Iterable[dict]") -> None:
+        self._run_all(conectado_con_query(r) for r in relaciones)

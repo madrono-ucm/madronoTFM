@@ -4,6 +4,7 @@ from pathlib import Path
 
 from grafo.nodos import barrios_from_bronze
 from grafo.relaciones import (
+    conectado_con,
     pertenece_a_from_barrio_node,
     pertenece_a_from_barrios,
     proximo_a,
@@ -133,6 +134,92 @@ class ProximoATests(unittest.TestCase):
         ]
         relaciones = proximo_a([origen] + vecinos, umbral_m=300)
         self.assertEqual(len(relaciones), 20)
+
+
+class ConectadoConTests(unittest.TestCase):
+    def setUp(self):
+        self.rutas = _load_sample("crtm_red_transporte_madrid_sample.json")
+        self.linea_1 = next(r for r in self.rutas if r["route_id"] == "4__1___")
+
+    def test_numero_de_relaciones_por_ruta_conocida(self):
+        # Metro línea 1 (route_id "4__1___") trae 33 paradas reales en la
+        # muestra -> 32 pares consecutivos, cada uno en ambos sentidos.
+        self.assertEqual(len(self.linea_1["stops"]), 33)
+        relaciones = conectado_con([self.linea_1])
+        self.assertEqual(len(relaciones), 32 * 2)
+
+    def test_primer_par_de_paradas_reales_en_ambos_sentidos(self):
+        relaciones = conectado_con([self.linea_1])
+        directa = relaciones[0]
+        inversa = relaciones[1]
+        self.assertEqual(directa["origen"]["id"], "crtm_red_transporte_madrid:par_4_263")
+        self.assertEqual(directa["destino"]["id"], "crtm_red_transporte_madrid:par_4_262")
+        self.assertEqual(directa["modo"], "metro")
+        self.assertEqual(directa["linea"], "1")
+        self.assertEqual(inversa["origen"]["id"], "crtm_red_transporte_madrid:par_4_262")
+        self.assertEqual(inversa["destino"]["id"], "crtm_red_transporte_madrid:par_4_263")
+        self.assertEqual(inversa["modo"], "metro")
+        self.assertEqual(inversa["linea"], "1")
+
+    def test_extremos_llevan_forma_minima_de_parada_transporte(self):
+        relaciones = conectado_con([self.linea_1])
+        origen = relaciones[0]["origen"]
+        self.assertEqual(
+            origen,
+            {
+                "id": "crtm_red_transporte_madrid:par_4_263",
+                "tipo": "metro",
+                "ubicacion": {"lat": 40.48014, "lon": -3.6668},
+            },
+        )
+
+    def test_no_conecta_entre_rutas_distintas(self):
+        # Dos rutas de una única parada cada una no deben generar ninguna
+        # relación (no hay pares consecutivos dentro de la misma ruta, y no
+        # se infiere nada entre rutas aunque compartan stop_id).
+        rutas = [
+            {
+                "mode": "metro",
+                "route_id": "A",
+                "short_name": "A",
+                "stops": [{"stop_id": "x", "sequence": 0, "name": "X", "location": {"lat": 40.0, "lon": -3.0}}],
+            },
+            {
+                "mode": "metro",
+                "route_id": "B",
+                "short_name": "B",
+                "stops": [{"stop_id": "x", "sequence": 0, "name": "X", "location": {"lat": 40.0, "lon": -3.0}}],
+            },
+        ]
+        self.assertEqual(conectado_con(rutas), [])
+
+    def test_ruta_sin_paradas_no_genera_relaciones(self):
+        # p.ej. las líneas de cercanías del fixture real (route_type
+        # "cercanias"): trips.txt vacío en la fuente, "stops": [].
+        ruta_cercanias = next(r for r in self.rutas if r["route_id"] == "5__C1___")
+        self.assertEqual(ruta_cercanias["stops"], [])
+        self.assertEqual(conectado_con([ruta_cercanias]), [])
+
+    def test_ordena_por_sequence_independientemente_del_orden_de_entrada(self):
+        ruta = {
+            "mode": "emt",
+            "route_id": "R1",
+            "short_name": "R1",
+            "stops": [
+                {"stop_id": "b", "sequence": 1, "name": "B", "location": {"lat": 40.1, "lon": -3.1}},
+                {"stop_id": "a", "sequence": 0, "name": "A", "location": {"lat": 40.0, "lon": -3.0}},
+            ],
+        }
+        relaciones = conectado_con([ruta])
+        directa = relaciones[0]
+        self.assertEqual(directa["origen"]["id"], "crtm_red_transporte_madrid:a")
+        self.assertEqual(directa["destino"]["id"], "crtm_red_transporte_madrid:b")
+
+    def test_todas_las_rutas_reales_de_la_muestra_no_fallan(self):
+        # Ejecuta sobre las 12 rutas reales del fixture (incluye las que
+        # tienen "stops": []) sin lanzar ninguna excepción.
+        relaciones = conectado_con(self.rutas)
+        self.assertTrue(len(relaciones) > 0)
 
 
 if __name__ == "__main__":
