@@ -2,7 +2,7 @@
 id: 68
 slug: athena-partition-projection
 title: Arreglar el descubrimiento de particiones en Athena (Partition Projection)
-status: in_review
+status: done
 force: false
 allow_infra_apply: true
 branch: task/068-athena-partition-projection
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-21T09:00:00+00:00'
-updated_at: '2026-08-21T20:25:58.046334+00:00'
+updated_at: '2026-08-21T20:27:00.753721+00:00'
 started_at: '2026-08-21T20:16:38.455024+00:00'
 submitted_at: '2026-08-21T20:25:58.046190+00:00'
-merged_at: null
+merged_at: '2026-08-21T20:26:22Z'
 ---
 
 ## Contexto
