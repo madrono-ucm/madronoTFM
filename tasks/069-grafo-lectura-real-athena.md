@@ -1,19 +1,19 @@
 ---
 id: 69
 slug: grafo-lectura-real-athena
-title: "Grafo: leer datos reales de Silver/Gold vía Athena"
-status: pending
+title: 'Grafo: leer datos reales de Silver/Gold vía Athena'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/069-grafo-lectura-real-athena
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-21T09:30:00+00:00"
-updated_at: "2026-08-21T09:30:00+00:00"
-started_at: null
+created_at: '2026-08-21T09:30:00+00:00'
+updated_at: '2026-08-21T20:28:04.015714+00:00'
+started_at: '2026-08-21T20:28:04.015691+00:00'
 submitted_at: null
 merged_at: null
 ---
