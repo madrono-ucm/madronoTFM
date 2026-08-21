@@ -2,7 +2,7 @@
 id: 70
 slug: grafo-relaciones-espaciales
 title: 'Grafo: relaciones espaciales UBICADO_EN y PROXIMO_A'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/070-grafo-relaciones-espaciales
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-21T09:30:00+00:00'
-updated_at: '2026-08-21T20:48:56.472866+00:00'
+updated_at: '2026-08-21T20:50:03.231072+00:00'
 started_at: '2026-08-21T20:41:31.515751+00:00'
 submitted_at: '2026-08-21T20:48:56.472705+00:00'
-merged_at: null
+merged_at: '2026-08-21T20:49:00Z'
 ---
 
 ## Contexto
