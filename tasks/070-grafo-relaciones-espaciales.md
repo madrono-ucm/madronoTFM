@@ -2,19 +2,19 @@
 id: 70
 slug: grafo-relaciones-espaciales
 title: 'Grafo: relaciones espaciales UBICADO_EN y PROXIMO_A'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/070-grafo-relaciones-espaciales
-pr_number: null
-pr_url: null
+pr_number: 117
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/117
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-21T09:30:00+00:00'
-updated_at: '2026-08-21T20:41:31.515774+00:00'
+updated_at: '2026-08-21T20:48:56.472866+00:00'
 started_at: '2026-08-21T20:41:31.515751+00:00'
-submitted_at: null
+submitted_at: '2026-08-21T20:48:56.472705+00:00'
 merged_at: null
 ---
 
