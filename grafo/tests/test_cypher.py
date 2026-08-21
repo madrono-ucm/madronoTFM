@@ -7,6 +7,7 @@ import unittest
 
 from grafo.cypher import (
     barrio_query,
+    conectado_con_query,
     distrito_query,
     estacion_medida_query,
     lugar_query,
@@ -113,6 +114,58 @@ class ProximoAQueryTests(unittest.TestCase):
         self.assertIn("MERGE (a)-[r:PROXIMO_A]->(b)", query)
         self.assertIn("r.distancia_m = $distancia_m", query)
         self.assertEqual(params, {"origen_id": "trafico:1", "destino_id": "ruido:1", "distancia_m": 42.5})
+
+
+class ConectadoConQueryTests(unittest.TestCase):
+    def test_conectado_con_query_con_ubicacion(self):
+        relacion = {
+            "origen": {"id": "crtm_red_transporte_madrid:par_4_263", "tipo": "metro", "ubicacion": {"lat": 40.48, "lon": -3.66}},
+            "destino": {"id": "crtm_red_transporte_madrid:par_4_262", "tipo": "metro", "ubicacion": {"lat": 40.47, "lon": -3.67}},
+            "modo": "metro",
+            "linea": "1",
+        }
+        query, params = conectado_con_query(relacion)
+        self.assertIn("MERGE (a:ParadaTransporte {id: $origen_id})", query)
+        self.assertIn("MERGE (b:ParadaTransporte {id: $destino_id})", query)
+        self.assertIn("MERGE (a)-[r:CONECTADO_CON {linea: $linea}]->(b)", query)
+        self.assertIn("r.modo = $modo", query)
+        self.assertEqual(
+            params,
+            {
+                "origen_id": "crtm_red_transporte_madrid:par_4_263",
+                "destino_id": "crtm_red_transporte_madrid:par_4_262",
+                "modo": "metro",
+                "linea": "1",
+                "origen_lat": 40.48,
+                "origen_lon": -3.66,
+                "destino_lat": 40.47,
+                "destino_lon": -3.67,
+            },
+        )
+
+    def test_conectado_con_query_sin_ubicacion_manda_lat_lon_none(self):
+        relacion = {
+            "origen": {"id": "crtm_red_transporte_madrid:x", "tipo": "emt", "ubicacion": None},
+            "destino": {"id": "crtm_red_transporte_madrid:y", "tipo": "emt", "ubicacion": None},
+            "modo": "emt",
+            "linea": "1",
+        }
+        _, params = conectado_con_query(relacion)
+        self.assertIsNone(params["origen_lat"])
+        self.assertIsNone(params["destino_lon"])
+
+    def test_linea_forma_parte_del_patron_merge_de_la_relacion(self):
+        # Dos líneas distintas sobre el mismo par de paradas no deben
+        # colapsar en una sola relación -- `linea` debe ir dentro del propio
+        # patrón MERGE, no solo en un SET posterior.
+        relacion = {
+            "origen": {"id": "a", "tipo": "emt", "ubicacion": None},
+            "destino": {"id": "b", "tipo": "emt", "ubicacion": None},
+            "modo": "emt",
+            "linea": "10",
+        }
+        query, _ = conectado_con_query(relacion)
+        self.assertIn("[r:CONECTADO_CON {linea: $linea}]", query)
 
 
 class Neo4jLoaderSinDriverTests(unittest.TestCase):

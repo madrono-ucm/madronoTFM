@@ -1,7 +1,8 @@
 """Entry point que encadena `extract.py` (Athena/S3 real, tarea 069) ->
-`nodos.py`/`relaciones.py` (transformación, tareas 067/070) -> `cypher.py`
-(carga real, tareas 067/070) para los 5 labels y las relaciones
-`PERTENECE_A`, `UBICADO_EN` y `PROXIMO_A` que cubre este directorio.
+`nodos.py`/`relaciones.py` (transformación, tareas 067/070/071) ->
+`cypher.py` (carga real, tareas 067/070/071) para los 5 labels y las
+relaciones `PERTENECE_A`, `UBICADO_EN`, `PROXIMO_A` y `CONECTADO_CON` que
+cubre este directorio.
 
 **No se ejecuta contra ninguna instancia real en esta tarea.** Sigue
 bloqueada el alta manual de AuraDB Free (tarea 043,
@@ -27,8 +28,8 @@ from grafo.cypher import Neo4jLoader
 
 def cargar_grafo(loader: Neo4jLoader) -> None:
     """Ejecuta la carga completa (nodos + `PERTENECE_A`/`UBICADO_EN`/
-    `PROXIMO_A`) contra `loader`, leyendo los datos reales con
-    `grafo.extract` en el momento de la llamada."""
+    `PROXIMO_A`/`CONECTADO_CON`) contra `loader`, leyendo los datos reales
+    con `grafo.extract` en el momento de la llamada."""
     barrio_records = list(extract.fetch_barrios_bronze())
     barrio_nodes = nodos.barrios_from_bronze(barrio_records)
 
@@ -42,10 +43,11 @@ def cargar_grafo(loader: Neo4jLoader) -> None:
     )
     loader.load_estaciones_medida(estaciones_medida)
 
+    rutas_crtm = list(extract.fetch_paradas_crtm_bronze())
     paradas_transporte = (
         nodos.paradas_transporte_from_transporte_publico_emt_gold(extract.fetch_paradas_emt())
         + nodos.paradas_transporte_from_bicimad_gold(extract.fetch_paradas_bicimad())
-        + nodos.paradas_transporte_from_crtm_bronze(extract.fetch_paradas_crtm_bronze())
+        + nodos.paradas_transporte_from_crtm_bronze(rutas_crtm)
     )
     loader.load_paradas_transporte(paradas_transporte)
 
@@ -64,6 +66,11 @@ def cargar_grafo(loader: Neo4jLoader) -> None:
     nodos_con_ubicacion = estaciones_medida + paradas_transporte + lugares
     loader.load_ubicado_en(relaciones.ubicado_en(nodos_con_ubicacion, barrio_records))
     loader.load_proximo_a(relaciones.proximo_a(nodos_con_ubicacion))
+
+    # CONECTADO_CON: adyacencia real de la red de transporte, solo a partir
+    # de las rutas CRTM (tarea 071) -- `transporte_publico_emt`/`bicimad` no
+    # traen secuencia de paradas por línea, ver `grafo/relaciones.py`.
+    loader.load_conectado_con(relaciones.conectado_con(rutas_crtm))
 
 
 def main() -> int:

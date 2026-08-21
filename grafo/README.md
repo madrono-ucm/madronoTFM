@@ -1,4 +1,4 @@
-# `grafo/` — ETL Gold/Bronze → nodos del grafo Neo4j (tareas 067/069)
+# `grafo/` — ETL Gold/Bronze → nodos del grafo Neo4j (tareas 067/069/070/071)
 
 Análogo de `ingesta/`/`procesamiento/` para la pieza de grafo urbano que
 diseñó la tarea 043 (`infra/neo4j/README.md`, `infra/neo4j/schema/
@@ -16,17 +16,18 @@ leer nada real. La tarea 069 añadió `extract.py` (y el entry point
 (`eu-west-1`, `222234418587`): Athena para Gold (tareas 066/068) y S3 directo
 para las tres fuentes Bronze-only. La tarea 070 añade las dos relaciones
 espaciales genéricas del esquema, `UBICADO_EN` y `PROXIMO_A` (`geo.py`,
-ampliación de `relaciones.py`/`cypher.py`/`cargar_grafo.py`).
+ampliación de `relaciones.py`/`cypher.py`/`cargar_grafo.py`). La tarea 071
+añade la última relación del esquema, `CONECTADO_CON` (adyacencia real de
+la red de transporte, a partir de las rutas de `crtm_red_transporte_madrid`).
 
-**Alcance cubierto a día de la tarea 070**: los nodos de los 5 labels del
+**Alcance cubierto a día de la tarea 071**: los nodos de los 5 labels del
 esquema (`:Distrito`, `:Barrio`, `:Lugar`, `:EstacionMedida`,
 `:ParadaTransporte` — el enunciado de la tarea 067 los agrupaba como "4
 tipos" contando Distrito/Barrio como una única jerarquía administrativa) y
-3 de las 4 relaciones: `PERTENECE_A` (Barrio→Distrito, tarea 067),
-`UBICADO_EN` (point-in-polygon contra los barrios, tarea 070) y `PROXIMO_A`
-(proximidad genérica por Haversine, tarea 070). Solo queda
-`CONECTADO_CON` (adyacencia real de red de transporte) como tarea de
-seguimiento separada (071) — deliberadamente no implementada aquí.
+las 4 relaciones del esquema: `PERTENECE_A` (Barrio→Distrito, tarea 067),
+`UBICADO_EN` (point-in-polygon contra los barrios, tarea 070), `PROXIMO_A`
+(proximidad genérica por Haversine, tarea 070) y `CONECTADO_CON` (adyacencia
+real de red de transporte, tarea 071).
 
 **Sigue sin existir ninguna instancia Neo4j real** (bloqueo de alta manual en
 `https://console.neo4j.io`, documentado en `infra/neo4j/README.md` desde la
@@ -40,7 +41,7 @@ código puro, testado con fixtures, sin conectar a nada.
 | `extract.py` | No | Consulta Athena (Gold, tareas 066/068) o lee JSON de S3 (Bronze-only) y devuelve `list[dict]` en el formato que esperan `nodos.py`/`relaciones.py`. Solo depende de `boto3` (tarea 069). |
 | `nodos.py` | No | Convierte un registro Gold/Bronze en el `dict` de propiedades de un nodo (`<tipo>_from_<origen>`), y una lista de registros en una lista de nodos deduplicados por `id`/`codigo` (`<tipo>s_from_<origen>`). |
 | `geo.py` | No | Point-in-polygon (ray casting sobre GeoJSON `Polygon`/`MultiPolygon`) y distancia Haversine, ambos Python puro sin dependencias de geometría (tarea 070). |
-| `relaciones.py` | No | `PERTENECE_A` (Barrio→Distrito, tarea 067); `UBICADO_EN` y `PROXIMO_A` (tarea 070, usan `geo.py`). |
+| `relaciones.py` | No | `PERTENECE_A` (Barrio→Distrito, tarea 067); `UBICADO_EN` y `PROXIMO_A` (tarea 070, usan `geo.py`); `CONECTADO_CON` (tarea 071, adyacencia real de red de transporte a partir de rutas CRTM). |
 | `cypher.py` | Solo `Neo4jLoader`, de forma perezosa | Traduce esos `dict` a sentencias `MERGE` parametrizadas (funciones `*_query()`, Python puro) y las ejecuta contra una instancia real (`Neo4jLoader`, que hace `from neo4j import GraphDatabase` dentro de `__init__`, no a nivel de módulo). |
 | `cargar_grafo.py` | Solo al importar `Neo4jLoader` (perezoso hasta instanciarlo) | Entry point que encadena `extract.py` → `nodos.py`/`relaciones.py` → `cypher.py`. No ejecutado contra ninguna instancia real (tarea 069). |
 | `requirements.txt` | — | `neo4j` (solo para `Neo4jLoader`, no instalado en esta EC2) y `boto3` (para `extract.py`, ya instalado). |
@@ -194,6 +195,73 @@ espacial (p. ej. un grid de celdas de ~300 m) porque el enunciado no lo pedía
 y añadiría complejidad sin datos reales que la justifiquen todavía — si el
 volumen de nodos crece mucho, sería la primera optimización a considerar.
 
+## `CONECTADO_CON` (tarea 071)
+
+`grafo/relaciones.py::conectado_con(rutas_crtm)` genera la adyacencia real de
+la red de transporte a partir de las rutas Bronce de
+`crtm_red_transporte_madrid` (`extract.fetch_paradas_crtm_bronze()`): cada
+registro trae, por `route_id` (línea), una lista `stops` **ya ordenada por
+`sequence`** (`nodos.paradas_transporte_from_crtm_route_bronze` la consume
+igual para construir los nodos `:ParadaTransporte`, tarea 067). Para cada par
+de paradas consecutivas dentro de la misma `route_id` se genera una relación
+`{origen, destino, modo, linea}` (`linea` = `short_name`, o `route_id` si el
+registro no trae `short_name`).
+
+**Decisión ya fijada por el enunciado (no reabierta)**: solo pares
+consecutivos dentro de la misma `route_id` — nunca se infiere una conexión
+entre `route_id` distintos aunque compartan parada física (dos líneas que
+confluyen en un intercambiador quedan relacionadas por `PROXIMO_A`, tarea
+070, si están dentro del umbral de 300 m, no por `CONECTADO_CON`).
+
+**Bidireccional, con la comprobación real que pedía el enunciado antes de
+asumirlo**: además del sentido de `sequence` creciente se genera también el
+sentido inverso (mismo `route_id`/`modo`, misma `linea`). Se ha revisado el
+fixture real (`crtm_red_transporte_madrid_sample.json`, 12 rutas de
+metro/EMT/metro ligero/cercanías) y el propio
+`ingesta/capturas/crtm_red_transporte_madrid.py`, sin encontrar ningún campo
+de sentido único: el módulo de captura, a propósito, solo conserva la
+secuencia de un único viaje representativo por línea (el primero con
+`direction_id="0"` en el GTFS de origen, ver su docstring "Esquema mínimo
+elegido") — el dataset nunca podría "indicar sentido único" con la
+información que trae, así que no hay ninguna señal real que contradiga la
+bidireccionalidad. Los cuatro modos reales de la muestra (metro, autobús
+urbano, metro ligero, cercanías) son además, en la realidad física que
+modelan, servicios de ida y vuelta, no líneas de sentido único.
+
+**`stop_id` sin nodo correspondiente: se crea un `:ParadaTransporte` mínimo
+en vez de descartar la relación** (punto 2 del enunciado). En el flujo
+normal (`cargar_grafo.py`) esto no llega a ocurrir — las mismas rutas CRTM
+alimentan primero `nodos.paradas_transporte_from_crtm_bronze` (todos los
+`stop_id` de todas las rutas obtienen nodo) y solo después
+`relaciones.conectado_con` —, pero `conectado_con()` no depende de ese
+orden: cada extremo de la relación (`origen`/`destino`) lleva ya su propia
+forma mínima de `:ParadaTransporte` (`id`/`tipo`/`ubicacion`, mismo `id` que
+construiría `nodos.py` para el mismo `stop_id` — sin `nombre`, ver más
+abajo), y `cypher.conectado_con_query` hace `MERGE ... ON CREATE SET` sobre
+ambos extremos antes de `MERGE` la relación: si el nodo ya existe (caso
+normal) no se toca ninguna propiedad; si no existe, se crea con lo mínimo
+disponible en la propia parada CRTM.
+
+No se incluye `nombre` en ese `:ParadaTransporte` mínimo: `schema.cypher` no
+lo declara como propiedad esperada de este label (a diferencia de `:Lugar`),
+mismo criterio que ya seguía `cypher.parada_transporte_query` desde la tarea
+067 (tampoco persiste `nombre`, aunque el nodo `dict` de `nodos.py` lo
+lleve) — no se reabre esa decisión aquí.
+
+`linea` forma parte del propio patrón `MERGE` de la relación en
+`conectado_con_query` (`MERGE (a)-[r:CONECTADO_CON {linea: $linea}]->(b)`),
+no solo de un `SET` posterior: dos paradas consecutivas pueden estar
+conectadas por más de una línea (p. ej. dos autobuses que comparten un
+tramo), y cada una debe quedar como una relación distinta — si `linea` no
+formara parte del patrón, cargar una segunda línea sobre el mismo par de
+paradas sobrescribiría la primera en vez de añadir una relación nueva.
+
+Verificado con el fixture real: la línea 1 de metro (`route_id="4__1___"`)
+trae 33 paradas → 32 pares consecutivos → 64 relaciones (32 en cada
+sentido); las líneas de Cercanías del fixture (`"stops": []`, ver hallazgo
+de calidad de datos documentado en `crtm_red_transporte_madrid.py`) no
+generan ninguna relación, sin error.
+
 ## `extract.py` (tarea 069): la capa de lectura real
 
 Consulta **Athena** para todo lo que tiene Gold (decisión ya tomada por el
@@ -300,11 +368,15 @@ para el caso de un dataset sin datos.
 ## Cómo se cargaría (cuando exista una instancia real)
 
 Ver `grafo/cargar_grafo.py::cargar_grafo()` para el bloque completo (nodos +
-`PERTENECE_A`/`UBICADO_EN`/`PROXIMO_A`), no repetido aquí. Resumen: junta las
-listas de nodos con ubicación (`estaciones_medida + paradas_transporte +
-lugares`) y las pasa a `relaciones.ubicado_en`/`relaciones.proximo_a` junto
-con los registros Bronce crudos de barrios (`extract.fetch_barrios_bronze()`,
-no los nodos `:Barrio` ya transformados, ver arriba).
+`PERTENECE_A`/`UBICADO_EN`/`PROXIMO_A`/`CONECTADO_CON`), no repetido aquí.
+Resumen: junta las listas de nodos con ubicación (`estaciones_medida +
+paradas_transporte + lugares`) y las pasa a
+`relaciones.ubicado_en`/`relaciones.proximo_a` junto con los registros
+Bronce crudos de barrios (`extract.fetch_barrios_bronze()`, no los nodos
+`:Barrio` ya transformados, ver arriba); las rutas Bronce de
+`extract.fetch_paradas_crtm_bronze()` se leen una única vez y se reutilizan
+tanto para `nodos.paradas_transporte_from_crtm_bronze` como para
+`relaciones.conectado_con`, en ese orden (nodos antes que la relación).
 
 Este mismo bloque, encapsulado, es `grafo/cargar_grafo.py::cargar_grafo()`
 (`python3 -m grafo.cargar_grafo` como script). **No se ha ejecutado nunca
@@ -315,7 +387,7 @@ Cypher completa. Requiere ejecutar antes `infra/neo4j/schema/schema.cypher`
 
 ## Tests
 
-`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 70
+`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 80
 tests, ejecutados en esta EC2 sin el driver `neo4j` instalado —
 confirmado con `python3 -c "import neo4j"` fallando con
 `ModuleNotFoundError` antes de correr los tests):
@@ -344,9 +416,16 @@ confirmado con `python3 -c "import neo4j"` fallando con
   del umbral generan 20 relaciones, no un subconjunto).
 - `test_cypher.py`: verifica las sentencias/parámetros generados por las
   funciones `*_query()` (incluidas `ubicado_en_query`/`proximo_a_query`,
-  tarea 070) por inspección de la cadena, y confirma que `Neo4jLoader(...)`
-  falla con `ImportError` (no con un error oscuro) si se instancia sin el
-  driver instalado.
+  tarea 070, y `conectado_con_query`, tarea 071) por inspección de la
+  cadena, y confirma que `Neo4jLoader(...)` falla con `ImportError` (no con
+  un error oscuro) si se instancia sin el driver instalado.
+- `test_relaciones.py::ConectadoConTests` (tarea 071): usa directamente el
+  fixture real `crtm_red_transporte_madrid_sample.json` — número exacto de
+  relaciones para la línea 1 de metro (33 paradas → 64), primer par real en
+  ambos sentidos, forma mínima del `:ParadaTransporte` de cada extremo, que
+  no conecta entre `route_id` distintos, que una ruta con `"stops": []`
+  (Cercanías del fixture) no genera nada, y que ordena por `sequence`
+  aunque la entrada no venga ordenada.
 - `test_extract.py` (tarea 069, 15 tests): mockea `boto3` por completo
   (`FakeAthenaClient`/`FakeS3Client`, inyectados vía el parámetro
   `athena_client`/`s3_client` de cada función de `extract.py`) — sin
@@ -361,18 +440,31 @@ confirmado con `python3 -c "import neo4j"` fallando con
 
 - **Resuelto por la tarea 070**: `UBICADO_EN` y `PROXIMO_A` ya están
   implementadas (`grafo/geo.py`, ampliación de `relaciones.py`/`cypher.py`/
-  `cargar_grafo.py`, ver la sección dedicada arriba). Solo queda
-  `CONECTADO_CON` (adyacencia real de red de transporte: dos paradas
-  consecutivas de una misma línea, ver `schema.cypher`) como siguiente
-  trabajo natural sobre este mismo directorio — necesita datos de
-  secuencia/orden de paradas por línea, que ninguna función de `extract.py`
-  expone todavía (los `fetch_paradas_*` actuales devuelven paradas sueltas,
-  no secuencias ordenadas); probablemente haga falta ampliar `extract.py`
-  antes de poder construir esta relación, sobre todo para
-  `crtm_red_transporte_madrid`, cuyo Bronze sí trae `stops` en el orden de
-  la ruta (`route_id`, ver `nodos.paradas_transporte_from_crtm_route_bronze`)
-  pero esa información no ha llegado nunca a `extract.fetch_paradas_crtm_
-  bronze()`, que solo la lista de paradas.
+  `cargar_grafo.py`, ver la sección dedicada arriba).
+- **Resuelto por la tarea 071**: `CONECTADO_CON` ya está implementada
+  (`relaciones.conectado_con`, `cypher.conectado_con_query`, ampliación de
+  `cargar_grafo.py`, ver la sección dedicada arriba). A diferencia de lo que
+  suponía la nota anterior de la tarea 070, no hizo falta ampliar
+  `extract.py`: `fetch_paradas_crtm_bronze()` ya devuelve los registros
+  Bronce **de ruta** sin aplanar (con `stops` en orden de `sequence`,
+  confirmado con `test_extract.py::test_crtm_bronze_devuelve_registros_de_
+  ruta_sin_transformar`) — es `nodos.paradas_transporte_from_crtm_route_
+  bronze` quien aplana a paradas sueltas, no `extract.py`; `relaciones.
+  conectado_con` consume directamente esos mismos registros de ruta. Las 4
+  relaciones del esquema del grafo (`schema.cypher`) están ahora completas.
+  Con `CONECTADO_CON` implementada, `cargar_grafo.py::cargar_grafo()` ya
+  cubre las 4 relaciones sin ningún hueco — la única pieza pendiente para
+  ejecutarlo end-to-end sigue siendo la instancia Neo4j real (ver abajo).
+  El límite ya conocido desde la tarea 067 (resolución de entidades entre
+  fuentes fuera de alcance: `crtm_red_transporte_madrid` y
+  `transporte_publico_emt` pueden representar la misma parada física con dos
+  nodos `:ParadaTransporte` distintos) sigue aplicando aquí sin cambios:
+  `CONECTADO_CON` solo se genera dentro de `crtm_red_transporte_madrid`, así
+  que nunca conecta un nodo `crtm_red_transporte_madrid:...` con uno
+  `transporte_publico_emt:...` aunque sean la misma parada real — una
+  consulta de "ruta más corta" que cruce ambas fuentes tendría que atravesar
+  primero un `PROXIMO_A` entre ambos nodos, si la distancia real entre ellos
+  cae dentro del umbral de 300 m.
 - **Resuelto por la tarea 069**: `extract.py` ya lee Gold real vía Athena y
   Bronze-only real vía S3 — la nota anterior de la tarea 067 ("decidir cómo
   se resuelve el import de `procesamiento/silver_gold/*` para leer Gold/
@@ -382,10 +474,10 @@ confirmado con `python3 -c "import neo4j"` fallando con
 - El bloqueo real (alta manual de AuraDB Free) sigue siendo el mismo que
   documentó la tarea 043 — ninguna tarea de ETL puede resolverlo, solo un
   humano completando el flujo de `https://console.neo4j.io`. Con `extract.py`
-  ya escrito y las 3 relaciones de esta tarea implementadas, la siguiente
-  tarea de grafo con una instancia real disponible podría ejecutar
-  `grafo/cargar_grafo.py` end-to-end sin más cambios (salvo `CONECTADO_CON`,
-  que seguiría sin cargarse hasta la tarea 071).
+  ya escrito y las 4 relaciones del esquema ya implementadas (tareas
+  067/070/071), la siguiente tarea de grafo con una instancia real
+  disponible podría ejecutar `grafo/cargar_grafo.py` end-to-end sin más
+  cambios en este directorio.
 - `relaciones.proximo_a` es `O(n²)` en el número de nodos con ubicación —
   ver la nota de rendimiento en la sección dedicada arriba. No es un
   problema con los volúmenes reales de hoy, pero si una tarea futura amplía
