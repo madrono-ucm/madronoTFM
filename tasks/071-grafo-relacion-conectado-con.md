@@ -2,19 +2,19 @@
 id: 71
 slug: grafo-relacion-conectado-con
 title: 'Grafo: relación CONECTADO_CON (adyacencia real de la red de transporte)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/071-grafo-relacion-conectado-con
-pr_number: null
-pr_url: null
+pr_number: 118
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/118
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-21T09:30:00+00:00'
-updated_at: '2026-08-21T20:51:05.727433+00:00'
+updated_at: '2026-08-21T20:58:58.696048+00:00'
 started_at: '2026-08-21T20:51:05.727409+00:00'
-submitted_at: null
+submitted_at: '2026-08-21T20:58:58.696020+00:00'
 merged_at: null
 ---
 
