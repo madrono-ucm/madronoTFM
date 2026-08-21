@@ -308,8 +308,18 @@ resource "aws_glue_catalog_table" "trafico_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/trafico/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -414,8 +424,15 @@ resource "aws_glue_catalog_table" "trafico_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/trafico_por_punto_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -792,8 +809,18 @@ resource "aws_glue_catalog_table" "transporte_publico_emt_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/transporte_publico_emt/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -882,8 +909,15 @@ resource "aws_glue_catalog_table" "transporte_publico_emt_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/transporte_publico_emt_por_parada_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -1224,8 +1258,18 @@ resource "aws_glue_catalog_table" "bicimad_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bicimad/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -1330,8 +1374,15 @@ resource "aws_glue_catalog_table" "bicimad_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bicimad_por_estacion_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -1696,8 +1747,18 @@ resource "aws_glue_catalog_table" "aparcamientos_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aparcamientos/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -1778,8 +1839,15 @@ resource "aws_glue_catalog_table" "aparcamientos_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aparcamientos_por_parking_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -2130,8 +2198,18 @@ resource "aws_glue_catalog_table" "calidad_aire_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/calidad_aire/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -2220,8 +2298,15 @@ resource "aws_glue_catalog_table" "calidad_aire_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/calidad_aire_por_estacion_contaminante_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -2588,8 +2673,18 @@ resource "aws_glue_catalog_table" "meteorologia_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/meteorologia/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -2666,8 +2761,15 @@ resource "aws_glue_catalog_table" "meteorologia_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/meteorologia_por_estacion_magnitud_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -3039,8 +3141,15 @@ resource "aws_glue_catalog_table" "ruido_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/ruido/fecha=$${fecha}/"
   }
 
   # Solo `fecha` -- a diferencia del resto del patrón, esta fuente es diaria
@@ -3146,8 +3255,15 @@ resource "aws_glue_catalog_table" "ruido_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/ruido_por_estacion_periodo_fecha/date=$${date}/"
   }
 
   partition_keys {
@@ -3547,8 +3663,18 @@ resource "aws_glue_catalog_table" "aforos_peatones_bicicletas_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aforos_peatones_bicicletas/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -3632,8 +3758,15 @@ resource "aws_glue_catalog_table" "aforos_peatones_bicicletas_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aforos_peatones_bicicletas_por_estacion_modo_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -4016,8 +4149,18 @@ resource "aws_glue_catalog_table" "cartelera_cines_estrenos_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cartelera_cines_estrenos/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -4117,8 +4260,15 @@ resource "aws_glue_catalog_table" "cartelera_cines_estrenos_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/cartelera_cines_estrenos_por_pelicula_cine_fecha/date=$${date}/"
   }
 
   partition_keys {
@@ -4496,8 +4646,15 @@ resource "aws_glue_catalog_table" "agenda_eventos_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/agenda_eventos/fecha=$${fecha}/"
   }
 
   partition_keys {
@@ -4609,8 +4766,15 @@ resource "aws_glue_catalog_table" "agenda_eventos_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/agenda_eventos_por_categoria_distrito_fecha/date=$${date}/"
   }
 
   partition_keys {
@@ -4970,8 +5134,18 @@ resource "aws_glue_catalog_table" "bluesky_menciones_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bluesky_menciones/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -5063,8 +5237,15 @@ resource "aws_glue_catalog_table" "bluesky_menciones_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bluesky_menciones_por_termino_modo_hora/date=$${date}/"
   }
 
   partition_keys {
@@ -5495,8 +5676,15 @@ resource "aws_glue_catalog_table" "aemet_prevision_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_prevision/fecha=$${fecha}/"
   }
 
   partition_keys {
@@ -5612,8 +5800,15 @@ resource "aws_glue_catalog_table" "aemet_avisos_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aemet_avisos/fecha=$${fecha}/"
   }
 
   partition_keys {
@@ -5709,8 +5904,12 @@ resource "aws_glue_catalog_table" "aemet_prevision_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                     = "parquet"
+    "parquet.compression"              = "SNAPPY"
+    "projection.enabled"               = "true"
+    "projection.municipio_code.type"   = "enum"
+    "projection.municipio_code.values" = "28079"
+    "storage.location.template"        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aemet_prevision_por_municipio_leadtime/municipio_code=$${municipio_code}/"
   }
 
   partition_keys {
@@ -5790,8 +5989,15 @@ resource "aws_glue_catalog_table" "aemet_avisos_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aemet_avisos_por_zona_fecha_nivel/fecha=$${fecha}/"
   }
 
   partition_keys {
@@ -6137,8 +6343,18 @@ resource "aws_glue_catalog_table" "cams_calidad_aire_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/cams_calidad_aire/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -6227,8 +6443,12 @@ resource "aws_glue_catalog_table" "cams_calidad_aire_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                = "parquet"
+    "parquet.compression"         = "SNAPPY"
+    "projection.enabled"          = "true"
+    "projection.pollutant.type"   = "enum"
+    "projection.pollutant.values" = "NO2,NO,SO2,O3,PM2.5,PM10,polvo"
+    "storage.location.template"   = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/cams_calidad_aire_por_contaminante_fecha_validez/pollutant=$${pollutant}/"
   }
 
   partition_keys {
@@ -6603,8 +6823,18 @@ resource "aws_glue_catalog_table" "afluencia_lugares_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                   = "parquet"
+    "parquet.compression"            = "SNAPPY"
+    "projection.enabled"             = "true"
+    "projection.fecha.type"          = "date"
+    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    "projection.fecha.format"        = "yyyy-MM-dd"
+    "projection.fecha.interval"      = "1"
+    "projection.fecha.interval.unit" = "DAYS"
+    "projection.hora.type"           = "integer"
+    "projection.hora.range"          = "0,23"
+    "projection.hora.digits"         = "2"
+    "storage.location.template"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/afluencia_lugares/fecha=$${fecha}/hora=$${hora}/"
   }
 
   partition_keys {
@@ -6685,8 +6915,15 @@ resource "aws_glue_catalog_table" "afluencia_lugares_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    "parquet.compression" = "SNAPPY"
+    classification                  = "parquet"
+    "parquet.compression"           = "SNAPPY"
+    "projection.enabled"            = "true"
+    "projection.date.type"          = "date"
+    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    "projection.date.format"        = "yyyy-MM-dd"
+    "projection.date.interval"      = "1"
+    "projection.date.interval.unit" = "DAYS"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/afluencia_lugares_por_lugar_fecha_hora/date=$${date}/"
   }
 
   partition_keys {
