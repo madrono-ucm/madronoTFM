@@ -1,19 +1,19 @@
 ---
 id: 71
 slug: grafo-relacion-conectado-con
-title: "Grafo: relación CONECTADO_CON (adyacencia real de la red de transporte)"
-status: pending
+title: 'Grafo: relación CONECTADO_CON (adyacencia real de la red de transporte)'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/071-grafo-relacion-conectado-con
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-21T09:30:00+00:00"
-updated_at: "2026-08-21T09:30:00+00:00"
-started_at: null
+created_at: '2026-08-21T09:30:00+00:00'
+updated_at: '2026-08-21T20:51:05.727433+00:00'
+started_at: '2026-08-21T20:51:05.727409+00:00'
 submitted_at: null
 merged_at: null
 ---
