@@ -1,19 +1,20 @@
 ---
 id: 72
 slug: arreglo-lectura-incremental-glue
-title: "URGENTE: arreglar la lectura incremental de Bronze→Silver→Gold (coste de Glue descontrolado)"
-status: pending
+title: 'URGENTE: arreglar la lectura incremental de Bronze→Silver→Gold (coste de Glue
+  descontrolado)'
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/072-arreglo-lectura-incremental-glue
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-22T09:00:00+00:00"
-updated_at: "2026-08-22T09:00:00+00:00"
-started_at: null
+created_at: '2026-08-22T09:00:00+00:00'
+updated_at: '2026-08-21T21:01:04.156439+00:00'
+started_at: '2026-08-21T21:01:04.156415+00:00'
 submitted_at: null
 merged_at: null
 ---
