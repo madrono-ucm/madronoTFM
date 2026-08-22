@@ -20,11 +20,21 @@ merged_at: null
 
 ## Contexto
 
-La tarea 073 lanzó (sin esperar) un job de reconstrucción deduplicada de
-Silver de `bicimad` — lee `doc/073-limpieza-duplicados-bicimad-lanzar.md`
-para el `JobRunId` exacto. Esta tarea comprueba que terminó bien, verifica
-que ya no hay duplicados, y completa Gold con el mismo enfoque (un job de
-un solo uso, no el de producción incremental).
+La tarea 073 falló seis veces de forma autónoma (ver
+`doc/073-limpieza-duplicados-bicimad-lanzar.md` para el detalle completo) —
+se completó recuperando directamente el trabajo ya aplicado en AWS y
+comiteándolo fuera de la cola de tareas. El job de backfill
+(`madrono-tfm-dev-bicimad-silver-backfill-dedup`) se lanzó manualmente con
+
+```
+JobRunId: jr_6f09053f6eea77a852b5ff8e6db22fb984a459a4238648cf66204f1e0d8f5731
+```
+
+y seguía en `RUNNING` en el momento de cerrar la 073 — **usa este
+`JobRunId` directamente, no hace falta buscarlo en ningún otro sitio.**
+Esta tarea comprueba que terminó bien, verifica que ya no hay duplicados, y
+completa Gold con el mismo enfoque (un job de un solo uso, no el de
+producción incremental).
 
 `trafico` (Silver + Gold) ya está arreglado y verificado — no lo toques.
 
@@ -35,8 +45,10 @@ duplicados, y completar Gold de la misma forma.
 
 ## Alcance concreto
 
-1. Recupera el `JobRunId` de `doc/073-...md` y comprueba su estado
-   (`aws glue get-job-run`). Si todavía está `RUNNING`, espera con sondeos
+1. Comprueba el estado del `JobRunId` de arriba
+   (`aws glue get-job-run --job-name madrono-tfm-dev-bicimad-silver-backfill-dedup
+   --run-id jr_6f09053f6eea77a852b5ff8e6db22fb984a459a4238648cf66204f1e0d8f5731`).
+   Si todavía está `RUNNING`, espera con sondeos
    razonables (p.ej. cada 30-60s) hasta un máximo razonable de tiempo — si
    sigue sin terminar tras una espera razonable, documenta el estado en el
    que lo dejas y para ahí, no fuerces nada.
