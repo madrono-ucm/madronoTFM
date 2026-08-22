@@ -1,5 +1,5 @@
 ---
-id: 75
+id: 76
 slug: desglose-costes-estimador-presupuesto
 title: "Herramienta de desglose de costes AWS y estimador de presupuesto"
 status: pending
@@ -25,7 +25,7 @@ tarde, ya mostraba 70,05 USD — alarmante a primera vista, pero investigado
 fuera de esta tarea: coincide casi exactamente con un cálculo manual hecho
 a partir de `aws glue get-job-runs` sobre los 28 jobs (159,27 DPU-horas ×
 $0,44/DPU-hora ≈ 70,08 USD), y el crecimiento real desde que se pausaron
-los 6 triggers horarios más caros (tareas 072/073, ver su contexto para el
+los 6 triggers horarios más caros (tareas 072/074, ver su contexto para el
 diagnóstico completo del bug de coste) ha sido de apenas ~0,2 USD en 18h —
 la factura no había "subido de golpe", el número que se vio antes estaba
 simplemente desactualizado (la consola de Billing va con retraso frente al
