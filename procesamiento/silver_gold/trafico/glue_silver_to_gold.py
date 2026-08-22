@@ -57,6 +57,11 @@ def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
     spark: SparkSession = glue_context.spark_session
+    # Mismo motivo que en glue_bronze_to_silver.py: sin esto, la `hora`
+    # recalculada aquí desde `measured_at` usaría el timezone de sesión de
+    # Spark (UTC por defecto en Glue), desalineada con `previous_hour()`
+    # (Europe/Madrid) y con la partición de Silver que este job intenta leer.
+    spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
