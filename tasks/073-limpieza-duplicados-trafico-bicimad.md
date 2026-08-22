@@ -1,128 +1,125 @@
 ---
 id: 73
 slug: limpieza-duplicados-trafico-bicimad
-title: 'URGENTE: limpiar los datos duplicados de trafico/bicimad en Silver/Gold'
-status: failed
+title: "URGENTE: limpiar los datos duplicados de trafico/bicimad en Silver/Gold"
+status: pending
 force: false
 allow_infra_apply: true
-branch: task/073-limpieza-duplicados-trafico-bicimad
+branch: null
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
-last_error: claude finalizó sin crear ningún commit
-created_at: '2026-08-22T18:00:00+00:00'
-updated_at: '2026-08-22T17:07:15.949469+00:00'
-started_at: '2026-08-22T16:55:51.748270+00:00'
+last_error: null
+created_at: "2026-08-22T18:00:00+00:00"
+updated_at: "2026-08-22T19:00:00+00:00"
+started_at: null
 submitted_at: null
 merged_at: null
 ---
 
 ## Contexto
 
-**Bug de calidad de datos real, confirmado con una consulta Athena real —
-prioridad alta, justo detrás de la 072.** La tarea 072 arregló la lectura
-incremental de `trafico`/`bicimad` (dejaba de reprocesar todo el histórico
-en cada ejecución), pero **no limpió los datos que ya se habían duplicado
-en Silver/Gold antes del arreglo**, porque el bug de duplicación se
-descubrió después de que 072 se diera por completada.
+**Un primer intento de esta tarea dejó los datos en un estado peor que
+antes de empezar, y terminó sin comitear nada.** Verificado manualmente
+fuera de la sesión de `claude` (con `aws s3 ls` y consultas Athena reales,
+ya que el runner del agente no conserva la salida completa de un intento
+que termina sin commits):
 
-**Diagnóstico**: antes del arreglo, cada ejecución de `*_bronze_to_silver`/
-`*_silver_to_gold` reprocesaba y volvía a escribir con `mode("append")`
-**todo** el histórico acumulado, sin ninguna comprobación de "esto ya está
-procesado" — así que cada una de las ~47 ejecuciones históricas de cada job
-volvió a escribir (casi) todo lo que ya había. Confirmado con una consulta
-SQL real contra Athena:
+- Empezó a borrar Silver de `trafico`: **faltan por completo las
+  particiones `fecha=2026-08-15` a `fecha=2026-08-19`** (solo quedan
+  `2026-08-20`, `2026-08-21`, `2026-08-22`) — el número de ficheros bajó de
+  36.873 a 4.027, pero no por deduplicación limpia, sino porque se borró una
+  parte y nunca se reconstruyó.
+- Las particiones que sí quedan **siguen masivamente duplicadas**:
+  `fecha=2026-08-20` tiene 24.167.740 filas pero solo 533.294 combinaciones
+  distintas de `point_id`+`measured_at` (ratio 45×); `fecha=2026-08-21`,
+  10.579.951 filas vs 643.675 distintas (ratio 16×).
+- **Gold de `trafico` no se tocó**: sigue teniendo las 9 particiones de
+  fecha (`2026-08-14` a `2026-08-22`) con las agregaciones viejas
+  (calculadas sobre el Silver duplicado, y ahora además huérfanas para los
+  días que ya no existen en Silver).
+- **`bicimad` no se tocó en absoluto** — sigue exactamente como antes (Silver
+  con 117.808 ficheros, mismo problema sin arreglar).
 
-```sql
-SELECT point_id, measured_at, COUNT(*) AS n
-FROM trafico WHERE fecha='2026-08-15'
-GROUP BY point_id, measured_at ORDER BY n DESC LIMIT 5
--- point_id=5524, measured_at=2026-08-15T11:50:14+00:00 -> n = 88
-```
-
-Y por número de ficheros (Bronze vs Silver, mismo periodo):
-
-| Dataset | Objetos Bronze | Objetos Silver | Ratio |
-|---|---|---|---|
-| `trafico` | 2.242 | 36.873 | 16,4× |
-| `bicimad` | 2.242 | 117.776 | 52,5× |
-
-Los registros más antiguos están duplicados hasta ~47 veces (una vez por
-cada ejecución histórica que reprocesó todo el histórico). Cualquier
-`COUNT`/suma/agregación por volumen calculada hasta ahora sobre
-`silver.trafico`, `silver.bicimad`, `gold.trafico_por_punto_hora` o
-`gold.bicimad_por_estacion_hora` está inflada — no es fiable.
-
-**Bronze no está afectado** (es el crudo, solo se lee, nunca se
-sobrescribe) — la limpieza es exclusivamente sobre Silver/Gold de estos dos
-datasets, y se puede reconstruir de cero desde Bronze sin perder nada.
+**No intentes entender ni continuar el estado a medias del intento
+anterior — es más simple y más seguro partir de cero.** Bronze no está
+afectado (nunca se sobrescribe, sigue con sus 2.249 objetos intactos para
+cada dataset) — toda la reconstrucción parte de ahí.
 
 **`force: false` deliberado**: borra y reescribe datos de producción reales
 — quiero revisar el resultado antes de fusionar.
 
 ## Objetivo
 
-Vaciar Silver/Gold de `trafico`/`bicimad` y reconstruirlos desde Bronze
-**una sola vez, de forma limpia y deduplicada**, usando ya la lectura
-incremental corregida de la tarea 072 para las ejecuciones futuras (no para
-esta reconstrucción única, que necesariamente sí debe leer todo Bronze una
-vez, correctamente, sin duplicar).
+Borrar **por completo** Silver y Gold de `trafico`/`bicimad` (todas las
+fechas, no solo las duplicadas) y reconstruirlos desde Bronze **una sola
+vez, de forma limpia y deduplicada, hasta completar las dos reconstrucciones
+enteras** — no dejes ninguna a medias otra vez.
 
 ## Alcance concreto
 
-1. Decide e implementa el mecanismo de reconstrucción limpia. Dos opciones
-   razonables (elige una, documenta por qué):
-   - **(a) Borrar y reprocesar histórico completo una vez**: vacía
-     `s3://madrono-tfm-dev-{silver,gold}-.../{trafico,bicimad}*` (con `aws
-     s3 rm --recursive`, revisa el prefijo exacto de cada tabla) y ejecuta
-     un job (puntual, no el de producción incremental) que procese **todo**
-     Bronze de una vez pero escribiendo cada registro **una sola vez**
-     (agrupa/deduplica por la clave natural del registro —
-     `point_id`+`measured_at` para tráfico, `station_id`+`measured_at` para
-     BiciMAD — antes de escribir, o usa `dropDuplicates()` de Spark sobre
-     esas columnas).
-   - **(b) Deduplicar in situ**: si prefieres no borrar y reprocesar,
-     reescribe Silver/Gold aplicando una deduplicación (leer todo,
-     `dropDuplicates()`, sobreescribir con `mode("overwrite")`) — más
-     simple si el volumen ya no es excesivo tras acotar a estos dos
-     datasets, pero revisa que no se dispare el mismo problema de coste que
-     motivó la 072 (una lectura completa puntual, una sola vez, está bien;
-     el problema era que se repitiera cada hora).
-2. Verifica el resultado con la misma consulta Athena del diagnóstico
-   (arriba) — debe devolver `n=1` para cualquier combinación
-   `point_id`+`measured_at` (o `station_id`+`measured_at`), no más.
-3. Confirma que el número de registros tras la limpieza es coherente con el
-   volumen real esperado (aprox. nº de objetos Bronze × registros por
-   objeto — puedes verificarlo con una muestra), no con el número inflado
-   que reportó la tarea 066.
-4. Documenta en `doc/073-limpieza-duplicados-trafico-bicimad.md` el
-   diagnóstico, el mecanismo de limpieza elegido y por qué, y la
-   verificación (antes/después, con números reales).
+1. Borra con `aws s3 rm --recursive` **todo** el contenido de:
+   - `s3://madrono-tfm-dev-silver-222234418587/trafico/`
+   - `s3://madrono-tfm-dev-gold-222234418587/trafico_por_punto_hora/`
+   - `s3://madrono-tfm-dev-silver-222234418587/bicimad/`
+   - `s3://madrono-tfm-dev-gold-222234418587/bicimad_por_estacion_hora/`
+   (revisa el nombre exacto del prefijo Gold de cada uno en `glue.tf` si no
+   coincide literalmente).
+2. Reconstruye cada uno con un job puntual (no el de producción incremental
+   de la tarea 072, que solo procesa la partición de una hora) que lea
+   **todo** Bronze de una vez y escriba Silver deduplicado — usa
+   `dropDuplicates(["point_id", "measured_at"])` para tráfico,
+   `dropDuplicates(["station_id", "measured_at"])` para BiciMAD, antes de
+   escribir. Puedes lanzar esto como una ejecución puntual de
+   `aws glue start-job-run` sobre el job de producción pasándole como
+   `--bronze_path` la raíz completa del dataset en vez de una partición
+   concreta (revisa qué argumento espera tras el arreglo de la tarea 072),
+   o como un script ad-hoc — elige lo más simple y documenta por qué.
+3. Repite el mismo proceso para Silver→Gold (dedup + reconstrucción
+   completa desde el Silver ya limpio).
+4. **No des la tarea por completa hasta que los CUATRO borrados+
+   reconstrucciones (Silver y Gold de trafico y de bicimad) estén
+   terminados** — si el presupuesto no llega para los cuatro, prioriza
+   terminar uno completo (borrado + reconstrucción + verificación) antes de
+   empezar el siguiente, en vez de dejar varios a medias. Un solo dataset
+   arreglado del todo es mucho mejor resultado que los cuatro a medias.
+5. Verifica cada uno con una consulta Athena real tipo:
+   ```sql
+   SELECT point_id, measured_at, COUNT(*) AS n
+   FROM trafico GROUP BY point_id, measured_at ORDER BY n DESC LIMIT 5
+   ```
+   (equivalente para `bicimad` con `station_id`) — debe devolver `n=1` en
+   la fila con más duplicados, no más. Verifica también que las fechas
+   presentes en Silver cubren el mismo rango que Bronze (sin huecos).
+6. Documenta en `doc/073-limpieza-duplicados-trafico-bicimad.md` el
+   diagnóstico completo (incluido lo que dejó a medias el intento anterior),
+   el mecanismo de limpieza elegido, y la verificación (antes/después, con
+   números reales) — para cada uno de los cuatro (Silver/Gold ×
+   trafico/bicimad) que llegues a completar.
 
 ## Restricciones
 
-- Alcance: solo `trafico`/`bicimad` — el resto de datasets del grupo
-  horario/diario puede tener el mismo problema, pero se limpia en las
-  tareas 074/075 respectivamente cuando les toque, no lo adelantes aquí.
-- NO toques Bronze — es el crudo, no está duplicado, no se toca.
+- Alcance: solo `trafico`/`bicimad` — el resto de datasets se limpia en las
+  tareas 074/075 cuando les toque.
+- NO toques Bronze.
 - NO reviertas ni toques el arreglo de lectura incremental de la tarea 072
-  (los triggers de `trafico`/`bicimad` ya están reactivados con el código
-  correcto — esta tarea es solo sobre los datos históricos ya escritos, no
-  sobre el pipeline en marcha).
-- Si el proceso de reconstrucción de esta tarea vuelve a disparar un coste
-  alto de Glue, es esperable (es una lectura completa de todo el
-  histórico, pero una única vez, no recurrente) — documenta el coste real
-  de esta limpieza puntual.
+  ni sus triggers — esta tarea es solo sobre los datos históricos.
+- Si el coste de Glue de esta reconstrucción puntual resulta alto, es
+  esperable (lee todo el histórico una vez) — documéntalo, no es motivo
+  para dejarlo a medias.
 - **Antes de terminar, confirma que dejas un commit real** con
-  `doc/073-...md`.
+  `doc/073-...md`, documentando exactamente qué de los cuatro completaste y
+  qué quedó pendiente si no llegaste a los cuatro — un resultado parcial
+  pero limpio y documentado es muchísimo mejor que lo que dejó el intento
+  anterior (a medias y sin documentar).
 
 ## Criterios de aceptación
 
-- Silver/Gold de `trafico`/`bicimad` no tiene registros duplicados,
-  verificado con una consulta Athena real (mismo tipo que el diagnóstico).
-- El volumen de datos tras la limpieza es coherente con el histórico real
-  de Bronze, no inflado.
-- `doc/073-limpieza-duplicados-trafico-bicimad.md` documenta el
-  diagnóstico, el mecanismo elegido, y la verificación con números reales.
+- Para cada dataset que completes: Silver/Gold sin registros duplicados
+  (verificado con Athena) y sin huecos de fecha respecto a Bronze.
+- Si no completas los cuatro, el documento dice exactamente cuáles sí y
+  cuáles no, con el estado real de cada uno (no "en progreso" ambiguo).
+- `doc/073-limpieza-duplicados-trafico-bicimad.md` documenta todo lo
+  anterior con números reales.
 - Hay un commit real con estos cambios.
