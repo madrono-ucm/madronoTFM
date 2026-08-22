@@ -1,139 +1,120 @@
 ---
 id: 72
 slug: arreglo-lectura-incremental-glue
-title: 'URGENTE: arreglar la lectura incremental de Bronze→Silver→Gold (coste de Glue
-  descontrolado)'
-status: failed
+title: "URGENTE: lectura incremental para trafico y bicimad (los dos jobs en timeout activo)"
+status: pending
 force: false
 allow_infra_apply: true
-branch: task/072-arreglo-lectura-incremental-glue
+branch: null
 pr_number: null
 pr_url: null
-attempts: 7
-next_retry_at: '2026-08-22T02:46:42.142795+00:00'
-last_error: 'ns":10308855,"cacheCreationInputTokens":241411,"webSearchRequests":0,"costUSD":6.040174499999999,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
-  maximum budget ($6)"],"type":"result","duration_ms":1079338,"uuid":"6bf978d8-8cf9-4783-bd1a-92b6ac5e32c7"}
-
-  '
-created_at: '2026-08-22T09:00:00+00:00'
-updated_at: '2026-08-22T03:04:50.914981+00:00'
-started_at: '2026-08-21T21:01:04.156415+00:00'
+attempts: 0
+next_retry_at: null
+last_error: null
+created_at: "2026-08-22T09:00:00+00:00"
+updated_at: "2026-08-22T09:30:00+00:00"
+started_at: null
 submitted_at: null
 merged_at: null
 ---
 
 ## Contexto
 
-**Bug de coste real, activo, y empeorando cada hora — máxima prioridad,
-por delante de cualquier otra tarea en cola.** El usuario reportó una
-factura de Glue de 39,71 USD y se ha confirmado la causa fuera de esta
-tarea (verificado con `aws glue get-job-runs` sobre los 28 jobs):
+**Bug de coste real y activo — máxima prioridad, por delante de cualquier
+otra tarea en cola.** Un primer intento de esta tarea (alcance: los 14
+datasets, 28 ficheros) agotó el presupuesto ($6, ~10.3M tokens, ~18 min)
+sin comitear nada. **Se reduce el alcance a los dos datasets más urgentes**
+— el resto (4 datasets más del grupo horario, 8 del grupo diario) son las
+tareas 073/074, creadas aparte para no repetir el mismo fallo.
 
-| Job | Runs (desde que arrancó producción) | DPU-horas acumuladas |
-|---|---|---|
-| `bicimad-silver-to-gold` | 45 | **37.85** |
-| `trafico-silver-to-gold` | 44 | **29.75** |
-| `trafico-bronze-to-silver` | 50 | **20.04** |
-| `bicimad-bronze-to-silver` | 48 | **10.79** |
-| (resto, p.ej. `aparcamientos-silver-to-gold`) | 48 | 1.61 (normal) |
+**Verificado de nuevo justo antes de reescribir esta tarea (con `aws glue
+get-job-runs`)**: `trafico-silver-to-gold` y `bicimad-silver-to-gold`
+llevan **muchas horas seguidas terminando en `TIMEOUT`** (se cortan a los
+30 min configurados, sin completar ni actualizar Gold), facturando la hora
+completa de DPU en cada intento fallido. Sus jobs Bronze→Silver hermanos
+siguen completando (`SUCCEEDED`) pero cada vez más lento
+(`trafico-bronze-to-silver` ~0.49 DPU-h/run, `bicimad-bronze-to-silver`
+~0.26 DPU-h/run, ambos subiendo). Coste acumulado hasta ahora en estos 4
+jobs: ~99 DPU-horas (~44 USD estimados) de un total de ~159 DPU-horas en
+los 28 jobs.
 
-**Causa raíz, confirmada leyendo el código, no solo inferida**:
-`procesamiento/silver_gold/*/glue_bronze_to_silver.py` hace
-`spark.read.option("multiLine", True).json(args["bronze_path"])` y
-`glue_silver_to_gold.py` hace `spark.read.parquet(args["silver_path"])`
-pasando **la ruta raíz del dataset completo**, sin ningún filtro de
-fecha/hora — cada ejecución reprocesa **todo el histórico acumulado desde
-el principio**, no solo los datos nuevos desde la última vez. Como Bronze
-crece sin parar (ingesta cada 5-15 min desde hace días), cada ejecución es
-más cara que la anterior — no es un pico puntual, es una trayectoria de
-coste creciente sin límite. Afecta a los 14 datasets por igual en diseño;
-hoy es más visible en `trafico`/`bicimad` porque son los de mayor volumen,
-pero el resto llegará al mismo punto con el tiempo si no se arregla.
+**Causa raíz, confirmada leyendo el código**:
+`procesamiento/silver_gold/trafico/glue_bronze_to_silver.py` y
+`.../bicimad/glue_bronze_to_silver.py` hacen
+`spark.read.option("multiLine", True).json(args["bronze_path"])`, y los
+`glue_silver_to_gold.py` correspondientes hacen
+`spark.read.parquet(args["silver_path"])`, pasando **la ruta raíz del
+dataset completo**, sin ningún filtro de fecha/hora — cada ejecución
+reprocesa todo el histórico acumulado desde el principio, no solo los
+datos nuevos.
 
-**Mitigación ya aplicada fuera de esta tarea, antes de crearla**: se han
-desactivado (`aws glue stop-trigger`) los 6 triggers `SCHEDULED` del grupo
-horario (`trafico`, `transporte_publico_emt`, `bicimad`, `aparcamientos`,
-`calidad_aire`, `meteorologia`) directamente vía API, **sin pasar por
-Terraform** — el estado de Terraform sigue marcándolos como `ACTIVATED`,
-así que un `terraform apply` sin cuidado los reactivaría. Los 8 triggers
-del grupo diario siguen activos (su coste actual es bajo, cadencia mucho
-menor), pero comparten el mismo bug y deberían arreglarse también.
+**Mitigación ya aplicada fuera de esta tarea**: los 6 triggers `SCHEDULED`
+del grupo horario (incluidos `trafico`/`bicimad`) están desactivados
+(`aws glue stop-trigger`, directamente vía API, sin pasar por Terraform —
+el estado de Terraform sigue marcándolos `ACTIVATED`, cuidado con un
+`apply` sin `-target`). **Confirma al empezar que siguen desactivados** —
+si algo los hubiera reactivado entretanto, algo iría muy mal y hay que
+investigarlo antes de seguir.
 
 **`force: false` deliberado**: cambia cómo se procesan datos de producción
-reales — reviso antes de fusionar. **`allow_infra_apply: true`**: permiso
-para relanzar jobs de verificación y, si hiciera falta, ajustar
-`aws_glue_job`/triggers.
+reales — reviso antes de fusionar.
 
 ## Objetivo
 
-Arreglar la lectura para que cada ejecución procese solo los datos nuevos
-desde la última ejecución exitosa (no el histórico completo), reactivar los
-6 triggers desactivados con el código ya corregido, y confirmar con una
-ejecución real que el tiempo/coste por run vuelve a ser proporcional al
-volumen de una hora, no al histórico acumulado.
+Arreglar la lectura de `trafico` y `bicimad` (Bronze→Silver y
+Silver→Gold, 4 ficheros) para que cada ejecución procese solo los datos
+nuevos, reactivar sus 2 triggers `SCHEDULED` una vez verificado, y
+confirmar con una ejecución real que el coste por ejecución vuelve a ser
+proporcional.
 
 ## Alcance concreto
 
-1. Decide e implementa el filtro incremental. Opciones a evaluar (elige la
-   más simple que funcione, documenta por qué):
+1. En los 4 ficheros (`procesamiento/silver_gold/{trafico,bicimad}/
+   glue_{bronze_to_silver,silver_to_gold}.py`): filtra la lectura a la
+   partición que toca procesar en vez de la ruta raíz.
    - **Bronze→Silver**: los objetos ya están particionados por
-     `fecha=.../hora=.../` en S3 (ver `ingesta/capturas/bronze.py`). Pasa
-     como `bronze_path` solo la partición de la hora que toca procesar
-     (calculada a partir de `processed_at`/hora de disparo), no la raíz del
-     dataset — igual que ya hace bien, por ejemplo, cómo está particionado
-     el propio bucket. Para los datasets de cadencia diaria, la partición
-     equivalente por fecha.
-   - **Silver→Gold**: mismo criterio, filtra `silver_path` por la partición
-     `fecha`/`hora` (o `fecha`, según el dataset) que corresponde a lo que
-     acaba de escribir el Bronze→Silver anterior, no todo Silver.
-   - Si algún dataset agrega sobre una ventana más ancha por diseño (p.ej.
-     `ruido` con su media móvil de 7 días, tarea 053), decide el filtro
-     mínimo que siga siendo correcto para ese caso concreto (leer solo los
-     últimos N días en vez de reprocesar todo el histórico), no lo dejes
-     igual de roto ni sobre-optimices con un filtro que rompa la lógica ya
-     testada.
-2. Aplica este arreglo a los 28 `glue_bronze_to_silver.py`/
-   `glue_silver_to_gold.py` (14 datasets × 2 etapas) — es un cambio
-   sistemático, no distinto por dataset salvo el caso de ventana ancha
-   mencionado arriba.
-3. Actualiza los tests de `procesamiento/tests/` si la lógica cambiada es
-   testeable sin `pyspark` (el cálculo de qué partición/ruta tocar sí lo
-   es, aíslalo en una función pura si no lo está ya).
-4. `terraform apply` acotado con `-target` a los 28 `aws_glue_job` (mismo
-   patrón que la tarea 065/068 — no toques Kafka ni nada no relacionado)
-   para desplegar el código corregido.
-5. Reactiva los 6 triggers `SCHEDULED` desactivados
-   (`aws glue start-trigger`) **solo después de** verificar el arreglo.
-6. Verifica con al menos `trafico` y `bicimad` (los más afectados): fuerza
-   una ejecución real de Bronze→Silver y Silver→Gold y confirma que la
-   duración/DPU-segundos de esta ejecución es del orden de las ejecuciones
-   "sanas" de la tabla de arriba (minutos, no decenas de DPU-hora), no del
-   orden de las últimas ejecuciones rotas.
-7. Documenta en `doc/072-arreglo-lectura-incremental-glue.md` el
-   diagnóstico completo, el arreglo aplicado, el coste real acumulado hasta
-   ahora (tabla de arriba) y la verificación de que el coste por ejecución
-   vuelve a ser proporcional.
+     `fecha=.../hora=.../` en S3 (`ingesta/capturas/bronze.py`). Pasa como
+     `bronze_path` solo la partición de la hora que toca procesar
+     (calculada a partir de `processed_at`/hora de disparo), no la raíz.
+   - **Silver→Gold**: mismo criterio, filtra `silver_path` a la partición
+     `fecha`/`hora` que corresponde a lo que acaba de escribir el
+     Bronze→Silver anterior.
+2. Actualiza los tests de `procesamiento/tests/` que cubran estos 4
+   ficheros si la lógica cambiada es testeable sin `pyspark` (el cálculo de
+   qué partición/ruta tocar sí lo es — aíslalo en una función pura si no lo
+   está ya).
+3. `terraform apply` acotado con `-target` a los 4 `aws_glue_job` de estos
+   dos datasets únicamente (mismo patrón que la tarea 065/068 — no toques
+   Kafka ni nada no relacionado, ni el resto de datasets).
+4. Reactiva los 2 triggers `SCHEDULED` (`trafico`, `bicimad`) **solo
+   después de** verificar el arreglo.
+5. Fuerza una ejecución real de Bronze→Silver y Silver→Gold de ambos
+   datasets y confirma que la duración/DPU-segundos de esta ejecución es
+   del orden de un job "sano" (minutos, no decenas de DPU-hora ni
+   `TIMEOUT`).
+6. Documenta en `doc/072-arreglo-lectura-incremental-glue.md` el
+   diagnóstico, el arreglo aplicado, el coste real acumulado en estos 4
+   jobs hasta ahora, y la verificación de que el coste por ejecución vuelve
+   a ser proporcional.
 
 ## Restricciones
 
+- Alcance: solo `trafico`/`bicimad` (4 ficheros, 2 triggers) — el resto es
+  las tareas 073/074, no las adelantes aunque parezca poco esfuerzo extra.
 - NO ejecutes `terraform apply` sin `-target`.
 - NO ejecutes `terraform destroy`.
-- NO reactives los 6 triggers hasta haber verificado el arreglo con al
-  menos `trafico`/`bicimad`.
-- NO toques el grupo diario (8 triggers) más allá de aplicarles el mismo
-  arreglo de código — siguen activos, no los desactives ni los alteres de
-  otra forma.
+- NO reactives los triggers hasta haber verificado el arreglo.
+- NO toques los otros 12 triggers (4 horarios + 8 diarios) ni su código.
 - **Antes de terminar, confirma que dejas un commit real** con
   `doc/072-...md` — dado el coste ya incurrido, un resultado a medias
   documentado es preferible a un intento perdido sin comitear nada.
 
 ## Criterios de aceptación
 
-- Los 28 jobs procesan solo datos nuevos por ejecución, no el histórico
-  completo, verificado con una ejecución real de `trafico`/`bicimad` con
-  duración/coste proporcional.
-- Los 6 triggers del grupo horario están reactivados tras verificar el
-  arreglo.
+- `trafico` y `bicimad` (Bronze→Silver y Silver→Gold) procesan solo datos
+  nuevos por ejecución, verificado con una ejecución real sin `TIMEOUT` y
+  con coste proporcional.
+- Sus 2 triggers `SCHEDULED` están reactivados tras verificar el arreglo.
 - `doc/072-arreglo-lectura-incremental-glue.md` documenta el diagnóstico,
   el coste real incurrido, y la verificación.
 - Hay un commit real con estos cambios.
