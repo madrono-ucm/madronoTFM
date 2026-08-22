@@ -2,19 +2,19 @@
 id: 74
 slug: limpieza-duplicados-bicimad-verificar
 title: Verificar la reconstrucción de bicimad y completar Gold
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: true
 branch: task/074-limpieza-duplicados-bicimad-verificar
-pr_number: null
-pr_url: null
+pr_number: 120
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/120
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-22T21:40:00+00:00'
-updated_at: '2026-08-22T23:12:32.149597+00:00'
+updated_at: '2026-08-22T23:33:06.653017+00:00'
 started_at: '2026-08-22T23:12:32.149574+00:00'
-submitted_at: null
+submitted_at: '2026-08-22T23:33:06.652876+00:00'
 merged_at: null
 ---
 
