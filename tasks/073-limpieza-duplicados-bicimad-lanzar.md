@@ -3,7 +3,7 @@ id: 73
 slug: limpieza-duplicados-bicimad-lanzar
 title: 'URGENTE: lanzar la reconstrucción deduplicada de bicimad (sin esperar a que
   termine)'
-status: in_progress
+status: failed
 force: true
 allow_infra_apply: true
 branch: task/073-limpieza-duplicados-bicimad-lanzar
@@ -11,9 +11,9 @@ pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
-last_error: null
+last_error: claude finalizó sin crear ningún commit
 created_at: '2026-08-22T21:40:00+00:00'
-updated_at: '2026-08-22T22:53:43.317358+00:00'
+updated_at: '2026-08-22T23:00:23.653968+00:00'
 started_at: '2026-08-22T22:53:43.317331+00:00'
 submitted_at: null
 merged_at: null
