@@ -34,12 +34,19 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import boto3
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+
+from procesamiento.silver_gold.incremental import (
+    hourly_partition_uri,
+    partition_has_objects,
+    previous_hour,
+)
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
@@ -55,7 +62,23 @@ def main() -> None:
 
     processed_at = datetime.now(MADRID_TZ)
 
-    silver_df = spark.read.parquet(args["silver_path"]).where(F.col("fecha") != "__sin_medida__")
+    fecha, hora = previous_hour(processed_at)
+    silver_partition_path = hourly_partition_uri(args["silver_path"], fecha, hora)
+    if not partition_has_objects(boto3.client("s3"), silver_partition_path):
+        job.commit()
+        return
+
+    # `fecha`/`hora` son columnas de partición de Silver (ver
+    # glue_bronze_to_silver.py); al narrowear la lectura a una única
+    # partición (tarea 072), Spark ya no las infiere de la ruta -- se
+    # recalculan aquí desde `measured_at`, la misma columna que las originó.
+    # (`__sin_medida__` ya no puede aparecer: la partición leída es siempre
+    # una fecha/hora real, ver docstring de glue_bronze_to_silver.py.)
+    silver_df = (
+        spark.read.parquet(silver_partition_path)
+        .withColumn("fecha", F.date_format(F.to_timestamp("measured_at"), "yyyy-MM-dd"))
+        .withColumn("hora", F.date_format(F.to_timestamp("measured_at"), "HH"))
+    )
 
     # `fecha`/`hora` ya son las columnas de partición físicas de Silver (ver
     # glue_bronze_to_silver.py); agrupar por ellas permite a Spark aprovechar

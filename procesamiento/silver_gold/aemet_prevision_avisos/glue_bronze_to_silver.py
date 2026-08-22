@@ -56,6 +56,11 @@ from pyspark.sql import Row, SparkSession
 from pyspark.sql.functions import date_format, to_timestamp
 from pyspark.sql.types import DoubleType, IntegerType, StringType, StructField, StructType
 
+from procesamiento.silver_gold.incremental import (
+    daily_partition_uri,
+    partition_has_objects,
+    today,
+)
 from procesamiento.silver_gold.aemet_prevision_avisos.ge_suite import (
     run_avisos_quality_report,
     run_prevision_quality_report,
@@ -172,8 +177,27 @@ def main() -> None:
     processed_at = datetime.now(MADRID_TZ)
     gx_context = gx.get_context(mode="ephemeral")
 
+    # Lectura incremental (tarea 072): solo la partición Bronze de hoy (día
+    # de ingestión; cadencia diaria, ver glue_scheduling.tf) de cada forma de
+    # dato -- nunca la raíz completa, ver
+    # doc/072-arreglo-lectura-incremental-glue.md.
+    fecha = today(processed_at)
+    bronze_prevision_partition_path = daily_partition_uri(args["bronze_prevision_path"], fecha)
+    bronze_avisos_partition_path = daily_partition_uri(args["bronze_avisos_path"], fecha)
+    s3_client = boto3.client("s3")
+    # Previsión y avisos comparten productor/cadencia real (ver docstring del
+    # módulo): en la práctica llegan juntos cada día. Si un día concreto
+    # falta cualquiera de las dos, se salta esta ejecución entera (simple, se
+    # autocorrige al día siguiente) en vez de complicar el resto del job con
+    # dos rutas de "falta una de las dos formas".
+    if not partition_has_objects(s3_client, bronze_prevision_partition_path) or not partition_has_objects(
+        s3_client, bronze_avisos_partition_path
+    ):
+        job.commit()
+        return
+
     # --- Previsión --------------------------------------------------------
-    bronze_prevision_df = spark.read.option("multiLine", True).json(args["bronze_prevision_path"])
+    bronze_prevision_df = spark.read.option("multiLine", True).json(bronze_prevision_partition_path)
     silver_prevision_rdd = bronze_prevision_df.rdd.mapPartitions(
         lambda rows: _process_prevision_partition(rows, processed_at.isoformat())
     )
@@ -194,7 +218,7 @@ def main() -> None:
     ).write.mode("append").partitionBy("fecha").parquet(args["silver_prevision_path"])
 
     # --- Avisos -------------------------------------------------------------
-    bronze_avisos_df = spark.read.option("multiLine", True).json(args["bronze_avisos_path"])
+    bronze_avisos_df = spark.read.option("multiLine", True).json(bronze_avisos_partition_path)
     silver_avisos_rdd = bronze_avisos_df.rdd.mapPartitions(
         lambda rows: _process_avisos_partition(rows, processed_at.isoformat())
     )
