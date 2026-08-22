@@ -3,19 +3,19 @@ id: 72
 slug: arreglo-lectura-incremental-glue
 title: 'URGENTE: lectura incremental para trafico y bicimad (los dos jobs en timeout
   activo)'
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: true
 branch: task/072-arreglo-lectura-incremental-glue
-pr_number: null
-pr_url: null
+pr_number: 119
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/119
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-22T09:00:00+00:00'
-updated_at: '2026-08-22T16:20:23.406987+00:00'
+updated_at: '2026-08-22T16:44:37.808679+00:00'
 started_at: '2026-08-22T16:20:23.406965+00:00'
-submitted_at: null
+submitted_at: '2026-08-22T16:44:37.808657+00:00'
 merged_at: null
 ---
 
