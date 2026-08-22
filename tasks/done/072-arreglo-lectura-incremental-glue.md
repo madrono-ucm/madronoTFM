@@ -3,7 +3,7 @@ id: 72
 slug: arreglo-lectura-incremental-glue
 title: 'URGENTE: lectura incremental para trafico y bicimad (los dos jobs en timeout
   activo)'
-status: in_review
+status: done
 force: false
 allow_infra_apply: true
 branch: task/072-arreglo-lectura-incremental-glue
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-22T09:00:00+00:00'
-updated_at: '2026-08-22T16:44:37.808679+00:00'
+updated_at: '2026-08-22T16:54:49.433711+00:00'
 started_at: '2026-08-22T16:20:23.406965+00:00'
 submitted_at: '2026-08-22T16:44:37.808657+00:00'
-merged_at: null
+merged_at: '2026-08-22T16:54:18Z'
 ---
 
 ## Contexto
