@@ -1509,6 +1509,53 @@ resource "aws_glue_job" "bicimad_bronze_to_silver" {
   depends_on = [aws_cloudwatch_log_group.glue_bicimad]
 }
 
+# Job de un solo uso (tarea 073) para reconstruir Silver de `bicimad` desde
+# cero, deduplicado -- ver docstring de `glue_backfill_dedup.py`. Sin
+# trigger ni schedule: se lanza a mano, una vez.
+resource "aws_s3_object" "glue_script_bicimad_backfill_dedup" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/bicimad_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup.py")
+}
+
+resource "aws_glue_job" "bicimad_silver_backfill_dedup" {
+  name        = "${local.glue_bicimad_prefix}-silver-backfill-dedup"
+  description = "USO UNICO (tarea 073): reconstruccion deduplicada de Silver de bicimad desde cero, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_bicimad.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  # Timeout mas alto que el resto de jobs (var.glue_job_timeout_minutes,
+  # 30 min): este job lee TODO el historico de Bronze de una vez, no una
+  # sola particion horaria, y puede tardar mas que el pipeline incremental.
+  timeout     = 90
+  max_retries = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_bicimad_backfill_dedup.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/bicimad/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bicimad/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/bicimad/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_bicimad]
+}
+
 resource "aws_glue_job" "bicimad_silver_to_gold" {
   name        = "${local.glue_bicimad_prefix}-silver-to-gold"
   description = "Silver -> Gold de BiciMAD: disponibilidad media de bicis/anclajes por estacion y hora (tarea 047)."
