@@ -1,19 +1,19 @@
 ---
 id: 74
 slug: limpieza-duplicados-bicimad-verificar
-title: "Verificar la reconstrucción de bicimad y completar Gold"
-status: pending
+title: Verificar la reconstrucción de bicimad y completar Gold
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/074-limpieza-duplicados-bicimad-verificar
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-22T21:40:00+00:00"
-updated_at: "2026-08-22T21:40:00+00:00"
-started_at: null
+created_at: '2026-08-22T21:40:00+00:00'
+updated_at: '2026-08-22T23:12:32.149597+00:00'
+started_at: '2026-08-22T23:12:32.149574+00:00'
 submitted_at: null
 merged_at: null
 ---
