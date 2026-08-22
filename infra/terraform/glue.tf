@@ -589,8 +589,13 @@ resource "aws_glue_job" "trafico_silver_to_gold" {
   }
 
   default_arguments = {
-    "--job-language"                     = "python"
-    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--job-language" = "python"
+    "--TempDir"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    # Tarea 072: el script importa `procesamiento.silver_gold.incremental`
+    # (lectura incremental) -- sin este argumento, ese import fallaría con
+    # ModuleNotFoundError al ejecutar en Glue (el paquete `procesamiento` no
+    # está en el path por defecto, solo lo trae `--extra-py-files`).
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -1522,8 +1527,13 @@ resource "aws_glue_job" "bicimad_silver_to_gold" {
   }
 
   default_arguments = {
-    "--job-language"                     = "python"
-    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--job-language" = "python"
+    "--TempDir"      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    # Tarea 072: el script importa `procesamiento.silver_gold.incremental`
+    # (lectura incremental) -- sin este argumento, ese import fallaría con
+    # ModuleNotFoundError al ejecutar en Glue (el paquete `procesamiento` no
+    # está en el path por defecto, solo lo trae `--extra-py-files`).
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"

@@ -49,6 +49,11 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from procesamiento.silver_gold.incremental import (
+    hourly_partition_uri,
+    partition_has_objects,
+    previous_hour,
+)
 from procesamiento.silver_gold.meteorologia.ge_suite import run_quality_report
 from procesamiento.silver_gold.meteorologia.transform import PLAUSIBLE_RANGE_BY_MAGNITUDE, bronze_to_silver
 
@@ -167,10 +172,20 @@ def main() -> None:
 
     processed_at = datetime.now(MADRID_TZ)
 
+    # Lectura incremental (tarea 072): solo la particion Bronze de la hora
+    # completa anterior a esta ejecucion -- nunca la raiz del dataset
+    # completo, que crecia sin limite y disparo el coste real de Glue
+    # documentado en doc/072-arreglo-lectura-incremental-glue.md.
+    fecha, hora = previous_hour(processed_at)
+    bronze_partition_path = hourly_partition_uri(args["bronze_path"], fecha, hora)
+    if not partition_has_objects(boto3.client("s3"), bronze_partition_path):
+        job.commit()
+        return
+
     # Cada objeto Bronze es un array JSON de registros (ver
     # `ingesta/capturas/bronze.py`, `write_batch`); `multiLine=True` hace
     # que Spark expanda ese array en filas en vez de esperar NDJSON.
-    bronze_df = spark.read.option("multiLine", True).json(args["bronze_path"])
+    bronze_df = spark.read.option("multiLine", True).json(bronze_partition_path)
 
     silver_rdd = bronze_df.rdd.mapPartitions(
         lambda rows: _process_partition(rows, processed_at.isoformat())
