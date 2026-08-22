@@ -1,5 +1,5 @@
 ---
-id: 75
+id: 76
 slug: arreglo-lectura-incremental-glue-grupo-diario
 title: "Lectura incremental para el grupo diario (8 datasets)"
 status: pending
@@ -20,7 +20,7 @@ merged_at: null
 
 ## Contexto
 
-Cierra la serie de las tareas 072/073/074 (mismo bug de lectura no
+Cierra la serie de las tareas 072-075 (mismo bug de lectura no
 incremental en Bronze→Silver→Gold — **lee `doc/072-arreglo-lectura-
 incremental-glue.md` completo antes de empezar**, documenta el diagnóstico
 completo y dos bugs adicionales relevantes para esta tarea, ver abajo). Esta
@@ -54,13 +54,13 @@ también aquí**:
 **Dato nuevo, posterior a como se escribió esta tarea la primera vez**:
 Silver de `trafico`/`bicimad` tenía datos masivamente duplicados (hasta 88
 copias del mismo registro) por reprocesar todo el histórico sin deduplicar
-en cada ejecución — arreglado en la tarea 073. Estos 8 datasets, al
+en cada ejecución — arreglado en las tareas 073/074. Estos 8 datasets, al
 compartir exactamente el mismo patrón de código histórico, probablemente
 tienen el mismo problema, aunque su volumen/nº de ejecuciones es menor
 (cadencia diaria, no horaria) así que el factor de duplicación debería ser
 mucho menor. **Confírmalo** (compara nº de objetos Bronze vs Silver de cada
 dataset, o cuenta duplicados reales con una consulta Athena) y, si lo
-confirmas, límpialo con el mismo procedimiento que documentó la 073.
+confirmas, límpialo con el mismo procedimiento que documentaron las 073/074.
 
 **Diferencia relevante frente al resto de esta serie**: estos triggers
 **siguen activos** (nunca se desactivaron, su coste actual es bajo) y
@@ -83,14 +83,14 @@ necesidad de reactivar ningún trigger (ya están activos).
 
 1. Confirma que `glue_silver_to_gold.py` de estos 8 (10 con los 2 pares de
    AEMET) ya usa `incremental.py` para acotar la lectura de Silver — si no,
-   aplícalo con el mismo patrón que 072/073/074, con la excepción de
+   aplícalo con el mismo patrón que las tareas anteriores de esta serie, con la excepción de
    `ruido` (ventana de 7 días, ver arriba).
 2. Añade `--extra-py-files` a los `aws_glue_job` Silver→Gold que lo tengan
    pendiente (punto 1 del Contexto).
 3. Añade `spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")`
    donde falte (punto 2 del Contexto).
 4. Actualiza los tests correspondientes si aplica.
-5. `terraform apply` acotado con `-target` — mismo cuidado que la 074 con
+5. `terraform apply` acotado con `-target` — mismo cuidado que la 075 con
    el artefacto compartido de `procesamiento/` (ver `doc/072-...md`).
 6. Comprueba si Silver/Gold de estos 8 datasets está duplicado y, si lo
    está, límpialo (trunca y reconstruye desde Bronze).
@@ -99,7 +99,7 @@ necesidad de reactivar ningún trigger (ya están activos).
    su caso especial) y confirma que Gold recibe datos reales correctos
    (compara con lo que ya verificaron las tareas 062/063), sin `TIMEOUT` ni
    no-ops silenciosos, con coste proporcional al volumen de un día.
-8. Documenta en `doc/075-arreglo-lectura-incremental-glue-grupo-diario.md`.
+8. Documenta en `doc/076-arreglo-lectura-incremental-glue-grupo-diario.md`.
 
 ## Restricciones
 
@@ -116,6 +116,6 @@ necesidad de reactivar ningún trigger (ya están activos).
   recibiendo datos reales correctos.
 - Si Silver/Gold de estos 8 datasets estaba duplicado, está limpio y
   reconstruido.
-- `doc/075-...md` documenta el resultado, incluida la decisión tomada para
+- `doc/076-...md` documenta el resultado, incluida la decisión tomada para
   `ruido`.
 - Hay un commit real con estos cambios.

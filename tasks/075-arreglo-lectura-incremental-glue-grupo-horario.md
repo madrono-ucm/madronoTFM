@@ -1,5 +1,5 @@
 ---
-id: 74
+id: 75
 slug: arreglo-lectura-incremental-glue-grupo-horario
 title: "Lectura incremental para el resto del grupo horario (EMT, aparcamientos, calidad del aire, meteorología)"
 status: pending
@@ -20,7 +20,7 @@ merged_at: null
 
 ## Contexto
 
-Continúa la tarea 072/073 (mismo bug, mismo motivo de división: un primer
+Continúa las tareas 072/073/074 (mismo bug, mismo motivo de división: un primer
 intento cubriendo los 14 datasets a la vez agotó presupuesto sin comitear
 nada). La 072 arregló el código de lectura de los dos datasets más urgentes
 (`trafico`, `bicimad`, ya en `TIMEOUT` activo) y, como efecto colateral
@@ -28,7 +28,7 @@ necesario (el artefacto de librería compartido `procesamiento/` no se puede
 actualizar de forma parcial sin romper a los demás), **ya desplegó el
 código de lectura incremental de Bronze→Silver para los 14 datasets** —
 pero **no** el de Silver→Gold de estos 4, ni sus triggers, ni la limpieza de
-lo ya duplicado. La 073 limpió los datos ya duplicados de `trafico`/
+lo ya duplicado. Las 073/074 limpiaron los datos ya duplicados de `trafico`/
 `bicimad`. Esta tarea cubre los 4 restantes del grupo horario:
 `transporte_publico_emt`, `aparcamientos`, `calidad_aire`, `meteorologia`.
 
@@ -58,19 +58,19 @@ verificar/arreglar aquí:
 
 **Además, dato nuevo desde que se escribió esta tarea la primera vez**:
 Silver de estos 4 datasets probablemente tiene el mismo problema de
-duplicación masiva que tenían `trafico`/`bicimad` (ver `doc/073-...md`) —
+duplicación masiva que tenían `trafico`/`bicimad` (ver `doc/074-limpieza-duplicados-bicimad-verificar.md`) —
 cada ejecución histórica reprocesaba y volvía a escribir todo el histórico
 sin deduplicar. Confírmalo (compara nº de objetos en Bronze vs Silver de
 cada dataset, o cuenta duplicados reales con una consulta Athena sobre
 alguna clave conocida) y, si lo confirmas, aplica la misma limpieza que hizo
-la 073 (truncar y reconstruir desde Bronze, ya con la lectura incremental
+las 073/074 (truncar y reconstruir desde Bronze, ya con la lectura incremental
 corregida).
 
 Sus triggers `SCHEDULED` están desactivados desde antes de la tarea 072
 (mitigación aplicada fuera de cola, vía `aws glue stop-trigger`, sin pasar
 por Terraform). **Confirma al empezar que siguen desactivados.**
 
-**`force: false` deliberado**: mismo criterio que 072/073.
+**`force: false` deliberado**: mismo criterio que el resto de la serie.
 
 ## Objetivo
 
@@ -84,7 +84,7 @@ ejecución real.
 1. Confirma si `procesamiento/silver_gold/{transporte_publico_emt,
    aparcamientos,calidad_aire,meteorologia}/glue_{bronze_to_silver,
    silver_to_gold}.py` (8 ficheros) ya usan `incremental.py` (probable, ver
-   Contexto) — si no, aplica el mismo patrón que 072/073.
+   Contexto) — si no, aplica el mismo patrón que las tareas anteriores de esta serie.
 2. Añade `--extra-py-files` a los `aws_glue_job` Silver→Gold de estos 4 en
    `glue.tf` si falta (punto 1 del Contexto).
 3. Añade `spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")` a
@@ -106,12 +106,12 @@ ejecución real.
 8. Fuerza una ejecución real de Bronze→Silver y Silver→Gold de al menos 2
    de los 4 datasets y confirma: coste/duración proporcional, sin
    `TIMEOUT`, Gold recibe datos reales de hoy (no un no-op silencioso).
-9. Documenta en `doc/074-arreglo-lectura-incremental-glue-grupo-horario.md`.
+9. Documenta en `doc/075-arreglo-lectura-incremental-glue-grupo-horario.md`.
 
 ## Restricciones
 
 - Alcance: solo estos 4 datasets (8 ficheros, 4 triggers) — el grupo diario
-  es la tarea 075.
+  es la tarea 076.
 - NO ejecutes `terraform apply` sin `-target`.
 - NO ejecutes `terraform destroy`.
 - NO reactives los triggers hasta haber verificado el arreglo end-to-end
@@ -127,5 +127,5 @@ ejecución real.
 - Si Silver/Gold de estos 4 datasets estaba duplicado, está limpio y
   reconstruido.
 - Sus 4 triggers `SCHEDULED` están reactivados tras verificar.
-- `doc/074-...md` documenta el resultado.
+- `doc/075-...md` documenta el resultado.
 - Hay un commit real con estos cambios.
