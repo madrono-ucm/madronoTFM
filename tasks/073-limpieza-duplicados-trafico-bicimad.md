@@ -1,19 +1,19 @@
 ---
 id: 73
 slug: limpieza-duplicados-trafico-bicimad
-title: "URGENTE: limpiar los datos duplicados de trafico/bicimad en Silver/Gold"
-status: pending
+title: 'URGENTE: limpiar los datos duplicados de trafico/bicimad en Silver/Gold'
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/073-limpieza-duplicados-trafico-bicimad
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-22T18:00:00+00:00"
-updated_at: "2026-08-22T18:00:00+00:00"
-started_at: null
+created_at: '2026-08-22T18:00:00+00:00'
+updated_at: '2026-08-22T16:55:51.748294+00:00'
+started_at: '2026-08-22T16:55:51.748270+00:00'
 submitted_at: null
 merged_at: null
 ---
