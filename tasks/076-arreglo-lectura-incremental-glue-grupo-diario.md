@@ -2,17 +2,20 @@
 id: 76
 slug: arreglo-lectura-incremental-glue-grupo-diario
 title: Lectura incremental para el grupo diario (8 datasets)
-status: in_progress
+status: failed
 force: false
 allow_infra_apply: true
 branch: task/076-arreglo-lectura-incremental-glue-grupo-diario
 pr_number: null
 pr_url: null
-attempts: 3
+attempts: 4
 next_retry_at: '2026-08-23T02:25:59.122210+00:00'
-last_error: You've hit your session limit · resets 2:10am (UTC)
+last_error: 'ns":12646576,"cacheCreationInputTokens":180737,"webSearchRequests":0,"costUSD":6.048079800000001,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
+  maximum budget ($6)"],"type":"result","duration_ms":1133856,"uuid":"1f524036-8d87-48b2-8998-d7d7ef4d6b3e"}
+
+  '
 created_at: '2026-08-22T09:30:00+00:00'
-updated_at: '2026-08-23T02:26:57.127907+00:00'
+updated_at: '2026-08-23T02:45:54.005540+00:00'
 started_at: '2026-08-23T01:36:43.740792+00:00'
 submitted_at: null
 merged_at: null
