@@ -2,7 +2,7 @@
 id: 76
 slug: arreglo-lectura-incremental-glue-grupo-diario
 title: Lectura incremental para el grupo diario (8 datasets)
-status: blocked
+status: in_progress
 force: false
 allow_infra_apply: true
 branch: task/076-arreglo-lectura-incremental-glue-grupo-diario
@@ -12,7 +12,7 @@ attempts: 2
 next_retry_at: '2026-08-23T02:08:12.732715+00:00'
 last_error: You've hit your session limit · resets 2:10am (UTC)
 created_at: '2026-08-22T09:30:00+00:00'
-updated_at: '2026-08-23T01:56:34.739144+00:00'
+updated_at: '2026-08-23T02:08:42.594594+00:00'
 started_at: '2026-08-23T01:36:43.740792+00:00'
 submitted_at: null
 merged_at: null
