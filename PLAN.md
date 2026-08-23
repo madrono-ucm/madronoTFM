@@ -104,37 +104,43 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `079`**
+**Próximo número libre: `080`**
 
-## Trabajo por hacer
+Nota sobre el orden: `079` se adelantó a las tareas bloqueadas por
+credenciales (Neo4j, Google Maps) porque no tenía ningún bloqueo — la cola
+es estrictamente secuencial (`tasks/README.md`), así que crear primero una
+tarea bloqueada habría parado toda la cola sin necesidad. Mismo criterio
+para lo que sigue: las tareas sin bloqueo se numeran y encolan ya; las
+bloqueadas por credenciales se numeran **cuando lleguen**, no antes, para no
+reservarles un hueco que fuerce a esperar.
 
 ### Pista Sistema
 
-Borrador de las próximas tareas de la cola, listas para copiar a
-`tasks/NNN-slug.md` en cuanto se desbloqueen (usa `tasks/_template.md` como
-base y sigue el formato exacto del front-matter descrito en
-`tasks/README.md`).
-
-- [ ] **`079-aplicar-cargar-neo4j`** — bloqueada por el alta de AuraDB.
-  Objetivo: aplicar la instancia (guardar credenciales en SSM como el resto
-  de secretos del proyecto), ejecutar `grafo/cargar_grafo.py`
+- [x] **[`079-asistente-tool-calidad-aire`](tasks/079-asistente-tool-calidad-aire.md)**
+  — en cola, sin bloqueo. Primera `tool` real del asistente
+  (`calidad_aire`, contra `gold.calidad_aire_por_estacion_contaminante_hora`
+  vía Athena), de extremo a extremo: MCP montado en FastAPI, respuesta
+  trazable a los datos. Alcance deliberadamente acotado a una sola tool —
+  las otras 4 son tareas de seguimiento.
+- [ ] **Carga real del grafo** (número pendiente de asignar) — bloqueada
+  por el alta de Neo4j AuraDB. En cuanto lleguen
+  `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD`: guardarlas en SSM (mismo
+  patrón que EMT/AEMET/CAMS), ejecutar `grafo/cargar_grafo.py`
   (ver [`doc/067`](doc/067-etl-grafo-neo4j-nodos.md)–[`doc/071`](doc/071-grafo-relacion-conectado-con.md))
-  contra datos reales, y verificar con consultas Cypher reales que el grafo
-  tiene los 4 tipos de nodo y las 4 relaciones cargados. `force: false`
-  (primera carga real, revisar antes de fusionar).
-- [ ] **`080-wire-google-maps-key`** — bloqueada por la clave. Guardar en
-  SSM, aplicar vía Terraform igual que EMT/AEMET/CAMS
-  (ver [`doc/018`](doc/018-captura-aemet-prevision-avisos.md) como
-  referencia del patrón), verificar que `afluencia_lugares` deja de
+  contra datos reales, verificar con Cypher que los 4 tipos de nodo y las 4
+  relaciones están cargados. `force: false` (primera carga real).
+- [ ] **Clave de Google Maps** (número pendiente de asignar) — bloqueada
+  por la clave. Guardar en SSM, aplicar vía Terraform igual que
+  EMT/AEMET/CAMS (ver [`doc/018`](doc/018-captura-aemet-prevision-avisos.md)
+  como referencia del patrón), verificar que `afluencia_lugares` deja de
   devolver `is_mock: true`.
-- [ ] **`081-asistente-consulta-athena`** — sin bloqueo, se puede empezar
-  ya. Objetivo mínimo viable: el asistente (`asistente/`, esqueleto de la
-  tarea [`044`](doc/044-esqueleto-asistente-fastapi-mcp.md)) responde una
-  pregunta de un solo dataset vía Athena (p. ej. "¿cómo está el tráfico
-  ahora en Sol?"), con la fuente citada en la respuesta.
-- [ ] **`082-asistente-consulta-grafo`** — depende de `079`. Preguntas que
-  cruzan datasets vía el grafo (p. ej. "¿hay tráfico cerca de este
-  evento?").
+- [ ] **Asistente: tool con cruce vía grafo** (número pendiente) — depende
+  de la carga del grafo de arriba. Preguntas que cruzan datasets (p. ej.
+  "¿hay tráfico cerca de este evento?").
+- [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
+  `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` bloqueada
+  hasta Google Maps) — sin bloqueo salvo la indicada, se pueden ir
+  encolando una a una según el mismo patrón que `079`.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
@@ -168,8 +174,9 @@ más antigua, o al final — decidid un orden y mantenedlo):
 
 **Sistema** — Serie de limpieza de duplicados (072–077) cerrada por
 completo el 23/8. Los 14 datasets Silver/Gold en producción sin duplicados
-conocidos. Siguiente: `079`/`080` en cuanto lleguen las credenciales;
-`081` (asistente mínimo) se puede empezar ya sin esperar a nada.
+conocidos. `079-asistente-tool-calidad-aire` creada y en cola (sin
+bloqueo). Carga del grafo y clave de Google Maps listas para numerar en
+cuanto lleguen las credenciales.
 
 **Memoria** — Sin empezar todavía; el documento actual es el de
 planificación original (junio 2026).
@@ -179,5 +186,5 @@ planificación original (junio 2026).
 **Para la semana que viene**
 - [ ] Resolver el alta de Neo4j (bloqueador crítico — cuanto antes, más
       margen para la Fase 3)
-- [ ] Empezar `081-asistente-consulta-athena`
+- [x] Crear y encolar `079-asistente-tool-calidad-aire`
 - [ ] Empezar a reescribir §5 de la memoria con la arquitectura real
