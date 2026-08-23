@@ -141,6 +141,12 @@ def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
     spark: SparkSession = glue_context.spark_session
+    # Timezone de sesion de Spark = Europe/Madrid (tarea 076, mismo bug que
+    # la tarea 072): sin esto, `date_format(to_timestamp(...), ...)` calcula
+    # fecha/hora en UTC (el timezone por defecto del runtime de Glue usado
+    # aqui), desalineado con `today()`/`daily_partition_uri()` (Python,
+    # Europe/Madrid) -- ver doc/072-arreglo-lectura-incremental-glue.md.
+    spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 

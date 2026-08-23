@@ -36,12 +36,15 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import boto3
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+
+from procesamiento.silver_gold.incremental import daily_partition_uri, partition_has_objects, today
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
@@ -61,12 +64,38 @@ def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
     spark: SparkSession = glue_context.spark_session
+    # Ver doc/072-arreglo-lectura-incremental-glue.md: sin esto,
+    # `to_timestamp`/`date_format`/`to_date` de mas abajo calcularian en UTC,
+    # desalineado con `today()` (Python, Europe/Madrid).
+    spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
     processed_at = datetime.now(MADRID_TZ)
 
     # --- Previsión: (municipio_code, leadtime_days) -------------------------
+    #
+    # A diferencia del resto del patrón (tarea 076), este flujo NO se puede
+    # acotar a la partición de Silver de hoy: `leadtime_days` (el horizonte,
+    # p.ej. "mañana" = 1) agrupa a propósito previsiones de MUCHOS días de
+    # calendario distintos capturadas en momentos distintos -- ver docstring
+    # de `aggregate.py`, "Un mismo leadtime_days agrupa previsiones de días
+    # de calendario distintos". La clave de negocio no incluye ninguna
+    # fecha, así que cada ejecución necesita el histórico completo de Silver
+    # para recalcular correctamente cada horizonte -- leer solo hoy dejaría
+    # cada bucket con una única captura en vez de con todo su histórico.
+    # El volumen de este dataset es pequeño (una previsión de 7 días para un
+    # único municipio, una vez al día -> unas 2500 filas/año), así que leer
+    # todo el histórico sigue siendo barato incluso tras meses de
+    # acumulación: el problema real de coste que motivó esta serie de tareas
+    # (072-076) no aplica aquí igual que a `trafico`/`bicimad` (ingesta cada
+    # pocos minutos). El problema real para ESTE dataset era otro: escribir
+    # con `mode("append")` duplicaba la fila de cada horizonte en cada
+    # ejecución (una fila más por (municipio_code, leadtime_days) cada día,
+    # creciendo sin límite) en vez de mantener una única fila por horizonte
+    # -- se sustituye por `mode("overwrite")` (recálculo completo cada vez,
+    # sin acotar particiones -- Gold de previsión no está particionado por
+    # fecha, ver docstring del módulo).
     silver_prevision_df = spark.read.parquet(args["silver_prevision_path"])
 
     prevision_with_leadtime = silver_prevision_df.withColumn(
@@ -97,29 +126,41 @@ def main() -> None:
     # número de municipios/horizontes es reducido, a diferencia de
     # particionar por fecha (que aquí no tiene sentido: cada fila agrega
     # muchos días de calendario distintos, ver docstring de `aggregate.py`).
-    gold_prevision_df.write.mode("append").partitionBy("municipio_code").parquet(args["gold_prevision_path"])
+    # `mode("overwrite")` (no `"append"`, ver comentario arriba): cada
+    # ejecución sustituye Gold entero por el recálculo completo, en vez de
+    # acumular una fila nueva por horizonte cada día.
+    gold_prevision_df.write.mode("overwrite").partitionBy("municipio_code").parquet(args["gold_prevision_path"])
 
     # --- Avisos: (zone, fecha, level) ---------------------------------------
-    silver_avisos_df = spark.read.parquet(args["silver_avisos_path"])
+    #
+    # A diferencia de previsión, la clave de negocio de avisos SÍ incluye
+    # `fecha` (día de `effective_from`) -- mismo patrón que el resto del
+    # grupo diario (tarea 076): se lee solo la partición de Silver `fecha=hoy`
+    # (el mismo `effective_from` que ya particiona físicamente Silver, ver
+    # glue_bronze_to_silver.py), nunca la raíz completa.
+    fecha_avisos = today(processed_at)
+    silver_avisos_partition_path = daily_partition_uri(args["silver_avisos_path"], fecha_avisos)
+    if partition_has_objects(boto3.client("s3"), silver_avisos_partition_path):
+        silver_avisos_df = spark.read.parquet(silver_avisos_partition_path)
 
-    avisos_with_fecha = silver_avisos_df.withColumn(
-        "fecha", F.date_format(F.to_timestamp("effective_from"), "yyyy-MM-dd")
-    )
-
-    gold_avisos_df = (
-        avisos_with_fecha.groupBy("zone", "fecha", "level")
-        .agg(
-            F.count(F.lit(1)).alias("samples_count"),
-            F.countDistinct("identifier").alias("alerts_count"),
-            F.sort_array(F.collect_set("phenomenon")).alias("phenomena"),
-            F.min("effective_from").alias("first_effective_from"),
-            F.max("effective_until").alias("last_effective_until"),
+        avisos_with_fecha = silver_avisos_df.withColumn(
+            "fecha", F.date_format(F.to_timestamp("effective_from"), "yyyy-MM-dd")
         )
-        .withColumn("schema_version", F.lit(1))
-        .withColumn("processed_at", F.lit(processed_at.isoformat()))
-    )
 
-    gold_avisos_df.write.mode("append").partitionBy("fecha").parquet(args["gold_avisos_path"])
+        gold_avisos_df = (
+            avisos_with_fecha.groupBy("zone", "fecha", "level")
+            .agg(
+                F.count(F.lit(1)).alias("samples_count"),
+                F.countDistinct("identifier").alias("alerts_count"),
+                F.sort_array(F.collect_set("phenomenon")).alias("phenomena"),
+                F.min("effective_from").alias("first_effective_from"),
+                F.max("effective_until").alias("last_effective_until"),
+            )
+            .withColumn("schema_version", F.lit(1))
+            .withColumn("processed_at", F.lit(processed_at.isoformat()))
+        )
+
+        gold_avisos_df.write.mode("append").partitionBy("fecha").parquet(args["gold_avisos_path"])
 
     job.commit()
 

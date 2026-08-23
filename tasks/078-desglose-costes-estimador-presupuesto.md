@@ -1,5 +1,5 @@
 ---
-id: 77
+id: 78
 slug: desglose-costes-estimador-presupuesto
 title: "Herramienta de desglose de costes AWS y estimador de presupuesto"
 status: pending

@@ -30,12 +30,15 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import boto3
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+
+from procesamiento.silver_gold.incremental import daily_partition_uri, partition_has_objects, today
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
@@ -49,12 +52,34 @@ def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
     spark: SparkSession = glue_context.spark_session
+    # Ver doc/072-arreglo-lectura-incremental-glue.md: sin esto, cualquier
+    # `date_format(to_timestamp(...), ...)` de este job calcularia en UTC,
+    # desalineado con `today()` (Python, Europe/Madrid).
+    spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
     processed_at = datetime.now(MADRID_TZ)
 
-    silver_df = spark.read.parquet(args["silver_path"])
+    # Lectura incremental (tarea 076): solo la particion de Silver `fecha=hoy`,
+    # nunca la raiz completa del dataset -- mismo motivo de coste que
+    # Bronze->Silver (tarea 072). `fecha` en Silver es la del propio evento
+    # (`start_datetime`), que puede ser semanas/meses en el futuro respecto
+    # al dia de ingestion (agenda cultural real: eventos publicados con
+    # mucha antelacion, ver muestra real de `agenda_eventos_madrid_sample.json`
+    # con fechas de fin hasta 2027) -- no la de ingestion. Silver es un
+    # almacen persistente: cada particion `fecha=<dia>` recibe escrituras de
+    # muchos dias de ingestion distintos mientras el evento sigue vigente en
+    # la fuente, pero esta lectura visita esa particion una unica vez, el
+    # dia en que ese dia de calendario se convierte en "hoy" -- momento en
+    # el que ya contiene todo lo que se llegó a capturar de ese evento.
+    fecha = today(processed_at)
+    silver_partition_path = daily_partition_uri(args["silver_path"], fecha)
+    if not partition_has_objects(boto3.client("s3"), silver_partition_path):
+        job.commit()
+        return
+
+    silver_df = spark.read.parquet(silver_partition_path)
 
     # `category`/`district` ausentes se agrupan bajo un sentinela en vez de
     # descartarse -- mismo criterio que `aggregate.py` (ver docstring de ese
