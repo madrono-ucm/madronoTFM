@@ -1,19 +1,19 @@
 ---
 id: 76
 slug: arreglo-lectura-incremental-glue-grupo-diario
-title: "Lectura incremental para el grupo diario (8 datasets)"
-status: pending
+title: Lectura incremental para el grupo diario (8 datasets)
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/076-arreglo-lectura-incremental-glue-grupo-diario
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-22T09:30:00+00:00"
-updated_at: "2026-08-22T18:00:00+00:00"
-started_at: null
+created_at: '2026-08-22T09:30:00+00:00'
+updated_at: '2026-08-23T01:36:43.740862+00:00'
+started_at: '2026-08-23T01:36:43.740792+00:00'
 submitted_at: null
 merged_at: null
 ---
