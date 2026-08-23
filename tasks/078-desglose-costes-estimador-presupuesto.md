@@ -2,19 +2,19 @@
 id: 78
 slug: desglose-costes-estimador-presupuesto
 title: Herramienta de desglose de costes AWS y estimador de presupuesto
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/078-desglose-costes-estimador-presupuesto
-pr_number: null
-pr_url: null
+pr_number: 122
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/122
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-22T16:30:00+00:00'
-updated_at: '2026-08-23T15:11:26.926015+00:00'
+updated_at: '2026-08-23T15:19:57.108603+00:00'
 started_at: '2026-08-23T15:11:26.925991+00:00'
-submitted_at: null
+submitted_at: '2026-08-23T15:19:57.108457+00:00'
 merged_at: null
 ---
 
