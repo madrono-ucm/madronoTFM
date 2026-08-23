@@ -1,19 +1,20 @@
 ---
 id: 77
 slug: limpieza-duplicados-grupo-diario
-title: "Limpiar duplicados del grupo diario (agenda_eventos, bluesky_menciones y verificar el resto)"
-status: pending
+title: Limpiar duplicados del grupo diario (agenda_eventos, bluesky_menciones y verificar
+  el resto)
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/077-limpieza-duplicados-grupo-diario
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-23T14:15:00+00:00"
-updated_at: "2026-08-23T14:15:00+00:00"
-started_at: null
+created_at: '2026-08-23T14:15:00+00:00'
+updated_at: '2026-08-23T14:07:32.644127+00:00'
+started_at: '2026-08-23T14:07:32.644105+00:00'
 submitted_at: null
 merged_at: null
 ---
