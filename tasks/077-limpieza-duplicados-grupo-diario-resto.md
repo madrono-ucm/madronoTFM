@@ -1,19 +1,20 @@
 ---
 id: 77
 slug: limpieza-duplicados-grupo-diario-resto
-title: "Lanzar y verificar el backfill deduplicado de aforos_peatones_bicicletas, ruido y cams_calidad_aire"
-status: pending
+title: Lanzar y verificar el backfill deduplicado de aforos_peatones_bicicletas, ruido
+  y cams_calidad_aire
+status: in_progress
 force: false
 allow_infra_apply: true
-branch: null
+branch: task/077-limpieza-duplicados-grupo-diario-resto
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-23T15:40:00+00:00"
-updated_at: "2026-08-23T15:40:00+00:00"
-started_at: null
+created_at: '2026-08-23T15:40:00+00:00'
+updated_at: '2026-08-23T15:37:13.767013+00:00'
+started_at: '2026-08-23T15:37:13.766989+00:00'
 submitted_at: null
 merged_at: null
 ---
