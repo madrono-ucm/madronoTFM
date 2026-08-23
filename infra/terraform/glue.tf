@@ -1044,6 +1044,91 @@ resource "aws_glue_job" "transporte_publico_emt_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/transporte_publico_emt/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/transporte_publico_emt_por_parada_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_transporte_publico_emt]
+}
+
+# Jobs de un solo uso (tarea 075) para reconstruir Silver/Gold de `transporte_publico_emt`
+# desde cero, deduplicado -- ver docstring de `glue_backfill_dedup.py`. Sin
+# trigger ni schedule: se lanzan a mano, una vez.
+resource "aws_s3_object" "glue_script_transporte_publico_emt_backfill_dedup" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/transporte_publico_emt_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup.py")
+}
+
+resource "aws_glue_job" "transporte_publico_emt_silver_backfill_dedup" {
+  name        = "${local.glue_transporte_publico_emt_prefix}-silver-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion deduplicada de Silver de transporte_publico_emt desde cero, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_transporte_publico_emt.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  # Timeout mas alto que el resto de jobs (var.glue_job_timeout_minutes,
+  # 30 min): este job lee TODO el historico de Bronze de una vez.
+  timeout     = 90
+  max_retries = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_transporte_publico_emt_backfill_dedup.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/transporte_publico_emt/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/transporte_publico_emt/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/transporte_publico_emt/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_transporte_publico_emt]
+}
+
+resource "aws_s3_object" "glue_script_transporte_publico_emt_backfill_dedup_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/transporte_publico_emt_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup_gold.py")
+}
+
+resource "aws_glue_job" "transporte_publico_emt_gold_backfill_dedup" {
+  name        = "${local.glue_transporte_publico_emt_prefix}-gold-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion completa de Gold de transporte_publico_emt desde el Silver ya deduplicado, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_transporte_publico_emt.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = 90
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_transporte_publico_emt_backfill_dedup_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -2077,6 +2162,91 @@ resource "aws_glue_job" "aparcamientos_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aparcamientos/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/aparcamientos_por_parking_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_aparcamientos]
+}
+
+# Jobs de un solo uso (tarea 075) para reconstruir Silver/Gold de `aparcamientos`
+# desde cero, deduplicado -- ver docstring de `glue_backfill_dedup.py`. Sin
+# trigger ni schedule: se lanzan a mano, una vez.
+resource "aws_s3_object" "glue_script_aparcamientos_backfill_dedup" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/aparcamientos_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup.py")
+}
+
+resource "aws_glue_job" "aparcamientos_silver_backfill_dedup" {
+  name        = "${local.glue_aparcamientos_prefix}-silver-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion deduplicada de Silver de aparcamientos desde cero, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_aparcamientos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  # Timeout mas alto que el resto de jobs (var.glue_job_timeout_minutes,
+  # 30 min): este job lee TODO el historico de Bronze de una vez.
+  timeout     = 90
+  max_retries = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_aparcamientos_backfill_dedup.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/aparcamientos/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/aparcamientos/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/aparcamientos/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_aparcamientos]
+}
+
+resource "aws_s3_object" "glue_script_aparcamientos_backfill_dedup_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/aparcamientos_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup_gold.py")
+}
+
+resource "aws_glue_job" "aparcamientos_gold_backfill_dedup" {
+  name        = "${local.glue_aparcamientos_prefix}-gold-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion completa de Gold de aparcamientos desde el Silver ya deduplicado, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_aparcamientos.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = 90
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_aparcamientos_backfill_dedup_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -2552,6 +2722,91 @@ resource "aws_glue_job" "calidad_aire_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/calidad_aire/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/calidad_aire_por_estacion_contaminante_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_calidad_aire]
+}
+
+# Jobs de un solo uso (tarea 075) para reconstruir Silver/Gold de `calidad_aire`
+# desde cero, deduplicado -- ver docstring de `glue_backfill_dedup.py`. Sin
+# trigger ni schedule: se lanzan a mano, una vez.
+resource "aws_s3_object" "glue_script_calidad_aire_backfill_dedup" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/calidad_aire_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup.py")
+}
+
+resource "aws_glue_job" "calidad_aire_silver_backfill_dedup" {
+  name        = "${local.glue_calidad_aire_prefix}-silver-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion deduplicada de Silver de calidad_aire desde cero, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_calidad_aire.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  # Timeout mas alto que el resto de jobs (var.glue_job_timeout_minutes,
+  # 30 min): este job lee TODO el historico de Bronze de una vez.
+  timeout     = 90
+  max_retries = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_calidad_aire_backfill_dedup.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/calidad_aire/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/calidad_aire/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/calidad_aire/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_calidad_aire]
+}
+
+resource "aws_s3_object" "glue_script_calidad_aire_backfill_dedup_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/calidad_aire_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup_gold.py")
+}
+
+resource "aws_glue_job" "calidad_aire_gold_backfill_dedup" {
+  name        = "${local.glue_calidad_aire_prefix}-gold-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion completa de Gold de calidad_aire desde el Silver ya deduplicado, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_calidad_aire.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = 90
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_calidad_aire_backfill_dedup_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -3001,6 +3256,91 @@ resource "aws_glue_job" "meteorologia_silver_to_gold" {
   command {
     name            = "glueetl"
     script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_meteorologia_silver_to_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/meteorologia/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/meteorologia_por_estacion_magnitud_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_meteorologia]
+}
+
+# Jobs de un solo uso (tarea 075) para reconstruir Silver/Gold de `meteorologia`
+# desde cero, deduplicado -- ver docstring de `glue_backfill_dedup.py`. Sin
+# trigger ni schedule: se lanzan a mano, una vez.
+resource "aws_s3_object" "glue_script_meteorologia_backfill_dedup" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/meteorologia_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup.py")
+}
+
+resource "aws_glue_job" "meteorologia_silver_backfill_dedup" {
+  name        = "${local.glue_meteorologia_prefix}-silver-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion deduplicada de Silver de meteorologia desde cero, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_meteorologia.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  # Timeout mas alto que el resto de jobs (var.glue_job_timeout_minutes,
+  # 30 min): este job lee TODO el historico de Bronze de una vez.
+  timeout     = 90
+  max_retries = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_meteorologia_backfill_dedup.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--additional-python-modules"        = var.great_expectations_pip_spec
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--bronze_path"                      = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/meteorologia/"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/meteorologia/"
+    "--quality_report_path"              = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/_quality_reports/meteorologia/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_meteorologia]
+}
+
+resource "aws_s3_object" "glue_script_meteorologia_backfill_dedup_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/meteorologia_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup_gold.py")
+}
+
+resource "aws_glue_job" "meteorologia_gold_backfill_dedup" {
+  name        = "${local.glue_meteorologia_prefix}-gold-backfill-dedup"
+  description = "USO UNICO (tarea 075): reconstruccion completa de Gold de meteorologia desde el Silver ya deduplicado, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_meteorologia.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  timeout           = 90
+  max_retries       = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_meteorologia_backfill_dedup_gold.key}"
     python_version  = "3"
   }
 
