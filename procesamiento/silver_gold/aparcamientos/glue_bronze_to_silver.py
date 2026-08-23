@@ -159,6 +159,12 @@ def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
     spark: SparkSession = glue_context.spark_session
+    # Sin esto, `date_format(to_timestamp(...), "HH")` calcula `fecha`/`hora`
+    # en el timezone de sesión por defecto de Spark (UTC en el runtime de
+    # Glue), desalineado con la hora de Madrid real de `measured_at` -- ver
+    # doc/072-arreglo-lectura-incremental-glue.md (desfase silencioso: el job
+    # termina sin error pero nunca escribe la partición que espera Gold).
+    spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 

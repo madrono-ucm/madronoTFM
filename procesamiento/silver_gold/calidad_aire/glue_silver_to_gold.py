@@ -53,6 +53,9 @@ def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
     spark: SparkSession = glue_context.spark_session
+    # Mismo motivo que glue_bronze_to_silver.py (tarea 072/075): fija el
+    # timezone de sesión de Spark antes de recalcular `fecha`/`hora`.
+    spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
