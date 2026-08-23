@@ -2,7 +2,7 @@
 id: 74
 slug: limpieza-duplicados-bicimad-verificar
 title: Verificar la reconstrucción de bicimad y completar Gold
-status: in_review
+status: done
 force: false
 allow_infra_apply: true
 branch: task/074-limpieza-duplicados-bicimad-verificar
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-22T21:40:00+00:00'
-updated_at: '2026-08-22T23:33:06.653017+00:00'
+updated_at: '2026-08-23T00:38:04.652616+00:00'
 started_at: '2026-08-22T23:12:32.149574+00:00'
 submitted_at: '2026-08-22T23:33:06.652876+00:00'
-merged_at: null
+merged_at: '2026-08-23T00:37:06Z'
 ---
 
 ## Contexto
