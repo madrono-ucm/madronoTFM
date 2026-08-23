@@ -2,17 +2,17 @@
 id: 79
 slug: asistente-tool-calidad-aire
 title: 'Asistente: primera tool real (calidad_aire) contra Athena, de extremo a extremo'
-status: in_progress
+status: failed
 force: true
 allow_infra_apply: false
 branch: task/079-asistente-tool-calidad-aire
 pr_number: null
 pr_url: null
-attempts: 2
+attempts: 3
 next_retry_at: '2026-08-23T17:03:30.105780+00:00'
-last_error: You've hit your session limit · resets 7pm (UTC)
+last_error: Not logged in · Please run /login
 created_at: '2026-08-23T18:00:00+00:00'
-updated_at: '2026-08-23T17:04:26.562574+00:00'
+updated_at: '2026-08-23T17:04:29.647384+00:00'
 started_at: '2026-08-23T16:44:23.542609+00:00'
 submitted_at: null
 merged_at: null
