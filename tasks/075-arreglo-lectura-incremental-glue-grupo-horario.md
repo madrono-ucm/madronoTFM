@@ -3,17 +3,20 @@ id: 75
 slug: arreglo-lectura-incremental-glue-grupo-horario
 title: Lectura incremental para el resto del grupo horario (EMT, aparcamientos, calidad
   del aire, meteorología)
-status: in_progress
+status: failed
 force: false
 allow_infra_apply: true
 branch: task/075-arreglo-lectura-incremental-glue-grupo-horario
 pr_number: null
 pr_url: null
-attempts: 0
+attempts: 1
 next_retry_at: null
-last_error: null
+last_error: 'ns":12317219,"cacheCreationInputTokens":197124,"webSearchRequests":0,"costUSD":6.034310700000002,"contextWindow":1000000,"maxOutputTokens":64000,"canonicalModel":"claude-sonnet-5","provider":"firstParty"}},"permission_denials":[],"terminal_reason":"budget_exhausted","fast_mode_state":"off","fast_mode_disabled_reason":"sdk_opt_in_required","subtype":"error_max_budget_usd","errors":["Reached
+  maximum budget ($6)"],"type":"result","duration_ms":2120027,"uuid":"915a7170-5743-4512-a881-caa09b28d014"}
+
+  '
 created_at: '2026-08-22T09:30:00+00:00'
-updated_at: '2026-08-23T00:39:07.026855+00:00'
+updated_at: '2026-08-23T01:14:30.590559+00:00'
 started_at: '2026-08-23T00:39:07.026824+00:00'
 submitted_at: null
 merged_at: null
