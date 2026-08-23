@@ -1,0 +1,6 @@
+# Cliente oficial de AWS para leer uso real de Glue/Lambda/S3/CloudWatch
+# (`get_job_runs`, `get_metric_statistics`...). Ya está instalado en esta
+# EC2 (lo usan `ingesta`/`grafo`) -- se fija aquí solo para dejar explícita
+# la dependencia real de este módulo, mismo rango que
+# `grafo/requirements.txt`.
+boto3>=1.34,<2
