@@ -30,12 +30,15 @@ import sys
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import boto3
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+
+from procesamiento.silver_gold.incremental import daily_partition_uri, partition_has_objects, today
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
@@ -46,12 +49,35 @@ def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
     spark: SparkSession = glue_context.spark_session
+    # Ver doc/072-arreglo-lectura-incremental-glue.md: sin esto, cualquier
+    # `date_format(to_timestamp(...), ...)` de este job calcularia en UTC,
+    # desalineado con `today()` (Python, Europe/Madrid).
+    spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
     processed_at = datetime.now(MADRID_TZ)
 
-    silver_df = spark.read.parquet(args["silver_path"])
+    # Lectura incremental (tarea 076): solo la particion de Silver `fecha=hoy`,
+    # nunca la raiz completa del dataset -- mismo motivo de coste que
+    # Bronze->Silver (tarea 072). `fecha` en Silver es la del propio dia de
+    # la sesion (`showtime_datetime`), no la de ingestion (ver
+    # glue_bronze_to_silver.py) -- pero por como funciona realmente
+    # SensaCine (la cartelera scrapeada es de sesiones de hoy/muy cercanas,
+    # ver "showtime_already_passed" en transform.py, nunca semanas vista),
+    # cada particion `fecha=<dia>` recibe practicamente todos sus datos el
+    # mismo dia (o el dia anterior), y esta lectura la visita el dia en que
+    # ese dia es "hoy" -- si alguna sesion quedase en una particion futura no
+    # visitada aun, se recogeria igual cuando esa particion se convierta en
+    # "hoy" (Silver es un almacen persistente, no se borra entre
+    # ejecuciones).
+    fecha = today(processed_at)
+    silver_partition_path = daily_partition_uri(args["silver_path"], fecha)
+    if not partition_has_objects(boto3.client("s3"), silver_partition_path):
+        job.commit()
+        return
+
+    silver_df = spark.read.parquet(silver_partition_path)
 
     # `fecha` ya es una columna de partición física de Silver (ver
     # glue_bronze_to_silver.py); agrupar por ella permite a Spark aprovechar

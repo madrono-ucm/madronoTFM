@@ -3869,6 +3869,7 @@ resource "aws_glue_job" "ruido_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -4352,6 +4353,7 @@ resource "aws_glue_job" "aforos_peatones_bicicletas_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -4846,6 +4848,7 @@ resource "aws_glue_job" "cartelera_cines_estrenos_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -5332,6 +5335,7 @@ resource "aws_glue_job" "agenda_eventos_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -5819,6 +5823,7 @@ resource "aws_glue_job" "bluesky_menciones_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -6553,6 +6558,7 @@ resource "aws_glue_job" "aemet_prevision_avisos_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -7010,6 +7016,7 @@ resource "aws_glue_job" "cams_calidad_aire_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
@@ -7495,6 +7502,7 @@ resource "aws_glue_job" "afluencia_lugares_silver_to_gold" {
   default_arguments = {
     "--job-language"                     = "python"
     "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
