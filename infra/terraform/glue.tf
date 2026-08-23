@@ -1556,6 +1556,49 @@ resource "aws_glue_job" "bicimad_silver_backfill_dedup" {
   depends_on = [aws_cloudwatch_log_group.glue_bicimad]
 }
 
+# Job de un solo uso (tarea 074) para reconstruir Gold de `bicimad` desde
+# cero, tras la reconstrucción deduplicada de Silver (tarea 073). Sin
+# trigger ni schedule: se lanza a mano, una vez.
+resource "aws_s3_object" "glue_script_bicimad_backfill_dedup_gold" {
+  bucket  = aws_s3_bucket.build_artifacts.id
+  key     = "glue-scripts/bicimad_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup_gold.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup_gold.py")
+
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup_gold.py")
+}
+
+resource "aws_glue_job" "bicimad_gold_backfill_dedup" {
+  name        = "${local.glue_bicimad_prefix}-gold-backfill-dedup"
+  description = "USO UNICO (tarea 074): reconstruccion completa de Gold de bicimad desde el Silver ya deduplicado, no forma parte del pipeline incremental de produccion."
+
+  role_arn          = aws_iam_role.glue_bicimad.arn
+  glue_version      = var.glue_version
+  worker_type       = var.glue_worker_type
+  number_of_workers = var.glue_number_of_workers
+  # Timeout mas alto que el pipeline incremental (var.glue_job_timeout_minutes,
+  # 30 min): este job lee TODO el historico de Silver de una vez.
+  timeout     = 90
+  max_retries = 0
+
+  command {
+    name            = "glueetl"
+    script_location = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.glue_script_bicimad_backfill_dedup_gold.key}"
+    python_version  = "3"
+  }
+
+  default_arguments = {
+    "--job-language"                     = "python"
+    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--enable-continuous-cloudwatch-log" = "true"
+    "--enable-metrics"                   = "true"
+    "--job-bookmark-option"              = "job-bookmark-disable"
+    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/bicimad/"
+    "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bicimad_por_estacion_hora/"
+  }
+
+  depends_on = [aws_cloudwatch_log_group.glue_bicimad]
+}
+
 resource "aws_glue_job" "bicimad_silver_to_gold" {
   name        = "${local.glue_bicimad_prefix}-silver-to-gold"
   description = "Silver -> Gold de BiciMAD: disponibilidad media de bicis/anclajes por estacion y hora (tarea 047)."
