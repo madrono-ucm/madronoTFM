@@ -2,7 +2,7 @@
 id: 78
 slug: desglose-costes-estimador-presupuesto
 title: Herramienta de desglose de costes AWS y estimador de presupuesto
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/078-desglose-costes-estimador-presupuesto
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-22T16:30:00+00:00'
-updated_at: '2026-08-23T15:19:57.108603+00:00'
+updated_at: '2026-08-23T15:21:03.617084+00:00'
 started_at: '2026-08-23T15:11:26.925991+00:00'
 submitted_at: '2026-08-23T15:19:57.108457+00:00'
-merged_at: null
+merged_at: '2026-08-23T15:20:00Z'
 ---
 
 ## Contexto
