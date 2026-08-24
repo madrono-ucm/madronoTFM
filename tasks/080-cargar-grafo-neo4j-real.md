@@ -1,19 +1,19 @@
 ---
 id: 80
 slug: cargar-grafo-neo4j-real
-title: "Completar la carga real del grafo urbano en Neo4j AuraDB Free"
-status: pending
+title: Completar la carga real del grafo urbano en Neo4j AuraDB Free
+status: in_progress
 force: false
 allow_infra_apply: false
-branch: null
+branch: task/080-cargar-grafo-neo4j-real
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-24T20:30:00+00:00"
-updated_at: "2026-08-24T21:40:00+00:00"
-started_at: null
+created_at: '2026-08-24T20:30:00+00:00'
+updated_at: '2026-08-24T21:21:43.971477+00:00'
+started_at: '2026-08-24T21:21:43.971454+00:00'
 submitted_at: null
 merged_at: null
 ---
