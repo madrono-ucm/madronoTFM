@@ -1,19 +1,20 @@
 ---
 id: 82
 slug: verificar-trafico-cercano-neo4j-real
-title: "Verificar trafico_cercano contra la instancia real de Neo4j (bug de región en SSM corregido)"
-status: pending
+title: Verificar trafico_cercano contra la instancia real de Neo4j (bug de región
+  en SSM corregido)
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/082-verificar-trafico-cercano-neo4j-real
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-25T10:00:00+00:00"
-updated_at: "2026-08-25T10:00:00+00:00"
-started_at: null
+created_at: '2026-08-25T10:00:00+00:00'
+updated_at: '2026-08-24T22:29:49.573226+00:00'
+started_at: '2026-08-24T22:29:49.573202+00:00'
 submitted_at: null
 merged_at: null
 ---
