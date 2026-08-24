@@ -37,11 +37,13 @@ alinear ambas cosas — ver [Reparto sin conflictos](#reparto-sin-conflictos).
 
 Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
 
-1. ~~Alta de Neo4j AuraDB Free~~ — **resuelto el 24/8.** Instancia real
-   creada, credenciales guardadas en SSM (`SecureString`, mismo patrón que
-   EMT/AEMET/CAMS) y conexión verificada con una consulta Cypher real
-   (`RETURN 1`, base de datos vacía, 0 nodos). Carga real de datos ya
-   encolada — ver [`080-cargar-grafo-neo4j-real`](tasks/080-cargar-grafo-neo4j-real.md).
+1. ~~Alta de Neo4j AuraDB Free~~ — **resuelto y grafo cargado el 24/8.**
+   Instancia real creada, credenciales en SSM (mismo patrón que
+   EMT/AEMET/CAMS). Grafo completo cargado y verificado con Cypher real:
+   9327 nodos (21 Distrito, 131 Barrio, 4738 EstacionMedida, 4056
+   ParadaTransporte, 381 Lugar) y 41031 relaciones (`PERTENECE_A`,
+   `UBICADO_EN`, `PROXIMO_A`, `CONECTADO_CON`) — ver
+   [`doc/080-cargar-grafo-neo4j-real.md`](doc/080-cargar-grafo-neo4j-real.md).
 2. **Clave de Google Maps Platform** (`console.cloud.google.com/google/maps-apis/credentials`,
    habilitar Places API). Único bloqueador de credenciales que queda —
    ver [`doc/012-captura-afluencia-lugares-madrid.md`](doc/012-captura-afluencia-lugares-madrid.md).
@@ -119,20 +121,22 @@ pese a estar en orden inverso de creación en este documento.
   extremo a extremo: MCP montado en FastAPI, respuesta trazable a los
   datos. Alcance deliberadamente acotado a una sola tool — las otras 4 son
   tareas de seguimiento.
-- [x] **[`080-cargar-grafo-neo4j-real`](tasks/080-cargar-grafo-neo4j-real.md)**
-  — en cola. Bloqueador de Neo4j resuelto (ver arriba): ejecuta
-  `grafo/cargar_grafo.py` (tareas 067-071) contra la instancia real,
-  credenciales leídas de SSM en tiempo de ejecución, verificado con Cypher
-  que los 4 tipos de nodo y las 4 relaciones están cargados. `force: false`
-  (primera carga real).
+- [x] **[`080-cargar-grafo-neo4j-real`](tasks/done/080-cargar-grafo-neo4j-real.md)**
+  — **completada.** Grafo cargado y verificado en la instancia real
+  (9327 nodos, 41031 relaciones, ver `doc/080-...md`). Incluyó un backfill
+  puntual a Bronze real de 3 datasets de referencia estática que nunca se
+  habían subido (`barrios_distritos_madrid`, `poi_madrid`,
+  `crtm_red_transporte_madrid`) — sin ellos, el grafo se quedaba sin
+  `Distrito`/`Barrio`/`PERTENECE_A`/`UBICADO_EN`/`CONECTADO_CON`.
 - [ ] **Clave de Google Maps** (número pendiente de asignar) — bloqueada
   por la clave. Guardar en SSM, aplicar vía Terraform igual que
   EMT/AEMET/CAMS (ver [`doc/018`](doc/018-captura-aemet-prevision-avisos.md)
   como referencia del patrón), verificar que `afluencia_lugares` deja de
   devolver `is_mock: true`.
-- [ ] **Asistente: tool con cruce vía grafo** (número pendiente) — depende
-  de que `080` termine y se fusione. Preguntas que cruzan datasets (p. ej.
-  "¿hay tráfico cerca de este evento?").
+- [ ] **Asistente: tool con cruce vía grafo** (número pendiente) — ya
+  desbloqueada, el grafo está cargado. Preguntas que cruzan datasets
+  (p. ej. "¿hay tráfico cerca de este evento?") vía consultas Cypher reales
+  sobre la instancia (credenciales en SSM, ver arriba).
 - [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
   `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` bloqueada
   hasta Google Maps) — sin bloqueo salvo la indicada, se pueden ir
@@ -168,12 +172,16 @@ más antigua, o al final — decidid un orden y mantenedlo):
 
 ### Semana del 24–30 de agosto
 
-**Sistema** — Serie de limpieza de duplicados (072–077) cerrada por
-completo el 23/8. `079-asistente-tool-calidad-aire` en cola. **Alta de
-Neo4j resuelta el 24/8**: instancia AuraDB Free real creada, credenciales
-en SSM, conexión verificada con Cypher real — `080-cargar-grafo-neo4j-real`
-creada y en cola. Solo queda la clave de Google Maps como bloqueador de
-credenciales.
+**Sistema** — Serie de limpieza de duplicados (072–077) cerrada el 23/8.
+`079-asistente-tool-calidad-aire` completada y fusionada: primera `tool`
+real del asistente, contra Athena. **Alta de Neo4j resuelta el 24/8, y el
+grafo urbano ya está cargado y verificado en la instancia real**
+(9327 nodos, 41031 relaciones — ver `doc/080-...md`); incluyó un backfill
+puntual a Bronze de 3 datasets de referencia estática que nunca se habían
+subido. De paso, revisando la factura real de AWS: se encontró y arregló
+un grupo de logs de Glue sin retención (crecimiento sin límite,
+~1.78 GB acumulados) — fijado a 14 días. Solo queda la clave de Google Maps
+como bloqueador de credenciales.
 
 **Memoria** — Sin empezar todavía; el documento actual es el de
 planificación original (junio 2026).
@@ -182,7 +190,7 @@ planificación original (junio 2026).
 
 **Para la semana que viene**
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
-- [x] Crear y encolar `079-asistente-tool-calidad-aire`
-- [x] Crear y encolar `080-cargar-grafo-neo4j-real`
+- [x] Crear y encolar `079-asistente-tool-calidad-aire` — completada
+- [x] Cargar y verificar el grafo real (`080`) — completada
 - [ ] Conseguir la clave de Google Maps
 - [ ] Empezar a reescribir §5 de la memoria con la arquitectura real
