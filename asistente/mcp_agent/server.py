@@ -21,19 +21,13 @@ en `tools.py` — así `tools.py` no depende de que este módulo (ni la propia
 librería `mcp`) se pueda importar para que sus funciones sigan siendo
 inspeccionables/testeables de forma aislada.
 
-Por qué esto no se monta todavía en la app FastAPI (`asistente/main.py`):
-`MCPServer.streamable_http_app()` devuelve una sub-app Starlette con su
-propio ciclo de vida (gestiona sesiones vía `StreamableHTTPSessionManager`),
-que al montarse con `FastAPI.mount()` necesita combinarse explícitamente con
-el `lifespan` de la app principal (patrón documentado por el propio SDK,
-vía `contextlib.AsyncExitStack`) para que el gestor de sesiones arranque y
-pare correctamente. Añadir esa integración ahora, con `tools` que no hacen
-nada real todavía (`NotImplementedError`), sería infraestructura sin nada
-que probar de verdad; se deja como paso explícito de la tarea que implemente
-la primera `tool` real. Mientras tanto, este servidor es ejecutable de forma
-independiente en modo `stdio` (`python -m asistente.mcp_agent.server`), la
-forma estándar en que clientes MCP como Claude Desktop lo probarían en
-desarrollo.
+Tarea 079: este servidor ya se monta en la app FastAPI
+(`asistente/main.py::create_app`, vía `MCPServer.streamable_http_app()` +
+`FastAPI.mount()`, con el `lifespan` de ambas apps combinado explícitamente
+-- ver el docstring de `main.py` para el porqué). Sigue siendo también
+ejecutable de forma independiente en modo `stdio`
+(`python -m asistente.mcp_agent.server`), la forma estándar en que clientes
+MCP como Claude Desktop lo probarían en desarrollo sin pasar por HTTP.
 """
 
 from __future__ import annotations
@@ -47,8 +41,9 @@ mcp = MCPServer(
     title="Madroño",
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
-        "(memoria del TFM, apartados 5.2 y 6.7). Esqueleto: las tools "
-        "todavía no leen datos reales, ver asistente/mcp_agent/tools.py."
+        "(memoria del TFM, apartados 5.2 y 6.7). `calidad_aire` lee datos "
+        "reales de Gold vía Athena; el resto de tools siguen pendientes, "
+        "ver asistente/mcp_agent/tools.py."
     ),
 )
 

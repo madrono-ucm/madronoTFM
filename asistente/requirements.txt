@@ -14,3 +14,10 @@ mcp>=2.0,<3
 # Requerido por fastapi.testclient.TestClient (asistente/tests/test_app.py);
 # fastapi solo lo instala automáticamente con el extra "standard".
 httpx>=0.27,<1
+
+# Tarea 079: `asistente/athena.py` consulta Gold real vía Athena (mismo
+# patrón que `grafo/extract.py`, tarea 069) para la tool `calidad_aire`. Ya
+# está instalado en esta EC2 (lo usan `ingesta`/`procesamiento`/`grafo`) --
+# se fija aquí solo para dejar explícita la dependencia real de este
+# servicio, mismo rango que `grafo/requirements.txt`.
+boto3>=1.34,<2
