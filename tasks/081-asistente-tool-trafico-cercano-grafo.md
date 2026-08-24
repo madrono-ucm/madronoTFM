@@ -2,19 +2,19 @@
 id: 81
 slug: asistente-tool-trafico-cercano-grafo
 title: 'Asistente: tool con cruce vía grafo (trafico_cercano, Neo4j + Athena)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/081-asistente-tool-trafico-cercano-grafo
-pr_number: null
-pr_url: null
+pr_number: 125
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/125
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-25T09:00:00+00:00'
-updated_at: '2026-08-24T21:58:48.887192+00:00'
+updated_at: '2026-08-24T22:09:31.147111+00:00'
 started_at: '2026-08-24T21:58:48.887164+00:00'
-submitted_at: null
+submitted_at: '2026-08-24T22:09:31.146966+00:00'
 merged_at: null
 ---
 
