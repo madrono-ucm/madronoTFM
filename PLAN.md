@@ -44,6 +44,13 @@ Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
    ParadaTransporte, 381 Lugar) y 41031 relaciones (`PERTENECE_A`,
    `UBICADO_EN`, `PROXIMO_A`, `CONECTADO_CON`) — ver
    [`doc/080-cargar-grafo-neo4j-real.md`](doc/080-cargar-grafo-neo4j-real.md).
+   **Corrección 25/8**: las 4 credenciales se habían guardado por error en
+   `eu-south-2` (esta EC2 cae ahí sin `--region` explícito, bug ya
+   conocido del proyecto) en vez de `eu-west-1`, donde vive el resto de
+   secretos — la tarea 081 detectó correctamente que no las encontraba en
+   `eu-west-1`. Recreadas en `eu-west-1`, verificadas, y borradas las
+   copias de `eu-south-2`. **Al guardar cualquier secreto nuevo en SSM,
+   usad siempre `--region eu-west-1` explícito.**
 2. **Clave de Google Maps Platform** (`console.cloud.google.com/google/maps-apis/credentials`,
    habilitar Places API). Único bloqueador de credenciales que queda —
    ver [`doc/012-captura-afluencia-lugares-madrid.md`](doc/012-captura-afluencia-lugares-madrid.md).
@@ -105,7 +112,7 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `082`**
+**Próximo número libre: `083`**
 
 Nota sobre el orden: las tareas sin bloqueo se numeran y encolan ya; las
 bloqueadas por credenciales se numeran **cuando llegan**, no antes, para no
@@ -133,13 +140,12 @@ pese a estar en orden inverso de creación en este documento.
   EMT/AEMET/CAMS (ver [`doc/018`](doc/018-captura-aemet-prevision-avisos.md)
   como referencia del patrón), verificar que `afluencia_lugares` deja de
   devolver `is_mock: true`.
-- [x] **[`081-asistente-tool-trafico-cercano-grafo`](tasks/081-asistente-tool-trafico-cercano-grafo.md)**
-  — en cola. Primera tool que cruza datasets vía el grafo (no solo
-  Athena): `trafico_cercano(lugar, radio_m, momento)` resuelve `lugar` a
-  un `:Lugar` en Neo4j, sigue `PROXIMO_A` hasta las `EstacionMedida` de
-  tráfico dentro del radio, y consulta `gold.trafico_por_punto_hora` para
-  su estado real. Necesita un cliente de lectura de Neo4j nuevo dentro de
-  `asistente/` (autocontenido, no reutiliza `grafo/`).
+- [x] **[`081-asistente-tool-trafico-cercano-grafo`](tasks/done/081-asistente-tool-trafico-cercano-grafo.md)**
+  — **completada** (mitad Athena/Gold verificada contra datos reales; la
+  mitad Neo4j no pudo verificarse — ver hallazgo abajo).
+- [x] **[`082-verificar-trafico-cercano-neo4j-real`](tasks/082-verificar-trafico-cercano-neo4j-real.md)**
+  — en cola. Verifica `trafico_cercano` contra Neo4j real, ahora que el bug
+  de región de abajo está corregido.
 - [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
   `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` bloqueada
   hasta Google Maps) — sin bloqueo salvo la indicada, se pueden ir
@@ -176,15 +182,17 @@ más antigua, o al final — decidid un orden y mantenedlo):
 ### Semana del 24–30 de agosto
 
 **Sistema** — Serie de limpieza de duplicados (072–077) cerrada el 23/8.
-`079-asistente-tool-calidad-aire` completada y fusionada: primera `tool`
-real del asistente, contra Athena. **Alta de Neo4j resuelta el 24/8, y el
-grafo urbano ya está cargado y verificado en la instancia real**
-(9327 nodos, 41031 relaciones — ver `doc/080-...md`); incluyó un backfill
-puntual a Bronze de 3 datasets de referencia estática que nunca se habían
-subido. De paso, revisando la factura real de AWS: se encontró y arregló
-un grupo de logs de Glue sin retención (crecimiento sin límite,
-~1.78 GB acumulados) — fijado a 14 días. Solo queda la clave de Google Maps
-como bloqueador de credenciales.
+`079-asistente-tool-calidad-aire` completada: primera `tool` real del
+asistente, contra Athena. **Alta de Neo4j resuelta el 24/8, grafo urbano
+cargado y verificado** (9327 nodos, 41031 relaciones — `doc/080-...md`).
+`081-asistente-tool-trafico-cercano-grafo` completada (primera tool que
+cruza grafo + Athena), pero reveló un bug real: las credenciales de Neo4j
+se habían guardado en la región de AWS equivocada (`eu-south-2` en vez de
+`eu-west-1`) — corregido el 25/8, `082` en cola para verificar la tool
+contra la instancia real ahora que está accesible. De paso, revisando la
+factura real de AWS: arreglados dos grupos de logs de Glue sin retención
+(~1.78 GB acumulados sin límite) — fijado a 14 días. Solo queda la clave
+de Google Maps como bloqueador de credenciales.
 
 **Memoria** — Sin empezar todavía; el documento actual es el de
 planificación original (junio 2026).
@@ -195,6 +203,8 @@ planificación original (junio 2026).
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
 - [x] Crear y encolar `079-asistente-tool-calidad-aire` — completada
 - [x] Cargar y verificar el grafo real (`080`) — completada
-- [x] Crear y encolar `081-asistente-tool-trafico-cercano-grafo`
+- [x] Crear y encolar `081-asistente-tool-trafico-cercano-grafo` — completada
+- [x] Corregir la región de las credenciales de Neo4j en SSM (25/8)
+- [x] Crear y encolar `082-verificar-trafico-cercano-neo4j-real`
 - [ ] Conseguir la clave de Google Maps
 - [ ] Empezar a reescribir §5 de la memoria con la arquitectura real
