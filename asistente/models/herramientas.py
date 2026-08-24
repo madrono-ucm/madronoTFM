@@ -1,7 +1,8 @@
-"""Modelos de datos que devolverían las `tools` del agente MCP (esqueleto).
+"""Modelos de datos que devuelven las `tools` del agente MCP.
 
-Ninguna de estas clases se construye todavía: las `tools` de
-`asistente/mcp_agent/tools.py` levantan `NotImplementedError` en vez de
+`CalidadAireZona` ya se construye de verdad (`calidad_aire()`, tarea 079,
+ver `asistente/mcp_agent/tools.py`). El resto de clases siguen sin
+construirse: las demás `tools` levantan `NotImplementedError` en vez de
 devolver una instancia. Se definen aquí de todas formas porque son parte del
 contrato de cada `tool` (su firma declara este tipo de retorno) y porque el
 SDK de MCP las usa para generar el `output_schema` que un cliente MCP vería
@@ -33,12 +34,28 @@ class AfluenciaPrevista(BaseModel):
 
 
 class CalidadAireZona(BaseModel):
-    """Calidad del aire prevista o medida en una zona y momento concretos."""
+    """Calidad del aire medida en una zona y momento concretos (tarea 079,
+    primera `tool` con lógica real: ver `asistente/mcp_agent/tools.py`).
+
+    `indice_calidad` es una etiqueta simplificada (`"buena"`/`"regular"`/
+    `"mala"`/`"muy mala"`/`"sin_clasificar"`/`"sin_datos"`), no el Índice de
+    Calidad del Aire oficial (que combina más señales y periodos de
+    promediado distintos por contaminante) -- ver el docstring de
+    `calidad_aire()` para el criterio exacto. `valor`/`unidad`/`hora` son el
+    dato bruto de Gold para `contaminante_principal`, y
+    `estaciones_consultadas` lista todas las estaciones que coincidieron con
+    `zona`, para que la respuesta sea trazable incluso cuando se agregan
+    varias.
+    """
 
     zona: str
     momento: datetime
     indice_calidad: str
     contaminante_principal: str | None = None
+    valor: float | None = None
+    unidad: str | None = None
+    hora: int | None = None
+    estaciones_consultadas: list[str] = Field(default_factory=list)
     fuente_dataset: str
 
 
