@@ -21,3 +21,8 @@ httpx>=0.27,<1
 # se fija aquí solo para dejar explícita la dependencia real de este
 # servicio, mismo rango que `grafo/requirements.txt`.
 boto3>=1.34,<2
+
+# Tarea 081: `asistente/neo4j_client.py` consulta el grafo urbano real
+# (tarea 080) para la tool `trafico_cercano`. Mismo rango que
+# `grafo/requirements.txt`, ya instalado en esta EC2.
+neo4j>=5,<6

@@ -6,16 +6,22 @@ movilidad y vida urbana de Madrid (p.ej. «¿voy al centro a las nueve de la
 noche del viernes?») con un veredicto, un nivel de fiabilidad y una
 explicación trazable a los datos.
 
-**Estado (tarea 079): `calidad_aire` es real, el resto sigue pendiente.**
-Este directorio define la estructura del servicio, el esquema de su
-respuesta y la interfaz de sus 5 `tools`. La primera, `calidad_aire`, ya lee
-datos reales de Gold vía Athena, está montada como agente MCP dentro de la
-app FastAPI y expuesta también por HTTP (`GET /calidad-aire`) — verificado
-con invocaciones reales contra la cuenta AWS de este proyecto (ver
-"Verificación real" más abajo). Las otras 4 (`afluencia_prevista`,
-`opciones_movilidad`, `disponibilidad_aparcamiento`, `eventos_cercanos`)
-siguen levantando `NotImplementedError`; son tareas de seguimiento
-separadas (ver "Qué falta para completarlo").
+**Estado (tarea 081): `calidad_aire` y `trafico_cercano` son reales, el
+resto sigue pendiente.** Este directorio define la estructura del servicio,
+el esquema de su respuesta y la interfaz de 6 `tools` (las 5 originales del
+esqueleto de la tarea 044, más `trafico_cercano`, tarea 081 -- no mapea 1:1 a
+un único origen de `ingesta/`, así que no formaba parte de ese esqueleto
+inicial). `calidad_aire` (tarea 079) lee datos reales de Gold vía Athena.
+`trafico_cercano` (tarea 081) es la primera `tool` que **cruza datasets vía
+el grafo urbano en Neo4j** (tarea 080): resuelve un lugar contra el grafo,
+sigue la relación `PROXIMO_A` hasta las estaciones de tráfico cercanas, y
+consulta Gold para su estado. Ambas están montadas como agente MCP dentro de
+la app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
+`GET /trafico-cercano`) — verificado con invocaciones reales contra la
+cuenta AWS de este proyecto (ver "Verificación real" más abajo). Las otras 4
+(`afluencia_prevista`, `opciones_movilidad`, `disponibilidad_aparcamiento`,
+`eventos_cercanos`) siguen levantando `NotImplementedError`; son tareas de
+seguimiento separadas (ver "Qué falta para completarlo").
 
 ## Por qué solo `calidad_aire` en esta tarea
 
@@ -40,19 +46,23 @@ asistente/
   dependencies.py           # Dependencias de FastAPI (get_settings, cacheada)
   timeutils.py                # now_madrid(): misma zona horaria que ingesta/capturas/bronze.py
   athena.py                     # run_athena_query(): consulta Gold real (mismo patrón que grafo/extract.py)
+  neo4j_client.py                 # run_neo4j_query() + query builder de trafico_cercano (tarea 081)
   routers/
     health.py                     # GET /health
     calidad_aire.py                 # GET /calidad-aire -- invoca la tool y construye RespuestaAsistente
+    trafico_cercano.py                # GET /trafico-cercano -- ídem, tarea 081
   models/
     respuesta.py                # RespuestaAsistente: veredicto/fiabilidad/explicación/fuentes
     herramientas.py               # Modelos de retorno de cada tool MCP
   mcp_agent/
-    server.py                     # Instancia de MCPServer + registro de las 5 tools
-    tools.py                       # calidad_aire real; el resto con NotImplementedError
+    server.py                     # Instancia de MCPServer + registro de las 6 tools
+    tools.py                       # calidad_aire y trafico_cercano reales; el resto con NotImplementedError
   tests/
     test_app.py                     # La app arranca y /health responde
-    test_mcp_tools.py                 # calidad_aire (mockeando Athena) + firma/docstring/registro del resto
+    test_mcp_tools.py                 # calidad_aire/trafico_cercano (mockeando Athena/Neo4j) + firma/docstring/registro del resto
     test_calidad_aire_router.py        # GET /calidad-aire (mockeando Athena)
+    test_trafico_cercano_router.py       # GET /trafico-cercano (mockeando Athena y Neo4j), tarea 081
+    test_neo4j_client.py                   # Query builder de trafico_cercano (por inspección) + run_neo4j_query
     test_respuesta.py                  # El modelo de respuesta se construye y serializa
   requirements.txt
 ```
@@ -131,6 +141,29 @@ asistente).
   + API Gateway) hasta que el enunciado de una tarea la pida explícitamente
   -- el criterio de "esperar a tener una `tool` real" ya se cumple desde
   esta tarea, pero desplegar sigue siendo una decisión aparte de implementar.
+- **(Tarea 081) `asistente/neo4j_client.py` es un cliente de solo lectura,
+  independiente de `grafo/cypher.py`.** `grafo/cypher.py` solo tiene métodos
+  de *escritura* (`Neo4jLoader.load_*`, pensados para `cargar_grafo.py`) --
+  no se amplió ni se reutilizó, siguiendo la restricción explícita de la
+  tarea de no tocar `grafo/`. `run_neo4j_query()` replica la forma de
+  `asistente/athena.py::run_athena_query()` (función con cliente/driver
+  inyectable, en vez de una clase con gestor de contexto como
+  `Neo4jLoader`): aquí solo hace falta una consulta puntual por invocación
+  de la tool, no una sesión de carga masiva con múltiples `load_*`.
+- **(Tarea 081) `trafico_cercano` usa un patrón Cypher no dirigido**
+  (`(l:Lugar)-[r:PROXIMO_A]-(e:EstacionMedida {tipo: 'trafico'})`, sin
+  flecha): la relación `PROXIMO_A` se carga en un único sentido por pareja
+  de nodos (ver `grafo/relaciones.py::proximo_a`), y su propio docstring
+  documenta que "una consulta que necesite ambos sentidos usa un patrón no
+  dirigido" -- exactamente este caso, ya que el sentido real depende del
+  orden en que `cargar_grafo.py` cargó cada tipo de nodo (detalle de
+  implementación, no del esquema).
+- **(Tarea 081) `resumen` (`"fluido"`/`"denso"`/`"congestionado"`) se basa en
+  `avg_service_level`** (el campo real "nivelServicio" de la API de tráfico
+  de Madrid, escala 0-6, ver `ingesta/capturas/trafico_madrid.py`), con
+  `avg_occupancy_ratio` como respaldo si ninguna estación encontrada trae
+  `avg_service_level` -- mismo criterio que `calidad_aire`: una etiqueta
+  simplificada con su aproximación documentada, no una métrica oficial.
 
 ## Esquema de la respuesta (`asistente/models/respuesta.py`)
 
@@ -141,13 +174,17 @@ cada dato individual), `explicacion` (texto libre) y `fuentes` (lista de
 `FuenteConsultada`, cada una con el dataset de origen y un resumen — lo que
 hace la explicación trazable).
 
-## Las 5 `tools` del agente MCP
+## Las 6 `tools` del agente MCP
 
-De la memoria (apartado 6.7), mapeadas a su fuente real o futura vía Gold:
+De la memoria (apartado 6.7), mapeadas a su fuente real o futura vía Gold
+(`trafico_cercano` no formaba parte del esqueleto original de la tarea 044 --
+es la primera que cruza más de una fuente vía el grafo, en vez de mapear 1:1
+a un dataset de `ingesta/`):
 
 | Tool | Fuente(s) | Estado |
 |---|---|---|
 | `calidad_aire(zona, momento=None)` | `gold.calidad_aire_por_estacion_contaminante_hora` (tarea 006 + Gold, tarea 041+) | **Real (tarea 079)** |
+| `trafico_cercano(lugar, radio_m=300.0, momento=None)` | Grafo Neo4j (`:Lugar`-`PROXIMO_A`-`:EstacionMedida`, tareas 070/080) + `gold.trafico_por_punto_hora` (tarea 041) | **Real (tarea 081)** |
 | `afluencia_prevista(lugar, momento=None)` | `afluencia_lugares_madrid` (tarea 012) | `NotImplementedError` |
 | `opciones_movilidad(origen, destino, momento=None)` | `trafico_madrid` + `transporte_publico_madrid` (EMT) + `bicimad` | `NotImplementedError` |
 | `disponibilidad_aparcamiento(zona)` | `aparcamientos_madrid` (tarea 005) | `NotImplementedError` |
@@ -166,6 +203,15 @@ encuentra ninguna estación coincidente, no lanza una excepción: devuelve
 `indice_calidad="sin_datos"` (ver `asistente/mcp_agent/tools.py` y
 `asistente/routers/calidad_aire.py`).
 
+`trafico_cercano` (tarea 081) resuelve `lugar` igual (coincidencia de texto
+sobre el nombre del nodo `:Lugar` del grafo), sigue la relación `PROXIMO_A`
+(umbral de carga 300m, tarea 070) hasta las `EstacionMedida` de tipo
+`"trafico"` a menos de `radio_m`, y consulta `gold.trafico_por_punto_hora`
+para su estado más reciente. Si no hay ningún `:Lugar` coincidente, o
+ninguna estación de tráfico dentro del radio, devuelve
+`resumen="sin_datos"` sin lanzar ninguna excepción (ver
+`asistente/mcp_agent/tools.py` y `asistente/routers/trafico_cercano.py`).
+
 ## Cómo correrlo
 
 ```bash
@@ -177,9 +223,17 @@ pip install -r asistente/requirements.txt
 # por defecto (eu-south-2) no coincide con la región real de la cuenta
 # (eu-west-1, ver grafo/README.md) y boto3 no la resuelve solo -- sin esta
 # variable, GET /calidad-aire falla con botocore.exceptions.NoRegionError.
-AWS_DEFAULT_REGION=eu-west-1 uvicorn asistente.main:app --reload
+#
+# NEO4J_URI/NEO4J_USERNAME/NEO4J_PASSWORD (NEO4J_DATABASE, opcional) son
+# necesarias para GET /trafico-cercano -- mismas variables que
+# grafo/cargar_grafo.py, ver infra/neo4j/README.md. Sin ellas, la primera
+# petición a /trafico-cercano falla con KeyError al construir el driver
+# (asistente/neo4j_client.py::_driver_from_env), no antes (import perezoso).
+AWS_DEFAULT_REGION=eu-west-1 NEO4J_URI=neo4j+s://... NEO4J_USERNAME=neo4j \
+  NEO4J_PASSWORD=... uvicorn asistente.main:app --reload
 # -> http://127.0.0.1:8000/health, http://127.0.0.1:8000/docs
 # -> http://127.0.0.1:8000/calidad-aire?zona=Ram%C3%B3n%20y%20Cajal
+# -> http://127.0.0.1:8000/trafico-cercano?lugar=Retiro
 
 # Agente MCP en modo stdio (para un cliente MCP como Claude Desktop)
 python -m asistente.mcp_agent.server
@@ -191,24 +245,34 @@ python -m asistente.mcp_agent.server
 python3 -m unittest discover -s asistente/tests -t .
 ```
 
-20 tests, todos en verde: que la app arranca (con el agente MCP montado y su
+32 tests, todos en verde: que la app arranca (con el agente MCP montado y su
 `lifespan` combinado) y devuelve instancias independientes, que `/health`
 responde 200, que `calidad_aire` calcula bien el índice/contaminante
 principal en varios escenarios (una estación, varias estaciones
 coincidentes, sin coincidencias, sin `momento`, contaminante sin límite de
 referencia -- mockeando Athena con un `FakeAthenaClient`, sin conexión ni
-credenciales reales), que las 4 `tools` restantes siguen levantando
-`NotImplementedError`, que las 5 quedan registradas en el `MCPServer`, que
-`GET /calidad-aire` construye la `RespuestaAsistente` esperada (con y sin
-estación encontrada, mockeando Athena), y que `RespuestaAsistente` se
-construye y serializa correctamente.
+credenciales reales), que `trafico_cercano` combina grafo y Gold en varios
+escenarios (una estación, varias estaciones ordenadas por distancia, sin
+lugar coincidente, estación encontrada sin dato Gold para la hora, respaldo
+a `avg_occupancy_ratio` sin `avg_service_level`, sin `momento` -- mockeando
+Neo4j con un `FakeNeo4jDriver` y Athena con `FakeAthenaClient`, ver
+`asistente/tests/test_mcp_tools.py`), que la consulta Cypher de
+`trafico_cercano` se genera correctamente por inspección (sin conexión ni el
+paquete `neo4j` instalado, mismo criterio que `grafo/tests/test_cypher.py`,
+ver `asistente/tests/test_neo4j_client.py`), que las 4 `tools` restantes
+siguen levantando `NotImplementedError`, que las 6 quedan registradas en el
+`MCPServer`, que `GET /calidad-aire` y `GET /trafico-cercano` construyen la
+`RespuestaAsistente` esperada (con y sin estación/lugar encontrado,
+mockeando Athena/Neo4j), y que `RespuestaAsistente` se construye y
+serializa correctamente.
 
 ## Verificación real
 
-Arrancado el servicio real (`AWS_DEFAULT_REGION=eu-west-1 uvicorn
-asistente.main:app`) contra la cuenta AWS de este proyecto (`eu-west-1`,
-`222234418587`), `GET /calidad-aire?zona=Ram%C3%B3n%20y%20Cajal` devolvió un
-`avg_value` de NO2 real (5.0 µg/m³ a las 21:00 del día de la ejecución),
+**`calidad_aire` (tarea 079)**: arrancado el servicio real
+(`AWS_DEFAULT_REGION=eu-west-1 uvicorn asistente.main:app`) contra la cuenta
+AWS de este proyecto (`eu-west-1`, `222234418587`),
+`GET /calidad-aire?zona=Ram%C3%B3n%20y%20Cajal` devolvió un `avg_value` de
+NO2 real (5.0 µg/m³ a las 21:00 del día de la ejecución),
 `veredicto="favorable"`, `fiabilidad="alta"`, con `fuentes` citando el
 dataset y la estación. Repetido con "Plaza del Carmen" (otra estación real)
 y con una zona inexistente (`fiabilidad="baja"`, sin excepción). Verificado
@@ -216,8 +280,50 @@ también que el agente MCP montado responde en `/mcp-server/mcp` (con
 `TestClient` como gestor de contexto: el `lifespan` combinado arranca y para
 el `StreamableHTTPSessionManager` correctamente).
 
+**`trafico_cercano` (tarea 081) -- verificación parcial, ver limitación
+real de esta sesión**: la mitad de Athena/Gold se verificó contra datos
+reales (`run_athena_query` sobre `trafico_por_punto_hora` devolvió filas
+reales del día de la ejecución, p.ej. `point_id="10053"`,
+`avg_intensity_vph=72.0`, `avg_service_level=0.0` a las 22:00). **La mitad
+de Neo4j no se pudo verificar contra la instancia real en esta sesión**:
+las credenciales `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD` que usó la
+tarea 080 para cargar el grafo no están accesibles desde este entorno --
+comprobado explícitamente: no existe ningún parámetro `neo4j-*` en SSM
+(`aws ssm describe-parameters` sobre toda la cuenta, solo aparecen
+`aemet`/`cams-ads`/`emt-*`/`google-maps`) y el rol de esta EC2
+(`madrono-terraform-deployerEC2`) no tiene ningún permiso
+`secretsmanager:GetSecretValue` (`AccessDeniedException` explícita, no
+"secreto no encontrado", probado contra varios nombres plausibles). Esto es
+coherente con `infra/neo4j/README.md` (tarea 043), que documenta
+explícitamente que nunca se añadió un parámetro SSM para Neo4j "porque
+todavía no existe ningún proceso de carga Gold → Neo4j que lo consuma" -- la
+tarea 080 debió recibir las credenciales de forma efímera (pegadas en su
+conversación), sin persistirlas en ningún gestor de secretos, algo que el
+enunciado de esta tarea 081 no tenía forma de saber. En su lugar, se
+verificó exhaustivamente **todo lo demás**: la consulta Cypher generada por
+inspección (`asistente/tests/test_neo4j_client.py`), el driver `neo4j`
+instalado y funcional (`pip show neo4j` → 5.28.4), y la lógica completa de
+cruce grafo+Gold con un `FakeNeo4jDriver`+`FakeAthenaClient` (6 escenarios,
+`asistente/tests/test_mcp_tools.py::TraficoCercanoToolTests`). **Queda
+como primer paso de una tarea de seguimiento**: repetir esta verificación
+con `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD` reales en el entorno
+(pedirlas a quien las generó en la tarea 080, o rotarlas desde la consola de
+Aura si se han perdido) contra un `:Lugar` real del grafo (`MATCH (l:Lugar)
+RETURN l.nombre LIMIT 20` para elegir uno) -- y, si se quiere evitar este
+mismo bloqueo en el futuro, completar el punto ya señalado en
+`infra/neo4j/README.md`: añadir `NEO4J_URI`/`NEO4J_USERNAME`/
+`NEO4J_PASSWORD` como parámetros SSM `SecureString`, ahora que esta tarea sí
+crea un consumidor real de esas credenciales.
+
 ## Qué falta para completarlo
 
+0. **(Tarea 081) Verificar `trafico_cercano` contra la instancia real de
+   Neo4j** con `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD` reales -- no
+   accesibles en esta sesión (ver "Verificación real" arriba). Idealmente
+   junto con añadir esas tres variables como parámetros SSM
+   `SecureString` (punto ya señalado, sin completar, en
+   `infra/neo4j/README.md` desde la tarea 043), para que no vuelva a
+   ocurrir este mismo bloqueo en una tarea futura.
 1. Implementar las 4 `tools` restantes (`afluencia_prevista`,
    `opciones_movilidad`, `disponibilidad_aparcamiento`, `eventos_cercanos`),
    cada una como tarea de seguimiento separada — mismo patrón que
