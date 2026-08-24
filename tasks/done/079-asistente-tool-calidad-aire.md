@@ -2,7 +2,7 @@
 id: 79
 slug: asistente-tool-calidad-aire
 title: 'Asistente: primera tool real (calidad_aire) contra Athena, de extremo a extremo'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/079-asistente-tool-calidad-aire
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-23T18:00:00+00:00'
-updated_at: '2026-08-24T20:36:09.342714+00:00'
+updated_at: '2026-08-24T20:38:17.565349+00:00'
 started_at: '2026-08-24T20:20:10.601356+00:00'
 submitted_at: '2026-08-24T20:36:09.342689+00:00'
-merged_at: null
+merged_at: '2026-08-24T20:37:14Z'
 ---
 
 ## Contexto
