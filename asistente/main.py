@@ -29,7 +29,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 
 from asistente.mcp_agent.server import mcp
-from asistente.routers import calidad_aire, health
+from asistente.routers import calidad_aire, health, trafico_cercano
 
 
 def create_app() -> FastAPI:
@@ -46,14 +46,16 @@ def create_app() -> FastAPI:
         description=(
             "Servicio del asistente conversacional de movilidad y vida "
             "urbana de Madrid (memoria del TFM, apartados 5.2 y 6.7). "
-            "`calidad_aire` ya lee datos reales (tarea 079); el resto de "
-            "`tools` siguen pendientes -- ver asistente/README.md."
+            "`calidad_aire` (tarea 079) y `trafico_cercano` (tarea 081, "
+            "cruza el grafo urbano en Neo4j con Gold) ya leen datos reales; "
+            "el resto de `tools` siguen pendientes -- ver asistente/README.md."
         ),
-        version="0.2.0",
+        version="0.3.0",
         lifespan=lifespan,
     )
     app.include_router(health.router)
     app.include_router(calidad_aire.router)
+    app.include_router(trafico_cercano.router)
     app.mount("/mcp-server", mcp_app)
     return app
 
