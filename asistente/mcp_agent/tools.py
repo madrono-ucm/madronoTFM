@@ -34,9 +34,12 @@ from asistente.models.herramientas import (
     AfluenciaPrevista,
     CalidadAireZona,
     DisponibilidadAparcamiento,
+    EstacionTraficoCercana,
     EventoCercano,
     OpcionMovilidad,
+    TraficoCercano,
 )
+from asistente.neo4j_client import lugares_proximos_a_estaciones_trafico_query, run_neo4j_query
 from asistente.timeutils import MADRID_TZ, now_madrid
 
 # Tabla Gold real, ya verificada con datos de producción en las tareas
@@ -189,6 +192,135 @@ def _calidad_aire_impl(
     )
 
 
+# Tabla Gold real, la más madura del proyecto (piloto original, tarea 041,
+# ya verificada en las tareas 049/066/068/069). Columnas: point_id, subarea,
+# hour, avg_intensity_vph, max/min_intensity_vph, avg_occupancy_ratio,
+# avg_load_ratio, avg_intensity_ratio, avg_service_level, lat, lon,
+# samples_count, partición date.
+_TABLA_TRAFICO = "trafico_por_punto_hora"
+_FUENTE_TRAFICO = f"gold.{_TABLA_TRAFICO}"
+_FUENTE_GRAFO_TRAFICO_CERCANO = "neo4j: (:Lugar)-[:PROXIMO_A]-(:EstacionMedida {tipo: 'trafico'})"
+
+# `avg_service_level` reproduce el campo real "nivelServicio" de la API de
+# tráfico de Madrid (0 = fluido .. 6 = cortado, ver
+# `ingesta/capturas/trafico_madrid.py` y `MAX_PLAUSIBLE_SERVICE_LEVEL` en
+# `procesamiento/silver_gold/trafico/transform.py`). Los umbrales de abajo
+# son una simplificación deliberada para tres etiquetas, no la escala
+# oficial completa -- mismo criterio que `_LIMITES_REFERENCIA_UGM3` con
+# `calidad_aire`: un número simple con su limitación documentada.
+_UMBRALES_SERVICE_LEVEL = ((1.5, "fluido"), (3.5, "denso"))
+# Fallback cuando ninguna estación encontrada trae `avg_service_level` (pero
+# sí `avg_occupancy_ratio`, 0-1): mismo criterio de tres bandas sobre una
+# escala distinta.
+_UMBRALES_OCCUPANCY_RATIO = ((0.3, "fluido"), (0.6, "denso"))
+
+
+def _clasificar_trafico(valor: float, umbrales: "tuple[tuple[float, str], ...]") -> str:
+    for limite, etiqueta in umbrales:
+        if valor < limite:
+            return etiqueta
+    return "congestionado"
+
+
+def _trafico_cercano_impl(
+    lugar: str,
+    radio_m: float,
+    momento: datetime | None,
+    *,
+    neo4j_driver=None,
+    athena_client=None,
+) -> TraficoCercano:
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    def _sin_datos() -> TraficoCercano:
+        return TraficoCercano(
+            lugar=lugar,
+            momento=instante,
+            radio_m=radio_m,
+            resumen="sin_datos",
+            fuente_grafo=_FUENTE_GRAFO_TRAFICO_CERCANO,
+            fuente_gold=_FUENTE_TRAFICO,
+        )
+
+    query, params = lugares_proximos_a_estaciones_trafico_query(lugar, radio_m)
+    filas_grafo = run_neo4j_query(query, params, driver=neo4j_driver)
+    if not filas_grafo:
+        return _sin_datos()
+
+    # Varios `:Lugar` pueden coincidir con `lugar` (coincidencia de texto,
+    # igual que `calidad_aire` con `zona`) y una misma estación puede
+    # aparecer cerca de más de uno -- se agregan todas por `point_id`,
+    # quedándose con la distancia mínima real cuando se repite.
+    distancia_por_point_id: dict[str, float] = {}
+    for fila in filas_grafo:
+        estacion_id = fila.get("estacion_id") or ""
+        point_id = estacion_id.split(":", 1)[1] if ":" in estacion_id else None
+        if not point_id:
+            continue
+        actual = distancia_por_point_id.get(point_id)
+        if actual is None or fila["distancia_m"] < actual:
+            distancia_por_point_id[point_id] = fila["distancia_m"]
+
+    if not distancia_por_point_id:
+        return _sin_datos()
+
+    fecha = instante.date().isoformat()
+    ids_literal = ", ".join(f"'{sql_literal(pid)}'" for pid in sorted(distancia_por_point_id))
+    sql = f"""
+        SELECT point_id, hour, avg_intensity_vph, avg_occupancy_ratio,
+               avg_load_ratio, avg_intensity_ratio, avg_service_level
+        FROM {_TABLA_TRAFICO}
+        WHERE date = '{fecha}'
+          AND point_id IN ({ids_literal})
+    """
+    filas_gold = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+
+    if momento is not None:
+        hora_objetivo = instante.hour
+    elif filas_gold:
+        hora_objetivo = max(fila["hour"] for fila in filas_gold)
+    else:
+        hora_objetivo = None
+
+    filas_hora = [fila for fila in filas_gold if fila["hour"] == hora_objetivo] if hora_objetivo is not None else []
+    gold_por_point_id = {fila["point_id"]: fila for fila in filas_hora}
+
+    estaciones = [
+        EstacionTraficoCercana(
+            point_id=point_id,
+            distancia_m=distancia_por_point_id[point_id],
+            avg_intensity_vph=(gold_por_point_id.get(point_id) or {}).get("avg_intensity_vph"),
+            avg_occupancy_ratio=(gold_por_point_id.get(point_id) or {}).get("avg_occupancy_ratio"),
+            avg_service_level=(gold_por_point_id.get(point_id) or {}).get("avg_service_level"),
+        )
+        for point_id in sorted(distancia_por_point_id, key=lambda pid: distancia_por_point_id[pid])
+    ]
+
+    niveles_servicio = [e.avg_service_level for e in estaciones if e.avg_service_level is not None]
+    if niveles_servicio:
+        resumen = _clasificar_trafico(sum(niveles_servicio) / len(niveles_servicio), _UMBRALES_SERVICE_LEVEL)
+    else:
+        ocupaciones = [e.avg_occupancy_ratio for e in estaciones if e.avg_occupancy_ratio is not None]
+        if ocupaciones:
+            resumen = _clasificar_trafico(sum(ocupaciones) / len(ocupaciones), _UMBRALES_OCCUPANCY_RATIO)
+        else:
+            resumen = "sin_datos"
+
+    return TraficoCercano(
+        lugar=lugar,
+        momento=instante,
+        radio_m=radio_m,
+        resumen=resumen,
+        hora=hora_objetivo,
+        estaciones=estaciones,
+        fuente_grafo=_FUENTE_GRAFO_TRAFICO_CERCANO,
+        fuente_gold=_FUENTE_TRAFICO,
+    )
+
+
 def afluencia_prevista(lugar: str, momento: datetime | None = None) -> AfluenciaPrevista:
     """Nivel de afluencia previsto en un lugar de Madrid.
 
@@ -244,6 +376,51 @@ def calidad_aire(zona: str, momento: datetime | None = None) -> CalidadAireZona:
             Madrid) y se usa la última hora con datos disponibles ese día.
     """
     return _calidad_aire_impl(zona, momento)
+
+
+def trafico_cercano(
+    lugar: str, radio_m: float = 300.0, momento: datetime | None = None
+) -> TraficoCercano:
+    """Estado del tráfico cerca de un lugar de Madrid (tarea 081: primera
+    `tool` que cruza datasets vía el grafo urbano en Neo4j, ver
+    `doc/080-cargar-grafo-neo4j-real.md`).
+
+    Cruce en dos pasos: (1) consulta Cypher real contra Neo4j
+    (`asistente/neo4j_client.py`) que resuelve `lugar` contra un nodo
+    `:Lugar` (coincidencia de texto, case insensitive -- mismo criterio
+    pragmático que `calidad_aire` con `zona`, no geocodificación libre) y
+    sigue la relación `PROXIMO_A` (tarea 070, umbral de carga 300m) hasta las
+    `EstacionMedida` de tipo `"trafico"` a menos de `radio_m`; (2) con los
+    `point_id` reales encontrados, consulta `gold.trafico_por_punto_hora`
+    (tarea 041, vía Athena) para su estado más reciente.
+
+    Si ningún `:Lugar` coincide con `lugar`, o ninguna `EstacionMedida` de
+    tráfico está dentro de `radio_m`, no lanza una excepción: devuelve
+    `TraficoCercano` con `resumen="sin_datos"` y `estaciones=[]`. Si el grafo
+    encuentra estaciones pero Gold no tiene fila para la fecha/hora resuelta,
+    las estaciones se listan igualmente (la proximidad es un dato real y
+    trazable en sí mismo) con sus campos de tráfico en `None`.
+
+    `resumen` (`"fluido"`/`"denso"`/`"congestionado"`/`"sin_datos"`) se
+    calcula sobre la media de `avg_service_level` (escala real 0-6 de la API
+    de tráfico de Madrid, "nivelServicio") entre las estaciones encontradas
+    con dato; si ninguna tiene `avg_service_level`, usa como respaldo la
+    media de `avg_occupancy_ratio` (0-1). Es una etiqueta simplificada, no
+    una métrica oficial -- ver `_clasificar_trafico`.
+
+    Args:
+        lugar: Nombre o identificador (parcial) de un `:Lugar` del grafo
+            (POI, aparcamiento, cine...) a consultar -- p.ej. "Retiro".
+        radio_m: Radio de búsqueda en metros alrededor de `lugar`. No puede
+            superar de forma útil el umbral de 300m con el que se cargó
+            `PROXIMO_A` (tarea 070): un radio mayor no encontrará relaciones
+            que nunca se calcularon, aunque no lanza ningún error por pedirlo.
+        momento: Instante para el que se quiere el dato (se usa su fecha y
+            hora exacta). Si es `None`, se asume el instante actual (hora de
+            Madrid) y se usa la última hora con datos disponibles ese día
+            entre las estaciones encontradas.
+    """
+    return _trafico_cercano_impl(lugar, radio_m, momento)
 
 
 def opciones_movilidad(

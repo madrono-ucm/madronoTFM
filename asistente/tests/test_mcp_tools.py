@@ -1,8 +1,10 @@
-"""Tests de las `tools` MCP: firma, docstring, registro, y (tarea 079) la
-lógica real de `calidad_aire` mockeando Athena -- mismo criterio que
-`grafo/tests/test_extract.py`: sin ninguna llamada ni credencial real,
-`FakeAthenaClient` responde `start_query_execution`/`get_query_execution`/
-`get_query_results` como lo haría Athena para una consulta ya `SUCCEEDED`.
+"""Tests de las `tools` MCP: firma, docstring, registro, y la lógica real de
+`calidad_aire` (tarea 079) y `trafico_cercano` (tarea 081) mockeando
+Athena/Neo4j -- mismo criterio que `grafo/tests/test_extract.py`: sin
+ninguna llamada ni credencial real, `FakeAthenaClient` responde
+`start_query_execution`/`get_query_execution`/`get_query_results` como lo
+haría Athena para una consulta ya `SUCCEEDED`, y `FakeNeo4jDriver` responde
+`session().run()` como lo haría el driver real para una consulta ya resuelta.
 """
 
 import asyncio
@@ -17,13 +19,14 @@ from asistente.mcp_agent.server import mcp
 TOOL_FUNCTIONS = [
     tools.afluencia_prevista,
     tools.calidad_aire,
+    tools.trafico_cercano,
     tools.opciones_movilidad,
     tools.disponibilidad_aparcamiento,
     tools.eventos_cercanos,
 ]
 
-# `calidad_aire` es la única con lógica real (tarea 079) -- el resto siguen
-# levantando NotImplementedError.
+# `calidad_aire` (tarea 079) y `trafico_cercano` (tarea 081) son las únicas
+# con lógica real -- el resto siguen levantando NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS = [
     tools.afluencia_prevista,
     tools.opciones_movilidad,
@@ -220,6 +223,145 @@ class CalidadAireToolTests(unittest.TestCase):
 
         self.assertEqual(resultado.hora, 14)
         self.assertEqual(resultado.valor, 40.0)
+
+
+class FakeNeo4jResult:
+    def __init__(self, rows: "list[dict]"):
+        self._rows = rows
+
+    def __iter__(self):
+        return iter(self._rows)
+
+
+class FakeNeo4jSession:
+    def __init__(self, rows: "list[dict]"):
+        self._rows = rows
+
+    def __enter__(self) -> "FakeNeo4jSession":
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        return None
+
+    def run(self, query, params):
+        return FakeNeo4jResult(self._rows)
+
+
+class FakeNeo4jDriver:
+    """Mismo rol que `FakeAthenaClient` pero para el driver `neo4j`: responde
+    `session().run()` con filas ya preparadas, sin ninguna conexión real."""
+
+    def __init__(self, rows: "list[dict]"):
+        self._rows = rows
+
+    def session(self, database=None):
+        return FakeNeo4jSession(self._rows)
+
+
+_TRAFICO_COLUMNS = [
+    _column("point_id", "varchar"),
+    _column("hour", "integer"),
+    _column("avg_intensity_vph", "double"),
+    _column("avg_occupancy_ratio", "double"),
+    _column("avg_load_ratio", "double"),
+    _column("avg_intensity_ratio", "double"),
+    _column("avg_service_level", "double"),
+]
+
+
+class TraficoCercanoToolTests(unittest.TestCase):
+    def test_sin_lugar_coincidente_devuelve_sin_datos_sin_excepcion(self):
+        driver = FakeNeo4jDriver([])
+
+        resultado = tools._trafico_cercano_impl(
+            "Zona Inexistente", 300.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver
+        )
+
+        self.assertEqual(resultado.resumen, "sin_datos")
+        self.assertEqual(resultado.estaciones, [])
+        self.assertEqual(resultado.lugar, "Zona Inexistente")
+
+    def test_una_estacion_cercana_combina_grafo_y_gold(self):
+        neo4j_rows = [
+            {"lugar_id": "poi:1", "lugar_nombre": "Parque del Retiro", "estacion_id": "trafico:4260", "distancia_m": 120.5}
+        ]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        gold_rows = [_row("4260", "14", "300.0", "0.2", "0.15", "0.3", "1.0")]
+        athena = FakeAthenaClient(_TRAFICO_COLUMNS, gold_rows)
+
+        resultado = tools._trafico_cercano_impl(
+            "Retiro", 300.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(resultado.resumen, "fluido")
+        self.assertEqual(resultado.hora, 14)
+        self.assertEqual(len(resultado.estaciones), 1)
+        estacion = resultado.estaciones[0]
+        self.assertEqual(estacion.point_id, "4260")
+        self.assertAlmostEqual(estacion.distancia_m, 120.5)
+        self.assertAlmostEqual(estacion.avg_intensity_vph, 300.0)
+
+    def test_varias_estaciones_se_ordenan_por_distancia_y_agregan_el_resumen(self):
+        neo4j_rows = [
+            {"lugar_id": "poi:1", "lugar_nombre": "Sol", "estacion_id": "trafico:200", "distancia_m": 250.0},
+            {"lugar_id": "poi:1", "lugar_nombre": "Sol", "estacion_id": "trafico:100", "distancia_m": 50.0},
+        ]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        gold_rows = [
+            _row("200", "10", "100.0", "0.1", "0.1", "0.1", "4.0"),
+            _row("100", "10", "500.0", "0.7", "0.6", "0.7", "5.0"),
+        ]
+        athena = FakeAthenaClient(_TRAFICO_COLUMNS, gold_rows)
+
+        resultado = tools._trafico_cercano_impl(
+            "Sol", 300.0, datetime(2026, 8, 20, 10, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual([e.point_id for e in resultado.estaciones], ["100", "200"])
+        self.assertEqual(resultado.resumen, "congestionado")  # media (5.0+4.0)/2 = 4.5
+
+    def test_estacion_sin_dato_gold_para_la_hora_se_lista_con_valores_none(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Sol", "estacion_id": "trafico:999", "distancia_m": 80.0}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        athena = FakeAthenaClient(_TRAFICO_COLUMNS, [])  # Gold sin filas ese día
+
+        resultado = tools._trafico_cercano_impl(
+            "Sol", 300.0, datetime(2026, 8, 20, 10, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(len(resultado.estaciones), 1)
+        self.assertEqual(resultado.estaciones[0].point_id, "999")
+        self.assertIsNone(resultado.estaciones[0].avg_service_level)
+        self.assertEqual(resultado.resumen, "sin_datos")
+
+    def test_fallback_a_occupancy_ratio_cuando_no_hay_service_level(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Sol", "estacion_id": "trafico:1", "distancia_m": 80.0}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        gold_rows = [_row("1", "10", "300.0", "0.8", "0.7", "0.8", None)]
+        athena = FakeAthenaClient(_TRAFICO_COLUMNS, gold_rows)
+
+        resultado = tools._trafico_cercano_impl(
+            "Sol", 300.0, datetime(2026, 8, 20, 10, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertIsNone(resultado.estaciones[0].avg_service_level)
+        self.assertEqual(resultado.resumen, "congestionado")  # occupancy_ratio 0.8 >= 0.6
+
+    def test_sin_momento_usa_la_hora_mas_reciente_del_dia(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Sol", "estacion_id": "trafico:1", "distancia_m": 80.0}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        gold_rows = [
+            _row("1", "9", "100.0", "0.1", "0.1", "0.1", "0.5"),
+            _row("1", "15", "600.0", "0.9", "0.9", "0.9", "5.5"),
+        ]
+        athena = FakeAthenaClient(_TRAFICO_COLUMNS, gold_rows)
+
+        resultado = tools._trafico_cercano_impl(
+            "Sol", 300.0, None, neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(resultado.hora, 15)
+        self.assertAlmostEqual(resultado.estaciones[0].avg_intensity_vph, 600.0)
 
 
 if __name__ == "__main__":

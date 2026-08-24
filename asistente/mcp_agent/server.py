@@ -21,6 +21,10 @@ en `tools.py` — así `tools.py` no depende de que este módulo (ni la propia
 librería `mcp`) se pueda importar para que sus funciones sigan siendo
 inspeccionables/testeables de forma aislada.
 
+Tarea 081: `trafico_cercano` se registra junto a `calidad_aire` -- es la
+primera `tool` que, además de Athena, consulta el grafo urbano real en Neo4j
+(`asistente/neo4j_client.py`, ver doc/080).
+
 Tarea 079: este servidor ya se monta en la app FastAPI
 (`asistente/main.py::create_app`, vía `MCPServer.streamable_http_app()` +
 `FastAPI.mount()`, con el `lifespan` de ambas apps combinado explícitamente
@@ -42,14 +46,16 @@ mcp = MCPServer(
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
         "(memoria del TFM, apartados 5.2 y 6.7). `calidad_aire` lee datos "
-        "reales de Gold vía Athena; el resto de tools siguen pendientes, "
-        "ver asistente/mcp_agent/tools.py."
+        "reales de Gold vía Athena; `trafico_cercano` cruza el grafo urbano "
+        "en Neo4j con Gold; el resto de tools siguen pendientes, ver "
+        "asistente/mcp_agent/tools.py."
     ),
 )
 
 for _tool in (
     tools.afluencia_prevista,
     tools.calidad_aire,
+    tools.trafico_cercano,
     tools.opciones_movilidad,
     tools.disponibilidad_aparcamiento,
     tools.eventos_cercanos,

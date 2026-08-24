@@ -1,13 +1,15 @@
 """Modelos de datos que devuelven las `tools` del agente MCP.
 
-`CalidadAireZona` ya se construye de verdad (`calidad_aire()`, tarea 079,
-ver `asistente/mcp_agent/tools.py`). El resto de clases siguen sin
-construirse: las demás `tools` levantan `NotImplementedError` en vez de
-devolver una instancia. Se definen aquí de todas formas porque son parte del
-contrato de cada `tool` (su firma declara este tipo de retorno) y porque el
-SDK de MCP las usa para generar el `output_schema` que un cliente MCP vería
-(comprobado en esta tarea instanciando `MCPServer` con estas `tools`
-registradas, ver `asistente/tests/test_mcp_tools.py`).
+`CalidadAireZona` (tarea 079) y `TraficoCercano` (tarea 081, primera `tool`
+que cruza datasets vía el grafo Neo4j -- ver
+`asistente/mcp_agent/tools.py::trafico_cercano`) ya se construyen de verdad.
+El resto de clases siguen sin construirse: esas `tools` levantan
+`NotImplementedError` en vez de devolver una instancia. Se definen aquí de
+todas formas porque son parte del contrato de cada `tool` (su firma declara
+este tipo de retorno) y porque el SDK de MCP las usa para generar el
+`output_schema` que un cliente MCP vería (comprobado en esta tarea
+instanciando `MCPServer` con estas `tools` registradas, ver
+`asistente/tests/test_mcp_tools.py`).
 
 Cada campo `fuente_dataset` es, a propósito, un `str` libre y no un `Enum`
 cerrado sobre los datasets de `ingesta/capturas/`: cuando una `tool` tenga
@@ -57,6 +59,43 @@ class CalidadAireZona(BaseModel):
     hora: int | None = None
     estaciones_consultadas: list[str] = Field(default_factory=list)
     fuente_dataset: str
+
+
+class EstacionTraficoCercana(BaseModel):
+    """Una estación de medida de tráfico encontrada cerca de un `:Lugar` del
+    grafo (tarea 081), con su dato más reciente de Gold. Los campos de Gold
+    son opcionales porque el grafo puede encontrar una estación dentro del
+    radio pedido sin que Gold tenga ninguna fila para la fecha/hora
+    consultada (sensor sin lecturas esa hora) -- en ese caso se lista la
+    estación (la proximidad sí es un dato real y trazable) con sus valores de
+    tráfico en `None`, en vez de omitirla en silencio."""
+
+    point_id: str
+    distancia_m: float
+    avg_intensity_vph: float | None = None
+    avg_occupancy_ratio: float | None = None
+    avg_service_level: float | None = None
+
+
+class TraficoCercano(BaseModel):
+    """Estado del tráfico cerca de un lugar de Madrid (tarea 081): cruza el
+    grafo urbano en Neo4j (`:Lugar` -[:PROXIMO_A]- `:EstacionMedida {tipo:
+    'trafico'}`, tarea 070) con `gold.trafico_por_punto_hora` (tarea 041) --
+    ver `asistente/mcp_agent/tools.py::trafico_cercano` para el criterio
+    exacto de resolución y agregación.
+
+    `resumen` es una etiqueta simplificada (`"fluido"`/`"denso"`/
+    `"congestionado"`/`"sin_datos"`), no un cálculo oficial -- misma
+    filosofía que `CalidadAireZona.indice_calidad`."""
+
+    lugar: str
+    momento: datetime
+    radio_m: float
+    resumen: str
+    hora: int | None = None
+    estaciones: list[EstacionTraficoCercana] = Field(default_factory=list)
+    fuente_grafo: str
+    fuente_gold: str
 
 
 class OpcionMovilidad(BaseModel):
