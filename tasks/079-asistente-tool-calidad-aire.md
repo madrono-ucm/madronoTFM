@@ -2,19 +2,19 @@
 id: 79
 slug: asistente-tool-calidad-aire
 title: 'Asistente: primera tool real (calidad_aire) contra Athena, de extremo a extremo'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/079-asistente-tool-calidad-aire
-pr_number: null
-pr_url: null
+pr_number: 124
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/124
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-23T18:00:00+00:00'
-updated_at: '2026-08-24T20:20:10.601380+00:00'
+updated_at: '2026-08-24T20:36:09.342714+00:00'
 started_at: '2026-08-24T20:20:10.601356+00:00'
-submitted_at: null
+submitted_at: '2026-08-24T20:36:09.342689+00:00'
 merged_at: null
 ---
 
