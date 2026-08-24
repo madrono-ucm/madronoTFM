@@ -3,19 +3,19 @@ id: 82
 slug: verificar-trafico-cercano-neo4j-real
 title: Verificar trafico_cercano contra la instancia real de Neo4j (bug de región
   en SSM corregido)
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/082-verificar-trafico-cercano-neo4j-real
-pr_number: null
-pr_url: null
+pr_number: 126
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/126
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-25T10:00:00+00:00'
-updated_at: '2026-08-24T22:29:49.573226+00:00'
+updated_at: '2026-08-24T22:32:50.589211+00:00'
 started_at: '2026-08-24T22:29:49.573202+00:00'
-submitted_at: null
+submitted_at: '2026-08-24T22:32:50.589073+00:00'
 merged_at: null
 ---
 
