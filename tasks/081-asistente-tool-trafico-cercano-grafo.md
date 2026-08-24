@@ -1,19 +1,19 @@
 ---
 id: 81
 slug: asistente-tool-trafico-cercano-grafo
-title: "Asistente: tool con cruce vía grafo (trafico_cercano, Neo4j + Athena)"
-status: pending
+title: 'Asistente: tool con cruce vía grafo (trafico_cercano, Neo4j + Athena)'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/081-asistente-tool-trafico-cercano-grafo
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-25T09:00:00+00:00"
-updated_at: "2026-08-25T09:00:00+00:00"
-started_at: null
+created_at: '2026-08-25T09:00:00+00:00'
+updated_at: '2026-08-24T21:58:48.887192+00:00'
+started_at: '2026-08-24T21:58:48.887164+00:00'
 submitted_at: null
 merged_at: null
 ---
