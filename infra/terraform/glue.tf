@@ -7924,3 +7924,29 @@ resource "aws_glue_job" "afluencia_lugares_silver_to_gold" {
 
   depends_on = [aws_cloudwatch_log_group.glue_afluencia_lugares]
 }
+
+# ---------------------------------------------------------------------------
+# Grupos de log globales de AWS Glue (`--enable-continuous-cloudwatch-log`,
+# activo en todos los jobs de este fichero): AWS Glue los crea
+# automáticamente la primera vez que cualquier job escribe en ellos -- no
+# son un recurso por dataset como `aws_cloudwatch_log_group.glue_<dataset>`
+# de más arriba, son compartidos por TODOS los jobs de la cuenta/región.
+# Se gestionan aquí solo para fijar su retención (coste mínimo, mismo
+# criterio que `var.lambda_log_retention_days` en el resto del proyecto):
+# sin retención explícita, CloudWatch los conserva indefinidamente. Se
+# detectó real en producción (revisión de factura, no en una tarea)
+# 1.78 GB acumulados sin expirar en `/aws-glue/jobs/error` +
+# `/aws-glue/jobs/logs-v2` -- fijado a 14 días vía `aws logs
+# put-retention-policy` antes de escribir este bloque; importar con
+# `terraform import 'aws_cloudwatch_log_group.glue_shared["error"]'
+# /aws-glue/jobs/error` (y el equivalente para `logs-v2`/`output`) para que
+# quede bajo control de Terraform, o simplemente confirmar con `terraform
+# plan` que no genera diff (ya tienen la retención fijada a mano).
+# ---------------------------------------------------------------------------
+
+resource "aws_cloudwatch_log_group" "glue_shared" {
+  for_each = toset(["error", "logs-v2", "output"])
+
+  name              = "/aws-glue/jobs/${each.key}"
+  retention_in_days = var.lambda_log_retention_days
+}
