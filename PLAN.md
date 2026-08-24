@@ -105,7 +105,7 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `081`**
+**Próximo número libre: `082`**
 
 Nota sobre el orden: las tareas sin bloqueo se numeran y encolan ya; las
 bloqueadas por credenciales se numeran **cuando llegan**, no antes, para no
@@ -133,10 +133,13 @@ pese a estar en orden inverso de creación en este documento.
   EMT/AEMET/CAMS (ver [`doc/018`](doc/018-captura-aemet-prevision-avisos.md)
   como referencia del patrón), verificar que `afluencia_lugares` deja de
   devolver `is_mock: true`.
-- [ ] **Asistente: tool con cruce vía grafo** (número pendiente) — ya
-  desbloqueada, el grafo está cargado. Preguntas que cruzan datasets
-  (p. ej. "¿hay tráfico cerca de este evento?") vía consultas Cypher reales
-  sobre la instancia (credenciales en SSM, ver arriba).
+- [x] **[`081-asistente-tool-trafico-cercano-grafo`](tasks/081-asistente-tool-trafico-cercano-grafo.md)**
+  — en cola. Primera tool que cruza datasets vía el grafo (no solo
+  Athena): `trafico_cercano(lugar, radio_m, momento)` resuelve `lugar` a
+  un `:Lugar` en Neo4j, sigue `PROXIMO_A` hasta las `EstacionMedida` de
+  tráfico dentro del radio, y consulta `gold.trafico_por_punto_hora` para
+  su estado real. Necesita un cliente de lectura de Neo4j nuevo dentro de
+  `asistente/` (autocontenido, no reutiliza `grafo/`).
 - [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
   `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` bloqueada
   hasta Google Maps) — sin bloqueo salvo la indicada, se pueden ir
@@ -192,5 +195,6 @@ planificación original (junio 2026).
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
 - [x] Crear y encolar `079-asistente-tool-calidad-aire` — completada
 - [x] Cargar y verificar el grafo real (`080`) — completada
+- [x] Crear y encolar `081-asistente-tool-trafico-cercano-grafo`
 - [ ] Conseguir la clave de Google Maps
 - [ ] Empezar a reescribir §5 de la memoria con la arquitectura real
