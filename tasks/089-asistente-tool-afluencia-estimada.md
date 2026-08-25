@@ -1,7 +1,7 @@
 ---
 id: 89
 slug: asistente-tool-afluencia-estimada
-title: 'Asistente: Fase B de la especificación 086 -- implementar afluencia_estimada'
+title: 'Asistente: implementar afluencia_estimada (redisenada tras el hallazgo de la tarea 087)'
 status: pending
 force: false
 allow_infra_apply: false
@@ -20,95 +20,118 @@ merged_at: null
 
 ## Contexto
 
-**Depende de la tarea `087` ya fusionada** (Fase A: necesita
-`:EstacionMedida {tipo: "aforos_peatones_bicicletas"}` y sus relaciones
-`PROXIMO_A` cargadas en la instancia real). No la empieces si `087` sigue
-pendiente.
+**Esta tarea sustituye por completo el diseño original de la Fase B de
+`doc/086-afluencia-estimada-grafo.md`** — lee primero la corrección al
+principio de `doc/086-...md` y `doc/087-grafo-aforos-peatones-bicicletas-
+neo4j-real.md` (sección "Corrección 25/8"): `aforos_peatones_bicicletas`
+(la señal primaria del diseño original) resultó ser una fuente externa
+**descontinuada desde el 30/6/2024** (verificado contra Athena real y de
+forma independiente contra `datos.madrid.es`), no un dataset sano en
+producción como se asumió al escribir la tarea 086. No es un bug de este
+proyecto — es la fuente municipal la que dejó de publicar.
 
-**Esta tarea implementa la "Fase B" de `doc/086-afluencia-estimada-grafo.md`
-(tarea 086) -- léela entera antes de empezar, es la fuente de verdad del
-diseño.** En particular, respeta estas dos decisiones ya tomadas que un
-diseño anterior propio no tenía:
+**Diseño nuevo, decidido con el usuario el 25/8**: `afluencia_estimada`
+combina cuatro señales con datos reales y frescos, **todas ya verificadas
+contra Athena real en esta sesión** (ver `grafo/README.md`, "Verificado
+contra datos reales"):
 
-- **La tool se llama `afluencia_estimada`, no `afluencia_prevista`** --
-  `afluencia_prevista` (nombre del esqueleto original, tarea 044) sugería
-  previsión temporal tipo Google (`typical_by_hour`); esta tool da un
-  estado estimado del momento consultado a partir de sensores reales, no
-  una previsión estadística. Sustituye la entrada `afluencia_prevista` en
-  `asistente/mcp_agent/tools.py` y en la tabla de `asistente/README.md`.
-- **Combina varias señales, no solo aforos**: `aforos_peatones_bicicletas`
-  (primaria) + `:ParadaTransporte {tipo: "bicimad"}` (ocupación) +
-  `:EstacionMedida {tipo: "trafico"}` (intensidad, reutilizando la consulta
-  que ya usa `trafico_cercano` -- no la dupliques) como señales
-  secundarias, dentro del mismo `radio_m`. Si `aparcamientos` (Prioridad 2
-  de `NEXT_STEPS.md`) ya está arreglado cuando implementes esto, añade su
-  ocupación como cuarta señal; si no, omítela sin error.
+- `:EstacionMedida {tipo: "trafico"}` — intensidad/ocupación vial
+  (`gold.trafico_por_punto_hora`, 4678 filas reales).
+- `:EstacionMedida {tipo: "ruido"}` — nivel de ruido
+  (`gold.ruido_por_estacion_periodo_fecha`, 31 filas reales,
+  `avg_laeq_db`).
+- `:ParadaTransporte {tipo: "bicimad"}` — ocupación de estaciones BiciMAD
+  (`gold.bicimad_por_estacion_hora`, `avg_occupancy_ratio`/
+  `avg_bikes_available`/`avg_docks_available`).
+- `:EstacionMedida {tipo: "calidad_aire"}` — señal más débil/indirecta
+  (correlaciona con congestión, no con afluencia peatonal directamente),
+  inclúyela como cuarta señal opcional, no bloqueante si falta.
 
-`agenda_eventos`/`agenda_recintos` quedan **fuera de alcance** (no están en
-el grafo, añadirlos sería una tercera fase) -- si `momento` cae cerca de un
-evento conocido, no lo detectes aquí; simplemente no lo menciones como
-señal disponible.
+Ninguna de las cuatro mide peatones directamente (a diferencia de lo que
+habría dado `aforos_peatones_bicicletas` si hubiera tenido datos reales) —
+documenta esta limitación explícitamente en el docstring de la tool y en
+`nivel_estimado`: es una aproximación por actividad urbana general
+(tráfico/ruido/movilidad), no un conteo de personas.
+
+**No borres el código de la tarea 087** (`grafo/extract.py::fetch_estaciones_
+aforos_peatones_bicicletas`, `grafo/nodos.py::estacion_medida_from_aforos_
+peatones_bicicletas_gold`, etc.) — queda listo por si la fuente externa
+vuelve a publicar en el futuro, simplemente no lo uses en esta tool.
 
 Revisa `asistente/mcp_agent/tools.py::trafico_cercano`/`_trafico_cercano_impl`
 y `asistente/neo4j_client.py::lugares_proximos_a_estaciones_trafico_query`
 como plantilla de estructura (resolución de `lugar` por texto, agregación
 por estación con distancia mínima, resultado explícito de "sin datos").
+`trafico_cercano` ya expone la consulta de proximidad a `tipo: "trafico"` —
+reutilízala (no la dupliques).
 
 ## Objetivo
 
-Implementar `afluencia_estimada(lugar, radio_m=300.0, momento=None)` según
-la Fase B de `doc/086-afluencia-estimada-grafo.md`.
+Implementar `afluencia_estimada(lugar, radio_m=300.0, momento=None)`:
+combina tráfico + ruido + BiciMAD (+ calidad del aire si está disponible)
+cerca de `lugar`, vía el grafo, en una estimación simplificada de actividad
+urbana.
 
 ## Alcance concreto
 
-1. `asistente/neo4j_client.py`: añade la consulta de proximidad a
-   `EstacionMedida {tipo: "aforos_peatones_bicicletas"}` (calcada de
-   `lugares_proximos_a_estaciones_trafico_query`), y reutiliza/factoriza la
-   ya existente para `trafico` en vez de duplicarla si hace falta llamarla
-   desde aquí también.
-2. `asistente/models/herramientas.py`: rediseña el modelo de retorno
-   (renómbralo si `AfluenciaPrevista` sigue con ese nombre) para reflejar
-   la combinación de señales: lista de estaciones de aforos cercanas
-   (`station_id`, `distancia_m`, `mode`, `total_count`/`avg_count` --
-   opcionales, mismo criterio que `EstacionTraficoCercana` cuando Gold no
-   tiene fila para esa fecha/hora), señales secundarias (BiciMAD, tráfico)
-   y un resumen simplificado `nivel_estimado`
-   (`"bajo"`/`"medio"`/`"alto"`/`"sin_datos"`, con el criterio de los
-   umbrales documentado explícitamente -- no hay escala oficial).
+1. `asistente/neo4j_client.py`: añade consultas de proximidad a
+   `:EstacionMedida {tipo: "ruido"}` y `:ParadaTransporte {tipo: "bicimad"}`
+   (calcadas de `lugares_proximos_a_estaciones_trafico_query`, cambiando
+   solo el label/tipo filtrado). Reutiliza la de `trafico` y, si ya existe,
+   la de `calidad_aire` (revisa `asistente/mcp_agent/tools.py::calidad_aire`
+   antes de asumir que hace falta escribir una nueva).
+2. `asistente/models/herramientas.py`: rediseña `AfluenciaPrevista` (o el
+   nombre que tenga en ese momento) para reflejar las señales nuevas:
+   listas de estaciones cercanas por tipo (`trafico`, `ruido`, `bicimad`,
+   `calidad_aire`), cada una con `distancia_m` + su valor real más
+   reciente (todo opcional, mismo criterio que `EstacionTraficoCercana`
+   cuando Gold no tiene fila para esa fecha/hora), y un resumen
+   `nivel_estimado` (`"bajo"`/`"medio"`/`"alto"`/`"sin_datos"`) con el
+   criterio de los umbrales documentado explícitamente por señal (no hay
+   escala oficial combinada -- normaliza cada señal a una etiqueta simple
+   primero, mismo patrón que `_UMBRALES_SERVICE_LEVEL` de
+   `trafico_cercano`, y combina las etiquetas resultantes, no los valores
+   brutos de escalas distintas).
 3. `asistente/mcp_agent/tools.py`: implementa `afluencia_estimada(lugar,
    radio_m=300.0, momento=None)` -- resolución de `lugar` por texto igual
    que las otras tools, agregación por estación con la distancia mínima
    real cuando se repite, consulta a Athena por `date`/`hour` de `momento`
-   (o el más reciente si es `None`), resultado explícito de "sin datos" si
-   no hay `:Lugar` o ninguna estación de aforos dentro del radio.
+   (o el más reciente si es `None`) para cada señal. Si ninguna señal tiene
+   ninguna estación dentro del radio, resultado explícito de "sin datos"
+   (no excepción). Si solo alguna de las cuatro señales tiene datos, calcula
+   `nivel_estimado` con las que haya disponibles -- no falles por falta de
+   una señal.
 4. Sustituye la entrada `afluencia_prevista` por `afluencia_estimada` en
    `asistente/mcp_agent/server.py`.
 5. Router HTTP nuevo en `asistente/routers/`, mismo patrón que
    `trafico_cercano.py`.
 6. Tests: mockea Neo4j y Athena, mismo criterio que los tests existentes de
-   `trafico_cercano`. Añade test de router HTTP.
+   `trafico_cercano`. Añade test de router HTTP, y casos de "solo alguna
+   señal disponible" / "ninguna señal disponible".
 7. Verifica con al menos una invocación real contra la instancia real
-   (Neo4j + Athena) -- confirma primero con Cypher real que existe un
-   `:Lugar` cercano a alguna estación de aforos ya cargada por la tarea
-   `087`.
+   (Neo4j + Athena) -- usa un `:Lugar` real conocido con estaciones de
+   `trafico`/`ruido`/`bicimad` cerca (confírmalo con Cypher real antes de
+   elegir uno).
 
 ## Restricciones
 
 - Alcance: solo `afluencia_estimada` -- no toques `calidad_aire` ni
   `trafico_cercano`, ni las otras `tools` con `NotImplementedError`.
+- No uses `aforos_peatones_bicicletas` como señal -- fuente descontinuada
+  (ver Contexto), aunque el código de la tarea 087 siga en el repositorio.
 - No implementes `agenda_eventos`/`agenda_recintos` como señal -- fuera de
-  alcance (ver Contexto).
+  alcance, no están en el grafo.
 - No reactives `ingesta/capturas/afluencia_lugares_madrid.py`/
   `populartimes`.
-- No modifiques `grafo/` -- si la tarea `087` no dejó algo que necesitas,
-  para y documenta el bloqueo en vez de ampliar `grafo/` aquí.
+- No modifiques `grafo/`.
 
 ## Criterios de aceptación
 
-- `afluencia_estimada` devuelve datos reales combinando al menos la señal
-  primaria (`aforos_peatones_bicicletas` vía grafo + Athena) con una
-  invocación real verificada.
+- `afluencia_estimada` devuelve datos reales combinando al menos dos de
+  las cuatro señales vía grafo + Athena, verificado con una invocación
+  real.
 - `PLAN.md`/`asistente/README.md`: marcan `afluencia_estimada` como
-  implementada, y que el bloqueador de la clave de Google Maps queda
-  completamente cerrado (ninguna tool depende ya de él).
+  implementada (señal compuesta tráfico/ruido/BiciMAD/calidad del aire, no
+  aforos), y que el bloqueador de la clave de Google Maps queda
+  completamente cerrado.
 - Tests en verde.
