@@ -254,21 +254,28 @@ def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dic
     """Un registro por `station_id` con su dirección/distrito y ubicación
     más recientes (tarea 087, Fase A de `doc/086-afluencia-estimada-grafo.md`).
 
-    A diferencia de `trafico`/`calidad_aire`/`ruido`, este Gold
-    (`aforos_peatones_bicicletas_por_estacion_modo_hora`, tarea 054) trae
-    `location` como columna `struct` anidada (`location.lat`/`location.lon`),
-    no columnas planas -- se proyectan como `lat`/`lon` planas en el propio
-    SQL para poder reutilizar `_nest_location` sin cambios. `station_id` ya
-    es único por estación (las redes de peatones `PERM_PEA##` y de
-    bicicletas `PERM_BICI##` usan identificadores propios, ver
-    `procesamiento/silver_gold/aforos_peatones_bicicletas/aggregate.py`), así
-    que no hace falta agrupar también por `mode` para identificar el nodo."""
+    **Verificado contra el catálogo real de Athena** (`DESCRIBE
+    aforos_peatones_bicicletas_por_estacion_modo_hora`, tarea 087): igual
+    que `trafico`/`calidad_aire`/`ruido`, Gold aplana la ubicación a
+    columnas `lat`/`lon` planas -- un primer intento de esta tarea asumió
+    (solo leyendo el `dict` en Python puro de
+    `procesamiento/silver_gold/aforos_peatones_bicicletas/aggregate.py`, sin
+    comprobarlo contra el catálogo real) que `location` llegaba anidada
+    como `struct`; el SQL con `location.lat`/`location.lon` falló en vivo
+    con `COLUMN_NOT_FOUND`. El job real de Glue que escribe Gold aplana el
+    `dict` `location` de `aggregate.py` a columnas `lat`/`lon` en el
+    Parquet -- no lo asumas leyendo solo la función Python de agregación,
+    compara siempre contra el catálogo real (`DESCRIBE <tabla>`) antes de
+    escribir el SQL. `station_id` ya es único por estación (las redes de
+    peatones `PERM_PEA##` y de bicicletas `PERM_BICI##` usan identificadores
+    propios), así que no hace falta agrupar también por `mode` para
+    identificar el nodo."""
     sql = f"""
         SELECT station_id,
                max_by(address, date) AS address,
                max_by(district, date) AS district,
-               max_by(location.lat, date) AS lat,
-               max_by(location.lon, date) AS lon
+               max_by(lat, date) AS lat,
+               max_by(lon, date) AS lon
         FROM aforos_peatones_bicicletas_por_estacion_modo_hora
         WHERE {_recent_date_filter()}
         GROUP BY station_id
