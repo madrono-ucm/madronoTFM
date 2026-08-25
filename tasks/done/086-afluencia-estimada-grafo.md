@@ -2,7 +2,7 @@
 id: 86
 slug: afluencia-estimada-grafo
 title: "Especificación: afluencia estimada vía grafo (sustituto de Google Maps)"
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/086-afluencia-estimada-grafo
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-25T00:00:00+00:00'
-updated_at: '2026-08-25T00:00:00+00:00'
+updated_at: '2026-08-25T20:36:42Z'
 started_at: '2026-08-25T00:00:00+00:00'
-submitted_at: null
-merged_at: null
+submitted_at: '2026-08-25T20:36:42Z'
+merged_at: '2026-08-25T20:36:42Z'
 ---
 
 ## Contexto

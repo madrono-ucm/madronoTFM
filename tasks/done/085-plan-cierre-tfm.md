@@ -2,7 +2,7 @@
 id: 85
 slug: plan-cierre-tfm
 title: "Plan de cierre hacia el 17 de septiembre de 2026"
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/085-plan-cierre-tfm
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-25T00:00:00+00:00'
-updated_at: '2026-08-25T00:00:00+00:00'
+updated_at: '2026-08-25T20:36:23Z'
 started_at: '2026-08-25T00:00:00+00:00'
-submitted_at: null
-merged_at: null
+submitted_at: '2026-08-25T20:36:23Z'
+merged_at: '2026-08-25T20:36:23Z'
 ---
 
 ## Contexto

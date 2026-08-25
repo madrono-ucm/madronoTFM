@@ -2,7 +2,7 @@
 id: 84
 slug: esquema-plataformas
 title: "Esquema de plataformas y arquitectura"
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/084-esquema-plataformas
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-25T00:00:00+00:00'
-updated_at: '2026-08-25T00:00:00+00:00'
+updated_at: '2026-08-25T20:35:46Z'
 started_at: '2026-08-25T00:00:00+00:00'
-submitted_at: null
-merged_at: null
+submitted_at: '2026-08-25T20:35:46Z'
+merged_at: '2026-08-25T20:35:46Z'
 ---
 
 ## Contexto
