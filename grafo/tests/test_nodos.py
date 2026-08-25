@@ -29,9 +29,11 @@ from grafo.nodos import (
     distritos_from_bronze,
     enrich_lugar_con_osm,
     enrich_lugares_con_osm,
+    estacion_medida_from_aforos_peatones_bicicletas_gold,
     estacion_medida_from_calidad_aire_gold,
     estacion_medida_from_ruido_gold,
     estacion_medida_from_trafico_gold,
+    estaciones_medida_from_aforos_peatones_bicicletas_gold,
     estaciones_medida_from_calidad_aire_gold,
     estaciones_medida_from_ruido_gold,
     estaciones_medida_from_trafico_gold,
@@ -123,6 +125,24 @@ def _ruido_gold_record(station_id):
     }
 
 
+def _aforos_peatones_bicicletas_gold_record(station_id, mode="peatones"):
+    return {
+        "schema_version": 1,
+        "station_id": station_id,
+        "mode": mode,
+        "district_code": "01",
+        "district": "Centro",
+        "address": "Calle de Alcalá 25",
+        "address_notes": None,
+        "date": "2026-08-15",
+        "hour": 12,
+        "total_count": 340,
+        "avg_count": 340,
+        "location": {"lat": 40.4185, "lon": -3.6982, "srid": "EPSG:4326"},
+        "processed_at": "2026-08-15T13:00:00+00:00",
+    }
+
+
 class EstacionMedidaTests(unittest.TestCase):
     def test_from_trafico_gold(self):
         node = estacion_medida_from_trafico_gold(_trafico_gold_record("1009"))
@@ -147,6 +167,27 @@ class EstacionMedidaTests(unittest.TestCase):
         node = estacion_medida_from_ruido_gold(_ruido_gold_record("RF-01"))
         self.assertEqual(node["id"], "ruido:RF-01")
         self.assertEqual(node["tipo"], "ruido")
+
+    def test_from_aforos_peatones_bicicletas_gold(self):
+        node = estacion_medida_from_aforos_peatones_bicicletas_gold(
+            _aforos_peatones_bicicletas_gold_record("PERM_PEA01")
+        )
+        self.assertEqual(
+            node,
+            {
+                "id": "aforos_peatones_bicicletas:PERM_PEA01",
+                "tipo": "aforos_peatones_bicicletas",
+                "fuente": "aforos_peatones_bicicletas",
+                "nombre": "Calle de Alcalá 25",
+                "ubicacion": {"lat": 40.4185, "lon": -3.6982},
+            },
+        )
+
+    def test_from_aforos_peatones_bicicletas_gold_sin_address_usa_district(self):
+        record = _aforos_peatones_bicicletas_gold_record("PERM_BICI03")
+        record["address"] = None
+        node = estacion_medida_from_aforos_peatones_bicicletas_gold(record)
+        self.assertEqual(node["nombre"], "Centro")
 
     def test_sin_point_id_es_none(self):
         self.assertIsNone(estacion_medida_from_trafico_gold({"location": {}}))
@@ -173,6 +214,18 @@ class EstacionMedidaTests(unittest.TestCase):
         records = [_ruido_gold_record("RF-01"), {**_ruido_gold_record("RF-01"), "period": "N"}]
         nodes = estaciones_medida_from_ruido_gold(records)
         self.assertEqual(len(nodes), 1)
+
+    def test_dedup_por_modo_aforos_peatones_bicicletas(self):
+        # station_id ya es único por estación (redes de peatones/bicicletas
+        # con identificadores propios, ver doc en extract.py) -- dos horas
+        # de la misma estación deben colapsar a un único nodo igualmente.
+        records = [
+            _aforos_peatones_bicicletas_gold_record("PERM_PEA01"),
+            {**_aforos_peatones_bicicletas_gold_record("PERM_PEA01"), "hour": 13},
+        ]
+        nodes = estaciones_medida_from_aforos_peatones_bicicletas_gold(records)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["id"], "aforos_peatones_bicicletas:PERM_PEA01")
 
 
 def _emt_gold_record(stop_id, line="203"):

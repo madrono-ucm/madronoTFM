@@ -171,6 +171,30 @@ def estaciones_medida_from_ruido_gold(records: "Iterable[dict]") -> "list[dict]"
     return dedupe_nodes(estacion_medida_from_ruido_gold(r) for r in records)
 
 
+def estacion_medida_from_aforos_peatones_bicicletas_gold(record: dict) -> Optional[dict]:
+    """Tarea 087, Fase A de `doc/086-afluencia-estimada-grafo.md`. `tipo`/
+    prefijo de `id` usan el nombre completo del dataset
+    (`"aforos_peatones_bicicletas"`), no una abreviatura -- fijado por la
+    especificación 086, consistente con cómo se nombran
+    `trafico`/`calidad_aire`/`ruido`. `nombre` usa `address` (más
+    específico) y cae a `district` cuando no hay dirección -- mismo criterio
+    de "mejor esfuerzo" que `station_name` en calidad_aire/ruido."""
+    station_id = record.get("station_id")
+    if not station_id:
+        return None
+    return {
+        "id": f"aforos_peatones_bicicletas:{station_id}",
+        "tipo": "aforos_peatones_bicicletas",
+        "fuente": "aforos_peatones_bicicletas",
+        "nombre": record.get("address") or record.get("district"),
+        "ubicacion": _location(record),
+    }
+
+
+def estaciones_medida_from_aforos_peatones_bicicletas_gold(records: "Iterable[dict]") -> "list[dict]":
+    return dedupe_nodes(estacion_medida_from_aforos_peatones_bicicletas_gold(r) for r in records)
+
+
 # ---------------------------------------------------------------------------
 # :ParadaTransporte -- desde Gold de `transporte_publico_emt`, `bicimad`, y
 # Bronze de `crtm_red_transporte_madrid` (sin Silver/Gold).
