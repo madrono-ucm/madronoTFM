@@ -6,8 +6,8 @@ status: in_review
 force: false
 allow_infra_apply: false
 branch: task/084-esquema-plataformas
-pr_number: null
-pr_url: null
+pr_number: 128
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/128
 attempts: 0
 next_retry_at: null
 last_error: null
