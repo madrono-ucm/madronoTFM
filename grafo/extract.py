@@ -203,7 +203,7 @@ def _nest_location(row: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# :EstacionMedida -- Gold de trafico / calidad_aire / ruido.
+# :EstacionMedida -- Gold de trafico / calidad_aire / ruido / aforos_peatones_bicicletas.
 # ---------------------------------------------------------------------------
 
 
@@ -243,6 +243,45 @@ def fetch_estaciones_ruido(athena_client=None) -> "list[dict]":
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM ruido_por_estacion_periodo_fecha
+        WHERE {_recent_date_filter()}
+        GROUP BY station_id
+    """
+    rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    return [_nest_location(row) for row in rows]
+
+
+def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dict]":
+    """Un registro por `station_id` (mismo criterio de identidad que el resto
+    de `:EstacionMedida`: la red de peatones `PERM_PEA##` y la de bicicletas
+    `PERM_BICI##` usan identificadores propios, ver docstring de
+    `procesamiento/silver_gold/aforos_peatones_bicicletas/aggregate.py`, así
+    que no hace falta agrupar también por `mode`).
+
+    Gold aplana `location` a columnas `lat`/`lon` (verificado contra el job
+    real desplegado, `glue_silver_to_gold.py`: `F.first("location.lat",
+    ignorenulls=True).alias("lat")`) -- mismo criterio que
+    `trafico`/`calidad_aire`/`ruido`, pese a que `aggregate.py` (la
+    referencia documental/de test, no lo que corre en Glue) construye un
+    `location` anidado.
+
+    **Hallazgo real de la tarea 087, no un bug de esta consulta**: a fecha de
+    escribir esto, `_recent_date_filter()` (y de hecho cualquier filtro por
+    `date`, incluso uno exacto) no encuentra ninguna fila real -- ver
+    `doc/087-grafo-aforos-peatones-bicicletas-neo4j-real.md`, "Bug real
+    encontrado": la fuente real (`madrid_aforos_peatones_bicicletas`) publica
+    `measured_at` con fecha `2024-06-30`, fuera del rango de
+    `projection.date.range` (`"2026-08-01,NOW+1DAY"`) configurado en
+    `infra/terraform/glue.tf` -- la partición existe de verdad en S3, pero
+    Athena no la ve (partition projection calcula las particiones válidas
+    por fórmula, no lista S3). Esta función queda igualmente lista para
+    cuando se corrija ese rango."""
+    sql = f"""
+        SELECT station_id,
+               max_by(address, date) AS address,
+               max_by(district, date) AS district,
+               max_by(lat, date) AS lat,
+               max_by(lon, date) AS lon
+        FROM aforos_peatones_bicicletas_por_estacion_modo_hora
         WHERE {_recent_date_filter()}
         GROUP BY station_id
     """

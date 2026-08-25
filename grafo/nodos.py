@@ -116,7 +116,8 @@ def barrios_from_bronze(records: "Iterable[dict]") -> "list[dict]":
 
 
 # ---------------------------------------------------------------------------
-# :EstacionMedida -- desde Gold de `trafico`, `calidad_aire`, `ruido`.
+# :EstacionMedida -- desde Gold de `trafico`, `calidad_aire`, `ruido`,
+# `aforos_peatones_bicicletas` (tarea 087).
 # ---------------------------------------------------------------------------
 
 
@@ -159,6 +160,24 @@ def estacion_medida_from_ruido_gold(record: dict) -> Optional[dict]:
     }
 
 
+def estacion_medida_from_aforos_peatones_bicicletas_gold(record: dict) -> Optional[dict]:
+    """`nombre` usa `address` (más legible, p. ej. "Calle Arenal esquina San
+    Martín") y, si no hay, cae a `district` -- mismo criterio de respaldo que
+    documenta `doc/086` para esta fuente; ninguna de las dos es siempre
+    `None` en un registro real (ver `aggregate.py`: ambas se toman del primer
+    registro Silver del bucket, que siempre trae al menos `district`)."""
+    station_id = record.get("station_id")
+    if not station_id:
+        return None
+    return {
+        "id": f"aforos_peatones_bicicletas:{station_id}",
+        "tipo": "aforos_peatones_bicicletas",
+        "fuente": "aforos_peatones_bicicletas",
+        "nombre": record.get("address") or record.get("district"),
+        "ubicacion": _location(record),
+    }
+
+
 def estaciones_medida_from_trafico_gold(records: "Iterable[dict]") -> "list[dict]":
     return dedupe_nodes(estacion_medida_from_trafico_gold(r) for r in records)
 
@@ -169,6 +188,10 @@ def estaciones_medida_from_calidad_aire_gold(records: "Iterable[dict]") -> "list
 
 def estaciones_medida_from_ruido_gold(records: "Iterable[dict]") -> "list[dict]":
     return dedupe_nodes(estacion_medida_from_ruido_gold(r) for r in records)
+
+
+def estaciones_medida_from_aforos_peatones_bicicletas_gold(records: "Iterable[dict]") -> "list[dict]":
+    return dedupe_nodes(estacion_medida_from_aforos_peatones_bicicletas_gold(r) for r in records)
 
 
 # ---------------------------------------------------------------------------

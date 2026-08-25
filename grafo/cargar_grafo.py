@@ -41,6 +41,9 @@ def cargar_grafo(loader: Neo4jLoader) -> None:
         nodos.estaciones_medida_from_trafico_gold(extract.fetch_estaciones_trafico())
         + nodos.estaciones_medida_from_calidad_aire_gold(extract.fetch_estaciones_calidad_aire())
         + nodos.estaciones_medida_from_ruido_gold(extract.fetch_estaciones_ruido())
+        + nodos.estaciones_medida_from_aforos_peatones_bicicletas_gold(
+            extract.fetch_estaciones_aforos_peatones_bicicletas()
+        )
     )
     loader.load_estaciones_medida(estaciones_medida)
 

@@ -53,7 +53,7 @@ código puro, testado con fixtures, sin conectar a nada.
 |---|---|---|
 | `:Distrito` | `distrito_from_bronze` / `distritos_from_bronze` | `barrios_distritos_madrid` (Bronze, distritos) |
 | `:Barrio` | `barrio_from_bronze` / `barrios_from_bronze` | `barrios_distritos_madrid` (Bronze, barrios) |
-| `:EstacionMedida` | `estacion_medida_from_trafico_gold`, `..._calidad_aire_gold`, `..._ruido_gold` (+ plural) | Gold de `trafico`, `calidad_aire`, `ruido` |
+| `:EstacionMedida` | `estacion_medida_from_trafico_gold`, `..._calidad_aire_gold`, `..._ruido_gold`, `..._aforos_peatones_bicicletas_gold` (+ plural) | Gold de `trafico`, `calidad_aire`, `ruido`, `aforos_peatones_bicicletas` (tarea 087) |
 | `:ParadaTransporte` | `parada_transporte_from_transporte_publico_emt_gold`, `..._bicimad_gold`, `paradas_transporte_from_crtm_bronze` | Gold de `transporte_publico_emt`, `bicimad`; Bronze de `crtm_red_transporte_madrid` |
 | `:Lugar` | `lugar_from_poi_bronze`, `..._aparcamientos_gold`, `..._cartelera_cines_gold` (+ plural) | Bronze de `poi_madrid`; Gold de `aparcamientos`, `cartelera_cines_estrenos` |
 
@@ -275,6 +275,7 @@ orígenes Bronze-only, que no tienen tabla en el catálogo de Glue.
 | `fetch_estaciones_trafico` | Athena, `gold.trafico_por_punto_hora` | `estaciones_medida_from_trafico_gold` |
 | `fetch_estaciones_calidad_aire` | Athena, `gold.calidad_aire_por_estacion_contaminante_hora` | `estaciones_medida_from_calidad_aire_gold` |
 | `fetch_estaciones_ruido` | Athena, `gold.ruido_por_estacion_periodo_fecha` | `estaciones_medida_from_ruido_gold` |
+| `fetch_estaciones_aforos_peatones_bicicletas` | Athena, `gold.aforos_peatones_bicicletas_por_estacion_modo_hora` | `estaciones_medida_from_aforos_peatones_bicicletas_gold` |
 | `fetch_paradas_emt` | Athena, `gold.transporte_publico_emt_por_parada_hora` | `paradas_transporte_from_transporte_publico_emt_gold` |
 | `fetch_paradas_bicimad` | Athena, `gold.bicimad_por_estacion_hora` | `paradas_transporte_from_bicimad_gold` |
 | `fetch_lugares_aparcamientos` | Athena, `gold.aparcamientos_por_parking_hora` | `lugares_from_aparcamientos_gold` |
@@ -324,6 +325,7 @@ darlo por bueno — no simulado:
 | `fetch_paradas_bicimad` | 679 |
 | `fetch_lugares_aparcamientos` | 0 (Gold vacío, ver hallazgo abajo) |
 | `fetch_lugares_cartelera_cines` | 0 (Gold vacío, ya conocido desde la tarea 063) |
+| `fetch_estaciones_aforos_peatones_bicicletas` | 0 (dato real inalcanzable vía Athena, ver hallazgo 4 abajo -- tarea 087) |
 | `fetch_distritos_bronze` / `fetch_barrios_bronze` / `fetch_poi_bronze` / `fetch_paradas_crtm_bronze` | 0 (ver hallazgo abajo) |
 
 **Hallazgo real 1 — `transporte_publico_emt` Gold solo tiene 1 `stop_id`
@@ -364,6 +366,36 @@ commiteados (`ingesta/capturas/samples/*_sample.json`) — no verificada contra
 ninguna key real, porque no existe ninguna. Las cuatro funciones devuelven
 `[]` sin error contra el S3 real de hoy, exactamente como exige el enunciado
 para el caso de un dataset sin datos.
+
+**Hallazgo real 4 (tarea 087) — Gold de `aforos_peatones_bicicletas` tiene un
+único fichero Parquet real en S3 (`date=2024-06-30/`, escrito 2026-08-23),
+pero Athena no puede verlo: la `partition.date.range` del catálogo
+(`"2026-08-01,NOW+1DAY"`, `infra/terraform/glue.tf`) es más estrecha que la
+fecha real de los datos.** Confirmado en dos pasos: (1) `aws s3 ls` sobre el
+prefijo Gold real muestra la partición `date=2024-06-30/` con un objeto
+Parquet de 30 KB; (2) una consulta Athena con `WHERE date = '2024-06-30'`
+(coincidencia exacta, sin depender de `_recent_date_filter()`) devuelve 0
+filas igualmente. Con partición projection, Athena calcula las particiones
+válidas por fórmula a partir del rango declarado -- no lista S3 -- así que
+una partición real fuera de ese rango es invisible aunque el fichero exista.
+La causa raíz está en la propia fuente: `measured_at` de
+`madrid_aforos_peatones_bicicletas` (confirmado leyendo un objeto Bronze
+real, `aforos_peatones_bicicletas/fecha=2026-08-15/hora=19/...json`) trae
+fecha `2024-06-30`, no la fecha de ingesta (`ingested_at` sí es
+`2026-08-15`) -- el pipeline Silver/Gold particiona por `measured_at` (mismo
+criterio documentado en `aggregate.py`, consistente con `trafico`/
+`calidad_aire`/`ruido`), pero nadie anticipó al desplegar la tabla (tarea
+054) que esta fuente en concreto publicaría una fecha tan antigua. **No es
+drift de Terraform** (verificado por separado, ver `doc/087-...md`: el
+`md5` del script Glue realmente desplegado coincide exactamente con
+`procesamiento/silver_gold/aforos_peatones_bicicletas/glue_silver_to_gold.py`
+de este `main`) -- es un bug de configuración distinto, ya corregido como
+código en `infra/terraform/glue.tf` (`projection.fecha.range`/
+`projection.date.range` ampliados a `"2024-01-01,NOW+1DAY"`) pero **no
+aplicado** (fuera de alcance de esta tarea, ver `NEXT_STEPS.md`).
+`fetch_estaciones_aforos_peatones_bicicletas()` queda con la consulta
+correcta (mismo patrón que el resto de `:EstacionMedida`); devuelve `[]`
+contra la instancia real de hoy hasta que se aplique la corrección.
 
 ## Enriquecimiento de `:Lugar` con OpenStreetMap (tarea 083)
 
@@ -434,13 +466,14 @@ Cypher completa. Requiere ejecutar antes `infra/neo4j/schema/schema.cypher`
 
 ## Tests
 
-`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 89
-tests a fecha de la tarea 083):
+`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 94
+tests a fecha de la tarea 087):
 
 - `test_nodos.py` / `test_relaciones.py`: fixtures de `:Distrito`/`:Barrio`/
   `:ParadaTransporte`(CRTM)/`:Lugar`(POI) tomadas directamente de
   `ingesta/capturas/samples/` (sin duplicarlas); fixtures de Gold
-  (`trafico`, `calidad_aire`, `ruido`, `transporte_publico_emt`, `bicimad`,
+  (`trafico`, `calidad_aire`, `ruido`, `aforos_peatones_bicicletas`,
+  `transporte_publico_emt`, `bicimad`,
   `aparcamientos`, `cartelera_cines_estrenos`) construidas a mano en el
   propio fichero de test, mismo patrón que
   `procesamiento/tests/test_bicimad_aggregate.py` — no existe ningún
@@ -490,6 +523,18 @@ tests a fecha de la tarea 083):
 
 ## Relevante para tareas futuras
 
+- **Bloqueo real de la tarea 087, pendiente de aplicar**: `:EstacionMedida
+  {tipo: "aforos_peatones_bicicletas"}` está completamente implementado
+  (`extract.py`/`nodos.py`/`cargar_grafo.py`, tests en verde) pero
+  `fetch_estaciones_aforos_peatones_bicicletas()` devuelve `[]` contra la
+  instancia real hasta que se aplique la corrección ya escrita en
+  `infra/terraform/glue.tf` (`projection.fecha.range`/`projection.date.range`
+  de las tablas Silver/Gold de este dataset, ampliadas a
+  `"2024-01-01,NOW+1DAY"`) -- ver hallazgo real 4 arriba. Aplicarla junto con
+  la reconciliación de la Prioridad 1 de `NEXT_STEPS.md` (o antes, si un
+  humano decide que este `-target` concreto es seguro de aislar) y volver a
+  ejecutar `python3 -m grafo.cargar_grafo` para que los nodos reales entren
+  en Neo4j.
 - **Resuelto por la tarea 070**: `UBICADO_EN` y `PROXIMO_A` ya están
   implementadas (`grafo/geo.py`, ampliación de `relaciones.py`/`cypher.py`/
   `cargar_grafo.py`, ver la sección dedicada arriba).
