@@ -6,6 +6,28 @@ maps-arquitectura.md`): documentar el diseño con suficiente detalle para
 que una sesión de seguimiento lo construya sin tener que releer toda la
 investigación previa.
 
+**Corrección 25/8, tras implementar la Fase A (tarea 087)**: esta
+especificación elegía `aforos_peatones_bicicletas` como señal *primaria*
+asumiendo que era un dataset sano y en producción continua. **Verificado
+contra Athena/S3/Glue reales que no lo es**: la fuente real
+(`datos.madrid.es`, dataset `300321-0-aforos-peatones-bicicletas`) no
+publica datos nuevos desde el **30 de junio de 2024** — confirmado leyendo
+el payload real de una captura Bronze en vivo (`measured_at:
+"2024-06-30..."` en las 1971 filas de la última ejecución de la Lambda,
+15/8/2026). No es un bug de este proyecto (el *scheduling* mensual y la
+Partition Projection funcionan como están escritos) — es la fuente externa
+la que dejó de publicar. Ver `doc/087-grafo-aforos-peatones-bicicletas-
+neo4j-real.md` para el detalle completo de la investigación.
+
+**Decisión resultante**: `aforos_peatones_bicicletas` deja de ser señal
+primaria de `afluencia_estimada` — sustituida por una combinación de
+`trafico`/`calidad_aire`/`ruido`/`bicimad` (las cuatro con datos reales y
+frescos verificados en la misma sesión). El resto de esta especificación
+(Fase A tal como está escrita) queda como referencia histórica de por qué
+se intentó y qué se encontró — **no la sigas al implementar la Fase B**, usa
+en su lugar `tasks/done/089-...md` una vez completada, o pregunta antes de
+asumir que este documento sigue vigente sin leer esta corrección primero.
+
 ## Por qué esta forma, y no otra
 
 `afluencia_lugares`/Google Maps daba, para un lugar, un patrón de
