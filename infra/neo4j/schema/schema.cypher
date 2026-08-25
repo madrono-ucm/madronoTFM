@@ -63,6 +63,13 @@ FOR (b:Barrio) ON (b.distrito_codigo);
 // nombre (string), tipo (string), fuente (string, nombre del dataset Gold
 // de origen), ubicacion (Point, WGS84, `point({latitude: ..., longitude: ...,
 // crs: "wgs-84"})`).
+// Propiedades opcionales (tarea 083, enriquecimiento con OpenStreetMap vía
+// Overpass API -- solo presentes si hubo un POI de OSM a <=30m del :Lugar,
+// ver grafo/nodos.py::enrich_lugar_con_osm): osm_id (string,
+// "<osm_type>:<osm_id>", identidad del elemento de OSM), osm_amenity
+// (string, valor del tag amenity/shop/tourism/leisure de OSM que matcheó),
+// osm_opening_hours (string, tag opening_hours de OSM tal cual, formato
+// libre de la fuente, sin parsear).
 // ----------------------------------------------------------------------------
 CREATE CONSTRAINT lugar_id_unique IF NOT EXISTS
 FOR (l:Lugar) REQUIRE l.id IS UNIQUE;

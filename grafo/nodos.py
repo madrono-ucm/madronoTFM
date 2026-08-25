@@ -34,6 +34,8 @@ from __future__ import annotations
 
 from typing import Iterable, Optional
 
+from grafo import geo
+
 
 def _location(record: dict) -> Optional[dict]:
     """Normaliza `record["location"]` (Gold/Silver, `{"lat", "lon", ...}`) a
@@ -321,3 +323,59 @@ def lugares_from_aparcamientos_gold(records: "Iterable[dict]") -> "list[dict]":
 
 def lugares_from_cartelera_cines_gold(records: "Iterable[dict]") -> "list[dict]":
     return dedupe_nodes(lugar_from_cartelera_cines_gold(r) for r in records)
+
+
+# ---------------------------------------------------------------------------
+# Enriquecimiento de :Lugar con POIs de OpenStreetMap (tarea 083).
+# ---------------------------------------------------------------------------
+
+# Umbral de proximidad para considerar que un POI de OSM describe el mismo
+# `:Lugar` -- fijado por el enunciado de la tarea 083, no derivado de ningún
+# cálculo (a diferencia del umbral de 300m de `relaciones.proximo_a`, pensado
+# para "cerca de", aquí se busca "es el mismo sitio").
+OSM_MATCH_RADIUS_M = 30.0
+
+
+def _osm_poi_coords(poi: dict) -> "Optional[tuple[float, float]]":
+    location = poi.get("location") or {}
+    lat, lon = location.get("lat"), location.get("lon")
+    if lat is None or lon is None:
+        return None
+    return lat, lon
+
+
+def enrich_lugar_con_osm(lugar: dict, osm_pois: "Iterable[dict]", radio_m: float = OSM_MATCH_RADIUS_M) -> dict:
+    """Añade `osm_id`/`osm_amenity`/`osm_opening_hours` a `lugar` si hay un
+    POI de OSM (`osm_pois`, registros normalizados por
+    `ingesta.capturas.enriquecimiento_osm_lugares.normalize_record`) a
+    `radio_m` metros o menos (Haversine, `grafo.geo.nearest_within_radius`).
+    Si varios POIs de OSM caen dentro del radio, se queda con el más
+    cercano.
+
+    Sin match -- o sin `ubicacion` en `lugar` (p. ej. `:Lugar` de
+    `cartelera_cines_estrenos`, ver "Limitaciones de datos reales" en
+    `grafo/README.md`) --, devuelve `lugar` sin ninguna propiedad nueva: no
+    se añaden propiedades `null` de más a un `:Lugar` sin match real, tal
+    como pide el enunciado de la tarea 083."""
+    ubicacion = lugar.get("ubicacion")
+    if not ubicacion:
+        return lugar
+    match = geo.nearest_within_radius(ubicacion["lat"], ubicacion["lon"], osm_pois, radio_m, _osm_poi_coords)
+    if match is None:
+        return lugar
+    enriched = dict(lugar)
+    enriched["osm_id"] = f"{match.get('osm_type')}:{match.get('osm_id')}"
+    enriched["osm_amenity"] = match.get("amenity")
+    enriched["osm_opening_hours"] = match.get("opening_hours")
+    return enriched
+
+
+def enrich_lugares_con_osm(
+    lugares: "Iterable[dict]", osm_pois: "Iterable[dict]", radio_m: float = OSM_MATCH_RADIUS_M
+) -> "list[dict]":
+    """Aplica `enrich_lugar_con_osm` a una lista de `:Lugar` ya construidos
+    (p. ej. `lugares_from_poi_bronze(...) + lugares_from_aparcamientos_gold(...)
+    + ...`). `osm_pois` se materializa una sola vez en una lista (no un
+    generador) porque se recorre entero por cada `lugar`."""
+    osm_pois = list(osm_pois)
+    return [enrich_lugar_con_osm(lugar, osm_pois, radio_m) for lugar in lugares]

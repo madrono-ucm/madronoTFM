@@ -27,6 +27,8 @@ from grafo.nodos import (
     dedupe_nodes,
     distrito_from_bronze,
     distritos_from_bronze,
+    enrich_lugar_con_osm,
+    enrich_lugares_con_osm,
     estacion_medida_from_calidad_aire_gold,
     estacion_medida_from_ruido_gold,
     estacion_medida_from_trafico_gold,
@@ -323,6 +325,77 @@ class LugarTests(unittest.TestCase):
                 "ubicacion": None,
             },
         )
+
+
+class EnrichLugaresConOsmTests(unittest.TestCase):
+    """Usa la muestra real commiteada de POIs de OSM (captura real contra
+    Overpass, tarea 083, no coordenadas inventadas)."""
+
+    def setUp(self):
+        self.osm_pois = _load_sample("enriquecimiento_osm_lugares_sample.json")
+        # "Café Comercial" (osm_id 26065697), un POI real de la muestra.
+        self.cafe = next(p for p in self.osm_pois if p["osm_id"] == 26065697)
+
+    def test_lugar_con_match_osm_cercano_se_enriquece(self):
+        lugar = {
+            "id": "poi_madrid:1",
+            "nombre": "Sitio junto al Café Comercial",
+            "tipo": "poi_turistico",
+            "fuente": "poi_madrid",
+            "ubicacion": {"lat": self.cafe["location"]["lat"], "lon": self.cafe["location"]["lon"]},
+        }
+        enriched = enrich_lugar_con_osm(lugar, self.osm_pois)
+
+        self.assertEqual(enriched["osm_id"], "node:26065697")
+        self.assertEqual(enriched["osm_amenity"], "restaurant")
+        self.assertEqual(enriched["osm_opening_hours"], "Mo-Th 08:30-01:00; Fr-Su 08:30-02:00")
+        # El resto de propiedades del :Lugar no se tocan.
+        self.assertEqual(enriched["nombre"], "Sitio junto al Café Comercial")
+
+    def test_lugar_sin_ningun_poi_osm_cercano_no_se_modifica(self):
+        # Puerta del Sol: a más de 1km de cualquier POI de la muestra real
+        # (verificado con `haversine_m` contra los 6 puntos reales).
+        lugar = {
+            "id": "poi_madrid:2",
+            "nombre": "Puerta del Sol",
+            "tipo": "poi_turistico",
+            "fuente": "poi_madrid",
+            "ubicacion": {"lat": 40.4169, "lon": -3.7035},
+        }
+        enriched = enrich_lugar_con_osm(lugar, self.osm_pois)
+
+        self.assertEqual(enriched, lugar)
+        self.assertNotIn("osm_id", enriched)
+        self.assertNotIn("osm_amenity", enriched)
+        self.assertNotIn("osm_opening_hours", enriched)
+
+    def test_lugar_sin_ubicacion_no_se_modifica(self):
+        # p.ej. :Lugar de cartelera_cines_estrenos, que nunca trae ubicacion.
+        lugar = {"id": "cartelera_cines_estrenos:x", "nombre": "Cine X", "tipo": "cine", "fuente": "x", "ubicacion": None}
+        enriched = enrich_lugar_con_osm(lugar, self.osm_pois)
+        self.assertEqual(enriched, lugar)
+
+    def test_enrich_lugares_con_osm_aplica_a_toda_la_lista(self):
+        lugares = [
+            {
+                "id": "poi_madrid:1",
+                "nombre": "Cerca del café",
+                "tipo": "poi_turistico",
+                "fuente": "poi_madrid",
+                "ubicacion": {"lat": self.cafe["location"]["lat"], "lon": self.cafe["location"]["lon"]},
+            },
+            {
+                "id": "poi_madrid:2",
+                "nombre": "Puerta del Sol",
+                "tipo": "poi_turistico",
+                "fuente": "poi_madrid",
+                "ubicacion": {"lat": 40.4169, "lon": -3.7035},
+            },
+        ]
+        enriched = enrich_lugares_con_osm(lugares, self.osm_pois)
+
+        self.assertEqual(enriched[0]["osm_amenity"], "restaurant")
+        self.assertNotIn("osm_amenity", enriched[1])
 
 
 class DedupeNodesTests(unittest.TestCase):

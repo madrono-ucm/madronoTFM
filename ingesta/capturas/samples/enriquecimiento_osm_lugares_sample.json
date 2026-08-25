@@ -1,0 +1,98 @@
+[
+  {
+    "schema_version": 1,
+    "source": "enriquecimiento_osm_lugares",
+    "osm_id": 21812709,
+    "osm_type": "node",
+    "name": "Repsol AutoGas",
+    "amenity": "fuel",
+    "opening_hours": null,
+    "wheelchair": null,
+    "ingested_at": "2026-08-25T22:33:38.515404+02:00",
+    "location": {
+      "lat": 40.3995727,
+      "lon": -3.7329825,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "enriquecimiento_osm_lugares",
+    "osm_id": 22554715,
+    "osm_type": "node",
+    "name": "Galp",
+    "amenity": "fuel",
+    "opening_hours": null,
+    "wheelchair": null,
+    "ingested_at": "2026-08-25T22:33:38.515404+02:00",
+    "location": {
+      "lat": 40.373567,
+      "lon": -3.7432466,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "enriquecimiento_osm_lugares",
+    "osm_id": 25913327,
+    "osm_type": "node",
+    "name": "Exe Pozuelo",
+    "amenity": "hotel",
+    "opening_hours": null,
+    "wheelchair": null,
+    "ingested_at": "2026-08-25T22:33:38.515404+02:00",
+    "location": {
+      "lat": 40.3984408,
+      "lon": -3.7881758,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "enriquecimiento_osm_lugares",
+    "osm_id": 25931627,
+    "osm_type": "node",
+    "name": "mk2 Palacio de Hielo",
+    "amenity": "cinema",
+    "opening_hours": null,
+    "wheelchair": null,
+    "ingested_at": "2026-08-25T22:33:38.515404+02:00",
+    "location": {
+      "lat": 40.4631411,
+      "lon": -3.6361022,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "enriquecimiento_osm_lugares",
+    "osm_id": 25931630,
+    "osm_type": "node",
+    "name": "Pista de Hielo Madrid",
+    "amenity": "ice_rink",
+    "opening_hours": null,
+    "wheelchair": null,
+    "ingested_at": "2026-08-25T22:33:38.515404+02:00",
+    "location": {
+      "lat": 40.4630376,
+      "lon": -3.6376566,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "enriquecimiento_osm_lugares",
+    "osm_id": 26065697,
+    "osm_type": "node",
+    "name": "Café Comercial",
+    "amenity": "restaurant",
+    "opening_hours": "Mo-Th 08:30-01:00; Fr-Su 08:30-02:00",
+    "wheelchair": null,
+    "ingested_at": "2026-08-25T22:33:38.515404+02:00",
+    "location": {
+      "lat": 40.4287093,
+      "lon": -3.701972,
+      "srid": "EPSG:4326"
+    }
+  }
+]
