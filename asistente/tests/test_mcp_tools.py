@@ -17,7 +17,7 @@ from asistente.mcp_agent import tools
 from asistente.mcp_agent.server import mcp
 
 TOOL_FUNCTIONS = [
-    tools.afluencia_prevista,
+    tools.afluencia_estimada,
     tools.calidad_aire,
     tools.trafico_cercano,
     tools.opciones_movilidad,
@@ -25,10 +25,10 @@ TOOL_FUNCTIONS = [
     tools.eventos_cercanos,
 ]
 
-# `calidad_aire` (tarea 079) y `trafico_cercano` (tarea 081) son las únicas
-# con lógica real -- el resto siguen levantando NotImplementedError.
+# `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081) y
+# `afluencia_estimada` (tarea 089) son las únicas con lógica real -- el
+# resto siguen levantando NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS = [
-    tools.afluencia_prevista,
     tools.opciones_movilidad,
     tools.disponibilidad_aparcamiento,
     tools.eventos_cercanos,

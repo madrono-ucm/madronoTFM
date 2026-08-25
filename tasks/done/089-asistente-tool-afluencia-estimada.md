@@ -3,20 +3,20 @@ id: 89
 slug: asistente-tool-afluencia-estimada
 title: 'Asistente: implementar afluencia_estimada (redisenada tras el hallazgo de
   la tarea 087)'
-status: blocked
+status: done
 force: false
 allow_infra_apply: false
 branch: task/089-asistente-tool-afluencia-estimada
 pr_number: null
 pr_url: null
 attempts: 3
-next_retry_at: '2026-08-25T22:15:00.398329+00:00'
-last_error: You've hit your session limit · resets 1:20am (UTC)
+next_retry_at: null
+last_error: null
 created_at: null
-updated_at: '2026-08-25T21:54:29.603318+00:00'
+updated_at: '2026-08-25T22:14:30Z'
 started_at: '2026-08-25T21:25:46.675284+00:00'
-submitted_at: null
-merged_at: null
+submitted_at: '2026-08-25T22:14:30Z'
+merged_at: '2026-08-25T22:14:30Z'
 ---
 
 ## Contexto
