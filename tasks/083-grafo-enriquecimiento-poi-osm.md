@@ -2,18 +2,18 @@
 id: 83
 slug: grafo-enriquecimiento-poi-osm
 title: 'Grafo: enriquecer :Lugar con POIs y etiquetas de OpenStreetMap'
-status: pending
+status: in_progress
 force: false
 allow_infra_apply: false
-branch: null
+branch: task/083-grafo-enriquecimiento-poi-osm
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: null
-updated_at: null
-started_at: null
+updated_at: '2026-08-25T20:27:33.080156+00:00'
+started_at: '2026-08-25T20:27:33.080131+00:00'
 submitted_at: null
 merged_at: null
 ---
