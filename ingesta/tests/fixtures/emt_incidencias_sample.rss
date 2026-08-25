@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss version="2.0">
+  <channel>
+    <title>Canal de Noticias de la Empresa Municipal de Transportes de Madrid</title>
+    <item>
+      <guid>B60AFAC3-34A5-44B1-918E-BEADE2C8BD91</guid>
+      <title>Supresión de Parada: Carretera de Castilla. Afectadas 4 líneas de EMT.</title>
+      <description> Del 26 de agosto a fin de obras, las líneas 160, 161, A y N28, suprimen provisionalmente la parada 3426, ubicada en carretera de Castilla frente al Club de Campo. Ver más detalle en documento adjunto.&lt;p&gt;&lt;img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/&gt;&lt;/p&gt;</description>
+      <link>http://feeds.emtmadrid.es:8082/docs/20260826-SP-3426-Carretera-Castilla.pdf</link>
+      <author>cgi@emtmadrid.es</author>
+      <pubDate>Tue, 25 Aug 2026 14:46:47 GMT</pubDate>
+      <rssfinaldate>24/09/2026 16:45:00</rssfinaldate>
+      <rsspublisher>cgi@emtmadrid.es</rsspublisher>
+      <rssAfectaDesde>26/08/2026 6:00:00</rssAfectaDesde>
+      <rssAfectaHasta>26/09/2026 19:00:00</rssAfectaHasta>
+      <GoogleTransitCause>08 - Obras</GoogleTransitCause>
+      <GoogleTransitEffect>08 - Parada suprimida</GoogleTransitEffect>
+      <category>A</category>
+      <category>160</category>
+      <category>161</category>
+      <category>N28</category>
+      <enclosure url="http://feeds.emtmadrid.es:8082/docs/20260826-SP-3426-Carretera-Castilla.pdf" type="application/pdf" length="83834" />
+      <MEDIA AltTitle="" AltDescription="" Format="" Type="" />
+    </item>
+    <item>
+      <guid>AD5667C2-3ABD-4A5B-AE3A-8C2573AB38BB</guid>
+      <title>Supresión de Parada: Carretera de Castilla. Afectadas 4 líneas de EMT.</title>
+      <description> Del 26 de agosto a fin de obras, las líneas 160, 161, A y N28, suprimen provisionalmente la parada 3425, ubicada en carretera de Castilla (Club de Campo). Ver más detalle en documento adjunto.&lt;p&gt;&lt;img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/&gt;&lt;/p&gt;</description>
+      <link>http://feeds.emtmadrid.es:8082/docs/20260826-SP-3425-Carretera-Castilla.pdf</link>
+      <author>cgi@emtmadrid.es</author>
+      <pubDate>Tue, 25 Aug 2026 14:25:47 GMT</pubDate>
+      <rssfinaldate>24/09/2026 16:22:00</rssfinaldate>
+      <rsspublisher>cgi@emtmadrid.es</rsspublisher>
+      <rssAfectaDesde>26/08/2026 6:00:00</rssAfectaDesde>
+      <rssAfectaHasta>26/09/2026 19:00:00</rssAfectaHasta>
+      <GoogleTransitCause>08 - Obras</GoogleTransitCause>
+      <GoogleTransitEffect>08 - Parada suprimida</GoogleTransitEffect>
+      <category>A</category>
+      <category>160</category>
+      <category>161</category>
+      <category>N28</category>
+      <enclosure url="http://feeds.emtmadrid.es:8082/docs/20260826-SP-3425-Carretera-Castilla.pdf" type="application/pdf" length="83978" />
+      <MEDIA AltTitle="" AltDescription="" Format="" Type="" />
+    </item>
+  </channel>
+</rss>

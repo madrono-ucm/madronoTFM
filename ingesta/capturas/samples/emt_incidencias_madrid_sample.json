@@ -1,0 +1,193 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "B60AFAC3-34A5-44B1-918E-BEADE2C8BD91",
+    "title": "Supresión de Parada: Carretera de Castilla. Afectadas 4 líneas de EMT.",
+    "description": "Del 26 de agosto a fin de obras, las líneas 160, 161, A y N28, suprimen provisionalmente la parada 3426, ubicada en carretera de Castilla frente al Club de Campo. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "A",
+      "160",
+      "161",
+      "N28"
+    ],
+    "cause": "08 - Obras",
+    "effect": "08 - Parada suprimida",
+    "published_at": "2026-08-25T16:46:47+02:00",
+    "valid_from": "26/08/2026 6:00:00",
+    "valid_until": "26/09/2026 19:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260826-SP-3426-Carretera-Castilla.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "AD5667C2-3ABD-4A5B-AE3A-8C2573AB38BB",
+    "title": "Supresión de Parada: Carretera de Castilla. Afectadas 4 líneas de EMT.",
+    "description": "Del 26 de agosto a fin de obras, las líneas 160, 161, A y N28, suprimen provisionalmente la parada 3425, ubicada en carretera de Castilla (Club de Campo). Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "A",
+      "160",
+      "161",
+      "N28"
+    ],
+    "cause": "08 - Obras",
+    "effect": "08 - Parada suprimida",
+    "published_at": "2026-08-25T16:25:47+02:00",
+    "valid_from": "26/08/2026 6:00:00",
+    "valid_until": "26/09/2026 19:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260826-SP-3425-Carretera-Castilla.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "808BEFA8-FBA9-43D5-82EF-E38696F031A1",
+    "title": "Recuperación de Parada: paseo de la Castellana. Afectadas 3 líneas de EMT.",
+    "description": "El 26 de agosto, desde las 7:00 horas aproximadamente, las líneas 173, 174 y 176 recuperan la parada 51193, ubicada en paseo de la Castellana, 300, por finalización de obras. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "173",
+      "174",
+      "176"
+    ],
+    "cause": "08 - Obras",
+    "effect": "09 - Parada trasladada",
+    "published_at": "2026-08-25T16:01:47+02:00",
+    "valid_from": "26/08/2026 7:00:00",
+    "valid_until": "29/08/2026 19:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260826-RP-51193-Paseo-Castellana.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "9E334DD4-69A2-41B2-935D-232274742952",
+    "title": "Obras:  Álvaro Cunqueiro. Afectada línea 64 de EMT.",
+    "description": "De 7:00 a 15:00 horas aproximadamente del 27 de agosto a fin de obras, la línea 64 tendrá retenciones y modificaciones en su itinerario en Álvaro Cunqueiro. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "64"
+    ],
+    "cause": "08 - Obras",
+    "effect": "05 - Desvío programado",
+    "published_at": "2026-08-25T15:40:41+02:00",
+    "valid_from": "27/08/2026 7:00:00",
+    "valid_until": "27/09/2026 19:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260827-O-Alvaro-Cunqueiro.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "EF418196-C623-4CFB-9612-2CDCCC4C2AFB",
+    "title": "Finalización de obras en San Dalmacio. Afectada línea 79 de EMT.",
+    "description": "El 24 de agosto, desde las 13:00 horas aproximadamente, la línea 79 recupera definitivamente sus itinerarios y paradas habituales en San Dalmacio, por finalización de obras. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "79"
+    ],
+    "cause": "08 - Obras",
+    "effect": "09 - Parada trasladada",
+    "published_at": "2026-08-24T12:47:38+02:00",
+    "valid_from": "24/08/2026 13:00:00",
+    "valid_until": "27/08/2026 19:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260824-FO-San-Dalmacio.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "681D1DFD-C264-4A9C-BD0D-C8740A77D823",
+    "title": "Obras: Carretera M-12. Afectadas 4 líneas de EMT.",
+    "description": "Desde las 12:00 horas aproximadamente del 24 de agosto hasta las 6:00 horas del 31 de agosto, las líneas 200, N27, N32 y Exprés Aeropuerto tendrán retenciones y modificaciones en sus itinerarios en carretera M-12. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "200",
+      "203",
+      "N27",
+      "N32"
+    ],
+    "cause": "08 - Obras",
+    "effect": "05 - Desvío programado",
+    "published_at": "2026-08-24T11:41:40+02:00",
+    "valid_from": "24/08/2026 12:00:00",
+    "valid_until": "31/08/2026 6:00:00",
+    "link": "http://www.emtmadrid.es/",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "BAB34845-B0F0-431D-8FA0-B5B4E2C512C1",
+    "title": "Obras: Villagarcía. Afectadas 2 líneas de EMT.",
+    "description": "Desde inicio del servicio aproximadamente del 26 de agosto a fin de obras, las líneas 65 y SE3 tendrán retenciones y modificaciones en sus itinerarios en Villagarcía. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "65",
+      "SE3"
+    ],
+    "cause": "08 - Obras",
+    "effect": "05 - Desvío programado",
+    "published_at": "2026-08-24T10:47:24+02:00",
+    "valid_from": "26/08/2026 6:00:00",
+    "valid_until": "26/09/2026 19:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260826-O-Villagarcia.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "F31C4816-EC8F-42C8-8FF6-2EFF206EA25D",
+    "title": "Obras: Mateo García. Afectada línea N7 de EMT.",
+    "description": "El 27 de agosto, de 0:00 a 6:00 horas aproximadamente, la línea N7 tendrá retenciones y modificaciones en sus itinerarios en Mateo García, por obras. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "N7"
+    ],
+    "cause": "08 - Obras",
+    "effect": "05.01 - Desvío programado (L-V)",
+    "published_at": "2026-08-24T10:02:12+02:00",
+    "valid_from": "27/08/2026 0:00:00",
+    "valid_until": "27/08/2026 6:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260827-Grua-Mateo-Garcia.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "7097CAFF-B84C-4145-9B63-EEF573583D09",
+    "title": "Obras: Conde de Casal. Afectada línea N9 de EMT.",
+    "description": "El 27 de agosto, de 0:00 a 6:00 horas aproximadamente, la línea N9 tendrá retenciones y modificaciones en sus itinerarios en avenida del Mediterráneo y plaza del Conde de Casal, por obras. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "N9"
+    ],
+    "cause": "08 - Obras",
+    "effect": "05 - Desvío programado",
+    "published_at": "2026-08-24T10:02:12+02:00",
+    "valid_from": "27/08/2026 0:00:00",
+    "valid_until": "27/08/2026 6:00:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260827-O-Conde-Casal-N9.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_emt_incidencias",
+    "incident_id": "1AA2EEDE-B261-40FF-AF5C-E0E3E5988FB9",
+    "title": "Evento en Estadio Santiago Bernabéu. Afectadas 10 líneas de EMT.",
+    "description": "El 26 de agosto, de 18:30 a 23:45 horas aproximadamente, las líneas 5, 14, 27, 40, 43, 120, 126, 147, 150 y S10, tendrán retenciones y modificaciones en paseo de la Castellana, avenida Concha Espina, Padre Damián y Rafael Salgado, por la celebración de un evento en el Estadio Santiago Bernabéu, según su desarrollo y de acuerdo con las restricciones de tráfico que realice Policía Municipal. Ver más detalle en documento adjunto.<p><img src='http://feeds.emtmadrid.es:8082/images/00-Logo-RSS_Corporativo.png'/></p>",
+    "affected_lines": [
+      "5",
+      "14",
+      "27",
+      "40",
+      "43",
+      "120",
+      "126",
+      "147",
+      "150",
+      "S10"
+    ],
+    "cause": "12 - Evento deportivo",
+    "effect": "05.01 - Desvío programado (L-V)",
+    "published_at": "2026-08-23T10:01:40+02:00",
+    "valid_from": "26/08/2026 18:30:00",
+    "valid_until": "26/08/2026 23:45:00",
+    "link": "http://feeds.emtmadrid.es:8082/docs/20260826-Bernabeu-Evento.pdf",
+    "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+  }
+]

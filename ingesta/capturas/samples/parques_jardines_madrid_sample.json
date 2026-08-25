@@ -1,0 +1,170 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "5986859",
+    "name": "El Capricho de la Alameda Osuna",
+    "park_type": "/contenido/entidadesYorganismos/ParquesJardines/ParquesHistoricos",
+    "description": "El jardín historíco El Capricho es un espacio único, una joya que combina características naturales, históricas y artísticas, ofreciendo un entorno repleto de sensaciones y cargado de historia en cada uno de sus rincones. Este parque es la creación personal de María Josefa Alonso Pimentel, XII condesa-duquesa de Benavente y IX duquesa consorte de Osuna. Cuenta con pabellones, recorridos diseñados a propósito, láminas de agua y estancias que buscan fusionar belleza, grandeza y singularidad. Su propósito era representar, para el espectador, conceptos como la fiesta, el juego, el amor y los trabajos de la naturaleza. El Capricho reúne las declaraciones de Jardín Histórico, Jardín Artístico y Bien de Interés Cultural y está incluido con nivel 1 de protección en el Catálogo de Parques Históricos y Jardines de Interés. 'El Capricho' es el nombre que le dio su creadora, que compró la finca y terrenos colindantes entre 1783 y 1803. A lo largo del jardín se van encontrando las edificaciones denominadas como 'caprichos'. Es el caso del Abejero (un pabellón donde se contemplaba cómo vivían y trabajaban las abejas), el embarcadero, la ermita, el fortín, el Casino de Baile o la Casa de la Vieja, una casa de labranza de representaba la vida de las clases populares. El jardín alberga templetes, fuentes, puentes, plazoletas, esculturas, una ría, así como el palacio de los duques. Desde la entrada al jardín, un camino principal, flanqueado por dos casetas laterales para los guardas, se enlaza con la plaza de los Emperadores y de allí con la fachada posterior del palacio. Este camino principal articula el resto. El jardín, que fue un lugar frecuentado por personalidades intelectuales y artistas del momento, se desarrolló con tres estilos diferentes: el parterre o jardín francés, el jardín paisajista inglés y el giardino italiano. El jardín francés, representado por el parterre, se extiende delante de la fachada oeste del palacio, con sus setos recortados. En la parte baja se sitúa el italiano, el espacio más antiguo de la finca, que mezcla los setos con árboles en los que resguardarse a la sombra. Cerca de éste, el laberinto, concebido para el juego amoroso y los escondites, está hecho con laurel y respeta los planos originales. Por último, el resto del parque, hacia el norte, está concebido como un típico jardín paisajista inglés, evocando la naturaleza, de trazado libre e irregular. Actualmente, el palacio de El Capricho se encuentra en obras de rehabilitación y musealización con motivo del futuro Museo de la Duquesa, que tiene previsto abrir sus puertas al público en 2027. El Capricho esconde un secreto más: su famoso búnker de la Posición Jaca, un enclave de la Guerra Civil que alojó el Cuartel General del Ejército Republicano del Centro. Entre sus elementos vegetales más característicos se encuentran los bosques de lilos y árboles del amor, que aportan un colorido primaveral inconfundible. Además, sus praderas y paseos albergan notables ejemplares de robles, pinos, cipreses, tejos, cedros, plátanos y castaños de indias, muchos de ellos de gran belleza. Esta rica diversidad vegetal sustenta una fauna igualmente variada, destacan entre las aves especies como mirlos, palomas torcaces, pitos reales, herrerillos, petirrojos, ruiseñores, así como cisnes negros y ánades, mientras que entre los mamíferos se encuentran ardillas rojas, musarañas, ratones comunes y ratones de campo.  Este jardín, reconocido entre las visitas recomendadas para turistas en la  web oficial de turismo de Madrid ,  es accesible para personas con movilidad reducida en sus áreas principales, lo que permite que todos puedan disfrutar de su belleza y su rica diversidad.",
+    "schedule": "Del 1 de octubre al 31 de marzo sábados, domingos y festivos de 9 a 18:30 horas. Del 1 de abril al 30 de septiembre sábados, domingos y festivos de 9 a 21 horas. Los días 25 de diciembre y 1 de enero el parque permanece cerrado al público.",
+    "transport": "Metro: El Capricho (linea 5) Autobús: 101, 105 y 151  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "PASEO ALAMEDA DE OSUNA 25",
+    "postal_code": "28042",
+    "district": "BARAJAS",
+    "neighbourhood": "ALAMEDA DE OSUNA",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.45446361509569,
+      "lon": -3.6000964360303476,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "6070995",
+    "name": "Jardines Gregorio Ordóñez",
+    "park_type": "/contenido/entidadesYorganismos/ParquesJardines",
+    "description": "Los jardines en memoria de Gregorio Ordóñez cuentan con dos amplias áreas de juegos infantiles, diseñadas para el disfrute de la infancia. En su centro, se encuentra un encantador estanque rodeado de diversas especies de palmeras, que aportan un toque exótico y natural al entorno.",
+    "schedule": null,
+    "transport": "Metro: Núñez de Balboa (líneas 5 y 9) Bus: 1, 29, 52, 74  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "CALLE PRINCIPE DE VERGARA 68",
+    "postal_code": "28006",
+    "district": "SALAMANCA",
+    "neighbourhood": "LISTA",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.43346186779773,
+      "lon": -3.6785954778654113,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "6010361",
+    "name": "Jardines San Francisco el Grande",
+    "park_type": "/contenido/entidadesYorganismos/ParquesJardines/ColeccionesBotanicas",
+    "description": "Los jardines de San Francisco el Grande están situados en el lugar donde se encontraba el antiguo convento de San Francisco, cuyas ruinas fueron demolidas en 1961. El Parque de la Cornisa se sitúa a los pies de la Basílica de San Francisco el Grande, en lo que fue el patio del antiguo convento. En 2007, el Ayuntamiento de Madrid transformó los jardines de San Francisco en un jardín temático dedicado a las dalias, conocido como la antigua Dalieda de San Francisco. Posteriormente, en 2016, se modificó la composición de las plantaciones, optando por una colección de rosales debido a su notable capacidad de adaptación al clima madrileño y su abundante floración. En la actualidad, los Jardines de San Francisco el Grande albergan 21 variedades de rosales, que alcanzan su máximo esplendor durante los meses de mayo y junio. El parque cuenta con uno de los miradores más transitados para ver puestas de sol en la ciudad. Antecede al mirador el grupo escultórico San Isidro Labrador, que fue una de las esculturas que realizó Santiago Costa en 1952 para homenajear al arquitecto Juan de Villanueva. El parque de la Cornisa se desarrolla en pendiente descendente desde la Gran Vía de San Francisco hasta la Ronda de Segovia y se accede al mismo por la Calle del Rosario. Dispone de zonas deportivas e infantiles con estancias y pequeños caminos de terrizo. El arbolado está formado por magnolios, ciruelos rojos, acacias de Constantinopla, plátanos de sombra, arces negundos, arces del azúcar, moreras, almeces, madroños, palmeras de Fortune, arizónicas, álamos, además de distintos macizos de arbustos con abelias, rosales y juníperos entre otros. Existen también algunas zonas con césped. Destaca, paralela a la calle del Rosario una preciosa alineación de liquidambar con algún madroño intercalado. Se han realizado mejoras en 2016 y en 2022.",
+    "schedule": null,
+    "transport": "Bus: 3, 60 y 148.  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "AVENIDA GRAN VIA DE SAN FRANCISCO 25",
+    "postal_code": "28005",
+    "district": "CENTRO",
+    "neighbourhood": "PALACIO",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.41002249621306,
+      "lon": -3.7144199127869557,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "5964519",
+    "name": "Jardines de Andrés Saborit",
+    "park_type": "/contenido/entidadesYorganismos/ParquesJardines",
+    "description": "Los Jardines de Andrés Saborit se encuentran en la calle Raimundo Fernández Villaverde, entre las calles Alenza y Alonso Cano. Esta amplia zona verde cuenta con áreas infantiles, equipamientos de entrenamiento para mayores y zonas estanciales. Está rodeada de césped, árboles que brindan sombra y pequeños grupos de macizos arbustivos. Hasta abril de 2018, estos jardines eran conocidos como Jardines de Raimundo Fernández Villaverde. Con el cambio de denominación, se instaló una placa en homenaje a Andrés Saborit, concejal socialista en el Ayuntamiento de Madrid durante la II República. Saborit fue el artífice de importantes logros sociales, como la apertura de la Casa de Campo, la ampliación del Metro, la municipalización de servicios y la construcción de alrededor de 200 escuelas infantiles.",
+    "schedule": null,
+    "transport": "Metro: Nuevos Ministerios (líneas 6, 8 y 10) Bus: 5, 68, 149, C1, C2 RENFE: Nuevos Ministerios  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "CALLE RAIMUNDO FERNANDEZ VILLAVERDE 32",
+    "postal_code": "28003",
+    "district": "CHAMBERI",
+    "neighbourhood": "RIOS ROSAS",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.44613326792272,
+      "lon": -3.6989699295578347,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "5896013",
+    "name": "Jardines de El Buen Retiro",
+    "park_type": "/contenido/entidadesYorganismos/ParquesJardines/ParquesHistoricos",
+    "description": "Los jardines de El Buen Retiro, conocidos simplemente como El Retiro, es uno de los lugares más emblemáticos de Madrid y un oasis verde en el corazón de la ciudad. Con una extensión de 114 hectáreas, este parque histórico ha sido durante siglos un punto de encuentro para madrileños y visitantes. Creado en el siglo XVII como un espacio de recreo para la realeza española, El Retiro ofrece una impresionante mezcla de jardines paisajísticos, fuentes, estanques y monumentos históricos. Con sus amplias avenidas y rincones tranquilos, es un espacio perfecto tanto para actividades recreativas como para pasear y relajarse. Actualmente este parque es considerado Bien de Interés Cultural y Patrimonio de la Humanidad.   Historia del Parque:  El Parque del Buen Retiro empezó a construirse en 1630 por orden del Conde-Duque de Olivares, como parte del Real Sitio del Buen Retiro, un palacio y jardines destinados al ocio de Felipe IV. Originalmente fue un jardín privado de la corte española, pero con el tiempo, y tras la destrucción del palacio en el siglo XIX, fue abierto al público y pasó a ser gestionado por el Ayuntamiento de Madrid.   Principales Atractivos   Estanque Grande: El Retiro alberga un estanque monumental donde se pueden alquilar barcas de remo. Alrededor del estanque se encuentra el majestuoso Monumento a la Patria Española, conocido popularmente como Monumento a Alfonso XII, con su imponente columnata y esculturas que ofrecen vistas espectaculares del parque.  Palacio de Cristal: Uno de los edificios más impresionantes del parque es este pabellón de hierro y vidrio, construido en 1887 para albergar una exposición de plantas exóticas. Actualmente, se utiliza como espacio de exhibiciones temporales de arte contemporáneo.  Paseo de las Estatuas: A lo largo de este paseo, conocido también como Paseo de la Argentina, se encuentran las estatuas de los reyes de España, que originalmente estaban destinadas a decorar el Palacio Real.  Jardines y Espacios Naturales  El parque cuenta con una gran variedad de jardines que enriquecen la experiencia de los visitantes:  La Rosaleda: Un hermoso jardín de rosas, inspirado en otros famosos rosedales europeos, como el de Bagatelle en París.  Jardines de Cecilio Rodríguez: Este espacio cerrado y más íntimo está decorado con fuentes, setos geométricos y pabellones, y alberga una colección de pavos reales.  Bosque del Recuerdo: Un espacio conmemorativo en honor a las víctimas de los atentados del 11 de marzo de 2004 en Madrid, donde se plantaron 192 árboles, uno por cada víctima.  Actividades y Eventos  El Retiro es un punto neurálgico para actividades culturales y recreativas. Cada año se celebran la Feria del Libro y otros eventos culturales al aire libre. Este parque cuenta también con amplias zonas para correr, andar en bicicleta y practicar yoga, es un lugar ideal para los entusiastas del deporte. Este parque se incluye entre las visitas recomendadas a turistas que visitan la ciudad, según la web oficial de turismo de Madrid.  Otras denominaciones: Parque del Retiro. El Retiro",
+    "schedule": "Horario del parque    Primavera y verano (de abril a septiembre): desde las 6 hasta las 24 h.  Otoño e invierno (de octubre a marzo): desde las 6 hasta las 22 h.    Horario de las áreas caninas    Desde las 7:30 h hasta el cierre del parque.  Para labores puntuales de mantenimiento o reparaciones, se cerrará parcialmente el área, permitiendo el paso por una de las dos puertas a la zona que quede libre de la actuación.Se instalarán carteles para informar de estos periodos de cierre parcial del espacio con 24 h de antelación a su comienzo.",
+    "transport": "Metro: Retiro (línea 2), Príncipe de Vergara (líneas 2 y 9), Ibiza (línea 9), Atocha (línea 1), Atocha. Renfe (línea 1) Autobuses: 1, 2, 9, 14, 15, 19, 20, 26, 28, 32, 51, 52, 61, 63, 74, 146, 152, 202, C  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "PLAZA INDEPENDENCIA 7",
+    "postal_code": "28001",
+    "district": "RETIRO",
+    "neighbourhood": "LOS JERONIMOS",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.41964087412762,
+      "lon": -3.68793370943788,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "10984428",
+    "name": "Jardines de Gloria Fuertes",
+    "park_type": null,
+    "description": "Este jardín rinde homenaje a la célebre poetisa y escritora de cuentos infantiles Gloria Fuertes, quien fue vecina de este barrio. El parque ofrece una combinación equilibrada de zonas verdes y espacios recreativos, con áreas de sol y sombra, delimitadas por franjas de césped cuidadosamente dispuestas. En ellas crecen majestuosos pinos, cedros y plátanos, que enmarcan una zona de juegos infantiles. Además, el parque cuenta con diversas instalaciones recreativas, como mesas de ping-pong y un ajedrez gigante, que invitan al disfrute en familia. Para quienes buscan relajarse, se han dispuesto varios bancos, proporcionando un ambiente ideal para descansar y desconectar en plena naturaleza.",
+    "schedule": null,
+    "transport": "Metro: línea 9 (Colombia) Bus: 16, 29, 150  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "CALLE MADRE DE DIOS 2",
+    "postal_code": "28016",
+    "district": "CHAMARTIN",
+    "neighbourhood": "NUEVA ESPAÑA",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.461517637696026,
+      "lon": -3.6751179007317614,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "5979527",
+    "name": "Jardines de José Luis Jiménez Manso",
+    "park_type": "/contenido/entidadesYorganismos/ParquesJardines",
+    "description": "Los Jardines de José Luis Jiménez Manso son un parque emblemático en el distrito de Moratalaz, reconocido por ser uno de los espacios verdes más antiguos de la zona. Se divide en tres secciones, cada una diseñada para ofrecer diferentes ambientes que invitan tanto al paseo como al descanso. Los amplios y tranquilos espacios están integrados en el entorno, lo que fomenta una destacada actividad vecinal. El parque cuenta con numerosos bancos distribuidos estratégicamente. La vegetación se compone de arbolado maduro combinado árboles de reciente plantación, abundando el pino piñonero, cerezo-ciruelo, chopo de simón y olmo siberiano, creando un atractivo mosaico de alturas y edades que enriquece el paisaje. Parterres de césped y sombras acogedoras completan este entorno, haciendo de los jardines un lugar ideal para relajarse.",
+    "schedule": null,
+    "transport": "Metro: Estrella (línea 9) Bus: 20, 30, 32  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "CALLE CAMINO DE LOS VINATEROS 1",
+    "postal_code": "28030",
+    "district": "MORATALAZ",
+    "neighbourhood": "MEDIA LEGUA",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.410944943237865,
+      "lon": -3.660501733743551,
+      "srid": "EPSG:4326"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_parques_jardines",
+    "park_id": "5965620",
+    "name": "Jardines de Perón",
+    "park_type": "/contenido/entidadesYorganismos/ParquesJardines",
+    "description": "Estos jardines están ubicados en la avenida General Perón, creando una zona de paso en dirección al Estadio Santiago Bernabéu, consisten en una superficie alargada que se extiende de oeste a este. Este parque ofrece múltiples accesos y caminos que lo recorren, así como una zona destinada a la práctica de deportes, áreas de juegos infantiles y un espacio específico para mascotas. Además, disponen de bancos para el descanso. La vegetación arbórea está bien distribuida, complementada por diversas jardineras, lo que convierte este lugar en un agradable espacio para amenizar el paseo diario de sus vecinos.",
+    "schedule": null,
+    "transport": "Metro: Santiago Bernabéu (línea 10) Bus: 3, 5, 43, 149  Servicio Bicimad, para consultar la estación más cercana, acceda al mapa de geolocalización de las estaciones.",
+    "accessibility": "2",
+    "address": "AVENIDA GENERAL PERON 21",
+    "postal_code": "28020",
+    "district": "TETUAN",
+    "neighbourhood": "CUATRO CAMINOS",
+    "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+    "location": {
+      "lat": 40.45257591499544,
+      "lon": -3.6957817548357257,
+      "srid": "EPSG:4326"
+    }
+  }
+]

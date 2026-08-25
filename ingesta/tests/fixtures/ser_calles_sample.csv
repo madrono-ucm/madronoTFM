@@ -1,0 +1,5 @@
+gis_x;gis_y;cod_distrito;distrito;cod_barrio;num_barrio;barrio;calle;numero_finca;color;bateria_linea;numero_plazas
+4.427.249.100.000.000;44.723.889.900.000.000;3;Retiro;32;2;Adelfas;CERRO DE LA PLATA, CALLE, DEL;4;043000255 Azul;Batería;4
+4.427.299.500.000.000;44.723.964.800.000.000;3;Retiro;32;2;Adelfas;CERRO DE LA PLATA, CALLE, DEL;3;043000255 Azul;Batería;3
+4.433.094.100.000.000;44.784.704.500.000.000;5;Chamartín;54;4;Hispanoamérica;CALAS, CALLE, DE LAS;15;077214010 Verde;Línea;1
+   ;   ;3;Retiro;32;2;Adelfas;SIN COORDENADAS, CALLE;1;043000255 Azul;Batería;3
