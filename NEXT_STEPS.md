@@ -20,16 +20,28 @@ que **no se puede confiar en que las correcciones ya fusionadas estén
 realmente en ejecución** — cualquier verificación futura contra datos
 reales hereda esta duda hasta que se resuelva.
 
-1. Añadir `codebuild:BatchGetProjects` al rol `madrono-terraform-deployer`
-   (bloquea hoy que `terraform plan` sin acotar termine limpio).
-2. Ejecutar `terraform plan` sin acotar, revisarlo **sección por sección
-   con un humano** (no aplicar a ciegas) — confirmar que cada cambio es
-   esperado (redepliegue de código a la última versión de `main`) y no
-   oculta nada más.
-3. Aplicar. Volver a verificar con las mismas comprobaciones en vivo usadas
-   en la sesión del 25/8 (`aws lambda list-functions`, `aws glue get-jobs`,
-   etc.) que el estado post-apply coincide con lo esperado.
-4. Documentar en `doc/` el resultado, igual que cualquier otra tarea.
+1. ~~Añadir `codebuild:BatchGetProjects` al rol `madrono-terraform-deployer`~~
+   — **hecho, fuera de este repo, antes de la tarea 088**: el rol real
+   (`madrono-terraform-deployerEC2`) no está gestionado por el código
+   Terraform de este proyecto (es el rol de instancia EC2 creado a mano en
+   el bootstrap de la tarea 014), así que no hay ningún `.tf` que tocar; el
+   permiso ya aparece concedido en AWS vía la managed policy
+   `AWSCodeBuildAdminAccess` (ver `doc/088-terraform-drift-plan-sin-aplicar.md`,
+   Hallazgos 1 y 2). `terraform plan` sin acotar ya completa limpio.
+2. **Hecho (tarea 088)**: `terraform plan` sin acotar generado y volcado
+   íntegro en `doc/088-terraform-drift-plan-sin-aplicar.md`, con la
+   categorización por secciones — **pendiente la revisión humana** de ese
+   documento antes de aplicar nada. Resultado real: `5 to add, 15 to
+   change, 0 to destroy` (mucho menor que el `53/61/65` de `doc/083` — los
+   48 `aws_s3_object.glue_script_*` de aquella sesión ya no aparecen, el
+   código Glue desplegado ya coincide con `main`; solo quedan 14
+   redespliegues de código Lambda y los 5 recursos de Kafka ya conocidos).
+3. **Pendiente**: tras la revisión humana del punto 2, una tarea nueva
+   (creada aparte, patrón de dos tareas de `tasks/README.md`) aplica y
+   vuelve a verificar en vivo (`aws lambda list-functions`, `aws glue
+   get-jobs`, etc.) que el estado post-apply coincide con lo esperado.
+4. Documentar en `doc/` el resultado de la tarea 3, igual que cualquier
+   otra tarea.
 
 **Advertencia para quien lo ejecute**: `terraform plan -destroy
 -target=...` sobre un solo dataset puede arrastrar, por políticas IAM
