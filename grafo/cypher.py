@@ -89,15 +89,25 @@ def parada_transporte_query(node: dict) -> "tuple[str, dict]":
 
 
 def lugar_query(node: dict) -> "tuple[str, dict]":
+    """`osm_id`/`osm_amenity`/`osm_opening_hours` (tarea 083,
+    `grafo.nodos.enrich_lugar_con_osm`) son opcionales -- `node.get(...)`
+    devuelve `None` para cualquier `:Lugar` sin match de OSM, mismo criterio
+    que `nombre`/`tipo`/`fuente` (un `SET` plano, sin preservar un valor
+    anterior como sí hace `_UBICACION_SET`)."""
     query = (
         "MERGE (n:Lugar {id: $id}) "
-        "SET n.nombre = $nombre, n.tipo = $tipo, n.fuente = $fuente, " + _UBICACION_SET
+        "SET n.nombre = $nombre, n.tipo = $tipo, n.fuente = $fuente, "
+        "n.osm_id = $osm_id, n.osm_amenity = $osm_amenity, n.osm_opening_hours = $osm_opening_hours, "
+        + _UBICACION_SET
     )
     return query, {
         "id": node["id"],
         "nombre": node.get("nombre"),
         "tipo": node.get("tipo"),
         "fuente": node.get("fuente"),
+        "osm_id": node.get("osm_id"),
+        "osm_amenity": node.get("osm_amenity"),
+        "osm_opening_hours": node.get("osm_opening_hours"),
         **_ubicacion_params(node),
     }
 

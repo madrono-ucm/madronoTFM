@@ -7,7 +7,7 @@ import json
 import unittest
 from pathlib import Path
 
-from grafo.geo import find_barrio, haversine_m, point_in_geometry
+from grafo.geo import find_barrio, haversine_m, nearest_within_radius, point_in_geometry
 
 SAMPLES_DIR = Path(__file__).resolve().parents[2] / "ingesta" / "capturas" / "samples"
 
@@ -78,6 +78,44 @@ class HaversineTests(unittest.TestCase):
         # Puerta del Sol a Plaza Catalunya: ~505 km en línea recta.
         distancia_km = haversine_m(40.4169, -3.7035, 41.3874, 2.1686) / 1000
         self.assertTrue(480 < distancia_km < 520, f"distancia inesperada: {distancia_km} km")
+
+
+class NearestWithinRadiusTests(unittest.TestCase):
+    def _get_coords(self, candidate):
+        lat, lon = candidate.get("lat"), candidate.get("lon")
+        return None if lat is None or lon is None else (lat, lon)
+
+    def test_devuelve_el_mas_cercano_dentro_del_radio(self):
+        # Puerta del Sol como origen; Plaza Mayor (~380m) queda fuera de un
+        # radio de 30m, así que ningún candidato debe matchear salvo el
+        # exacto.
+        candidatos = [
+            {"id": "lejos", "lat": 40.4155, "lon": -3.7074},  # Plaza Mayor, ~380m
+            {"id": "exacto", "lat": 40.4169, "lon": -3.7035},  # mismo punto
+        ]
+        resultado = nearest_within_radius(40.4169, -3.7035, candidatos, radius_m=30.0, get_coords=self._get_coords)
+        self.assertEqual(resultado["id"], "exacto")
+
+    def test_se_queda_con_el_mas_cercano_si_varios_caen_dentro_del_radio(self):
+        candidatos = [
+            {"id": "a", "lat": 40.41695, "lon": -3.7035},  # unos 6m
+            {"id": "b", "lat": 40.4169, "lon": -3.7035},  # 0m
+        ]
+        resultado = nearest_within_radius(40.4169, -3.7035, candidatos, radius_m=30.0, get_coords=self._get_coords)
+        self.assertEqual(resultado["id"], "b")
+
+    def test_ninguno_dentro_del_radio_devuelve_none(self):
+        candidatos = [{"id": "lejos", "lat": 40.4155, "lon": -3.7074}]  # ~380m
+        resultado = nearest_within_radius(40.4169, -3.7035, candidatos, radius_m=30.0, get_coords=self._get_coords)
+        self.assertIsNone(resultado)
+
+    def test_candidatos_sin_coordenadas_se_ignoran(self):
+        candidatos = [{"id": "sin_coords", "lat": None, "lon": None}]
+        resultado = nearest_within_radius(40.4169, -3.7035, candidatos, radius_m=30.0, get_coords=self._get_coords)
+        self.assertIsNone(resultado)
+
+    def test_lista_vacia_devuelve_none(self):
+        self.assertIsNone(nearest_within_radius(40.4169, -3.7035, [], radius_m=30.0, get_coords=self._get_coords))
 
 
 if __name__ == "__main__":
