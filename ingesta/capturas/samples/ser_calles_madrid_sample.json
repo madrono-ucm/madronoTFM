@@ -1,0 +1,202 @@
+[
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "3",
+    "district": "Retiro",
+    "neighbourhood_code": "32",
+    "neighbourhood": "Adelfas",
+    "street": "CERRO DE LA PLATA, CALLE, DEL",
+    "street_number": "4",
+    "zone_color": "Azul",
+    "zone_rgb": "043000255",
+    "layout": "Batería",
+    "num_spaces": 4,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 442724.91,
+      "y": 4472388.99,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "3",
+    "district": "Retiro",
+    "neighbourhood_code": "32",
+    "neighbourhood": "Adelfas",
+    "street": "CERRO DE LA PLATA, CALLE, DEL",
+    "street_number": "3",
+    "zone_color": "Azul",
+    "zone_rgb": "043000255",
+    "layout": "Batería",
+    "num_spaces": 3,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 442729.95,
+      "y": 4472396.48,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "5",
+    "district": "Chamartín",
+    "neighbourhood_code": "54",
+    "neighbourhood": "Hispanoamérica",
+    "street": "CALAS, CALLE, DE LAS",
+    "street_number": "15",
+    "zone_color": "Verde",
+    "zone_rgb": "077214010",
+    "layout": "Línea",
+    "num_spaces": 1,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 443309.41,
+      "y": 4478470.45,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "6",
+    "district": "Tetuán",
+    "neighbourhood_code": "63",
+    "neighbourhood": "Castillejos",
+    "street": "HUESCA, CALLE, DE",
+    "street_number": "21",
+    "zone_color": "Verde",
+    "zone_rgb": "077214010",
+    "layout": "Línea",
+    "num_spaces": 3,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 440772.2,
+      "y": 4478826.72,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "6",
+    "district": "Tetuán",
+    "neighbourhood_code": "63",
+    "neighbourhood": "Castillejos",
+    "street": "ROSA DE SILVA, CALLE, DE",
+    "street_number": "5",
+    "zone_color": "Verde",
+    "zone_rgb": "077214010",
+    "layout": "Línea",
+    "num_spaces": 9,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 441008.25,
+      "y": 4479423.79,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "6",
+    "district": "Tetuán",
+    "neighbourhood_code": "63",
+    "neighbourhood": "Castillejos",
+    "street": "INFANTA MERCEDES, CALLE, DE LA",
+    "street_number": "88",
+    "zone_color": "Verde",
+    "zone_rgb": "077214010",
+    "layout": "Batería",
+    "num_spaces": 4,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 441162.08,
+      "y": 4479370.52,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "6",
+    "district": "Tetuán",
+    "neighbourhood_code": "63",
+    "neighbourhood": "Castillejos",
+    "street": "INFANTA MERCEDES, CALLE, DE LA",
+    "street_number": "80",
+    "zone_color": "Verde",
+    "zone_rgb": "077214010",
+    "layout": "Batería",
+    "num_spaces": 31,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 441074.22,
+      "y": 4479264.75,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "6",
+    "district": "Tetuán",
+    "neighbourhood_code": "63",
+    "neighbourhood": "Castillejos",
+    "street": "PEDRO VILLAR, CALLE, DE",
+    "street_number": "14",
+    "zone_color": "Verde",
+    "zone_rgb": "077214010",
+    "layout": "Línea",
+    "num_spaces": 5,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 441015.85,
+      "y": 4479250.67,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "6",
+    "district": "Tetuán",
+    "neighbourhood_code": "63",
+    "neighbourhood": "Castillejos",
+    "street": "INFANTA MERCEDES, CALLE, DE LA",
+    "street_number": "75",
+    "zone_color": "Azul",
+    "zone_rgb": "043000255",
+    "layout": "Batería",
+    "num_spaces": 4,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 440999.15,
+      "y": 4479194.16,
+      "srid": "EPSG:25830"
+    }
+  },
+  {
+    "schema_version": 1,
+    "source": "madrid_ser_calles",
+    "district_code": "6",
+    "district": "Tetuán",
+    "neighbourhood_code": "63",
+    "neighbourhood": "Castillejos",
+    "street": "GENERAL MARGALLO, CALLE, DEL",
+    "street_number": "28",
+    "zone_color": "Verde",
+    "zone_rgb": "077214010",
+    "layout": "Batería",
+    "num_spaces": 8,
+    "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+    "location": {
+      "x": 441108.11,
+      "y": 4479076.18,
+      "srid": "EPSG:25830"
+    }
+  }
+]
