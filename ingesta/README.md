@@ -32,7 +32,10 @@ programarse periódicamente, ni siquiera cuando exista infraestructura real.
 `calendario_laboral_madrid.py` (tarea 020) son del mismo tipo: los límites
 administrativos de barrios y distritos, los puntos de interés turístico de
 Madrid, y el calendario laboral y festivos de Madrid, también son datos de
-referencia. Ver sus secciones más abajo.
+referencia. `enriquecimiento_osm_lugares.py` (tarea 083) también: etiquetas
+de OpenStreetMap (categoría, horario, accesibilidad) para enriquecer los
+`:Lugar` del grafo urbano por proximidad geográfica. Ver sus secciones más
+abajo.
 
 `afluencia_lugares_madrid.py` (tarea 012) es también un caso especial, pero
 por un motivo distinto: no es un dato de referencia ni le falta
@@ -3302,6 +3305,107 @@ sesión — no son datos de ejemplo generados a mano. No hubo ningún bloqueo
 de acceso que documentar para la fuente elegida (SensaCine); el único
 bloqueo encontrado fue el de `cinesa.es` como dominio propio, descartado a
 favor de SensaCine (ver arriba).
+
+## `capturas/enriquecimiento_osm_lugares.py` — POIs de OpenStreetMap para enriquecer `:Lugar` (carga batch puntual, referencia)
+
+Los `:Lugar` del grafo urbano (ver `grafo/README.md`) vienen hoy de tres
+fuentes municipales (`poi_madrid`, `aparcamientos`, `cartelera_cines_estrenos`,
+todas sin categoría estructurada tipo `amenity`, horario de apertura ni
+accesibilidad). Este módulo añade OpenStreetMap como fuente de
+**enriquecimiento** de esos `:Lugar` ya existentes (unión por proximidad
+geográfica, no creación de nodos nuevos — ver `grafo/nodos.py::enrich_lugar_con_osm`
+y `doc/083-grafo-enriquecimiento-poi-osm.md`).
+
+Se descartó explícitamente Google Places para esto: OSM cubre bien
+geodatos/etiquetas de lugar, pero no tiene ningún dato de afluencia o
+popularidad en vivo (eso lo cubren las tareas 084/085 sobre
+`aforos_peatones_bicicletas`, no esta).
+
+### Fuente: Overpass API, pública, sin autenticación
+
+[Overpass API](https://overpass-api.de/api/interpreter), el motor de
+consultas estándar de OpenStreetMap (Overpass QL), gratuito y sin API key.
+Verificado en vivo desde este entorno: responde correctamente con un
+`User-Agent` descriptivo (`_REQUEST_HEADERS`, con contacto de este
+proyecto). Se hace **una sola consulta** por bounding box de Madrid (nunca
+en bucle, nunca programada) -- mismo criterio de uso razonable que
+`poi_madrid.py` frente a `esmadrid.com`.
+
+El bounding box (`DEFAULT_BBOX`) es la caja delimitadora real del municipio
+de Madrid, obtenida en vivo con `out bb;` sobre la relación administrativa
+oficial de OSM (`relation(5326784)`, `ine:municipio=28079` -- el mismo
+código INE que usa `barrios_distritos_madrid`): `(40.3119774, -3.8889539,
+40.6437293, -3.5183264)`.
+
+Una consulta sin límite de salida sobre las 4 etiquetas (`amenity`, `shop`,
+`tourism`, `leisure`) para todo ese bounding box devuelve **más de 75.000
+nodos** (`out count;` verificado en vivo) -- razonable como consulta puntual
+de Overpass en sí, pero muy por encima de lo que tiene sentido commitear
+como muestra. `fetch_raw_pois` pide un límite de salida
+(`DEFAULT_FETCH_LIMIT`, 250 elementos) directamente en la cláusula `out` de
+Overpass QL, y `select_sample_pois` filtra en local los que tienen `name` y
+coordenadas conocidas, quedándose con los primeros `sample_size` (6 por
+defecto). Sigue siendo una única consulta real sobre todo el bounding box;
+Overpass solo trunca lo que nos envía de vuelta.
+
+### Esto es una captura puntual de muestra
+
+Igual que `poi_madrid.py`/`barrios_distritos_madrid.py`, no tiene modo
+`--interval-seconds` ni bucle, y no escribe en la capa Bronze particionada.
+Una captura real y completa de POIs de OSM más allá de esta muestra (p. ej.
+iterando por distrito) queda como trabajo futuro deliberado.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.enriquecimiento_osm_lugares
+```
+
+### Variables de entorno
+
+| Variable | Descripción | Por defecto |
+|---|---|---|
+| `OSM_OVERPASS_URL` | URL del endpoint de Overpass | `https://overpass-api.de/api/interpreter` |
+| `OSM_OVERPASS_TIMEOUT_SECONDS` | Timeout pedido a Overpass en la propia consulta (`[timeout:N]`) | `25` |
+| `OSM_SAMPLE_SIZE` | Máximo de POIs en la muestra | `6` |
+| `OSM_FETCH_LIMIT` | Máximo de elementos pedidos a Overpass antes de filtrar en local | `250` |
+| `HTTP_TIMEOUT_SECONDS` / `HTTP_MAX_RETRIES` / `HTTP_RETRY_BACKOFF_SECONDS` | Igual que el resto de productores del proyecto | `60.0` / `3` / `5.0` |
+
+### Esquema normalizado
+
+```json
+{
+  "schema_version": 1,
+  "source": "enriquecimiento_osm_lugares",
+  "osm_id": 26065697,
+  "osm_type": "node",
+  "name": "Café Comercial",
+  "amenity": "restaurant",
+  "opening_hours": "Mo-Th 08:30-01:00; Fr-Su 08:30-02:00",
+  "wheelchair": null,
+  "ingested_at": "2026-08-25T22:33:38.515404+02:00",
+  "location": {"lat": 40.4287093, "lon": -3.701972, "srid": "EPSG:4326"}
+}
+```
+
+`amenity` es el **valor** del primer tag de `amenity`/`shop`/`tourism`/
+`leisure` que tenga el elemento de OSM (en ese orden de prioridad) -- se
+llama `amenity` de forma genérica porque es el nombre que usa la propiedad
+`osm_amenity` del `:Lugar` enriquecido en el grafo, no porque el tag de
+origen fuera necesariamente `amenity` de OSM.
+
+### Nota sobre la captura real en esta sesión (tarea 083)
+
+Se completó una **captura real en vivo**: la muestra commiteada en
+`ingesta/capturas/samples/enriquecimiento_osm_lugares_sample.json` son 6
+POIs reales de Madrid (gasolineras, un hotel, un cine, una pista de hielo y
+un restaurante con horario real), obtenidos ejecutando
+`python3 -m ingesta.capturas.enriquecimiento_osm_lugares` tal cual durante
+esta sesión -- no son datos de ejemplo generados a mano. Overpass respondió
+sin ningún bloqueo; solo se observó un `504`/error de "servidor ocupado"
+transitorio en un intento anterior con una consulta más pesada, resuelto
+reintentando tras una breve espera (comportamiento ya cubierto por los
+reintentos con backoff de `_fetch_with_retries`).
 
 ## Tests
 

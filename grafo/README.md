@@ -38,9 +38,9 @@ código puro, testado con fixtures, sin conectar a nada.
 
 | Fichero | Depende de `neo4j` (driver) | Qué hace |
 |---|---|---|
-| `extract.py` | No | Consulta Athena (Gold, tareas 066/068) o lee JSON de S3 (Bronze-only) y devuelve `list[dict]` en el formato que esperan `nodos.py`/`relaciones.py`. Solo depende de `boto3` (tarea 069). |
-| `nodos.py` | No | Convierte un registro Gold/Bronze en el `dict` de propiedades de un nodo (`<tipo>_from_<origen>`), y una lista de registros en una lista de nodos deduplicados por `id`/`codigo` (`<tipo>s_from_<origen>`). |
-| `geo.py` | No | Point-in-polygon (ray casting sobre GeoJSON `Polygon`/`MultiPolygon`) y distancia Haversine, ambos Python puro sin dependencias de geometría (tarea 070). |
+| `extract.py` | No | Consulta Athena (Gold, tareas 066/068) o lee JSON de S3 (Bronze-only) y devuelve `list[dict]` en el formato que esperan `nodos.py`/`relaciones.py`. También lee la muestra local de POIs de OSM (`fetch_osm_pois_sample`, tarea 083). Solo depende de `boto3` (tarea 069). |
+| `nodos.py` | No | Convierte un registro Gold/Bronze en el `dict` de propiedades de un nodo (`<tipo>_from_<origen>`), y una lista de registros en una lista de nodos deduplicados por `id`/`codigo` (`<tipo>s_from_<origen>`). También enriquece `:Lugar` con POIs de OSM por proximidad (`enrich_lugar(es)_con_osm`, tarea 083). |
+| `geo.py` | No | Point-in-polygon (ray casting sobre GeoJSON `Polygon`/`MultiPolygon`), distancia Haversine y "vecino más cercano dentro de un radio" (`nearest_within_radius`, tarea 083), todo Python puro sin dependencias de geometría (tarea 070). |
 | `relaciones.py` | No | `PERTENECE_A` (Barrio→Distrito, tarea 067); `UBICADO_EN` y `PROXIMO_A` (tarea 070, usan `geo.py`); `CONECTADO_CON` (tarea 071, adyacencia real de red de transporte a partir de rutas CRTM). |
 | `cypher.py` | Solo `Neo4jLoader`, de forma perezosa | Traduce esos `dict` a sentencias `MERGE` parametrizadas (funciones `*_query()`, Python puro) y las ejecuta contra una instancia real (`Neo4jLoader`, que hace `from neo4j import GraphDatabase` dentro de `__init__`, no a nivel de módulo). |
 | `cargar_grafo.py` | Solo al importar `Neo4jLoader` (perezoso hasta instanciarlo) | Entry point que encadena `extract.py` → `nodos.py`/`relaciones.py` → `cypher.py`. No ejecutado contra ninguna instancia real (tarea 069). |
@@ -365,6 +365,53 @@ ninguna key real, porque no existe ninguna. Las cuatro funciones devuelven
 `[]` sin error contra el S3 real de hoy, exactamente como exige el enunciado
 para el caso de un dataset sin datos.
 
+## Enriquecimiento de `:Lugar` con OpenStreetMap (tarea 083)
+
+Los `:Lugar` del grafo vienen de tres fuentes municipales (`poi_madrid`,
+`aparcamientos`, `cartelera_cines_estrenos`), ninguna con categoría
+estructurada tipo `amenity`, horario de apertura ni accesibilidad.
+`ingesta/capturas/enriquecimiento_osm_lugares.py` (ver `ingesta/README.md`)
+añade OpenStreetMap (Overpass API, pública, sin API key) como fuente de
+**enriquecimiento** de esos `:Lugar` ya existentes — decisión ya fijada por
+el enunciado: unir por proximidad geográfica, no crear `:Lugar` nuevos a
+partir de OSM (evita duplicar cobertura con `poi_madrid` y mantiene el
+número de nodos estable).
+
+- `geo.nearest_within_radius(lat, lon, candidates, radius_m, get_coords)`:
+  helper genérico (no específico de OSM) que devuelve el candidato más
+  cercano dentro de un radio, o `None` si ninguno cae dentro — construido
+  sobre `haversine_m`, ya existente desde la tarea 070.
+- `nodos.enrich_lugar_con_osm(lugar, osm_pois, radio_m=30.0)`: si hay un POI
+  de OSM a ≤30 m del `:Lugar` (umbral fijado por el enunciado, distinto del
+  umbral de 300 m de `proximo_a` — aquí se busca "es el mismo sitio", no
+  "está cerca"), añade `osm_id` (`"<osm_type>:<osm_id>"`, mismo formato
+  `"<fuente>:<id_origen>"` que ya usa `id` en el resto de labels),
+  `osm_amenity` y `osm_opening_hours`. Si varios POIs de OSM caen dentro del
+  radio, se queda con el más cercano. Sin match — o sin `ubicacion` en el
+  `:Lugar` (p. ej. origen `cartelera_cines_estrenos`) —, el `:Lugar` se
+  devuelve sin ninguna propiedad nueva: no se añaden propiedades `null` de
+  más a un `:Lugar` sin match real.
+- `nodos.enrich_lugares_con_osm(lugares, osm_pois, radio_m=30.0)`: aplica lo
+  anterior a la lista completa de `:Lugar` ya construidos por
+  `lugares_from_*`.
+- `extract.fetch_osm_pois_sample()`: lee la muestra ya normalizada de POIs
+  de OSM commiteada en `ingesta/capturas/samples/
+  enriquecimiento_osm_lugares_sample.json` (captura real contra Overpass, no
+  datos inventados). **No repite la consulta Overpass real en cada carga
+  del grafo**: el bounding box completo de Madrid devuelve más de 75.000
+  nodos (ver `ingesta/README.md`), y repetir esa consulta cada vez que se
+  ejecuta `cargar_grafo.py` no sería un uso responsable de una instancia
+  pública gratuita de terceros. Una captura real y completa de POIs de OSM
+  subida a Bronze S3 (para que `extract.py` la lea igual que
+  `poi_madrid`/`crtm_red_transporte_madrid`) queda como trabajo futuro
+  deliberado.
+- `cypher.lugar_query` persiste las 3 propiedades opcionales con `node.get(...)`
+  (mismo criterio "sin preservar valor anterior" que `nombre`/`tipo`/
+  `fuente`, a diferencia de `_UBICACION_SET`). `schema.cypher` las documenta
+  como opcionales en el bloque de `:Lugar`.
+- `cargar_grafo.py::cargar_grafo()` llama a `enrich_lugares_con_osm` sobre la
+  lista de `lugares` justo antes de `loader.load_lugares(lugares)`.
+
 ## Cómo se cargaría (cuando exista una instancia real)
 
 Ver `grafo/cargar_grafo.py::cargar_grafo()` para el bloque completo (nodos +
@@ -387,10 +434,8 @@ Cypher completa. Requiere ejecutar antes `infra/neo4j/schema/schema.cypher`
 
 ## Tests
 
-`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 80
-tests, ejecutados en esta EC2 sin el driver `neo4j` instalado —
-confirmado con `python3 -c "import neo4j"` fallando con
-`ModuleNotFoundError` antes de correr los tests):
+`grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 89
+tests a fecha de la tarea 083):
 
 - `test_nodos.py` / `test_relaciones.py`: fixtures de `:Distrito`/`:Barrio`/
   `:ParadaTransporte`(CRTM)/`:Lugar`(POI) tomadas directamente de
@@ -435,6 +480,13 @@ confirmado con `python3 -c "import neo4j"` fallando con
   de cada `fetch_*` (columnas `lat`/`lon` planas anidadas en `location`) y
   el caso de lista vacía (Gold sin datos, o ningún objeto bajo un prefijo de
   S3) sin ningún error.
+- `test_geo.py::NearestWithinRadiusTests` / `test_nodos.py::EnrichLugaresConOsmTests`
+  (tarea 083): usan la muestra real commiteada de POIs de OSM
+  (`enriquecimiento_osm_lugares_sample.json`, captura real contra Overpass,
+  no coordenadas inventadas) — un `:Lugar` construido con las coordenadas
+  exactas de un POI real de la muestra (match, distancia 0), y otro en
+  Puerta del Sol (a más de 1 km de cualquier punto de la muestra,
+  verificado con `haversine_m`, sin match).
 
 ## Relevante para tareas futuras
 
@@ -512,3 +564,13 @@ confirmado con `python3 -c "import neo4j"` fallando con
   actualizar las cuatro constantes correspondientes en
   `grafo/extract.py::fetch_distritos_bronze`/`fetch_barrios_bronze`/
   `fetch_poi_bronze`/`fetch_paradas_crtm_bronze`.
+- **Enriquecimiento de OSM limitado a una muestra de 6 POIs** (tarea 083,
+  `extract.fetch_osm_pois_sample`) — solo enriquecerá los `:Lugar` reales
+  que caigan a ≤30 m de alguno de esos 6 puntos concretos, prácticamente
+  ninguno con los ~381 `:Lugar` reales de la tarea 080. Una captura real y
+  completa de POIs de OSM (todo el bounding box de Madrid, no solo una
+  muestra de 250 elementos truncados) subida a Bronze S3 —igual que se hizo
+  con `poi_madrid` en la tarea 080— es el siguiente paso natural para que
+  este enriquecimiento tenga cobertura real; `cargar_grafo.py` no necesitaría
+  ningún cambio salvo apuntar `fetch_osm_pois_sample` (o una función
+  equivalente que lea de S3) a esos datos completos.

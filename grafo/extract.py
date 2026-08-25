@@ -56,6 +56,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from pathlib import Path
 from typing import Optional
 
 import boto3
@@ -375,3 +376,37 @@ def fetch_poi_bronze(s3_client=None) -> "list[dict]":
 
 def fetch_paradas_crtm_bronze(s3_client=None) -> "list[dict]":
     return _read_bronze_records("crtm_red_transporte_madrid", s3_client)
+
+
+# ---------------------------------------------------------------------------
+# Enriquecimiento de :Lugar con POIs de OpenStreetMap (tarea 083): fixture
+# local commiteado, no Athena ni S3 (ver docstring de
+# `ingesta/capturas/enriquecimiento_osm_lugares.py`).
+# ---------------------------------------------------------------------------
+
+OSM_SAMPLE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "ingesta"
+    / "capturas"
+    / "samples"
+    / "enriquecimiento_osm_lugares_sample.json"
+)
+
+
+def fetch_osm_pois_sample(path: Optional[Path] = None) -> "list[dict]":
+    """Lee la muestra ya normalizada de POIs de OpenStreetMap commiteada en
+    `ingesta/capturas/samples/enriquecimiento_osm_lugares_sample.json`
+    (tarea 083, `ingesta/capturas/enriquecimiento_osm_lugares.py`).
+
+    Se lee el fichero de muestra en vez de repetir la consulta Overpass real
+    en cada carga del grafo: la consulta real sobre el bounding box completo
+    de Madrid devuelve más de 75.000 nodos (ver docstring del productor) --
+    repetirla cada vez que se ejecuta `cargar_grafo.py` no sería un uso
+    responsable de una instancia pública gratuita de terceros. Una captura
+    real y completa de POIs de OSM (más allá de esta muestra), subida a
+    Bronze S3 para que este módulo la lea igual que hace
+    `_read_bronze_records` con `poi_madrid`/`crtm_red_transporte_madrid`,
+    queda como trabajo futuro deliberado (ver `doc/083-grafo-enriquecimiento-poi-osm.md`)."""
+    sample_path = path or OSM_SAMPLE_PATH
+    with open(sample_path, encoding="utf-8") as f:
+        return json.load(f)

@@ -2,7 +2,8 @@
 `nodos.py`/`relaciones.py` (transformación, tareas 067/070/071) ->
 `cypher.py` (carga real, tareas 067/070/071) para los 5 labels y las
 relaciones `PERTENECE_A`, `UBICADO_EN`, `PROXIMO_A` y `CONECTADO_CON` que
-cubre este directorio.
+cubre este directorio. Los `:Lugar` se enriquecen además con etiquetas de
+OpenStreetMap antes de cargarse (`nodos.enrich_lugares_con_osm`, tarea 083).
 
 **No se ejecuta contra ninguna instancia real en esta tarea.** Sigue
 bloqueada el alta manual de AuraDB Free (tarea 043,
@@ -56,6 +57,12 @@ def cargar_grafo(loader: Neo4jLoader) -> None:
         + nodos.lugares_from_aparcamientos_gold(extract.fetch_lugares_aparcamientos())
         + nodos.lugares_from_cartelera_cines_gold(extract.fetch_lugares_cartelera_cines())
     )
+    # Enriquecimiento con POIs de OpenStreetMap (tarea 083): añade
+    # osm_id/osm_amenity/osm_opening_hours a los :Lugar que tengan un POI de
+    # OSM a <=30m, a partir de la muestra commiteada (ver
+    # `extract.fetch_osm_pois_sample`, no repite la consulta Overpass real
+    # en cada carga).
+    lugares = nodos.enrich_lugares_con_osm(lugares, extract.fetch_osm_pois_sample())
     loader.load_lugares(lugares)
 
     loader.load_pertenece_a(relaciones.pertenece_a_from_barrios(barrio_nodes))

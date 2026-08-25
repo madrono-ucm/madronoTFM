@@ -91,3 +91,28 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dlambda = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
     return 2 * _EARTH_RADIUS_M * math.asin(math.sqrt(a))
+
+
+def nearest_within_radius(lat: float, lon: float, candidates: "Iterable", radius_m: float, get_coords) -> Optional[object]:
+    """Devuelve el elemento de `candidates` más cercano (Haversine) a
+    `(lat, lon)` dentro de `radius_m` metros, o `None` si ninguno cae dentro
+    del radio.
+
+    `get_coords(candidate)` debe devolver `(lat, lon)` del candidato, o
+    `None` si no tiene coordenadas conocidas (se ignora sin error) -- así
+    esta función es agnóstica del `dict`/objeto concreto que se le pase.
+    Si varios candidatos caen dentro del radio, se queda con el más cercano
+    (usado por `grafo.nodos.enrich_lugar_con_osm` para elegir un único POI de
+    OpenStreetMap por `:Lugar` cuando hay varios próximos, tarea 083)."""
+    best = None
+    best_distance = None
+    for candidate in candidates:
+        coords = get_coords(candidate)
+        if coords is None:
+            continue
+        candidate_lat, candidate_lon = coords
+        distance = haversine_m(lat, lon, candidate_lat, candidate_lon)
+        if distance <= radius_m and (best_distance is None or distance < best_distance):
+            best = candidate
+            best_distance = distance
+    return best

@@ -1,0 +1,79 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "elements": [
+    {
+      "type": "node",
+      "id": 26065699,
+      "lat": 40.4270276,
+      "lon": -3.7016997,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Honest Greens",
+        "opening_hours": "Mo-Th 08:30-23:00, Fr 08:30-24:00, Sa 09:30-24:00, Su,PH 09:30-23:00",
+        "wheelchair": "no"
+      }
+    },
+    {
+      "type": "node",
+      "id": 167301935,
+      "lat": 40.4110395,
+      "lon": -3.6967784,
+      "tags": {
+        "shop": "supermarket",
+        "name": "Alcampo",
+        "opening_hours": "Mo-Sa 09:00-22:00; Su 10:00-16:00",
+        "wheelchair": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 158849464,
+      "lat": 40.422598,
+      "lon": -3.6691465,
+      "tags": {
+        "tourism": "museum",
+        "name": "Museo Casa de la Moneda",
+        "wheelchair": "yes"
+      }
+    },
+    {
+      "type": "node",
+      "id": 150760890,
+      "lat": 40.4483577,
+      "lon": -3.7127513,
+      "tags": {
+        "leisure": "sports_centre",
+        "name": "Metropolitano"
+      }
+    },
+    {
+      "type": "node",
+      "id": 25911220,
+      "lat": 40.3943245,
+      "lon": -3.7948098,
+      "tags": {
+        "amenity": "parking"
+      }
+    },
+    {
+      "type": "node",
+      "id": 21947483,
+      "lat": 40.4115441,
+      "lon": -3.7023747,
+      "tags": {
+        "addr:city": "Madrid",
+        "addr:housenumber": "15",
+        "source": "yahoo_maps"
+      }
+    },
+    {
+      "type": "way",
+      "id": 999999999,
+      "tags": {
+        "amenity": "hospital",
+        "name": "Sin coordenadas (way sin `out center`)"
+      }
+    }
+  ]
+}
