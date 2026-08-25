@@ -125,13 +125,14 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `089`** (083-086 consumidas el 25/8: investigación
+**Próximo número libre: `090`** (083-086 consumidas el 25/8: investigación
 Google Maps/arquitectura, esquema de plataformas, plan de cierre, spec de
-afluencia por grafo — ver `PROGRESS.md`. 087-088 son la implementación de
+afluencia por grafo — ver `PROGRESS.md`. 087/089 son la implementación de
 esa spec, tomados en la misma sesión al detectar la colisión de números
 con una cola de tareas paralela que ya había encolado su propio `083`-`085`
 antes de esta sesión de arquitectura — ver la nota junto a `083` en Pista
-Sistema).
+Sistema. `088` se insertó después, ahead of `089`, para la Prioridad 1 de
+`NEXT_STEPS.md` — plan de reconciliación de Terraform, sin aplicar nada).
 
 Nota sobre el orden: las tareas sin bloqueo se numeran y encolan ya; las
 bloqueadas por credenciales se numeran **cuando llegan**, no antes, para no
@@ -189,10 +190,19 @@ pese a estar en orden inverso de creación en este documento.
   reales commiteados como muestra); no se ha recargado la instancia real de
   Neo4j con este enriquecimiento todavía.
 - [ ] **[`087-grafo-aforos-peatones-bicicletas-neo4j-real`](tasks/087-grafo-aforos-peatones-bicicletas-neo4j-real.md)**
-  — en cola. Fase A de la especificación `086`: añade
+  — **en curso por el demonio** (`in_progress`). Fase A de la
+  especificación `086`: añade
   `:EstacionMedida {tipo: "aforos_peatones_bicicletas"}` al grafo y recarga
-  la instancia real. Paso previo a `088`.
-- [ ] **[`088-asistente-tool-afluencia-estimada`](tasks/088-asistente-tool-afluencia-estimada.md)**
+  la instancia real. Paso previo a `089`.
+- [ ] **[`088-terraform-drift-plan-sin-aplicar`](tasks/088-terraform-drift-plan-sin-aplicar.md)**
+  — en cola, insertada por delante de `089` a petición del usuario.
+  Prioridad 1 de `NEXT_STEPS.md`: produce el `terraform plan` completo del
+  drift descubierto en la tarea `083` (48 objetos de código Glue/Lambda
+  desactualizados) para revisión humana — **deliberadamente solo la mitad
+  "plan" del patrón de dos tareas** (`allow_infra_apply: false`, no aplica
+  nada). La mitad "apply" es una tarea aparte, a crear solo después de que
+  un humano revise este plan.
+- [ ] **[`089-asistente-tool-afluencia-estimada`](tasks/089-asistente-tool-afluencia-estimada.md)**
   — en cola, depende de `087`. Fase B de la especificación `086`:
   implementa `afluencia_estimada` (sustituye a `afluencia_prevista`) —
   cierra por completo el bloqueador de Google Maps para el asistente.
