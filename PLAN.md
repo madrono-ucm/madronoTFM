@@ -176,14 +176,18 @@ pese a estar en orden inverso de creación en este documento.
 - [x] **[`086-afluencia-estimada-grafo`](tasks/done/086-afluencia-estimada-grafo.md)**
   — **completada, solo especificación** (PR #130). Diseña `afluencia_estimada`
   (Fase A grafo + Fase B tool) — implementada por `087`/`088`.
-- [ ] **[`083-grafo-enriquecimiento-poi-osm`](tasks/083-grafo-enriquecimiento-poi-osm.md)**
-  — **en curso por el demonio** (`in_progress`, iniciada antes de detectar
-  la colisión de numeración con la tarea `083` de arriba — mismo número,
-  contenido distinto, sesiones distintas). Enriquece `:Lugar` con etiquetas
-  de OpenStreetMap (Overpass API, gratis, sin key) por proximidad —
-  geodatos de lugar, no afluencia. **Pendiente de renumerar a `089` cuando
-  el demonio abra su PR** (no se ha tocado el fichero de la tarea mientras
-  está en curso, para no interferir con la ejecución en vivo).
+- [x] **[`083-grafo-enriquecimiento-poi-osm`](tasks/done/083-grafo-enriquecimiento-poi-osm.md)**
+  — **completada** (demonio, PR #131). **Número duplicado a propósito, no
+  renumerado**: se encoló antes de detectar la colisión con la tarea `083`
+  de arriba (mismo número, contenido distinto, sesiones distintas); para
+  cuando el demonio abrió el PR, el código ya citaba "tarea 083" en
+  docstrings/comentarios/tests a lo largo de `grafo/`/`ingesta/` —
+  renumerar habría significado reescribir todas esas referencias sin
+  ningún beneficio real. Enriquece `:Lugar` con etiquetas de OpenStreetMap
+  (Overpass API, gratis, sin key) por proximidad (≤30m) — geodatos de
+  lugar, no afluencia. Verificado en vivo contra Overpass real (6 POIs
+  reales commiteados como muestra); no se ha recargado la instancia real de
+  Neo4j con este enriquecimiento todavía.
 - [ ] **[`087-grafo-aforos-peatones-bicicletas-neo4j-real`](tasks/087-grafo-aforos-peatones-bicicletas-neo4j-real.md)**
   — en cola. Fase A de la especificación `086`: añade
   `:EstacionMedida {tipo: "aforos_peatones_bicicletas"}` al grafo y recarga
