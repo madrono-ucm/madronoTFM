@@ -53,7 +53,7 @@ código puro, testado con fixtures, sin conectar a nada.
 |---|---|---|
 | `:Distrito` | `distrito_from_bronze` / `distritos_from_bronze` | `barrios_distritos_madrid` (Bronze, distritos) |
 | `:Barrio` | `barrio_from_bronze` / `barrios_from_bronze` | `barrios_distritos_madrid` (Bronze, barrios) |
-| `:EstacionMedida` | `estacion_medida_from_trafico_gold`, `..._calidad_aire_gold`, `..._ruido_gold` (+ plural) | Gold de `trafico`, `calidad_aire`, `ruido` |
+| `:EstacionMedida` | `estacion_medida_from_trafico_gold`, `..._calidad_aire_gold`, `..._ruido_gold`, `..._aforos_peatones_bicicletas_gold` (+ plural) | Gold de `trafico`, `calidad_aire`, `ruido`, `aforos_peatones_bicicletas` (tarea 087) |
 | `:ParadaTransporte` | `parada_transporte_from_transporte_publico_emt_gold`, `..._bicimad_gold`, `paradas_transporte_from_crtm_bronze` | Gold de `transporte_publico_emt`, `bicimad`; Bronze de `crtm_red_transporte_madrid` |
 | `:Lugar` | `lugar_from_poi_bronze`, `..._aparcamientos_gold`, `..._cartelera_cines_gold` (+ plural) | Bronze de `poi_madrid`; Gold de `aparcamientos`, `cartelera_cines_estrenos` |
 
@@ -275,6 +275,7 @@ orígenes Bronze-only, que no tienen tabla en el catálogo de Glue.
 | `fetch_estaciones_trafico` | Athena, `gold.trafico_por_punto_hora` | `estaciones_medida_from_trafico_gold` |
 | `fetch_estaciones_calidad_aire` | Athena, `gold.calidad_aire_por_estacion_contaminante_hora` | `estaciones_medida_from_calidad_aire_gold` |
 | `fetch_estaciones_ruido` | Athena, `gold.ruido_por_estacion_periodo_fecha` | `estaciones_medida_from_ruido_gold` |
+| `fetch_estaciones_aforos_peatones_bicicletas` | Athena, `gold.aforos_peatones_bicicletas_por_estacion_modo_hora` | `estaciones_medida_from_aforos_peatones_bicicletas_gold` |
 | `fetch_paradas_emt` | Athena, `gold.transporte_publico_emt_por_parada_hora` | `paradas_transporte_from_transporte_publico_emt_gold` |
 | `fetch_paradas_bicimad` | Athena, `gold.bicimad_por_estacion_hora` | `paradas_transporte_from_bicimad_gold` |
 | `fetch_lugares_aparcamientos` | Athena, `gold.aparcamientos_por_parking_hora` | `lugares_from_aparcamientos_gold` |
@@ -302,6 +303,15 @@ glue.tf`); `grafo.nodos._location()` espera, en cambio, `record["location"] =
 para no tener que tocar `nodos.py` (ya testado, y no le corresponde saber de
 dónde vienen sus columnas).
 
+**Excepción, `aforos_peatones_bicicletas` (tarea 087)**: a diferencia de
+`trafico`/`calidad_aire`/`ruido`, su Gold (`aggregate.py`, tarea 054)
+**sí** anida `location` como columna `struct` (igual que Silver, no aplanada
+a `lat`/`lon`). `fetch_estaciones_aforos_peatones_bicicletas` proyecta
+`location.lat AS lat, location.lon AS lon` en el propio SQL para poder
+reutilizar `_nest_location` sin cambios -- no asumas que todo Gold aplana la
+ubicación al añadir un origen nuevo, revisa `aggregate.py` del dataset
+concreto primero.
+
 **`get_query_results` de Athena devuelve todo como texto** (`VarCharValue`),
 sea cual sea el tipo real de columna — comportamiento documentado de la
 API, no un bug. `extract._cast_athena_value()` los convierte de vuelta a
@@ -311,9 +321,15 @@ de Cypher que construye `cypher.py` los necesita numéricos, no como cadena).
 
 ### Verificado contra datos reales de esta cuenta (`eu-west-1`, `222234418587`) al escribir este módulo
 
-Las 11 funciones se han ejecutado una vez contra Athena/S3 reales (con las
-credenciales de esta EC2, sin asumir ningún rol) para validar el SQL antes de
-darlo por bueno — no simulado:
+Las 11 funciones originales se han ejecutado una vez contra Athena/S3 reales
+(con las credenciales de esta EC2, sin asumir ningún rol) para validar el
+SQL antes de darlo por bueno — no simulado. **`fetch_estaciones_aforos_
+peatones_bicicletas` (tarea 087) es la excepción**: se escribió y testeó
+(mockeado, sin red) desde un entorno de desarrollo local sin credenciales
+AWS ni `neo4j` instalados -- el SQL sigue sin verificarse contra Athena real
+ni la instancia real de Neo4j se ha recargado con este origen nuevo. Queda
+como paso pendiente para quien tenga acceso real (ver
+`doc/087-grafo-aforos-peatones-bicicletas-neo4j-real.md`).
 
 | Función | Filas reales |
 |---|---|
