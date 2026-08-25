@@ -9,7 +9,10 @@ cambia de forma sustancial.
 No sustituye a `tasks/README.md` (cómo funciona la cola del agente
 autónomo) ni a `doc/README.md` (documentación técnica acumulada, tarea a
 tarea) — los complementa: aquí vive la coordinación humana entre los dos;
-allí, el detalle técnico de cada pieza.
+allí, el detalle técnico de cada pieza. [`PROGRESS.md`](PROGRESS.md) añade
+una bitácora de sesiones de ingeniería interactiva (no del agente),
+[`PLATFORM_SCHEMA.md`](PLATFORM_SCHEMA.md) el inventario de plataformas y
+[`NEXT_STEPS.md`](NEXT_STEPS.md) el plan priorizado hacia el cierre.
 
 ## Resumen a 23 de agosto
 
@@ -19,7 +22,7 @@ allí, el detalle técnico de cada pieza.
 | Datasets Silver/Gold en producción | 14 |
 | Tareas del agente completadas y fusionadas | 78 |
 | Credenciales reales obtenidas | EMT, AEMET, CAMS, Neo4j AuraDB Free |
-| Credenciales pendientes | Google Maps |
+| Credenciales pendientes | ninguna — Google Maps descartado el 25/8, ver bloqueador 2 |
 | Bloqueadores críticos | ninguno — Neo4j resuelto el 24/8 |
 
 La serie de incidentes de coste/duplicados en Silver/Gold (tareas
@@ -51,9 +54,16 @@ Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
    `eu-west-1`. Recreadas en `eu-west-1`, verificadas, y borradas las
    copias de `eu-south-2`. **Al guardar cualquier secreto nuevo en SSM,
    usad siempre `--region eu-west-1` explícito.**
-2. **Clave de Google Maps Platform** (`console.cloud.google.com/google/maps-apis/credentials`,
-   habilitar Places API). Único bloqueador de credenciales que queda —
-   ver [`doc/012-captura-afluencia-lugares-madrid.md`](doc/012-captura-afluencia-lugares-madrid.md).
+2. ~~Clave de Google Maps Platform~~ — **descartado el 25/8, no bloqueador.**
+   Verificado a nivel de código (`doc/083-investigacion-google-maps-arquitectura.md`)
+   que la librería `populartimes` exige una llamada de pago a la API
+   oficial de Google *antes* de poder hacer scraping, sin forma de
+   evitarlo — no es un bloqueador de credencial pendiente, es una
+   dependencia que este proyecto ha decidido no asumir (coste 0). Se
+   sustituye por una señal de afluencia basada en el grafo Neo4j sobre
+   datos ya ingeridos (tarea 086) — ver
+   [`doc/012-captura-afluencia-lugares-madrid.md`](doc/012-captura-afluencia-lugares-madrid.md)
+   para el contexto original.
 3. **Decisión editorial**: cómo se documenta en la memoria (§7.4
    Limitaciones) el alcance recortado de las fases 3–5 frente al plan
    original — antes de que la Pista Memoria llegue a esa sección (semana
@@ -112,7 +122,9 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `083`**
+**Próximo número libre: `087`** (083-086 consumidas el 25/8: investigación
+Google Maps/arquitectura, esquema de plataformas, plan de cierre, spec de
+afluencia por grafo — ver `PROGRESS.md`).
 
 Nota sobre el orden: las tareas sin bloqueo se numeran y encolan ya; las
 bloqueadas por credenciales se numeran **cuando llegan**, no antes, para no
@@ -147,9 +159,10 @@ pese a estar en orden inverso de creación en este documento.
   — en cola. Verifica `trafico_cercano` contra Neo4j real, ahora que el bug
   de región de abajo está corregido.
 - [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
-  `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` bloqueada
-  hasta Google Maps) — sin bloqueo salvo la indicada, se pueden ir
-  encolando una a una según el mismo patrón que `079`.
+  `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` ya no
+  bloqueada por Google Maps — rediseñada como señal basada en grafo, ver
+  la especificación de la tarea 086) — sin bloqueo, se pueden ir encolando
+  una a una según el mismo patrón que `079`.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
@@ -197,7 +210,17 @@ de Google Maps como bloqueador de credenciales.
 **Memoria** — Sin empezar todavía; el documento actual es el de
 planificación original (junio 2026).
 
-**Bloqueadores activos** — Clave de Google Maps.
+**Bloqueadores activos** — ninguno.
+
+**25/8 (sesión de arquitectura, fuera del ciclo normal de tareas)** —
+investigación de Google Maps + revisión de arquitectura: descartado
+Google Maps definitivamente (verificado a nivel de código que no puede dar
+datos reales a coste 0, no es un bloqueador de credencial), sustituido por
+una señal de afluencia basada en grafo (tarea 086, spec). Se descubrió
+además que el estado de Terraform ha derivado de `main` (código
+Glue/Lambda desplegado desactualizado respecto al repositorio) — nuevo
+bloqueador a reconciliar, ver `NEXT_STEPS.md`. Detalle completo en
+`PROGRESS.md` y `doc/083-investigacion-google-maps-arquitectura.md`.
 
 **Para la semana que viene**
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
@@ -206,5 +229,6 @@ planificación original (junio 2026).
 - [x] Crear y encolar `081-asistente-tool-trafico-cercano-grafo` — completada
 - [x] Corregir la región de las credenciales de Neo4j en SSM (25/8)
 - [x] Crear y encolar `082-verificar-trafico-cercano-neo4j-real`
-- [ ] Conseguir la clave de Google Maps
+- [x] Descartar Google Maps y diseñar su sustituto (25/8, tarea 083/086)
+- [ ] Reconciliar el drift de Terraform detectado el 25/8 (ver `NEXT_STEPS.md`)
 - [ ] Empezar a reescribir §5 de la memoria con la arquitectura real
