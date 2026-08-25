@@ -208,6 +208,31 @@ class FetchGoldNodeSourcesTests(unittest.TestCase):
             ],
         )
 
+    def test_fetch_estaciones_aforos_peatones_bicicletas(self):
+        columns = [
+            _column("station_id", "varchar"),
+            _column("address", "varchar"),
+            _column("district", "varchar"),
+            _column("lat", "double"),
+            _column("lon", "double"),
+        ]
+        rows = [_row("PERM_PEA01", "Calle de Alcalá 25", "Centro", "40.4185", "-3.6982")]
+        client = FakeAthenaClient(columns, rows)
+
+        result = extract.fetch_estaciones_aforos_peatones_bicicletas(athena_client=client)
+
+        self.assertEqual(
+            result,
+            [
+                {
+                    "station_id": "PERM_PEA01",
+                    "address": "Calle de Alcalá 25",
+                    "district": "Centro",
+                    "location": {"lat": 40.4185, "lon": -3.6982},
+                }
+            ],
+        )
+
     def test_fetch_paradas_emt_solo_identidad_sin_location(self):
         columns = [_column("stop_id", "varchar")]
         rows = [_row("71")]

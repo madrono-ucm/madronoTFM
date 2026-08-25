@@ -250,6 +250,33 @@ def fetch_estaciones_ruido(athena_client=None) -> "list[dict]":
     return [_nest_location(row) for row in rows]
 
 
+def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dict]":
+    """Un registro por `station_id` con su dirección/distrito y ubicación
+    más recientes (tarea 087, Fase A de `doc/086-afluencia-estimada-grafo.md`).
+
+    A diferencia de `trafico`/`calidad_aire`/`ruido`, este Gold
+    (`aforos_peatones_bicicletas_por_estacion_modo_hora`, tarea 054) trae
+    `location` como columna `struct` anidada (`location.lat`/`location.lon`),
+    no columnas planas -- se proyectan como `lat`/`lon` planas en el propio
+    SQL para poder reutilizar `_nest_location` sin cambios. `station_id` ya
+    es único por estación (las redes de peatones `PERM_PEA##` y de
+    bicicletas `PERM_BICI##` usan identificadores propios, ver
+    `procesamiento/silver_gold/aforos_peatones_bicicletas/aggregate.py`), así
+    que no hace falta agrupar también por `mode` para identificar el nodo."""
+    sql = f"""
+        SELECT station_id,
+               max_by(address, date) AS address,
+               max_by(district, date) AS district,
+               max_by(location.lat, date) AS lat,
+               max_by(location.lon, date) AS lon
+        FROM aforos_peatones_bicicletas_por_estacion_modo_hora
+        WHERE {_recent_date_filter()}
+        GROUP BY station_id
+    """
+    rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    return [_nest_location(row) for row in rows]
+
+
 # ---------------------------------------------------------------------------
 # :ParadaTransporte -- Gold de transporte_publico_emt / bicimad; Bronze de
 # crtm_red_transporte_madrid (ver más abajo).
