@@ -6,8 +6,8 @@ status: in_review
 force: false
 allow_infra_apply: false
 branch: task/083-investigacion-google-maps-arquitectura
-pr_number: null
-pr_url: null
+pr_number: 127
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/127
 attempts: 0
 next_retry_at: null
 last_error: null
