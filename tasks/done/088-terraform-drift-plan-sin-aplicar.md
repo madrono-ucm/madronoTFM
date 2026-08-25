@@ -3,7 +3,7 @@ id: 88
 slug: terraform-drift-plan-sin-aplicar
 title: 'Infra: plan completo del drift de Terraform (Prioridad 1 de NEXT_STEPS.md)
   -- sin aplicar nada'
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/088-terraform-drift-plan-sin-aplicar
@@ -16,7 +16,7 @@ created_at: null
 updated_at: '2026-08-25T21:21:39.381059+00:00'
 started_at: '2026-08-25T21:15:34.052923+00:00'
 submitted_at: '2026-08-25T21:21:39.380906+00:00'
-merged_at: null
+merged_at: '2026-08-25T21:24:59Z'
 ---
 
 ## Contexto
