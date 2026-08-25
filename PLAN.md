@@ -18,7 +18,7 @@ una bitácora de sesiones de ingeniería interactiva (no del agente),
 
 | | |
 |---|---|
-| Fuentes de datos implementadas | 21 (14 en producción continua) |
+| Fuentes de datos implementadas | 24 (14 en producción continua, 3 nuevas del 25/8 solo en Ingesta — ver `doc/090-...md`) |
 | Datasets Silver/Gold en producción | 14 |
 | Tareas del agente completadas y fusionadas | 78 |
 | Credenciales reales obtenidas | EMT, AEMET, CAMS, Neo4j AuraDB Free |
@@ -125,7 +125,9 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `090`** (083-086 consumidas el 25/8: investigación
+**Próximo número libre: `091`** (090 consumida el 25/8: rastreo de nuevos
+datasets de `datos.madrid.es` y tres productores nuevos, ver
+`doc/090-nuevas-fuentes-parques-ser-emt-incidencias.md`. 083-086 consumidas el 25/8: investigación
 Google Maps/arquitectura, esquema de plataformas, plan de cierre, spec de
 afluencia por grafo — ver `PROGRESS.md`. 087/089 son la implementación de
 esa spec, tomados en la misma sesión al detectar la colisión de números
@@ -211,6 +213,17 @@ pese a estar en orden inverso de creación en este documento.
   — en cola, depende de `087`. Fase B de la especificación `086`:
   implementa `afluencia_estimada` (sustituye a `afluencia_prevista`) —
   cierra por completo el bloqueador de Google Maps para el asistente.
+- [x] **[`090-nuevas-fuentes-parques-ser-emt-incidencias`](doc/090-nuevas-fuentes-parques-ser-emt-incidencias.md)**
+  — **completada** (sesión interactiva, a petición del usuario: rastreo de
+  109+10 datasets de `datos.madrid.es` cruzados contra los productores ya
+  existentes). Tres productores nuevos, solo Ingesta (sin Silver/Gold ni
+  Terraform): `parques_jardines_madrid.py` (llena el hueco de "paseo por
+  el parque"), `ser_calles_madrid.py` (aparcamiento en calle, posible vía
+  para desbloquear `disponibilidad_aparcamiento`), `emt_incidencias_madrid.py`
+  (feed RSS real en vivo, señal para `opciones_movilidad`). Dos candidatos
+  de "alta prioridad" del rastreo inicial (ocupación de líneas EMT,
+  campañas de aforos) resultaron ser datos anuales al verificarlos, no en
+  vivo — descartados, ver `doc/090-...md`.
 - [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
   `eventos_cercanos`, `opciones_movilidad`) — sin bloqueo, se pueden ir
   encolando una a una según el mismo patrón que `079`.

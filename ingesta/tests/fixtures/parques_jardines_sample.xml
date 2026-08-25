@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Contenidos>
+  <contenido>
+    <tipo>EntidadesYOrganismos</tipo>
+    <atributos idioma="es">
+      <atributo nombre="ID-ENTIDAD">5986859</atributo>
+      <atributo nombre="NOMBRE">El Capricho de la Alameda Osuna</atributo>
+      <atributo nombre="DESCRIPCION-ENTIDAD">El jardín historíco El Capricho es un espacio único, una joya que combina características naturales, históricas y artísticas, ofreciendo un entorno re [...recortado para fixture de test...]</atributo>
+      <atributo nombre="HORARIO">Del 1 de octubre al 31 de marzo sábados, domingos y festivos de 9 a 18:30 horas. Del 1 de abril al 30 de septiembre sábados, domingos y festivos de 9 a 21 horas. Los días 25 de diciembre y 1 de enero el parque permanece cerrado al público.</atributo>
+      <atributo nombre="TRANSPORTE">Metro: El Capricho (linea 5) Autobús: 101, 105 y 151  Servicio Bicimad, para consultar la estación m [...recortado...]</atributo>
+      <atributo nombre="DESCRIPCION">Conservación a cargo de: Dirección General de Gestión del Agua y Zonas Verdes. Área de Gobierno de Medio Ambiente y Movilidad.  Superficie. 171.630 m&amp;sup2;.  Vegetación predominante:    Árboles: Árbol del amor (Cercis siliquastrum), Ciprés común (Cupressus sempervirens), Pino piñonero (Pinus pinea) y Acacia de tres espinas (Gleditsia triacanthos).  Arbustos: Lilo (Syringa vulgaris), Majuelo (Crataegus monogyna) y Celinda (Philadelphus coronarius).  Macizos arbustivos:  Lilo (Syringa vulgaris), Rusco (Ruscus) y Durillo (Viburnum tinus).</atributo>
+      <atributo nombre="ACCESIBILIDAD">2</atributo>
+      <atributo nombre="CONTENT-URL">http://www.madrid.es/sites/v/index.jsp?vgnextchannel=bfa48ab43d6bb410VgnVCM100000171f5a0aRCRD&amp;vgnextoid=9db6fb010e99e210VgnVCM1000000b205a0aRCRD</atributo>
+      <atributo nombre="LOCALIZACION">
+        <atributo nombre="NOMBRE-VIA">ALAMEDA DE OSUNA</atributo>
+        <atributo nombre="CLASE-VIAL">PASEO</atributo>
+        <atributo nombre="TIPO-NUM">V</atributo>
+        <atributo nombre="NUM">25</atributo>
+        <atributo nombre="LOCALIDAD">MADRID</atributo>
+        <atributo nombre="PROVINCIA">MADRID</atributo>
+        <atributo nombre="CODIGO-POSTAL">28042</atributo>
+        <atributo nombre="COD-BARRIO">1</atributo>
+        <atributo nombre="BARRIO">ALAMEDA DE OSUNA</atributo>
+        <atributo nombre="COD-DISTRITO">21</atributo>
+        <atributo nombre="DISTRITO">BARAJAS</atributo>
+        <atributo nombre="COORDENADA-X">449118</atributo>
+        <atributo nombre="COORDENADA-Y">4478373</atributo>
+        <atributo nombre="LATITUD">40.45446361509569</atributo>
+        <atributo nombre="LONGITUD">-3.6000964360303476</atributo>
+      </atributo>
+      <atributo nombre="DATOSCONTACTOS">
+        <atributo nombre="EMAIL">parqueshistoricos@madrid.es</atributo>
+      </atributo>
+      <atributo nombre="TIPO">/contenido/entidadesYorganismos/ParquesJardines/ParquesHistoricos</atributo>
+    </atributos>
+  </contenido>
+  <contenido>
+    <tipo>EntidadesYOrganismos</tipo>
+    <atributos idioma="es">
+      <atributo nombre="ID-ENTIDAD">6070995</atributo>
+      <atributo nombre="NOMBRE">Jardines Gregorio Ordóñez</atributo>
+      <atributo nombre="DESCRIPCION-ENTIDAD">Los jardines en memoria de Gregorio Ordóñez cuentan con dos amplias áreas de juegos infantiles, diseñadas para el disfrute de la infancia. En su centr [...recortado para fixture de test...]</atributo>
+      <atributo nombre="EQUIPAMIENTO">Zonas infantiles</atributo>
+      <atributo nombre="TRANSPORTE">Metro: Núñez de Balboa (líneas 5 y 9) Bus: 1, 29, 52, 74  Servicio Bicimad, para consultar la estaci [...recortado...]</atributo>
+      <atributo nombre="DESCRIPCION">Conservación:  Dirección General de Gestión del Agua y Zonas Verdes, Área de Gobierno de Medio Ambiente y Movilidad.    Superficie: 3.975 m&amp;sup2;.    Vegetación predominante:      Ejemplares arbóreos: ciruelo rojo (Prunus cerasifera), plátano de sombra (Platanus &amp;times; hispanica), liquidámbar (Liquidambar styraciflua) y cinamomo (Melia azedarach).    Arbustos: palmito (Chamaerops humilis) y palmito de la China (Trachycarpus fortunei).   Macizos arbustivos: rosas (Rosa spp.) y madroño (Arbutus unedo).</atributo>
+      <atributo nombre="ACCESIBILIDAD">2</atributo>
+      <atributo nombre="CONTENT-URL">http://www.madrid.es/sites/v/index.jsp?vgnextchannel=bfa48ab43d6bb410VgnVCM100000171f5a0aRCRD&amp;vgnextoid=2fba3c8f758ff210VgnVCM2000000c205a0aRCRD</atributo>
+      <atributo nombre="LOCALIZACION">
+        <atributo nombre="NOMBRE-VIA">PRINCIPE DE VERGARA</atributo>
+        <atributo nombre="CLASE-VIAL">CALLE</atributo>
+        <atributo nombre="TIPO-NUM">V</atributo>
+        <atributo nombre="NUM">68</atributo>
+        <atributo nombre="LOCALIDAD">MADRID</atributo>
+        <atributo nombre="PROVINCIA">MADRID</atributo>
+        <atributo nombre="CODIGO-POSTAL">28006</atributo>
+        <atributo nombre="COD-BARRIO">5</atributo>
+        <atributo nombre="BARRIO">LISTA</atributo>
+        <atributo nombre="COD-DISTRITO">4</atributo>
+        <atributo nombre="DISTRITO">SALAMANCA</atributo>
+        <atributo nombre="COORDENADA-X">442443</atributo>
+        <atributo nombre="COORDENADA-Y">4476090</atributo>
+        <atributo nombre="LATITUD">40.43346186779773</atributo>
+        <atributo nombre="LONGITUD">-3.6785954778654113</atributo>
+      </atributo>
+      <atributo nombre="DATOSCONTACTOS" />
+      <atributo nombre="TIPO">/contenido/entidadesYorganismos/ParquesJardines</atributo>
+    </atributos>
+  </contenido>
+  <contenido>
+    <tipo>EntidadesYOrganismos</tipo>
+    <atributos idioma="es">
+      <atributo nombre="ID-ENTIDAD">50265055</atributo>
+      <atributo nombre="NOMBRE">Bosque de los Abrazos Perdidos</atributo>
+      <atributo nombre="DESCRIPCION-ENTIDAD">Este parque, situado en Hortaleza, nació como una de las primeras piezas que forman parte del Bosque Metropolitano, un gran corredor verde diseñado pa [...recortado para fixture de test...]</atributo>
+      <atributo nombre="EQUIPAMIENTO">Dos áreas de calistenia Zona infantil Plataformas de estancia Mirador</atributo>
+      <atributo nombre="TRANSPORTE">Bus: 104, T11 Metro: Feria de Madrid (línea 8)  Servicio Bicimad, para consultar la estación más cer [...recortado...]</atributo>
+      <atributo nombre="DESCRIPCION">Conservación: Dirección General de Gestión del Agua y Zonas Verdes. Área de Gobierno de Medio Ambiente y Movilidad.  Superficie: 98.121 m&amp;sup2;.  Vegetación predominante:    Árboles: Pino carrasco (Pinus halepensis), Olivo (Olea europaea), Almendro (Prunus dulcis), Quejigo (Quercus faginea), Encina (Quercus ilex), Olmo (Ulmus resistens), Ciprés (Cupressus sempervirens), Almez (Celtis australis), Coscoja (Quercus coccifera) y Pino piñonero (Pinus pinea).   Macizos arbustivos: Sabina (Juniperus sabina), Madroño (Arbutus unedo), Berceo (Stipa gigantea), Jara pringosa (Cistus ladanifer), Rosal silvestre (Rosa canina), Lentisco (Pistacia lentiscus), Matagallo (Phlomis purpurea) y Bocha (Dorycnium pentaphyllum).</atributo>
+      <atributo nombre="ACCESIBILIDAD">2</atributo>
+      <atributo nombre="CONTENT-URL">http://www.madrid.es/sites/v/index.jsp?vgnextchannel=bfa48ab43d6bb410VgnVCM100000171f5a0aRCRD&amp;vgnextoid=a7434dbb4042d910VgnVCM200000f921e388RCRD</atributo>
+      <atributo nombre="LOCALIZACION">
+        <atributo nombre="NOMBRE-VIA">ANTONIO LÓPEZ TORRES</atributo>
+        <atributo nombre="CLASE-VIAL">CALLE</atributo>
+        <atributo nombre="NUM">5</atributo>
+        <atributo nombre="LOCALIDAD">MADRID</atributo>
+        <atributo nombre="PROVINCIA">MADRID</atributo>
+        <atributo nombre="CODIGO-POSTAL">28042</atributo>
+        <atributo nombre="COD-BARRIO">6</atributo>
+        <atributo nombre="BARRIO">VALDEFUENTES</atributo>
+        <atributo nombre="COD-DISTRITO">16</atributo>
+        <atributo nombre="DISTRITO">HORTALEZA</atributo>
+      </atributo>
+      <atributo nombre="DATOSCONTACTOS" />
+    </atributos>
+  </contenido>
+</Contenidos>

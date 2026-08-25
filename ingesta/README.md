@@ -3407,6 +3407,185 @@ transitorio en un intento anterior con una consulta más pesada, resuelto
 reintentando tras una breve espera (comportamiento ya cubierto por los
 reintentos con backoff de `_fetch_with_retries`).
 
+## `capturas/parques_jardines_madrid.py` — Parques y jardines municipales de Madrid (carga batch puntual, referencia)
+
+Nace del rastreo de datasets de `datos.madrid.es` (categorías transporte y
+medio ambiente) hecho a petición del usuario para encontrar fuentes que
+llenaran huecos reales del proyecto. `poi_madrid.py` (tarea 011) solo cubre
+"Edificios y monumentos", a propósito -- ningún `:Lugar` de tipo parque
+existía en el grafo hasta este módulo, y el caso de uso "quiero dar un
+paseo por el parque" (discutido al diseñar `afluencia_estimada`) no tenía
+ningún dato real que ofrecer.
+
+Dataset "Principales parques y jardines municipales" (id `200761-0`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/200761-0-parques-jardines).
+Mismo esquema XML `EntidadesYOrganismos` que otros catálogos del
+Ayuntamiento (`<atributos><atributo nombre="...">`), con un bloque
+`LOCALIZACION` anidado que trae `LATITUD`/`LONGITUD` en WGS84 ya resueltas.
+208 parques a fecha de esta captura; **no todos traen coordenadas** (un
+caso real encontrado y cubierto por un test: "Bosque de los Abrazos
+Perdidos" no las tiene) -- se descartan sin coordenadas, mismo criterio que
+`poi_madrid.py`.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.parques_jardines_madrid
+```
+
+### Esquema normalizado
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_parques_jardines",
+  "park_id": "5986859",
+  "name": "El Capricho de la Alameda Osuna",
+  "park_type": "/contenido/entidadesYorganismos/ParquesJardines/ParquesHistoricos",
+  "description": "...",
+  "schedule": "Del 1 de octubre al 31 de marzo...",
+  "transport": "Metro: El Capricho (linea 5)...",
+  "accessibility": "2",
+  "address": "PASEO ALAMEDA DE OSUNA 25",
+  "postal_code": "28042",
+  "district": "BARAJAS",
+  "neighbourhood": "ALAMEDA DE OSUNA",
+  "ingested_at": "2026-08-25T23:44:25.682868+02:00",
+  "location": {"lat": 40.45446361509569, "lon": -3.6000964360303476, "srid": "EPSG:4326"}
+}
+```
+
+Captura real completada en esta sesión (8 parques reales commiteados en
+`ingesta/capturas/samples/parques_jardines_madrid_sample.json`).
+
+## `capturas/ser_calles_madrid.py` — Calles y plazas del Servicio de Estacionamiento Regulado de Madrid (carga batch puntual, referencia)
+
+Mismo rastreo que el módulo anterior. Distinto de `aparcamientos_madrid.py`
+(tarea 005, aparcamientos rotacionales **fuera de calle**): el SER es
+aparcamiento **en calle** (zona azul/verde/naranja), con capacidad por
+tramo de vía. Motivación real: el Gold de `aparcamientos` lleva roto y sin
+diagnosticar desde antes de la tarea 083 (`NEXT_STEPS.md`, Prioridad 2) --
+`disponibilidad_aparcamiento` (tool pendiente) no tenía ninguna fuente real
+utilizable; el SER es una vía alternativa independiente de ese pipeline
+roto. **No incluye ocupación en tiempo real**, solo capacidad/zonificación
+estática.
+
+Dataset "Servicio de Estacionamiento Regulado (SER). Calles y número de
+plazas" (id `218228-0`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/218228-0-ser-calles),
+27.758 tramos de calle a fecha de esta captura, actualización trimestral.
+
+### Dos hallazgos reales de esta fuente, verificados en vivo
+
+1. **El sufijo numérico del `id` de cada recurso NO indica el año/orden
+   cronológico.** `resolve_latest_csv_url` resuelve el recurso más reciente
+   por `last_modified`/`created` real (vía `package_show`), no por el
+   sufijo del `id` -- un primer intento habría descargado datos de 2021
+   creyendo que eran de 2026.
+2. **Las coordenadas `gis_x`/`gis_y` del recurso 2026 real llegan
+   corruptas en la propia fuente** (verificado también en el XLSX
+   equivalente, no es un artefacto de parseo CSV): la coma decimal se
+   perdió en algún proceso de conversión, dejando un entero enorme
+   (`"4.427.249.100.000.000"`) en vez del decimal esperado. `_to_corrupted_gis_coord`
+   lo recupera dividiendo por `1e10` -- ver el docstring de la función para
+   la evidencia completa de por qué esa es la corrección correcta y no una
+   suposición.
+
+El esquema de columnas también cambió frente a recursos antiguos del mismo
+dataset (`distrito`/`cod_distrito` separados, `numero_finca`/
+`numero_plazas` en vez de `num_finca`/`num_plazas`) y la codificación no es
+constante entre recursos (UTF-8 con BOM en unos, Latin-1 en otros) -- ambos
+casos cubiertos con fallback en el código.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.ser_calles_madrid
+```
+
+### Esquema normalizado
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_ser_calles",
+  "district_code": "3",
+  "district": "Retiro",
+  "neighbourhood_code": "32",
+  "neighbourhood": "Adelfas",
+  "street": "CERRO DE LA PLATA, CALLE, DEL",
+  "street_number": "4",
+  "zone_color": "Azul",
+  "zone_rgb": "043000255",
+  "layout": "Batería",
+  "num_spaces": 4,
+  "ingested_at": "2026-08-25T23:52:19.858312+02:00",
+  "location": {"x": 442724.91, "y": 4472388.99, "srid": "EPSG:25830"}
+}
+```
+
+Coordenadas en UTM ETRS89 huso 30N, sin reproyectar (mismo criterio que
+`trafico_madrid.py` -- la reproyección con las fórmulas cerradas de Snyder
+ya existentes en `procesamiento/silver_gold/trafico/geo.py` es trabajo de
+una futura tarea de Silver/Gold, no de esta captura). Captura real
+completada en esta sesión (10 tramos reales commiteados en
+`ingesta/capturas/samples/ser_calles_madrid_sample.json`).
+
+## `capturas/emt_incidencias_madrid.py` — Incidencias del servicio de EMT Madrid (carga batch puntual de un feed en vivo)
+
+Mismo rastreo que los dos módulos anteriores. Complementa
+`transporte_publico_madrid.py` (tarea 003): sin esto, una recomendación de
+`opciones_movilidad` (tool pendiente) podría sugerir una línea que hoy no
+pasa por una parada suprimida por obras.
+
+Dataset "EMT. Incidencias o alteraciones del servicio de EMT" (id
+`202992-0`) de
+[datos.madrid.es](https://datos.madrid.es/dataset/202992-0-emt-incidencias),
+un feed RSS 2.0 público sin autenticación. **A diferencia del resto de
+fuentes de esta sesión, esto sí es un dato en vivo**: 90 incidencias
+activas verificadas en esta captura, la más reciente publicada el mismo día
+de la captura. Cada `<item>` trae, además de los campos RSS estándar,
+extensiones propias: `category` repetido una vez por línea afectada,
+`rssAfectaDesde`/`rssAfectaHasta` (ventana de vigencia real) y
+`GoogleTransitCause`/`GoogleTransitEffect` (vocabulario estandarizado tipo
+GTFS-RT, p. ej. `"08 - Obras"`/`"08 - Parada suprimida"`) -- se conservan
+tal cual, ya son un vocabulario controlado útil para el asistente.
+
+Sigue el mismo patrón de "muestra puntual, sin bucle" que el resto de
+productores sin infraestructura de scheduling real detrás -- un futuro
+productor continuo debería programarse con la cadencia que merece un feed
+que cambia varias veces al día, no asumir que basta con añadir
+`--interval-seconds`.
+
+### Ejecutar
+
+```bash
+python3 -m ingesta.capturas.emt_incidencias_madrid
+```
+
+### Esquema normalizado
+
+```json
+{
+  "schema_version": 1,
+  "source": "madrid_emt_incidencias",
+  "incident_id": "B60AFAC3-34A5-44B1-918E-BEADE2C8BD91",
+  "title": "Supresión de Parada: Carretera de Castilla. Afectadas 4 líneas de EMT.",
+  "description": "Del 26 de agosto a fin de obras, las líneas 160, 161, A y N28...",
+  "affected_lines": ["A", "160", "161", "N28"],
+  "cause": "08 - Obras",
+  "effect": "08 - Parada suprimida",
+  "published_at": "2026-08-25T16:46:47+02:00",
+  "valid_from": "26/08/2026 6:00:00",
+  "valid_until": "26/09/2026 19:00:00",
+  "link": "http://feeds.emtmadrid.es:8082/docs/20260826-SP-3426-Carretera-Castilla.pdf",
+  "ingested_at": "2026-08-25T23:47:14.930110+02:00"
+}
+```
+
+Captura real completada en esta sesión (10 incidencias reales activas
+commiteadas en `ingesta/capturas/samples/emt_incidencias_madrid_sample.json`).
+
 ## Tests
 
 No dependen de la red: usan fixtures con copias/ejemplos de las respuestas
