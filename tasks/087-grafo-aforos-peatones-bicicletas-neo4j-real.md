@@ -2,18 +2,18 @@
 id: 87
 slug: grafo-aforos-peatones-bicicletas-neo4j-real
 title: 'Grafo: Fase A de la especificación 086 -- añadir EstacionMedida{tipo: aforos_peatones_bicicletas}'
-status: pending
+status: in_progress
 force: false
 allow_infra_apply: false
-branch: null
+branch: task/087-grafo-aforos-peatones-bicicletas-neo4j-real
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: null
-updated_at: null
-started_at: null
+updated_at: '2026-08-25T20:43:50.681234+00:00'
+started_at: '2026-08-25T20:43:50.681210+00:00'
 submitted_at: null
 merged_at: null
 ---
