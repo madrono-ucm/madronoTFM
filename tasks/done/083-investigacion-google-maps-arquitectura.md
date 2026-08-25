@@ -2,7 +2,7 @@
 id: 83
 slug: investigacion-google-maps-arquitectura
 title: "Investigación: Google Maps a coste 0, y salud de la infraestructura desplegada"
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/083-investigacion-google-maps-arquitectura
@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-25T00:00:00+00:00'
-updated_at: '2026-08-25T00:00:00+00:00'
+updated_at: '2026-08-25T20:34:24Z'
 started_at: '2026-08-25T00:00:00+00:00'
-submitted_at: null
-merged_at: null
+submitted_at: '2026-08-25T20:34:24Z'
+merged_at: '2026-08-25T20:34:24Z'
 ---
 
 ## Contexto

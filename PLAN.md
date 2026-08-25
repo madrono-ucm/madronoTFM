@@ -125,9 +125,13 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `087`** (083-086 consumidas el 25/8: investigación
+**Próximo número libre: `089`** (083-086 consumidas el 25/8: investigación
 Google Maps/arquitectura, esquema de plataformas, plan de cierre, spec de
-afluencia por grafo — ver `PROGRESS.md`).
+afluencia por grafo — ver `PROGRESS.md`. 087-088 son la implementación de
+esa spec, tomados en la misma sesión al detectar la colisión de números
+con una cola de tareas paralela que ya había encolado su propio `083`-`085`
+antes de esta sesión de arquitectura — ver la nota junto a `083` en Pista
+Sistema).
 
 Nota sobre el orden: las tareas sin bloqueo se numeran y encolan ya; las
 bloqueadas por credenciales se numeran **cuando llegan**, no antes, para no
@@ -150,35 +154,47 @@ pese a estar en orden inverso de creación en este documento.
   habían subido (`barrios_distritos_madrid`, `poi_madrid`,
   `crtm_red_transporte_madrid`) — sin ellos, el grafo se quedaba sin
   `Distrito`/`Barrio`/`PERTENECE_A`/`UBICADO_EN`/`CONECTADO_CON`.
-- [ ] **Clave de Google Maps** (número pendiente de asignar) — bloqueada
-  por la clave. Guardar en SSM, aplicar vía Terraform igual que
-  EMT/AEMET/CAMS (ver [`doc/018`](doc/018-captura-aemet-prevision-avisos.md)
-  como referencia del patrón), verificar que `afluencia_lugares` deja de
-  devolver `is_mock: true`.
+- [x] ~~Clave de Google Maps~~ — **descartado el 25/8** (tarea 083, ver
+  Bloqueadores arriba): no se persigue esta credencial, se sustituye por
+  una señal basada en grafo (tareas `086`/`087`/`088`).
 - [x] **[`081-asistente-tool-trafico-cercano-grafo`](tasks/done/081-asistente-tool-trafico-cercano-grafo.md)**
   — **completada** (mitad Athena/Gold verificada contra datos reales; la
   mitad Neo4j no pudo verificarse — ver hallazgo abajo).
 - [x] **[`082-verificar-trafico-cercano-neo4j-real`](tasks/082-verificar-trafico-cercano-neo4j-real.md)**
   — en cola. Verifica `trafico_cercano` contra Neo4j real, ahora que el bug
   de región de abajo está corregido.
+- [x] **[`083-investigacion-google-maps-arquitectura`](tasks/done/083-investigacion-google-maps-arquitectura.md)**
+  — **completada** (sesión interactiva, PR #127). Descarta Google Maps a
+  nivel de código (coste 0 imposible) y descubre drift de Terraform — ver
+  `doc/083-...md`, `PROGRESS.md`, `NEXT_STEPS.md` (Prioridad 1).
+- [x] **[`084-esquema-plataformas`](tasks/done/084-esquema-plataformas.md)**
+  — **completada** (PR #128). `PLATFORM_SCHEMA.md`, inventario verificado
+  contra la cuenta AWS real.
+- [x] **[`085-plan-cierre-tfm`](tasks/done/085-plan-cierre-tfm.md)**
+  — **completada** (PR #129). `NEXT_STEPS.md`, roadmap priorizado hacia el
+  17 de septiembre.
+- [x] **[`086-afluencia-estimada-grafo`](tasks/done/086-afluencia-estimada-grafo.md)**
+  — **completada, solo especificación** (PR #130). Diseña `afluencia_estimada`
+  (Fase A grafo + Fase B tool) — implementada por `087`/`088`.
 - [ ] **[`083-grafo-enriquecimiento-poi-osm`](tasks/083-grafo-enriquecimiento-poi-osm.md)**
-  — en cola. Enriquece `:Lugar` con etiquetas de OpenStreetMap (Overpass
-  API, gratis, sin key) por proximidad — geodatos de lugar, no afluencia
-  (OSM no tiene ningún dato de popularidad/tiempo real).
-- [ ] **[`084-grafo-nodos-aforos-neo4j-real`](tasks/084-grafo-nodos-aforos-neo4j-real.md)**
-  — en cola. Añade `:EstacionMedida {tipo: "aforo"}` (conteos reales de
-  peatones/bicicletas, ya en Gold desde la tarea 054) al grafo y recarga la
-  instancia real. Paso previo a `085`.
-- [ ] **[`085-asistente-tool-afluencia-prevista-aforos`](tasks/085-asistente-tool-afluencia-prevista-aforos.md)**
-  — en cola, depende de `084`. Implementa `afluencia_prevista` sobre
-  `aforos_peatones_bicicletas` en vez de Google/`populartimes` — quita el
-  bloqueo de la clave de Google Maps para esta tool sin esperar la
-  credencial.
+  — **en curso por el demonio** (`in_progress`, iniciada antes de detectar
+  la colisión de numeración con la tarea `083` de arriba — mismo número,
+  contenido distinto, sesiones distintas). Enriquece `:Lugar` con etiquetas
+  de OpenStreetMap (Overpass API, gratis, sin key) por proximidad —
+  geodatos de lugar, no afluencia. **Pendiente de renumerar a `089` cuando
+  el demonio abra su PR** (no se ha tocado el fichero de la tarea mientras
+  está en curso, para no interferir con la ejecución en vivo).
+- [ ] **[`087-grafo-aforos-peatones-bicicletas-neo4j-real`](tasks/087-grafo-aforos-peatones-bicicletas-neo4j-real.md)**
+  — en cola. Fase A de la especificación `086`: añade
+  `:EstacionMedida {tipo: "aforos_peatones_bicicletas"}` al grafo y recarga
+  la instancia real. Paso previo a `088`.
+- [ ] **[`088-asistente-tool-afluencia-estimada`](tasks/088-asistente-tool-afluencia-estimada.md)**
+  — en cola, depende de `087`. Fase B de la especificación `086`:
+  implementa `afluencia_estimada` (sustituye a `afluencia_prevista`) —
+  cierra por completo el bloqueador de Google Maps para el asistente.
 - [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
-  `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` ya no
-  bloqueada por Google Maps — rediseñada como señal basada en grafo, ver
-  la especificación de la tarea 086) — sin bloqueo, se pueden ir encolando
-  una a una según el mismo patrón que `079`.
+  `eventos_cercanos`, `opciones_movilidad`) — sin bloqueo, se pueden ir
+  encolando una a una según el mismo patrón que `079`.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
