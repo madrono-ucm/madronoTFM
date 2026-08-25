@@ -12,10 +12,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: null
-updated_at: '2026-08-25T20:44:05Z'
+updated_at: '2026-08-25T20:42:47.986959+00:00'
 started_at: '2026-08-25T20:27:33.080131+00:00'
 submitted_at: '2026-08-25T20:40:44.254213+00:00'
-merged_at: '2026-08-25T20:44:05Z'
+merged_at: '2026-08-25T20:42:30Z'
 ---
 
 ## Contexto
