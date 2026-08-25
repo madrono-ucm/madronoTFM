@@ -1,5 +1,22 @@
 # 087 — Grafo: Fase A de la especificación 086 (EstacionMedida{tipo: aforos_peatones_bicicletas})
 
+**Segunda corrección 25/8**: el demonio (`madrono-agent`, con acceso EC2
+real) también trabajó esta misma tarea en paralelo (PR #132, cerrado sin
+fusionar por redundante con lo ya mergeado directamente a `main`) y llegó
+de forma independiente a la misma causa raíz (fuente descontinuada desde
+2024-06-30). Su sesión fue más allá en un punto concreto que esta no
+cubrió: escribió (sin aplicar) el fix real de `infra/terraform/glue.tf`
+que amplía `projection.fecha.range`/`projection.date.range` de las tablas
+Silver/Gold de este dataset a `"2024-01-01,NOW+1DAY"` — sin ese fix,
+Athena calcula por fórmula que la partición real de 2024-06-30 no existe y
+nunca la lee, aunque el Parquet esté físicamente en S3. Ese fix se ha
+incorporado a `main` en esta sesión (`terraform fmt`/`validate` en verde),
+junto con la fila correspondiente en `NEXT_STEPS.md` (Prioridad 2). Sigue
+sin aplicarse -- aplicarlo (junto con la Prioridad 1) desbloquearía el
+histórico real 2019-2024 en Athena, útil como dato de entrenamiento para
+un futuro modelo ML, pero no como señal en vivo (la fuente sigue
+descontinuada) -- `afluencia_estimada` (tarea 089) no depende de ello.
+
 **Corrección 25/8, misma sesión**: tras escribir este documento se
 encontraron credenciales AWS reales configuradas en esta máquina
 (`~/.aws/credentials`, perfil `madrono`, `aws sts get-caller-identity` ->
