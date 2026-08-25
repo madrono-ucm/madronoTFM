@@ -62,6 +62,58 @@ def lugares_proximos_a_estaciones_trafico_query(nombre_lugar: str, radio_m: floa
     return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
 
 
+def lugares_proximos_a_estaciones_ruido_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Igual que `lugares_proximos_a_estaciones_trafico_query` pero contra
+    `EstacionMedida {tipo: 'ruido'}` (tarea 089, señal secundaria de
+    `afluencia_estimada`) -- ver el docstring de esa función para el
+    criterio de resolución/radio, idéntico aquí."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(e:EstacionMedida {tipo: 'ruido'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN l.id AS lugar_id, l.nombre AS lugar_nombre, "
+        "e.id AS estacion_id, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def lugares_proximos_a_estaciones_calidad_aire_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Igual que `lugares_proximos_a_estaciones_trafico_query` pero contra
+    `EstacionMedida {tipo: 'calidad_aire'}` (tarea 089, señal más débil/
+    indirecta de `afluencia_estimada` -- ver el docstring de
+    `asistente.mcp_agent.tools.afluencia_estimada`)."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(e:EstacionMedida {tipo: 'calidad_aire'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN l.id AS lugar_id, l.nombre AS lugar_nombre, "
+        "e.id AS estacion_id, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def lugares_proximos_a_paradas_bicimad_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Igual que `lugares_proximos_a_estaciones_trafico_query` pero contra
+    `ParadaTransporte {tipo: 'bicimad'}` (tarea 089, señal de movilidad
+    activa de `afluencia_estimada`). `ParadaTransporte` puede tener
+    `PROXIMO_A` igual que `EstacionMedida` -- ambos son de los 3 labels con
+    `ubicacion` (ver `grafo/relaciones.py::proximo_a`)."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(e:ParadaTransporte {tipo: 'bicimad'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN l.id AS lugar_id, l.nombre AS lugar_nombre, "
+        "e.id AS estacion_id, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
 @lru_cache
 def _driver_from_env():
     from neo4j import GraphDatabase  # import perezoso, ver docstring del módulo

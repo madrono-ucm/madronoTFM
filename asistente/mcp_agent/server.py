@@ -53,7 +53,7 @@ mcp = MCPServer(
 )
 
 for _tool in (
-    tools.afluencia_prevista,
+    tools.afluencia_estimada,
     tools.calidad_aire,
     tools.trafico_cercano,
     tools.opciones_movilidad,

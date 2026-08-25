@@ -26,15 +26,6 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class AfluenciaPrevista(BaseModel):
-    """Nivel de afluencia previsto en un lugar y momento concretos."""
-
-    lugar: str
-    momento: datetime
-    nivel_ocupacion: str
-    fuente_dataset: str
-
-
 class CalidadAireZona(BaseModel):
     """Calidad del aire medida en una zona y momento concretos (tarea 079,
     primera `tool` con lógica real: ver `asistente/mcp_agent/tools.py`).
@@ -96,6 +87,74 @@ class TraficoCercano(BaseModel):
     estaciones: list[EstacionTraficoCercana] = Field(default_factory=list)
     fuente_grafo: str
     fuente_gold: str
+
+
+class EstacionRuidoCercana(BaseModel):
+    """Una estación de ruido encontrada cerca de un `:Lugar` del grafo
+    (tarea 089), con su nivel más reciente de Gold. Mismo criterio que
+    `EstacionTraficoCercana`: el campo de Gold es opcional porque el grafo
+    puede encontrar una estación sin que Gold tenga fila para la fecha
+    consultada."""
+
+    station_id: str
+    distancia_m: float
+    avg_laeq_db: float | None = None
+
+
+class ParadaBicimadCercana(BaseModel):
+    """Una estación BiciMAD encontrada cerca de un `:Lugar` del grafo
+    (tarea 089), con su ocupación más reciente de Gold."""
+
+    station_id: str
+    distancia_m: float
+    avg_bikes_available: float | None = None
+    avg_docks_available: float | None = None
+    avg_occupancy_ratio: float | None = None
+
+
+class EstacionCalidadAireCercana(BaseModel):
+    """Una estación de calidad del aire encontrada cerca de un `:Lugar` del
+    grafo (tarea 089) -- señal más débil/indirecta de `afluencia_estimada`,
+    no contribuye a `nivel_estimado`, solo se lista para trazabilidad (ver
+    el docstring de `asistente.mcp_agent.tools.afluencia_estimada`)."""
+
+    station_id: str
+    distancia_m: float
+    contaminante_principal: str | None = None
+    valor: float | None = None
+
+
+class AfluenciaEstimada(BaseModel):
+    """Actividad urbana estimada cerca de un lugar de Madrid (tarea 089,
+    sustituye a `afluencia_prevista`/tarea 044): combina tráfico, ruido,
+    BiciMAD y calidad del aire vía el grafo urbano en Neo4j (`:Lugar`
+    -[:PROXIMO_A]- varios tipos de nodo) con sus respectivas tablas Gold --
+    ver `asistente/mcp_agent/tools.py::afluencia_estimada` para el criterio
+    exacto de resolución y agregación.
+
+    **No es un conteo de personas.** El diseño original (tarea 086) usaba
+    `aforos_peatones_bicicletas` (conteos reales de peatones/bicicletas)
+    como señal primaria, pero esa fuente resultó estar descontinuada desde
+    2024-06-30 (ver `doc/087-...md`) -- ninguna de las cuatro señales de
+    aquí mide peatones directamente, son un proxy de actividad urbana
+    general (tráfico/ruido/movilidad activa).
+
+    `nivel_estimado` (`"bajo"`/`"medio"`/`"alto"`/`"sin_datos"`) combina las
+    etiquetas simplificadas de tráfico/ruido/BiciMAD (no calidad del aire,
+    señal deliberadamente excluida del cálculo) -- etiqueta simplificada, no
+    una métrica oficial, misma filosofía que `TraficoCercano.resumen`."""
+
+    lugar: str
+    momento: datetime
+    radio_m: float
+    nivel_estimado: str
+    hora: int | None = None
+    trafico: list[EstacionTraficoCercana] = Field(default_factory=list)
+    ruido: list[EstacionRuidoCercana] = Field(default_factory=list)
+    bicimad: list[ParadaBicimadCercana] = Field(default_factory=list)
+    calidad_aire: list[EstacionCalidadAireCercana] = Field(default_factory=list)
+    fuente_grafo: str
+    fuentes_gold: list[str] = Field(default_factory=list)
 
 
 class OpcionMovilidad(BaseModel):

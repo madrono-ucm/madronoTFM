@@ -209,10 +209,16 @@ pese a estar en orden inverso de creación en este documento.
   "plan" del patrón de dos tareas** (`allow_infra_apply: false`, no aplica
   nada). La mitad "apply" es una tarea aparte, a crear solo después de que
   un humano revise este plan.
-- [ ] **[`089-asistente-tool-afluencia-estimada`](tasks/089-asistente-tool-afluencia-estimada.md)**
-  — en cola, depende de `087`. Fase B de la especificación `086`:
-  implementa `afluencia_estimada` (sustituye a `afluencia_prevista`) —
-  cierra por completo el bloqueador de Google Maps para el asistente.
+- [x] **[`089-asistente-tool-afluencia-estimada`](tasks/done/089-asistente-tool-afluencia-estimada.md)**
+  — **completada** (sesión interactiva, el demonio se quedó sin sesión a
+  mitad de tarea -- ver `doc/089-...md`). Implementa `afluencia_estimada`
+  combinando tráfico + ruido + BiciMAD + calidad del aire (no
+  `aforos_peatones_bicicletas`, descontinuado -- tarea 087) vía el grafo.
+  Verificada de extremo a extremo contra Neo4j/Athena reales (23 estaciones
+  de tráfico, 3 de BiciMAD, 1 de ruido y 1 de calidad del aire encontradas
+  cerca de "Plaza de España", datos reales combinados). El bloqueador de la
+  clave de Google Maps queda completamente cerrado: ninguna tool del
+  asistente depende ya de él. 39 tests en verde.
 - [x] **[`090-nuevas-fuentes-parques-ser-emt-incidencias`](doc/090-nuevas-fuentes-parques-ser-emt-incidencias.md)**
   — **completada** (sesión interactiva, a petición del usuario: rastreo de
   109+10 datasets de `datos.madrid.es` cruzados contra los productores ya

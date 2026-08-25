@@ -6,22 +6,28 @@ movilidad y vida urbana de Madrid (p.ej. «¿voy al centro a las nueve de la
 noche del viernes?») con un veredicto, un nivel de fiabilidad y una
 explicación trazable a los datos.
 
-**Estado (tarea 081): `calidad_aire` y `trafico_cercano` son reales, el
-resto sigue pendiente.** Este directorio define la estructura del servicio,
-el esquema de su respuesta y la interfaz de 6 `tools` (las 5 originales del
-esqueleto de la tarea 044, más `trafico_cercano`, tarea 081 -- no mapea 1:1 a
-un único origen de `ingesta/`, así que no formaba parte de ese esqueleto
-inicial). `calidad_aire` (tarea 079) lee datos reales de Gold vía Athena.
-`trafico_cercano` (tarea 081) es la primera `tool` que **cruza datasets vía
-el grafo urbano en Neo4j** (tarea 080): resuelve un lugar contra el grafo,
-sigue la relación `PROXIMO_A` hasta las estaciones de tráfico cercanas, y
-consulta Gold para su estado. Ambas están montadas como agente MCP dentro de
-la app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
-`GET /trafico-cercano`) — verificado con invocaciones reales contra la
-cuenta AWS de este proyecto (ver "Verificación real" más abajo). Las otras 4
-(`afluencia_prevista`, `opciones_movilidad`, `disponibilidad_aparcamiento`,
-`eventos_cercanos`) siguen levantando `NotImplementedError`; son tareas de
-seguimiento separadas (ver "Qué falta para completarlo").
+**Estado (tarea 089): `calidad_aire`, `trafico_cercano` y `afluencia_estimada`
+son reales, el resto sigue pendiente.** Este directorio define la estructura
+del servicio, el esquema de su respuesta y la interfaz de 6 `tools` (las 5
+originales del esqueleto de la tarea 044, más `trafico_cercano`, tarea 081
+-- no mapea 1:1 a un único origen de `ingesta/`, así que no formaba parte de
+ese esqueleto inicial). `calidad_aire` (tarea 079) lee datos reales de Gold
+vía Athena. `trafico_cercano` (tarea 081) y `afluencia_estimada` (tarea 089)
+son las `tools` que **cruzan datasets vía el grafo urbano en Neo4j** (tarea
+080): resuelven un lugar contra el grafo, siguen la relación `PROXIMO_A`
+hasta los nodos cercanos, y consultan Gold para su estado.
+`afluencia_estimada` sustituye a la `afluencia_prevista` original (bloqueada
+sin `GOOGLE_MAPS_API_KEY`) -- combina tráfico, ruido, BiciMAD y calidad del
+aire en vez de `aforos_peatones_bicicletas` (la señal originalmente
+elegida, tarea 086, verificada como fuente municipal descontinuada desde
+2024-06-30, ver `doc/087-...md`). Las tres están montadas como agente MCP
+dentro de la app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
+`GET /trafico-cercano`, `GET /afluencia-estimada`) — verificado con
+invocaciones reales contra la cuenta AWS de este proyecto (ver
+"Verificación real" más abajo). Las otras 3 (`opciones_movilidad`,
+`disponibilidad_aparcamiento`, `eventos_cercanos`) siguen levantando
+`NotImplementedError`; son tareas de seguimiento separadas (ver "Qué falta
+para completarlo").
 
 ## Por qué solo `calidad_aire` en esta tarea
 
@@ -31,11 +37,10 @@ técnico para implementar `tools` reales. La tarea 079 eligió deliberadamente
 implementar **una sola, de extremo a extremo**, en vez de varias a la vez:
 el alcance amplio ya hizo que varias tareas de esta sesión agotaran
 presupuesto cubriendo demasiado a la vez (ver p.ej. doc/055, doc/057).
-`calidad_aire` se eligió por ser la más simple de las 5 (una sola fuente,
-`gold.calidad_aire_por_estacion_contaminante_hora`, ya verificada en las
-tareas 049/066/068) y la que menos depende de piezas todavía no listas (a
-diferencia de `opciones_movilidad`, que cruza 3 datasets, o
-`afluencia_prevista`, bloqueada sin `GOOGLE_MAPS_API_KEY`).
+`calidad_aire` se eligió por ser la más simple de las 5 originales (una sola
+fuente, `gold.calidad_aire_por_estacion_contaminante_hora`, ya verificada en
+las tareas 049/066/068) y la que menos depende de piezas todavía no listas
+(a diferencia de `opciones_movilidad`, que cruza 3 datasets).
 
 ## Estructura
 
@@ -46,23 +51,26 @@ asistente/
   dependencies.py           # Dependencias de FastAPI (get_settings, cacheada)
   timeutils.py                # now_madrid(): misma zona horaria que ingesta/capturas/bronze.py
   athena.py                     # run_athena_query(): consulta Gold real (mismo patrón que grafo/extract.py)
-  neo4j_client.py                 # run_neo4j_query() + query builder de trafico_cercano (tarea 081)
+  neo4j_client.py                 # run_neo4j_query() + query builders de trafico_cercano (081) y afluencia_estimada (089)
   routers/
     health.py                     # GET /health
     calidad_aire.py                 # GET /calidad-aire -- invoca la tool y construye RespuestaAsistente
     trafico_cercano.py                # GET /trafico-cercano -- ídem, tarea 081
+    afluencia_estimada.py               # GET /afluencia-estimada -- ídem, tarea 089
   models/
     respuesta.py                # RespuestaAsistente: veredicto/fiabilidad/explicación/fuentes
     herramientas.py               # Modelos de retorno de cada tool MCP
   mcp_agent/
     server.py                     # Instancia de MCPServer + registro de las 6 tools
-    tools.py                       # calidad_aire y trafico_cercano reales; el resto con NotImplementedError
+    tools.py                       # calidad_aire/trafico_cercano/afluencia_estimada reales; el resto con NotImplementedError
   tests/
     test_app.py                     # La app arranca y /health responde
     test_mcp_tools.py                 # calidad_aire/trafico_cercano (mockeando Athena/Neo4j) + firma/docstring/registro del resto
     test_calidad_aire_router.py        # GET /calidad-aire (mockeando Athena)
     test_trafico_cercano_router.py       # GET /trafico-cercano (mockeando Athena y Neo4j), tarea 081
-    test_neo4j_client.py                   # Query builder de trafico_cercano (por inspección) + run_neo4j_query
+    test_afluencia_estimada.py             # _afluencia_estimada_impl (mockeando Athena/Neo4j con routing), tarea 089
+    test_afluencia_estimada_router.py        # GET /afluencia-estimada, tarea 089
+    test_neo4j_client.py                   # Query builders (por inspección) + run_neo4j_query
     test_respuesta.py                  # El modelo de respuesta se construye y serializa
   requirements.txt
 ```
@@ -185,12 +193,12 @@ a un dataset de `ingesta/`):
 |---|---|---|
 | `calidad_aire(zona, momento=None)` | `gold.calidad_aire_por_estacion_contaminante_hora` (tarea 006 + Gold, tarea 041+) | **Real (tarea 079)** |
 | `trafico_cercano(lugar, radio_m=300.0, momento=None)` | Grafo Neo4j (`:Lugar`-`PROXIMO_A`-`:EstacionMedida`, tareas 070/080) + `gold.trafico_por_punto_hora` (tarea 041) | **Real (tarea 081)** |
-| `afluencia_prevista(lugar, momento=None)` | `afluencia_lugares_madrid` (tarea 012) | `NotImplementedError` |
+| `afluencia_estimada(lugar, radio_m=300.0, momento=None)` | Grafo Neo4j (`:Lugar`-`PROXIMO_A`- tráfico/ruido/calidad_aire/BiciMAD) + `gold.trafico_por_punto_hora`/`ruido_por_estacion_periodo_fecha`/`bicimad_por_estacion_hora`/`calidad_aire_por_estacion_contaminante_hora` | **Real (tarea 089)** |
 | `opciones_movilidad(origen, destino, momento=None)` | `trafico_madrid` + `transporte_publico_madrid` (EMT) + `bicimad` | `NotImplementedError` |
 | `disponibilidad_aparcamiento(zona)` | `aparcamientos_madrid` (tarea 005) | `NotImplementedError` |
 | `eventos_cercanos(lugar, radio_m=500.0, momento=None)` | `agenda_eventos_madrid` + `agenda_recintos_madrid` (tarea 017) | `NotImplementedError` |
 
-Las 4 pendientes levantan `NotImplementedError` con un mensaje que apunta a
+Las 3 pendientes levantan `NotImplementedError` con un mensaje que apunta a
 esta tabla y a doc/041; son tareas de seguimiento independientes, no
 bloqueadas por esta.
 

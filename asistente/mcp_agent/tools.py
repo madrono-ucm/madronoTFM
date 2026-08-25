@@ -3,18 +3,16 @@
 
 La memoria del TFM (apartado 6.7) describe el asistente respondiendo
 preguntas de movilidad y vida urbana apoyándose en varias señales: afluencia
-prevista, calidad del aire, opciones de movilidad, disponibilidad de
+estimada, calidad del aire, opciones de movilidad, disponibilidad de
 aparcamiento y eventos cercanos. Estas cinco funciones anticipan esa
 interfaz (firma y docstring, registradas como `tools` MCP en
 `asistente/mcp_agent/server.py`) a partir de lo que `ingesta/` ya captura
-hoy. Con Gold en producción (doc/041 y siguientes) y Athena fiable (tareas
-041-068), `calidad_aire` ya lee datos reales (ver su docstring); las otras
-cuatro siguen levantando `NotImplementedError` -- son tareas de seguimiento
-separadas, cada una bloqueada por piezas distintas (`opciones_movilidad`
-cruza 3 datasets; `afluencia_prevista` necesita `GOOGLE_MAPS_API_KEY`, no
-disponible en este entorno; `eventos_cercanos` y
-`disponibilidad_aparcamiento` no se han abordado por alcance, no por
-bloqueo técnico).
+hoy. `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081) y
+`afluencia_estimada` (tarea 089, sustituye a la `afluencia_prevista`
+original -- ver su docstring) ya leen datos reales; `opciones_movilidad`,
+`disponibilidad_aparcamiento` y `eventos_cercanos` siguen levantando
+`NotImplementedError` -- tareas de seguimiento separadas, sin bloqueo
+técnico, solo alcance.
 
 Las funciones son planas (sin decorador `@mcp.tool()` aquí) a propósito, en
 dos capas separadas:
@@ -31,15 +29,24 @@ from datetime import datetime
 
 from asistente.athena import GOLD_DATABASE, run_athena_query, sql_literal
 from asistente.models.herramientas import (
-    AfluenciaPrevista,
+    AfluenciaEstimada,
     CalidadAireZona,
     DisponibilidadAparcamiento,
+    EstacionCalidadAireCercana,
+    EstacionRuidoCercana,
     EstacionTraficoCercana,
     EventoCercano,
     OpcionMovilidad,
+    ParadaBicimadCercana,
     TraficoCercano,
 )
-from asistente.neo4j_client import lugares_proximos_a_estaciones_trafico_query, run_neo4j_query
+from asistente.neo4j_client import (
+    lugares_proximos_a_estaciones_calidad_aire_query,
+    lugares_proximos_a_estaciones_ruido_query,
+    lugares_proximos_a_estaciones_trafico_query,
+    lugares_proximos_a_paradas_bicimad_query,
+    run_neo4j_query,
+)
 from asistente.timeutils import MADRID_TZ, now_madrid
 
 # Tabla Gold real, ya verificada con datos de producción en las tareas
@@ -321,22 +328,288 @@ def _trafico_cercano_impl(
     )
 
 
-def afluencia_prevista(lugar: str, momento: datetime | None = None) -> AfluenciaPrevista:
-    """Nivel de afluencia previsto en un lugar de Madrid.
+# Tablas Gold reales de las tres señales secundarias/terciarias de
+# `afluencia_estimada` (tarea 089 -- señal primaria, tráfico, reutiliza
+# `_TABLA_TRAFICO` ya definida más abajo en este módulo).
+_TABLA_RUIDO = "ruido_por_estacion_periodo_fecha"
+_FUENTE_RUIDO = f"gold.{_TABLA_RUIDO}"
+_TABLA_BICIMAD = "bicimad_por_estacion_hora"
+_FUENTE_BICIMAD = f"gold.{_TABLA_BICIMAD}"
+_FUENTE_GRAFO_AFLUENCIA = (
+    "neo4j: (:Lugar)-[:PROXIMO_A]-(:EstacionMedida {tipo: 'trafico'|'ruido'|'calidad_aire'}"
+    "|:ParadaTransporte {tipo: 'bicimad'})"
+)
 
-    Fuente futura: `ingesta.capturas.afluencia_lugares_madrid` (tarea 012,
-    scraping de "popular times" de Google) agregado en Gold por punto/hora.
+# `avg_laeq_db` (nivel medio de ruido, dB) -- sin escala oficial de "cuánta
+# gente hay" (es contaminación acústica, no aforo), bandas de referencia
+# ambiental aproximadas (guía de ruido ambiental de la UE/OMS: <55dB tramo
+# bajo, 55-70dB tramo medio, >70dB tramo alto) -- mismo criterio de
+# simplificación deliberada que `_UMBRALES_SERVICE_LEVEL`.
+_UMBRALES_RUIDO_DB = ((55.0, "bajo"), (70.0, "medio"))
+# `avg_occupancy_ratio` de BiciMAD (0-1): mismas tres bandas que
+# `_UMBRALES_OCCUPANCY_RATIO` de tráfico -- se asume la misma dirección
+# (ratio más alto = estación más activa/usada = más actividad urbana
+# alrededor), no verificado contra una definición oficial del campo.
+_UMBRALES_BICIMAD_OCUPACION = ((0.3, "bajo"), (0.6, "medio"))
+
+# Traduce las etiquetas de las tres señales que sí alimentan `nivel_estimado`
+# (tráfico/ruido/BiciMAD, no calidad del aire) a una severidad 0-2 común
+# para poder combinarlas -- ver `afluencia_estimada`.
+_SEVERIDAD_POR_ETIQUETA = {
+    "fluido": 0, "bajo": 0,
+    "denso": 1, "medio": 1,
+    "congestionado": 2, "alto": 2,
+}
+_SEVERIDAD_A_NIVEL = ((0.75, "bajo"), (1.5, "medio"))
+
+
+def _clasificar_severidad(valor: float, umbrales: "tuple[tuple[float, str], ...]") -> str:
+    for limite, etiqueta in umbrales:
+        if valor < limite:
+            return etiqueta
+    return "alto"
+
+
+def _agregar_por_id(filas_grafo: "list[dict]", campo_id: str = "estacion_id") -> "dict[str, float]":
+    """Agrega filas de una consulta `lugares_proximos_a_*_query` por el
+    identificador real tras el prefijo `"<fuente>:"` del nodo, quedándose
+    con la distancia mínima cuando el mismo nodo aparece más de una vez
+    (varios `:Lugar` coincidentes) -- mismo criterio que
+    `_trafico_cercano_impl`."""
+    distancia_por_id: "dict[str, float]" = {}
+    for fila in filas_grafo:
+        estacion_id = fila.get(campo_id) or ""
+        real_id = estacion_id.split(":", 1)[1] if ":" in estacion_id else None
+        if not real_id:
+            continue
+        actual = distancia_por_id.get(real_id)
+        if actual is None or fila["distancia_m"] < actual:
+            distancia_por_id[real_id] = fila["distancia_m"]
+    return distancia_por_id
+
+
+def _afluencia_estimada_impl(
+    lugar: str,
+    radio_m: float,
+    momento: datetime | None,
+    *,
+    neo4j_driver=None,
+    athena_client=None,
+) -> AfluenciaEstimada:
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    def _sin_datos() -> AfluenciaEstimada:
+        return AfluenciaEstimada(
+            lugar=lugar,
+            momento=instante,
+            radio_m=radio_m,
+            nivel_estimado="sin_datos",
+            fuente_grafo=_FUENTE_GRAFO_AFLUENCIA,
+            fuentes_gold=[],
+        )
+
+    query_trafico, params_trafico = lugares_proximos_a_estaciones_trafico_query(lugar, radio_m)
+    query_ruido, params_ruido = lugares_proximos_a_estaciones_ruido_query(lugar, radio_m)
+    query_calidad, params_calidad = lugares_proximos_a_estaciones_calidad_aire_query(lugar, radio_m)
+    query_bicimad, params_bicimad = lugares_proximos_a_paradas_bicimad_query(lugar, radio_m)
+
+    dist_trafico = _agregar_por_id(run_neo4j_query(query_trafico, params_trafico, driver=neo4j_driver))
+    dist_ruido = _agregar_por_id(run_neo4j_query(query_ruido, params_ruido, driver=neo4j_driver))
+    dist_calidad = _agregar_por_id(run_neo4j_query(query_calidad, params_calidad, driver=neo4j_driver))
+    dist_bicimad = _agregar_por_id(run_neo4j_query(query_bicimad, params_bicimad, driver=neo4j_driver))
+
+    if not (dist_trafico or dist_ruido or dist_calidad or dist_bicimad):
+        return _sin_datos()
+
+    fecha = instante.date().isoformat()
+    hora_objetivo = instante.hour if momento is not None else None
+    fuentes_gold: "list[str]" = []
+
+    # --- Tráfico (hora exacta u hora más reciente del día, igual que trafico_cercano) ---
+    trafico: "list[EstacionTraficoCercana]" = []
+    if dist_trafico:
+        ids_literal = ", ".join(f"'{sql_literal(pid)}'" for pid in sorted(dist_trafico))
+        sql = f"""
+            SELECT point_id, hour, avg_intensity_vph, avg_occupancy_ratio, avg_service_level
+            FROM {_TABLA_TRAFICO}
+            WHERE date = '{fecha}' AND point_id IN ({ids_literal})
+        """
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+        fuentes_gold.append(_FUENTE_TRAFICO)
+        hora_trafico = hora_objetivo if hora_objetivo is not None else (max((f["hour"] for f in filas), default=None))
+        gold_por_id = {f["point_id"]: f for f in filas if f["hour"] == hora_trafico}
+        trafico = [
+            EstacionTraficoCercana(
+                point_id=pid,
+                distancia_m=dist_trafico[pid],
+                avg_intensity_vph=(gold_por_id.get(pid) or {}).get("avg_intensity_vph"),
+                avg_occupancy_ratio=(gold_por_id.get(pid) or {}).get("avg_occupancy_ratio"),
+                avg_service_level=(gold_por_id.get(pid) or {}).get("avg_service_level"),
+            )
+            for pid in sorted(dist_trafico, key=lambda p: dist_trafico[p])
+        ]
+
+    # --- Ruido: sin columna `hour` en Gold (partición solo por `date`,
+    # `period` es D/N/T) -- se toma cualquier fila del día para cada
+    # estación, sin filtrar por periodo (ver doc/089-...md si existe, o el
+    # docstring de afluencia_estimada para el porqué de esta simplificación).
+    ruido: "list[EstacionRuidoCercana]" = []
+    if dist_ruido:
+        ids_literal = ", ".join(f"'{sql_literal(sid)}'" for sid in sorted(dist_ruido))
+        sql = f"""
+            SELECT station_id, period, avg_laeq_db
+            FROM {_TABLA_RUIDO}
+            WHERE date = '{fecha}' AND station_id IN ({ids_literal})
+        """
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+        fuentes_gold.append(_FUENTE_RUIDO)
+        gold_por_id: "dict[str, dict]" = {}
+        for f in filas:
+            if f["station_id"] not in gold_por_id:
+                gold_por_id[f["station_id"]] = f
+        ruido = [
+            EstacionRuidoCercana(
+                station_id=sid,
+                distancia_m=dist_ruido[sid],
+                avg_laeq_db=(gold_por_id.get(sid) or {}).get("avg_laeq_db"),
+            )
+            for sid in sorted(dist_ruido, key=lambda s: dist_ruido[s])
+        ]
+
+    # --- BiciMAD (hora exacta u hora más reciente del día) ---
+    bicimad: "list[ParadaBicimadCercana]" = []
+    if dist_bicimad:
+        ids_literal = ", ".join(f"'{sql_literal(sid)}'" for sid in sorted(dist_bicimad))
+        sql = f"""
+            SELECT station_id, hour, avg_bikes_available, avg_docks_available, avg_occupancy_ratio
+            FROM {_TABLA_BICIMAD}
+            WHERE date = '{fecha}' AND station_id IN ({ids_literal})
+        """
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+        fuentes_gold.append(_FUENTE_BICIMAD)
+        hora_bicimad = hora_objetivo if hora_objetivo is not None else (max((f["hour"] for f in filas), default=None))
+        gold_por_id = {f["station_id"]: f for f in filas if f["hour"] == hora_bicimad}
+        bicimad = [
+            ParadaBicimadCercana(
+                station_id=sid,
+                distancia_m=dist_bicimad[sid],
+                avg_bikes_available=(gold_por_id.get(sid) or {}).get("avg_bikes_available"),
+                avg_docks_available=(gold_por_id.get(sid) or {}).get("avg_docks_available"),
+                avg_occupancy_ratio=(gold_por_id.get(sid) or {}).get("avg_occupancy_ratio"),
+            )
+            for sid in sorted(dist_bicimad, key=lambda s: dist_bicimad[s])
+        ]
+
+    # --- Calidad del aire: señal de trazabilidad, no contribuye a nivel_estimado ---
+    calidad_aire_lista: "list[EstacionCalidadAireCercana]" = []
+    if dist_calidad:
+        ids_literal = ", ".join(f"'{sql_literal(sid)}'" for sid in sorted(dist_calidad))
+        sql = f"""
+            SELECT station_id, pollutant, hour, avg_value
+            FROM {_TABLA_CALIDAD_AIRE}
+            WHERE date = '{fecha}' AND station_id IN ({ids_literal})
+        """
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+        fuentes_gold.append(_FUENTE_CALIDAD_AIRE)
+        hora_calidad = hora_objetivo if hora_objetivo is not None else (max((f["hour"] for f in filas), default=None))
+        filas_hora = [f for f in filas if f["hour"] == hora_calidad]
+        peor_por_id: "dict[str, dict]" = {}
+        for f in filas_hora:
+            valor = f.get("avg_value")
+            if valor is None:
+                continue
+            actual = peor_por_id.get(f["station_id"])
+            if actual is None or valor > actual["avg_value"]:
+                peor_por_id[f["station_id"]] = f
+        calidad_aire_lista = [
+            EstacionCalidadAireCercana(
+                station_id=sid,
+                distancia_m=dist_calidad[sid],
+                contaminante_principal=(peor_por_id.get(sid) or {}).get("pollutant"),
+                valor=(peor_por_id.get(sid) or {}).get("avg_value"),
+            )
+            for sid in sorted(dist_calidad, key=lambda s: dist_calidad[s])
+        ]
+
+    # --- nivel_estimado: combina tráfico/ruido/BiciMAD (no calidad del aire) ---
+    severidades: "list[int]" = []
+    niveles_servicio = [e.avg_service_level for e in trafico if e.avg_service_level is not None]
+    if niveles_servicio:
+        severidades.append(_SEVERIDAD_POR_ETIQUETA[_clasificar_trafico(sum(niveles_servicio) / len(niveles_servicio), _UMBRALES_SERVICE_LEVEL)])
+    else:
+        ocupaciones_trafico = [e.avg_occupancy_ratio for e in trafico if e.avg_occupancy_ratio is not None]
+        if ocupaciones_trafico:
+            severidades.append(_SEVERIDAD_POR_ETIQUETA[_clasificar_trafico(sum(ocupaciones_trafico) / len(ocupaciones_trafico), _UMBRALES_OCCUPANCY_RATIO)])
+
+    niveles_ruido = [e.avg_laeq_db for e in ruido if e.avg_laeq_db is not None]
+    if niveles_ruido:
+        severidades.append(_SEVERIDAD_POR_ETIQUETA[_clasificar_severidad(sum(niveles_ruido) / len(niveles_ruido), _UMBRALES_RUIDO_DB)])
+
+    ocupaciones_bicimad = [e.avg_occupancy_ratio for e in bicimad if e.avg_occupancy_ratio is not None]
+    if ocupaciones_bicimad:
+        severidades.append(_SEVERIDAD_POR_ETIQUETA[_clasificar_severidad(sum(ocupaciones_bicimad) / len(ocupaciones_bicimad), _UMBRALES_BICIMAD_OCUPACION)])
+
+    if severidades:
+        nivel_estimado = _clasificar_severidad(sum(severidades) / len(severidades), _SEVERIDAD_A_NIVEL)
+    else:
+        nivel_estimado = "sin_datos"
+
+    return AfluenciaEstimada(
+        lugar=lugar,
+        momento=instante,
+        radio_m=radio_m,
+        nivel_estimado=nivel_estimado,
+        hora=hora_objetivo,
+        trafico=trafico,
+        ruido=ruido,
+        bicimad=bicimad,
+        calidad_aire=calidad_aire_lista,
+        fuente_grafo=_FUENTE_GRAFO_AFLUENCIA,
+        fuentes_gold=fuentes_gold,
+    )
+
+
+def afluencia_estimada(lugar: str, radio_m: float = 300.0, momento: datetime | None = None) -> AfluenciaEstimada:
+    """Actividad urbana estimada cerca de un lugar de Madrid (tarea 089,
+    sustituye a `afluencia_prevista`/tarea 044 -- ver
+    `doc/089-asistente-tool-afluencia-estimada.md`).
+
+    **Por qué esta forma**: el diseño original (tarea 086) elegía
+    `aforos_peatones_bicicletas` (conteos reales de peatones/bicicletas)
+    como señal primaria; verificado contra Athena/S3 reales (tarea 087) que
+    esa fuente municipal está descontinuada desde el 30/6/2024 -- no hay
+    ningún dato en vivo que ofrecer desde ahí. En su lugar, esta tool
+    combina cuatro señales con datos reales y frescos verificados en la
+    misma sesión: tráfico, ruido, ocupación de BiciMAD (todas contribuyen a
+    `nivel_estimado`) y calidad del aire (señal más débil/indirecta, solo
+    trazabilidad). Ninguna mide peatones directamente -- es una
+    aproximación por actividad urbana general, no un conteo de personas.
+
+    Mismo patrón de cruce que `trafico_cercano` (tarea 081), repetido cuatro
+    veces: (1) resuelve `lugar` contra `:Lugar` (coincidencia de texto) y
+    sigue `PROXIMO_A` hasta cada tipo de nodo dentro de `radio_m`; (2) con
+    los identificadores reales encontrados, consulta la tabla Gold
+    correspondiente para el valor más reciente en la fecha/hora resuelta.
+
+    Si ninguna de las cuatro señales encuentra ningún nodo dentro de
+    `radio_m`, no lanza una excepción: devuelve `AfluenciaEstimada` con
+    `nivel_estimado="sin_datos"` y las cuatro listas vacías. Si el grafo
+    encuentra nodos pero Gold no tiene fila para la fecha/hora resuelta, se
+    listan igualmente con sus valores en `None` -- mismo criterio que
+    `trafico_cercano`.
 
     Args:
-        lugar: Nombre o identificador del lugar/POI a consultar
-            (p.ej. "Puerta del Sol", o el `place_id` usado por el productor).
-        momento: Instante para el que se quiere la previsión. Si es `None`,
-            se asume el instante actual.
+        lugar: Nombre o identificador (parcial) de un `:Lugar` del grafo.
+        radio_m: Radio de búsqueda en metros. No supera de forma útil el
+            umbral de 300m con el que se cargó `PROXIMO_A` (tarea 070).
+        momento: Instante a consultar. Si es `None`, se asume el instante
+            actual y la hora más reciente con datos disponibles ese día
+            para cada señal (pueden diferir entre señales).
     """
-    raise NotImplementedError(
-        "afluencia_prevista: pendiente de Gold real para "
-        "afluencia_lugares_madrid (ver doc/041 y el docstring de este módulo)"
-    )
+    return _afluencia_estimada_impl(lugar, radio_m, momento)
 
 
 def calidad_aire(zona: str, momento: datetime | None = None) -> CalidadAireZona:
