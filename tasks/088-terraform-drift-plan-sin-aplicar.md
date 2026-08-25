@@ -1,19 +1,20 @@
 ---
 id: 88
 slug: terraform-drift-plan-sin-aplicar
-title: 'Infra: plan completo del drift de Terraform (Prioridad 1 de NEXT_STEPS.md) -- sin aplicar nada'
-status: pending
+title: 'Infra: plan completo del drift de Terraform (Prioridad 1 de NEXT_STEPS.md)
+  -- sin aplicar nada'
+status: in_progress
 force: false
 allow_infra_apply: false
-branch: null
+branch: task/088-terraform-drift-plan-sin-aplicar
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: null
-updated_at: null
-started_at: null
+updated_at: '2026-08-25T21:15:34.052951+00:00'
+started_at: '2026-08-25T21:15:34.052923+00:00'
 submitted_at: null
 merged_at: null
 ---
