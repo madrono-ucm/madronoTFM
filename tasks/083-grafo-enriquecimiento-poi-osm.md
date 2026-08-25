@@ -2,19 +2,19 @@
 id: 83
 slug: grafo-enriquecimiento-poi-osm
 title: 'Grafo: enriquecer :Lugar con POIs y etiquetas de OpenStreetMap'
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: false
 branch: task/083-grafo-enriquecimiento-poi-osm
-pr_number: null
-pr_url: null
+pr_number: 131
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/131
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: null
-updated_at: '2026-08-25T20:27:33.080156+00:00'
+updated_at: '2026-08-25T20:40:44.254238+00:00'
 started_at: '2026-08-25T20:27:33.080131+00:00'
-submitted_at: null
+submitted_at: '2026-08-25T20:40:44.254213+00:00'
 merged_at: null
 ---
 
