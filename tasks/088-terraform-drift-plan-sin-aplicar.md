@@ -3,19 +3,19 @@ id: 88
 slug: terraform-drift-plan-sin-aplicar
 title: 'Infra: plan completo del drift de Terraform (Prioridad 1 de NEXT_STEPS.md)
   -- sin aplicar nada'
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: false
 branch: task/088-terraform-drift-plan-sin-aplicar
-pr_number: null
-pr_url: null
+pr_number: 133
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/133
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: null
-updated_at: '2026-08-25T21:15:34.052951+00:00'
+updated_at: '2026-08-25T21:21:39.381059+00:00'
 started_at: '2026-08-25T21:15:34.052923+00:00'
-submitted_at: null
+submitted_at: '2026-08-25T21:21:39.380906+00:00'
 merged_at: null
 ---
 
