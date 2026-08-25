@@ -83,13 +83,14 @@ FOR (l:Lugar) ON (l.ubicacion);
 // ----------------------------------------------------------------------------
 // :EstacionMedida -- puntos fijos de medición/sensorización: tráfico
 // (`trafico_madrid`, doc/002), calidad del aire (`calidad_aire_madrid`,
-// doc/006), ruido (`ruido_madrid`, doc/007). Deliberadamente NO almacena
+// doc/006), ruido (`ruido_madrid`, doc/007), aforos de peatones/bicicletas
+// (`aforos_peatones_bicicletas`, doc/054/087). Deliberadamente NO almacena
 // series temporales de medidas (eso sigue viviendo en Gold/Athena, fuera de
 // Neo4j) -- aquí solo la identidad y ubicación del punto de medida, para
 // poder relacionarlo espacialmente con Lugar/Barrio/ParadaTransporte.
 // Propiedades esperadas: id (string, "<fuente>:<id_origen>", único),
-// tipo (string: "trafico" | "calidad_aire" | "ruido"), fuente (string),
-// ubicacion (Point, WGS84).
+// tipo (string: "trafico" | "calidad_aire" | "ruido" |
+// "aforos_peatones_bicicletas"), fuente (string), ubicacion (Point, WGS84).
 // ----------------------------------------------------------------------------
 CREATE CONSTRAINT estacion_medida_id_unique IF NOT EXISTS
 FOR (e:EstacionMedida) REQUIRE e.id IS UNIQUE;

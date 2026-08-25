@@ -4186,11 +4186,19 @@ resource "aws_glue_catalog_table" "aforos_peatones_bicicletas_silver" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification                   = "parquet"
-    "parquet.compression"            = "SNAPPY"
-    "projection.enabled"             = "true"
-    "projection.fecha.type"          = "date"
-    "projection.fecha.range"         = "2026-08-01,NOW+1DAY"
+    classification          = "parquet"
+    "parquet.compression"   = "SNAPPY"
+    "projection.enabled"    = "true"
+    "projection.fecha.type" = "date"
+    # `measured_at` real de esta fuente (madrid_aforos_peatones_bicicletas)
+    # trae fecha 2024-06-30 (ver doc/087) -- muy fuera de "2026-08-01,
+    # NOW+1DAY" (el rango que si vale para el resto de datasets, cuyo
+    # `measured_at` es casi en tiempo real). Con ese rango estrecho, Athena
+    # calcula por formula que esa particion no existe y no la lee, aunque el
+    # fichero Parquet este realmente en S3. Se amplia a partir de 2024-01-01
+    # para cubrir el historico real de este dataset en concreto, sin tocar
+    # el resto de tablas.
+    "projection.fecha.range"         = "2024-01-01,NOW+1DAY"
     "projection.fecha.format"        = "yyyy-MM-dd"
     "projection.fecha.interval"      = "1"
     "projection.fecha.interval.unit" = "DAYS"
@@ -4281,11 +4289,15 @@ resource "aws_glue_catalog_table" "aforos_peatones_bicicletas_gold" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    classification                  = "parquet"
-    "parquet.compression"           = "SNAPPY"
-    "projection.enabled"            = "true"
-    "projection.date.type"          = "date"
-    "projection.date.range"         = "2026-08-01,NOW+1DAY"
+    classification         = "parquet"
+    "parquet.compression"  = "SNAPPY"
+    "projection.enabled"   = "true"
+    "projection.date.type" = "date"
+    # Mismo hallazgo que en la tabla Silver de arriba (ver doc/087): la fecha
+    # (`date`, derivada de `measured_at`) de este dataset en concreto es
+    # 2024-06-30, no la fecha de ingestion -- se amplia el rango para que
+    # Athena pueda ver esa particion real.
+    "projection.date.range"         = "2024-01-01,NOW+1DAY"
     "projection.date.format"        = "yyyy-MM-dd"
     "projection.date.interval"      = "1"
     "projection.date.interval.unit" = "DAYS"
