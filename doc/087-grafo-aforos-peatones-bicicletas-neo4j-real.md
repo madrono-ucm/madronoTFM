@@ -1,5 +1,54 @@
 # 087 — Grafo: Fase A de la especificación 086 (EstacionMedida{tipo: aforos_peatones_bicicletas})
 
+**Corrección 25/8, misma sesión**: tras escribir este documento se
+encontraron credenciales AWS reales configuradas en esta máquina
+(`~/.aws/credentials`, perfil `madrono`, `aws sts get-caller-identity` ->
+`madrono-terraform-deployer`) — la conclusión de "sin credenciales" de
+abajo era un error de verificación (solo se había comprobado que las
+claves *existieran* como nombres, no que tuvieran valor). Con acceso real:
+
+1. **El hallazgo de "Gold anida `location`" era incorrecto.** `DESCRIBE
+   aforos_peatones_bicicletas_por_estacion_modo_hora` contra Athena real
+   confirma columnas `lat`/`lon` **planas**, igual que
+   `trafico`/`calidad_aire`/`ruido` — el primer intento asumió lo
+   contrario leyendo solo el `dict` Python de `aggregate.py`, sin
+   comprobar el catálogo real. `grafo/extract.py` ya está corregido
+   (`location.lat`/`location.lon` -> `lat`/`lon` planas).
+2. **`fetch_estaciones_aforos_peatones_bicicletas` devuelve 0 filas contra
+   Athena real, y no es un bug de esta consulta.** La tabla Gold real solo
+   tiene un objeto Parquet, con fecha `2024-06-30` — fuera del rango de
+   Partition Projection configurado (`2026-08-01,NOW+1DAY`), así que es
+   invisible a cualquier consulta. Investigando más: el Bronze real
+   (captura en vivo del 15/8/2026, 1971 filas) trae **`measured_at:
+   "2024-06-30..."` en todas las filas** — la fuente real
+   (`datos.madrid.es`, dataset `300321-0-aforos-peatones-bicicletas`) no
+   publica datos nuevos desde esa fecha. No es un bug de scheduling ni de
+   Partition Projection de este proyecto: es la fuente externa la que dejó
+   de actualizarse. Ver la corrección en `doc/086-afluencia-estimada-grafo.md`
+   — **`aforos_peatones_bicicletas` deja de ser señal primaria de
+   `afluencia_estimada`**, sustituida por `trafico`/`calidad_aire`/
+   `ruido`/`bicimad`.
+3. La instancia real de Neo4j **sigue sin recargarse con este origen** —
+   dado el hallazgo del punto 2, cargar `:EstacionMedida {tipo:
+   "aforos_peatones_bicicletas"}` no aportaría ningún nodo real (0 filas en
+   Gold), así que no se ha ejecutado `cargar_grafo.py` contra producción.
+   El código queda listo por si la fuente externa vuelve a publicar en el
+   futuro, pero no se recargará solo para confirmar que sigue devolviendo
+   0 nodos.
+
+**Confirmado de forma independiente contra la página real del dataset**
+(`datos.madrid.es/dataset/300321-0-aforos-peatones-bicicletas`): cobertura
+real de datos "1 de septiembre de 2019 a 30 de junio de 2024", frecuencia
+de actualización nominal trimestral mientras que en la práctica lleva más
+de dos años sin publicar un trimestre nuevo, y un hueco previo ya conocido
+de agosto de 2021 a septiembre de 2022 por cambio de los detectores. No es
+una interpretación de los datos capturados -- es lo que dice la propia
+fuente.
+
+El resto de este documento (por debajo) es el estado tal como se escribió
+antes de tener acceso real — se deja sin reescribir como registro de lo que
+realmente pasó en esta sesión, no como guía a seguir.
+
 ## Qué se implementó
 
 Cuarto origen de `:EstacionMedida` (junto a `trafico`/`calidad_aire`/

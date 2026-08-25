@@ -303,14 +303,16 @@ glue.tf`); `grafo.nodos._location()` espera, en cambio, `record["location"] =
 para no tener que tocar `nodos.py` (ya testado, y no le corresponde saber de
 dónde vienen sus columnas).
 
-**Excepción, `aforos_peatones_bicicletas` (tarea 087)**: a diferencia de
-`trafico`/`calidad_aire`/`ruido`, su Gold (`aggregate.py`, tarea 054)
-**sí** anida `location` como columna `struct` (igual que Silver, no aplanada
-a `lat`/`lon`). `fetch_estaciones_aforos_peatones_bicicletas` proyecta
-`location.lat AS lat, location.lon AS lon` en el propio SQL para poder
-reutilizar `_nest_location` sin cambios -- no asumas que todo Gold aplana la
-ubicación al añadir un origen nuevo, revisa `aggregate.py` del dataset
-concreto primero.
+`aforos_peatones_bicicletas` (tarea 087) sigue la misma regla: aunque
+`aggregate.py` (tarea 054) construye el registro Python con `location` como
+`dict` anidado (`{"lat": ..., "lon": ..., "srid": ...}`), el job real de
+Glue que escribe Gold lo aplana igual que los demás datasets -- verificado
+contra el catálogo real (`DESCRIBE aforos_peatones_bicicletas_por_estacion_
+modo_hora`, tarea 087) tras un primer intento fallido que asumió lo
+contrario leyendo solo `aggregate.py` en Python puro. **No infieras el
+esquema de Gold leyendo solo la función de agregación Python de un
+dataset** -- compáralo siempre contra el catálogo real antes de escribir el
+SQL de un origen nuevo.
 
 **`get_query_results` de Athena devuelve todo como texto** (`VarCharValue`),
 sea cual sea el tipo real de columna — comportamiento documentado de la
@@ -322,20 +324,24 @@ de Cypher que construye `cypher.py` los necesita numéricos, no como cadena).
 ### Verificado contra datos reales de esta cuenta (`eu-west-1`, `222234418587`) al escribir este módulo
 
 Las 11 funciones originales se han ejecutado una vez contra Athena/S3 reales
-(con las credenciales de esta EC2, sin asumir ningún rol) para validar el
-SQL antes de darlo por bueno — no simulado. **`fetch_estaciones_aforos_
-peatones_bicicletas` (tarea 087) es la excepción**: se escribió y testeó
-(mockeado, sin red) desde un entorno de desarrollo local sin credenciales
-AWS ni `neo4j` instalados -- el SQL sigue sin verificarse contra Athena real
-ni la instancia real de Neo4j se ha recargado con este origen nuevo. Queda
-como paso pendiente para quien tenga acceso real (ver
-`doc/087-grafo-aforos-peatones-bicicletas-neo4j-real.md`).
+para validar el SQL antes de darlo por bueno — no simulado.
+`fetch_estaciones_aforos_peatones_bicicletas` (tarea 087) también se ha
+verificado contra Athena real: **0 filas, no por un bug de la consulta**.
+La fuente externa (`datos.madrid.es`, dataset
+`300321-0-aforos-peatones-bicicletas`) no publica datos nuevos desde el
+30/6/2024 — el único objeto real en Gold tiene esa fecha, fuera del rango
+de Partition Projection configurado (`2026-08-01,NOW+1DAY`), y por tanto
+invisible a cualquier consulta. Detalle completo en
+`doc/087-grafo-aforos-peatones-bicicletas-neo4j-real.md` y la corrección en
+`doc/086-afluencia-estimada-grafo.md` — `aforos_peatones_bicicletas` ya no
+es señal primaria de `afluencia_estimada` (tarea 089).
 
 | Función | Filas reales |
 |---|---|
 | `fetch_estaciones_trafico` | 4678 |
 | `fetch_estaciones_calidad_aire` | 23 |
 | `fetch_estaciones_ruido` | 31 |
+| `fetch_estaciones_aforos_peatones_bicicletas` | 0 (fuente externa descontinuada desde 2024-06-30, ver arriba) |
 | `fetch_paradas_emt` | **1** (ver hallazgo abajo) |
 | `fetch_paradas_bicimad` | 679 |
 | `fetch_lugares_aparcamientos` | 0 (Gold vacío, ver hallazgo abajo) |
