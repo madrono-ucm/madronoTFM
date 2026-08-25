@@ -49,17 +49,23 @@ compartidas, la planificación de destruir **todos** los productores
 Lambda — probado el 25/8, no usar `-destroy -target` sin entender el grafo
 de dependencias primero.
 
-## Prioridad 2 — 3 tablas Gold rotas, causas distintas (Sistema)
+## Prioridad 2 — Tablas Gold rotas o inalcanzables, causas distintas (Sistema)
 
 | Dataset | Síntoma | Causa | Dónde está documentado |
 |---|---|---|---|
 | `aparcamientos` | Job `SUCCEEDED`, 0 filas escritas | **Sin diagnosticar** | `doc/052` |
 | `cartelera_cines_estrenos` | Job falla (`AnalysisException`) | Silver vacío (0 filas pasan el filtro de calidad) + lectura sin schema explícito | `doc/063` |
 | `afluencia_lugares` | Ya no es prioridad — ver tarea 086 | Bloqueado por Google Maps, sustituido | `doc/012`, `doc/083` |
+| `aforos_peatones_bicicletas` | Athena devuelve 0 filas pese a que el Parquet real existe en S3 | `projection.date.range`/`projection.fecha.range` del catálogo (`"2026-08-01,NOW+1DAY"`) más estrecho que el `measured_at` real de la fuente (`2024-06-30`, fuente municipal descontinuada desde entonces, confirmado contra `datos.madrid.es`) — partición invisible por fórmula, no por falta de dato. Fix ya escrito en `infra/terraform/glue.tf` (rango ampliado a `"2024-01-01,NOW+1DAY"`), sin aplicar | `doc/087` |
 
-`aparcamientos` es la más urgente de las dos reales: la tarea 086
-(afluencia por grafo) quiere usar su ocupación como señal secundaria, y hoy
-no puede porque su Gold está vacío.
+`aparcamientos` sigue siendo la más urgente de las tres sin resolver (job
+"exitoso" que no escribe nada, sin pista real de la causa). `aforos_peatones_
+bicicletas` ya tiene diagnóstico y fix escritos (tarea 087) — solo falta
+aplicar el cambio de Terraform (junto con la Prioridad 1, o antes si se
+aísla con cuidado) y relanzar `grafo/cargar_grafo.py`; aun así, no vuelve a
+ser señal *en vivo* (la fuente sigue descontinuada) — solo desbloquea el
+histórico real 2019-2024 para análisis/ML, `afluencia_estimada` (tarea 089)
+ya no depende de ella.
 
 ## Prioridad 3 — Implementar la tarea 086 (afluencia por grafo) (Sistema)
 
