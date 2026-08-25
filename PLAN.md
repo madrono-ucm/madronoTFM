@@ -51,9 +51,17 @@ Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
    `eu-west-1`. Recreadas en `eu-west-1`, verificadas, y borradas las
    copias de `eu-south-2`. **Al guardar cualquier secreto nuevo en SSM,
    usad siempre `--region eu-west-1` explícito.**
-2. **Clave de Google Maps Platform** (`console.cloud.google.com/google/maps-apis/credentials`,
-   habilitar Places API). Único bloqueador de credenciales que queda —
-   ver [`doc/012-captura-afluencia-lugares-madrid.md`](doc/012-captura-afluencia-lugares-madrid.md).
+2. ~~Clave de Google Maps Platform~~ — **en vías de dejar de ser un
+   bloqueador real**: en vez de esperar la credencial, las tareas
+   [`084`](tasks/084-grafo-nodos-aforos-neo4j-real.md)/[`085`](tasks/085-asistente-tool-afluencia-prevista-aforos.md)
+   repuntan `afluencia_prevista` a `aforos_peatones_bicicletas` (gratis, ya
+   en producción, sin ninguna credencial pendiente) en vez de
+   `populartimes`/Google Places — ver
+   [`doc/012-captura-afluencia-lugares-madrid.md`](doc/012-captura-afluencia-lugares-madrid.md)
+   para el porqué (OSM tampoco sirve aquí: no tiene ningún dato de
+   afluencia/popularidad en vivo, solo geodatos estáticos — ver `083`).
+   Sigue sin credencial, pero ya no bloquea nada mientras `084`/`085` no
+   estén fusionadas.
 3. **Decisión editorial**: cómo se documenta en la memoria (§7.4
    Limitaciones) el alcance recortado de las fases 3–5 frente al plan
    original — antes de que la Pista Memoria llegue a esa sección (semana
@@ -112,7 +120,7 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `083`**
+**Próximo número libre: `086`**
 
 Nota sobre el orden: las tareas sin bloqueo se numeran y encolan ya; las
 bloqueadas por credenciales se numeran **cuando llegan**, no antes, para no
@@ -146,9 +154,21 @@ pese a estar en orden inverso de creación en este documento.
 - [x] **[`082-verificar-trafico-cercano-neo4j-real`](tasks/082-verificar-trafico-cercano-neo4j-real.md)**
   — en cola. Verifica `trafico_cercano` contra Neo4j real, ahora que el bug
   de región de abajo está corregido.
+- [ ] **[`083-grafo-enriquecimiento-poi-osm`](tasks/083-grafo-enriquecimiento-poi-osm.md)**
+  — en cola. Enriquece `:Lugar` con etiquetas de OpenStreetMap (Overpass
+  API, gratis, sin key) por proximidad — geodatos de lugar, no afluencia
+  (OSM no tiene ningún dato de popularidad/tiempo real).
+- [ ] **[`084-grafo-nodos-aforos-neo4j-real`](tasks/084-grafo-nodos-aforos-neo4j-real.md)**
+  — en cola. Añade `:EstacionMedida {tipo: "aforo"}` (conteos reales de
+  peatones/bicicletas, ya en Gold desde la tarea 054) al grafo y recarga la
+  instancia real. Paso previo a `085`.
+- [ ] **[`085-asistente-tool-afluencia-prevista-aforos`](tasks/085-asistente-tool-afluencia-prevista-aforos.md)**
+  — en cola, depende de `084`. Implementa `afluencia_prevista` sobre
+  `aforos_peatones_bicicletas` en vez de Google/`populartimes` — quita el
+  bloqueo de la clave de Google Maps para esta tool sin esperar la
+  credencial.
 - [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
-  `eventos_cercanos`, `opciones_movilidad`; `afluencia_prevista` bloqueada
-  hasta Google Maps) — sin bloqueo salvo la indicada, se pueden ir
+  `eventos_cercanos`, `opciones_movilidad`) — sin bloqueo, se pueden ir
   encolando una a una según el mismo patrón que `079`.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
