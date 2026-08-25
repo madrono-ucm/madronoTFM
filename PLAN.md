@@ -189,11 +189,16 @@ pese a estar en orden inverso de creación en este documento.
   lugar, no afluencia. Verificado en vivo contra Overpass real (6 POIs
   reales commiteados como muestra); no se ha recargado la instancia real de
   Neo4j con este enriquecimiento todavía.
-- [ ] **[`087-grafo-aforos-peatones-bicicletas-neo4j-real`](tasks/087-grafo-aforos-peatones-bicicletas-neo4j-real.md)**
-  — **en curso por el demonio** (`in_progress`). Fase A de la
-  especificación `086`: añade
-  `:EstacionMedida {tipo: "aforos_peatones_bicicletas"}` al grafo y recarga
-  la instancia real. Paso previo a `089`.
+- [x] **[`087-grafo-aforos-peatones-bicicletas-neo4j-real`](tasks/done/087-grafo-aforos-peatones-bicicletas-neo4j-real.md)**
+  — **completada, código y tests solamente — sin PR** (el demonio se quedó
+  parado a mitad de tarea sin llegar a comitear nada, ver el hallazgo junto
+  a `083`; se retomó de forma interactiva). Fase A de la especificación
+  `086`: añade `:EstacionMedida {tipo: "aforos_peatones_bicicletas"}` al
+  pipeline del grafo (código en `main`, 93 tests en verde). **No verificado
+  contra Athena real ni recargado en la instancia real de Neo4j** — la
+  sesión que lo implementó no tenía credenciales AWS/Neo4j en su entorno
+  (ver `doc/087-...md`). Queda como paso pendiente explícito antes de que
+  `089` pueda verificarse de extremo a extremo.
 - [ ] **[`088-terraform-drift-plan-sin-aplicar`](tasks/088-terraform-drift-plan-sin-aplicar.md)**
   — en cola, insertada por delante de `089` a petición del usuario.
   Prioridad 1 de `NEXT_STEPS.md`: produce el `terraform plan` completo del
