@@ -6,13 +6,13 @@ status: done
 force: false
 allow_infra_apply: true
 branch: task/098-reconciliar-drift-terraform-y-aforos-gold
-pr_number: null
-pr_url: null
+pr_number: 144
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/144
 attempts: 1
 next_retry_at: null
 last_error: null
 created_at: '2026-08-26T17:00:00+00:00'
-updated_at: '2026-08-26T17:45:00+00:00'
+updated_at: '2026-08-26T18:00:00+00:00'
 started_at: '2026-08-26T17:00:00+00:00'
 submitted_at: '2026-08-26T17:45:00+00:00'
 merged_at: null
