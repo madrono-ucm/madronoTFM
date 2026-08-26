@@ -6,7 +6,7 @@ movilidad y vida urbana de Madrid (p.ej. «¿voy al centro a las nueve de la
 noche del viernes?») con un veredicto, un nivel de fiabilidad y una
 explicación trazable a los datos.
 
-**Estado (tarea 095): solo `opciones_movilidad` sigue pendiente.** Este
+**Estado (tarea 096): las 6 `tools` originales ya tienen lógica real.** Este
 directorio define la estructura del servicio, el esquema de su respuesta y
 la interfaz de 6 `tools` (las 5 originales del esqueleto de la tarea 044,
 más `trafico_cercano`, tarea 081 -- no mapea 1:1 a un único origen de
@@ -29,14 +29,21 @@ tareas 072/075, sin que nadie lo hubiera comprobado -- ver `doc/090-...md`).
 ninguna relación -- no hay ningún nodo `:Evento`) y filtra por distancia
 real (Haversine) contra **Silver** de `agenda_eventos`, no Gold (que agrega
 por categoría/distrito/fecha sin lat/lon por evento, ver `doc/095-...md`) --
-primer caso de una `tool` que lee Silver en vez de Gold. Las cinco están
-montadas como agente MCP dentro de la app FastAPI y expuestas también por
-HTTP (`GET /calidad-aire`, `GET /trafico-cercano`, `GET /afluencia-estimada`,
-`GET /disponibilidad-aparcamiento`, `GET /eventos-cercanos`) — verificado
-con invocaciones reales contra la cuenta AWS de este proyecto, incluida la
-instancia real de Neo4j (ver "Verificación real" más abajo). Solo
-`opciones_movilidad` sigue levantando `NotImplementedError` (cruza 3
-datasets, tarea de seguimiento separada, sin bloqueo técnico).
+primer caso de una `tool` que lee Silver en vez de Gold. `opciones_movilidad`
+(tarea 096) es la última y la única con una **simplificación deliberada
+real**: no calcula ninguna ruta ni duración de viaje (no existe ningún grafo
+de calles transitable -- `CONECTADO_CON`, tarea 071, solo conecta paradas de
+transporte público a lo largo de una línea CRTM, no un callejero) -- en su
+lugar resuelve origen/destino por separado contra el grafo y describe las
+condiciones reales de tráfico/BiciMAD/EMT cerca de cada extremo, sin
+inventar una duración. Las seis están montadas como agente MCP dentro de la
+app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
+`GET /trafico-cercano`, `GET /afluencia-estimada`,
+`GET /disponibilidad-aparcamiento`, `GET /eventos-cercanos`,
+`GET /opciones-movilidad`) — verificado con invocaciones reales contra la
+cuenta AWS de este proyecto, incluida la instancia real de Neo4j (ver
+"Verificación real" más abajo). No queda ninguna `tool` con
+`NotImplementedError`.
 
 ## Por qué solo `calidad_aire` en esta tarea
 
@@ -60,7 +67,7 @@ asistente/
   dependencies.py           # Dependencias de FastAPI (get_settings, cacheada)
   timeutils.py                # now_madrid(): misma zona horaria que ingesta/capturas/bronze.py
   athena.py                     # run_athena_query(): consulta Gold/Silver real (mismo patrón que grafo/extract.py)
-  neo4j_client.py                 # run_neo4j_query() + query builders de trafico_cercano (081)/afluencia_estimada (089)/eventos_cercanos (095)
+  neo4j_client.py                 # run_neo4j_query() + query builders de trafico_cercano (081)/afluencia_estimada (089)/eventos_cercanos (095)/opciones_movilidad (096)
   routers/
     health.py                     # GET /health
     calidad_aire.py                 # GET /calidad-aire -- invoca la tool y construye RespuestaAsistente
@@ -68,12 +75,13 @@ asistente/
     afluencia_estimada.py               # GET /afluencia-estimada -- ídem, tarea 089
     disponibilidad_aparcamiento.py        # GET /disponibilidad-aparcamiento -- ídem, tarea 090
     eventos_cercanos.py                     # GET /eventos-cercanos -- ídem, tarea 095 (lista, no un único modelo)
+    opciones_movilidad.py                     # GET /opciones-movilidad -- ídem, tarea 096 (lista, no un único modelo)
   models/
     respuesta.py                # RespuestaAsistente: veredicto/fiabilidad/explicación/fuentes
     herramientas.py               # Modelos de retorno de cada tool MCP
   mcp_agent/
     server.py                     # Instancia de MCPServer + registro de las 6 tools
-    tools.py                       # las 5 tools reales (solo opciones_movilidad con NotImplementedError)
+    tools.py                       # las 6 tools, todas con lógica real (opciones_movilidad, tarea 096, es la última)
   tests/
     test_app.py                     # La app arranca y /health responde
     test_mcp_tools.py                 # calidad_aire/trafico_cercano/disponibilidad_aparcamiento/eventos_cercanos (mockeando Athena/Neo4j) + firma/docstring/registro del resto
@@ -83,6 +91,8 @@ asistente/
     test_afluencia_estimada_router.py        # GET /afluencia-estimada, tarea 089
     test_disponibilidad_aparcamiento_router.py # GET /disponibilidad-aparcamiento (mockeando Athena), tarea 090
     test_eventos_cercanos_router.py              # GET /eventos-cercanos (mockeando Athena y Neo4j), tarea 095
+    test_opciones_movilidad.py                     # _opciones_movilidad_impl (mockeando Athena/Neo4j con routing por lugar+tipo), tarea 096
+    test_opciones_movilidad_router.py                # GET /opciones-movilidad, tarea 096
     test_neo4j_client.py                   # Query builders (por inspección) + run_neo4j_query
     test_respuesta.py                  # El modelo de respuesta se construye y serializa
   requirements.txt
@@ -291,13 +301,19 @@ Haversine en varios escenarios (evento dentro/fuera de radio, sin
 coordenadas, varios `:Lugar` coincidentes -- distancia mínima a cualquiera,
 orden por distancia, ventana de 30 días, deduplicación por `event_id` --
 mockeando Neo4j y Athena, ver
-`asistente/tests/test_mcp_tools.py::EventosCercanosToolTests`), que la
-única `tool` restante (`opciones_movilidad`) sigue levantando
-`NotImplementedError`, que las 6 quedan registradas en el `MCPServer`, que
-`GET /calidad-aire`, `GET /trafico-cercano`, `GET /disponibilidad-aparcamiento`
-y `GET /eventos-cercanos` construyen la `RespuestaAsistente` esperada (con y
-sin estación/lugar/aparcamiento/evento encontrado, mockeando Athena/Neo4j),
-y que `RespuestaAsistente` se construye y serializa correctamente.
+`asistente/tests/test_mcp_tools.py::EventosCercanosToolTests`), que
+`opciones_movilidad` (tarea 096) describe condiciones de tráfico/BiciMAD/EMT
+cerca de origen y destino en varios escenarios (ambos extremos con datos,
+solo uno resuelve contra el grafo, ni uno ni otro, sin `momento` -- mockeando
+Neo4j y Athena con `_RoutingNeo4jDriver`/`_RoutingAthenaClient`, que enrutan
+por lugar/tipo/tabla, ver `asistente/tests/test_opciones_movilidad.py`), que
+las 6 `tools` ya no tienen ninguna con `NotImplementedError`, que las 6
+quedan registradas en el `MCPServer`, que `GET /calidad-aire`,
+`GET /trafico-cercano`, `GET /disponibilidad-aparcamiento`,
+`GET /eventos-cercanos` y `GET /opciones-movilidad` construyen la
+`RespuestaAsistente` esperada (con y sin estación/lugar/aparcamiento/evento
+encontrado, mockeando Athena/Neo4j), y que `RespuestaAsistente` se construye
+y serializa correctamente.
 
 ## Verificación real
 
@@ -399,6 +415,17 @@ visible con Athena/Neo4j mockeados):
    antes consumido directamente desde Silver por ninguna `tool`). Arreglado
    deduplicando por `event_id` antes de calcular distancias.
 
+**`opciones_movilidad` (tarea 096)**: arrancado el servicio real con
+credenciales de Neo4j (SSM) y la cuenta AWS del proyecto,
+`GET /opciones-movilidad?origen=Retiro&destino=Sol` devolvió las 3 opciones
+con datos reales y distintos en cada extremo: `coche` — tráfico fluido
+cerca de ambos; `bicimad` — 8.0 bicis de media cerca del origen, 15.1
+anclajes libres cerca del destino; `transporte_publico` — "sin datos" en
+ambos extremos, consistente con la cobertura real muy limitada de
+`transporte_publico_emt` (1 solo `stop_id` real en Gold, `NEXT_STEPS.md`
+Prioridad 7) documentada en el propio docstring de la `tool`. Repetido con
+dos zonas inexistentes → `fiabilidad="baja"`, `fuentes=[]`, sin excepción.
+
 ## Qué falta para completarlo
 
 0. ~~(Tarea 081) Verificar `trafico_cercano` contra la instancia real de
@@ -407,12 +434,14 @@ visible con Athena/Neo4j mockeados):
    verificación completa de `trafico_cercano`/`afluencia_estimada` con
    ellas (`eventos_cercanos` ya demostró que el driver/consulta genérica
    funciona contra la instancia real).
-1. Implementar la última `tool` (`opciones_movilidad` -- `afluencia_prevista`
-   ya se sustituyó por `afluencia_estimada`, tarea 089,
-   `disponibilidad_aparcamiento` ya es real, tarea 090, y `eventos_cercanos`
-   ya es real, tarea 095), mismo patrón que las demás (tool en `tools.py` +
-   router HTTP + tests mockeando Athena) pero cruzando 3 datasets a la vez
-   (`trafico`+EMT+BiciMAD) -- por eso quedó para el final.
+1. ~~Implementar la última `tool` (`opciones_movilidad`)~~ **Hecho (tarea
+   096)**, con una simplificación deliberada real: sin routing por calles
+   (no existe ningún grafo transitable), describe condiciones cerca de cada
+   extremo en vez de calcular una ruta -- ver su docstring y "Verificación
+   real" arriba. Ya no queda ninguna `tool` de las 6 originales con
+   `NotImplementedError`. Si se quiere routing real en el futuro, hace
+   falta primero un grafo de calles transitable (`callejero_madrid` +
+   adyacencia real entre tramos, no solo `CONECTADO_CON` de líneas CRTM).
 2. `calidad_aire` no usa `cams_calidad_aire_madrid` (previsión Copernicus
    CAMS, tarea 019) — solo medición real. Combinar ambas fuentes (medición
    para el pasado/presente, previsión para el futuro cercano) queda para una
