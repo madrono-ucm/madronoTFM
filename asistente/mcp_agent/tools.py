@@ -7,12 +7,12 @@ estimada, calidad del aire, opciones de movilidad, disponibilidad de
 aparcamiento y eventos cercanos. Estas cinco funciones anticipan esa
 interfaz (firma y docstring, registradas como `tools` MCP en
 `asistente/mcp_agent/server.py`) a partir de lo que `ingesta/` ya captura
-hoy. `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081),
-`afluencia_estimada` (tarea 089, sustituye a la `afluencia_prevista`
-original -- ver su docstring), `disponibilidad_aparcamiento` (tarea 090) y
-`eventos_cercanos` (tarea 095) ya leen datos reales; solo
-`opciones_movilidad` sigue levantando `NotImplementedError` -- tarea de
-seguimiento separada, sin bloqueo técnico, solo alcance (cruza 3 datasets).
+hoy. Las seis ya leen datos reales: `calidad_aire` (tarea 079),
+`trafico_cercano` (tarea 081), `afluencia_estimada` (tarea 089, sustituye a
+la `afluencia_prevista` original -- ver su docstring), `disponibilidad_
+aparcamiento` (tarea 090), `eventos_cercanos` (tarea 095) y
+`opciones_movilidad` (tarea 096, simplificación deliberada -- sin routing
+real, ver su docstring).
 
 Las funciones son planas (sin decorador `@mcp.tool()` aquí) a propósito, en
 dos capas separadas:
@@ -46,6 +46,7 @@ from asistente.neo4j_client import (
     lugares_proximos_a_estaciones_ruido_query,
     lugares_proximos_a_estaciones_trafico_query,
     lugares_proximos_a_paradas_bicimad_query,
+    lugares_proximos_a_paradas_emt_query,
     resolver_lugar_query,
     run_neo4j_query,
 )
@@ -760,27 +761,219 @@ def trafico_cercano(
     return _trafico_cercano_impl(lugar, radio_m, momento)
 
 
+_RADIO_OPCIONES_MOVILIDAD_M = 300.0  # mismo umbral que PROXIMO_A, tarea 070
+_TABLA_EMT = "transporte_publico_emt_por_parada_hora"
+_FUENTE_EMT = f"gold.{_TABLA_EMT}"
+_FUENTE_GRAFO_OPCIONES_MOVILIDAD = (
+    "neo4j: (:Lugar)-[:PROXIMO_A]-(:EstacionMedida{tipo:'trafico'}|:ParadaTransporte{tipo:'bicimad'|'emt'})"
+)
+
+
+def _hora_objetivo_o_reciente(filas: "list[dict]", hora_objetivo: "int | None") -> "int | None":
+    if hora_objetivo is not None:
+        return hora_objetivo
+    return max((fila["hour"] for fila in filas), default=None)
+
+
+def _trafico_cerca(
+    lugar: str, fecha: str, hora_objetivo: "int | None", *, neo4j_driver, athena_client
+) -> "str | None":
+    """Etiqueta de tráfico (`_clasificar_trafico`) cerca de `lugar`, o
+    `None` si `lugar` no resuelve contra ningún `:Lugar` o no hay dato para
+    la hora pedida -- reutilizado para origen y destino de
+    `opciones_movilidad` (mismo criterio de agregación que
+    `_trafico_cercano_impl`, pero aplicado dos veces, una por punto)."""
+    query, params = lugares_proximos_a_estaciones_trafico_query(lugar, _RADIO_OPCIONES_MOVILIDAD_M)
+    dist = _agregar_por_id(run_neo4j_query(query, params, driver=neo4j_driver))
+    if not dist:
+        return None
+    ids_literal = ", ".join(f"'{sql_literal(pid)}'" for pid in sorted(dist))
+    sql = f"""
+        SELECT point_id, hour, avg_service_level, avg_occupancy_ratio
+        FROM {_TABLA_TRAFICO}
+        WHERE date = '{fecha}' AND point_id IN ({ids_literal})
+    """
+    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    hora = _hora_objetivo_o_reciente(filas, hora_objetivo)
+    filas_hora = [fila for fila in filas if fila["hour"] == hora]
+    niveles = [fila["avg_service_level"] for fila in filas_hora if fila.get("avg_service_level") is not None]
+    if niveles:
+        return _clasificar_trafico(sum(niveles) / len(niveles), _UMBRALES_SERVICE_LEVEL)
+    ratios = [fila["avg_occupancy_ratio"] for fila in filas_hora if fila.get("avg_occupancy_ratio") is not None]
+    if ratios:
+        return _clasificar_trafico(sum(ratios) / len(ratios), _UMBRALES_OCCUPANCY_RATIO)
+    return None
+
+
+def _bicimad_cerca(
+    lugar: str, fecha: str, hora_objetivo: "int | None", campo: str, *, neo4j_driver, athena_client
+) -> "float | None":
+    """Media de `campo` (`avg_bikes_available` para el origen -- hacen falta
+    bicis que coger --, `avg_docks_available` para el destino -- hace falta
+    sitio donde dejarla --) entre las paradas BiciMAD cerca de `lugar`, o
+    `None` si no hay ninguna o no hay dato para la hora pedida."""
+    query, params = lugares_proximos_a_paradas_bicimad_query(lugar, _RADIO_OPCIONES_MOVILIDAD_M)
+    dist = _agregar_por_id(run_neo4j_query(query, params, driver=neo4j_driver))
+    if not dist:
+        return None
+    ids_literal = ", ".join(f"'{sql_literal(sid)}'" for sid in sorted(dist))
+    sql = f"""
+        SELECT station_id, hour, {campo}
+        FROM {_TABLA_BICIMAD}
+        WHERE date = '{fecha}' AND station_id IN ({ids_literal})
+    """
+    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    hora = _hora_objetivo_o_reciente(filas, hora_objetivo)
+    filas_hora = [fila for fila in filas if fila["hour"] == hora]
+    valores = [fila[campo] for fila in filas_hora if fila.get(campo) is not None]
+    return sum(valores) / len(valores) if valores else None
+
+
+def _emt_cerca(
+    lugar: str, fecha: str, hora_objetivo: "int | None", *, neo4j_driver, athena_client
+) -> "float | None":
+    """Minutos hasta la próxima llegada estimada (el mejor caso entre las
+    paradas EMT cerca de `lugar`, `avg_estimate_arrive_sec` más bajo), o
+    `None` si no hay ninguna parada cerca o no hay dato para la hora
+    pedida. **Cobertura real muy limitada** (`transporte_publico_emt` solo
+    tiene 1 `stop_id` real distinto en Gold, ver `NEXT_STEPS.md` Prioridad
+    7) -- esta señal devolverá `None` para casi cualquier origen/destino
+    salvo que caiga cerca de esa única parada."""
+    query, params = lugares_proximos_a_paradas_emt_query(lugar, _RADIO_OPCIONES_MOVILIDAD_M)
+    dist = _agregar_por_id(run_neo4j_query(query, params, driver=neo4j_driver))
+    if not dist:
+        return None
+    ids_literal = ", ".join(f"'{sql_literal(sid)}'" for sid in sorted(dist))
+    sql = f"""
+        SELECT stop_id, hour, avg_estimate_arrive_sec
+        FROM {_TABLA_EMT}
+        WHERE date = '{fecha}' AND stop_id IN ({ids_literal})
+    """
+    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    hora = _hora_objetivo_o_reciente(filas, hora_objetivo)
+    filas_hora = [fila for fila in filas if fila["hour"] == hora]
+    valores = [fila["avg_estimate_arrive_sec"] for fila in filas_hora if fila.get("avg_estimate_arrive_sec") is not None]
+    return min(valores) / 60.0 if valores else None
+
+
+def _opciones_movilidad_impl(
+    origen: str,
+    destino: str,
+    momento: datetime | None,
+    *,
+    neo4j_driver=None,
+    athena_client=None,
+) -> "list[OpcionMovilidad]":
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+    fecha = instante.date().isoformat()
+    hora_objetivo = instante.hour if momento is not None else None
+
+    # Si ni origen ni destino resuelven contra ningún :Lugar del grafo, no
+    # hay nada que comparar -- lista vacía, mismo criterio que
+    # eventos_cercanos. Si solo uno de los dos resuelve, se sigue adelante
+    # igualmente: el otro extremo mostrará "sin datos" en las tres
+    # opciones, que ya es información real (no hay ningún :Lugar con ese
+    # nombre en el grafo).
+    origen_resuelto = bool(run_neo4j_query(*resolver_lugar_query(origen), driver=neo4j_driver))
+    destino_resuelto = bool(run_neo4j_query(*resolver_lugar_query(destino), driver=neo4j_driver))
+    if not origen_resuelto and not destino_resuelto:
+        return []
+
+    trafico_origen = _trafico_cerca(origen, fecha, hora_objetivo, neo4j_driver=neo4j_driver, athena_client=athena_client)
+    trafico_destino = _trafico_cerca(
+        destino, fecha, hora_objetivo, neo4j_driver=neo4j_driver, athena_client=athena_client
+    )
+    coche = OpcionMovilidad(
+        modo="coche",
+        incidencias=[
+            f"tráfico {trafico_origen} cerca del origen" if trafico_origen else "sin datos de tráfico cerca del origen",
+            f"tráfico {trafico_destino} cerca del destino" if trafico_destino else "sin datos de tráfico cerca del destino",
+        ],
+        fuente_dataset=_FUENTE_TRAFICO,
+    )
+
+    bicis_origen = _bicimad_cerca(
+        origen, fecha, hora_objetivo, "avg_bikes_available", neo4j_driver=neo4j_driver, athena_client=athena_client
+    )
+    anclajes_destino = _bicimad_cerca(
+        destino, fecha, hora_objetivo, "avg_docks_available", neo4j_driver=neo4j_driver, athena_client=athena_client
+    )
+    bicimad = OpcionMovilidad(
+        modo="bicimad",
+        incidencias=[
+            f"{bicis_origen:.1f} bicis disponibles de media cerca del origen"
+            if bicis_origen is not None
+            else "sin datos de BiciMAD cerca del origen",
+            f"{anclajes_destino:.1f} anclajes libres de media cerca del destino"
+            if anclajes_destino is not None
+            else "sin datos de BiciMAD cerca del destino",
+        ],
+        fuente_dataset=_FUENTE_BICIMAD,
+    )
+
+    espera_origen = _emt_cerca(origen, fecha, hora_objetivo, neo4j_driver=neo4j_driver, athena_client=athena_client)
+    espera_destino = _emt_cerca(destino, fecha, hora_objetivo, neo4j_driver=neo4j_driver, athena_client=athena_client)
+    transporte_publico = OpcionMovilidad(
+        modo="transporte_publico",
+        incidencias=[
+            f"próxima llegada estimada en {espera_origen:.1f} min cerca del origen"
+            if espera_origen is not None
+            else "sin datos de EMT cerca del origen",
+            f"próxima llegada estimada en {espera_destino:.1f} min cerca del destino"
+            if espera_destino is not None
+            else "sin datos de EMT cerca del destino",
+        ],
+        fuente_dataset=_FUENTE_EMT,
+    )
+
+    return [coche, transporte_publico, bicimad]
+
+
 def opciones_movilidad(
     origen: str, destino: str, momento: datetime | None = None
-) -> list[OpcionMovilidad]:
-    """Alternativas de desplazamiento entre dos puntos de Madrid.
+) -> "list[OpcionMovilidad]":
+    """Alternativas de desplazamiento entre dos puntos de Madrid (tarea 096:
+    implementación real, ver `asistente/README.md`).
 
-    Fuente futura: combina `ingesta.capturas.trafico_madrid` (tarea 002),
-    `ingesta.capturas.transporte_publico_madrid` (EMT, tarea 003) y
-    `ingesta.capturas.bicimad` (tarea 004) agregados en Gold, cruzando
-    origen/destino contra la red viaria/de transporte
-    (`ingesta.capturas.callejero_madrid`, `crtm_red_transporte_madrid`).
+    **Simplificación deliberada, distinta al resto de `tools`**: esta `tool`
+    no calcula una ruta real ni una duración de viaje (`duracion_estimada_
+    min` queda siempre en `None`) -- no existe ningún grafo de calles/red
+    viaria transitable en este proyecto (`CONECTADO_CON`, tarea 071, solo
+    conecta paradas de transporte público a lo largo de una línea CRTM, no
+    calles/aceras entre dos puntos cualesquiera). En su lugar, resuelve
+    `origen`/`destino` por separado contra `:Lugar` (mismo criterio que
+    `trafico_cercano`/`eventos_cercanos`) y describe, para cada modo, las
+    condiciones reales encontradas cerca de cada extremo (tráfico cerca de
+    origen y destino; bicis disponibles cerca del origen y anclajes libres
+    cerca del destino; próxima llegada EMT estimada cerca de cada extremo) --
+    un routing real por calles/líneas de transporte queda fuera de alcance
+    hasta que exista un grafo transitable de verdad.
+
+    La señal de `transporte_publico` tiene cobertura real muy limitada:
+    `transporte_publico_emt` solo tiene 1 `stop_id` real distinto en Gold
+    (`NEXT_STEPS.md`, Prioridad 7) -- casi cualquier origen/destino
+    devolverá "sin datos de EMT" para ambos extremos, no es un fallo de esta
+    `tool`.
+
+    Si ni `origen` ni `destino` coinciden con ningún `:Lugar` del grafo, no
+    lanza una excepción: devuelve una lista vacía. Si solo uno de los dos
+    coincide, se devuelven igualmente las 3 opciones -- el extremo sin
+    `:Lugar` aparece como "sin datos" en las tres, que ya es información
+    real (no hay ningún lugar con ese nombre en el grafo).
 
     Args:
-        origen: Punto de partida (dirección, lugar o coordenadas).
-        destino: Punto de llegada (dirección, lugar o coordenadas).
-        momento: Instante del desplazamiento. Si es `None`, se asume el
-            instante actual.
+        origen: Nombre o identificador (parcial) de un `:Lugar` del grafo
+            como punto de partida -- p.ej. "Retiro".
+        destino: Ídem como punto de llegada -- p.ej. "Sol".
+        momento: Instante del desplazamiento (se usa su fecha y hora
+            exacta). Si es `None`, se asume el instante actual (hora de
+            Madrid) y se usa la última hora con datos disponibles ese día
+            en cada señal.
     """
-    raise NotImplementedError(
-        "opciones_movilidad: pendiente de Gold real para tráfico/EMT/BiciMAD "
-        "(ver doc/041 y el docstring de este módulo)"
-    )
+    return _opciones_movilidad_impl(origen, destino, momento)
 
 
 def disponibilidad_aparcamiento(zona: str, momento: datetime | None = None) -> DisponibilidadAparcamiento:

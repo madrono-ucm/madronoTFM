@@ -79,13 +79,21 @@ y verificada en vivo) combina en su lugar tráfico + ruido + BiciMAD +
 calidad del aire vía el grafo Neo4j (mismo patrón que `trafico_cercano`,
 tarea 081) — ver `asistente/README.md`. No depende de la Prioridad 2.
 
-## Prioridad 4 — Resto de tools del asistente (Sistema)
+## Prioridad 4 — ~~Resto de tools del asistente~~ Completada (Sistema)
 
 `asistente/README.md` ya documenta el patrón (task 079: una tool de
-extremo a extremo por tarea, no varias a la vez):
+extremo a extremo por tarea, no varias a la vez). **Las 6 `tools`
+originales del esqueleto de la tarea 044 ya tienen lógica real** — no
+queda ninguna con `NotImplementedError`:
 
-- `opciones_movilidad` (cruza `trafico`+EMT+BiciMAD) — única tool que queda
-  pendiente
+- ~~`opciones_movilidad`~~ **Hecho (tarea 096)** — simplificación
+  deliberada: sin routing real por calles (no existe ningún grafo
+  transitable, `CONECTADO_CON` de la tarea 071 solo conecta paradas a lo
+  largo de una línea CRTM), describe condiciones de tráfico/BiciMAD/EMT
+  cerca de origen y destino por separado, `duracion_estimada_min` queda
+  siempre en `None`. Verificado en vivo (`GET /opciones-movilidad`) —
+  confirma también la cobertura muy limitada de EMT (fila de abajo:
+  "sin datos" en ambos extremos para "Retiro"→"Sol"), ver `doc/096`
 - ~~`disponibilidad_aparcamiento`~~ **Hecho (tarea 090)** — real, vía Athena
   directo (una sola tabla, sin grafo), verificado en vivo
   (`GET /disponibilidad-aparcamiento`), ver `doc/090`

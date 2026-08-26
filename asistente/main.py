@@ -35,6 +35,7 @@ from asistente.routers import (
     disponibilidad_aparcamiento,
     eventos_cercanos,
     health,
+    opciones_movilidad,
     trafico_cercano,
 )
 
@@ -55,11 +56,12 @@ def create_app() -> FastAPI:
             "urbana de Madrid (memoria del TFM, apartados 5.2 y 6.7). "
             "`calidad_aire` (tarea 079), `trafico_cercano` (tarea 081), "
             "`afluencia_estimada` (tarea 089, ambas cruzan el grafo urbano "
-            "en Neo4j con Gold), `disponibilidad_aparcamiento` (tarea 090) "
-            "y `eventos_cercanos` (tarea 095) ya leen datos reales; solo "
-            "`opciones_movilidad` sigue pendiente -- ver asistente/README.md."
+            "en Neo4j con Gold), `disponibilidad_aparcamiento` (tarea 090), "
+            "`eventos_cercanos` (tarea 095) y `opciones_movilidad` (tarea "
+            "096, sin routing real -- ver su docstring) ya leen datos "
+            "reales -- ver asistente/README.md."
         ),
-        version="0.6.0",
+        version="0.7.0",
         lifespan=lifespan,
     )
     app.include_router(health.router)
@@ -68,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(afluencia_estimada.router)
     app.include_router(disponibilidad_aparcamiento.router)
     app.include_router(eventos_cercanos.router)
+    app.include_router(opciones_movilidad.router)
     app.mount("/mcp-server", mcp_app)
     return app
 
