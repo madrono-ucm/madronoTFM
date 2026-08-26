@@ -3,7 +3,7 @@ id: 94
 slug: recargar-grafo-osm-aforos-instancia-real
 title: 'QA: la instancia real de Neo4j no tiene el enriquecimiento OSM (083) ni los
   nodos de aforos (087), pese a estar dados por completados'
-status: in_progress
+status: failed
 force: false
 allow_infra_apply: false
 branch: task/094-recargar-grafo-osm-aforos-instancia-real
@@ -11,9 +11,9 @@ pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
-last_error: null
+last_error: claude finalizó sin crear ningún commit
 created_at: '2026-08-26T10:55:00+00:00'
-updated_at: '2026-08-26T12:06:02.220004+00:00'
+updated_at: '2026-08-26T12:09:54.782469+00:00'
 started_at: '2026-08-26T12:06:02.219979+00:00'
 submitted_at: null
 merged_at: null
