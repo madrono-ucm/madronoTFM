@@ -5,6 +5,10 @@
 #     `asistente/`/`herramientas/` (841 tests, ninguno necesita
 #     credenciales ni conexión real -- todos mockean Athena/Neo4j/boto3
 #     donde hace falta, ver los docstrings de cada `test_*.py`).
+#     `procesamiento/` no tiene `requirements.txt` propio a propósito: sus
+#     tests solo ejercitan lógica Python pura (nunca importan `pyspark`/
+#     `awsglue`/`great_expectations`, que solo usan los scripts reales de
+#     Glue, ejecutados dentro del runtime gestionado de AWS Glue, no aquí).
 #   - `terraform`: `fmt -check` + `validate` de solo lectura, sin backend
 #     remoto (`init -backend=false`) para no necesitar credenciales AWS
 #     como secreto de este repositorio -- deliberadamente no incluye
@@ -30,7 +34,6 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             ingesta/requirements.txt
-            procesamiento/requirements.txt
             grafo/requirements.txt
             asistente/requirements.txt
             herramientas/costes/requirements.txt
@@ -39,7 +42,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r ingesta/requirements.txt
-          pip install -r procesamiento/requirements.txt
           pip install -r grafo/requirements.txt
           pip install -r asistente/requirements.txt
           pip install -r herramientas/costes/requirements.txt
