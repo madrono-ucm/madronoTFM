@@ -6,8 +6,8 @@ status: done
 force: false
 allow_infra_apply: false
 branch: task/096-asistente-opciones-movilidad
-pr_number: null
-pr_url: null
+pr_number: 141
+pr_url: 'https://github.com/madrono-ucm/madronoTFM/pull/141'
 attempts: 0
 next_retry_at: null
 last_error: null
