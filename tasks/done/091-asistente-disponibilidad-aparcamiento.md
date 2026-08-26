@@ -6,8 +6,8 @@ status: done
 force: false
 allow_infra_apply: false
 branch: task/091-asistente-disponibilidad-aparcamiento
-pr_number: null
-pr_url: null
+pr_number: 135
+pr_url: 'https://github.com/madrono-ucm/madronoTFM/pull/135'
 attempts: 0
 next_retry_at: null
 last_error: null
