@@ -114,6 +114,26 @@ def lugares_proximos_a_paradas_bicimad_query(nombre_lugar: str, radio_m: float) 
     return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
 
 
+def lugares_proximos_a_paradas_emt_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Igual que `lugares_proximos_a_paradas_bicimad_query` pero contra
+    `ParadaTransporte {tipo: 'emt'}` (tarea 096, señal de transporte público
+    de `opciones_movilidad`). El `id` de estos nodos es
+    `transporte_publico_emt:<stop_id>` (ver `grafo/nodos.py::parada_
+    transporte_from_transporte_publico_emt_gold`) -- mismo criterio de
+    extraer el identificador real tras los dos puntos que usa
+    `_trafico_cercano_impl` con `estacion_id`."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(e:ParadaTransporte {tipo: 'emt'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN l.id AS lugar_id, l.nombre AS lugar_nombre, "
+        "e.id AS estacion_id, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
 def resolver_lugar_query(nombre_lugar: str) -> "tuple[str, dict]":
     """Resuelve `nombre_lugar` contra `:Lugar` (mismo criterio de
     coincidencia de texto que el resto de query builders de este módulo),

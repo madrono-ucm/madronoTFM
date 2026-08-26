@@ -25,13 +25,9 @@ TOOL_FUNCTIONS = [
     tools.eventos_cercanos,
 ]
 
-# `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081),
-# `afluencia_estimada` (tarea 089), `disponibilidad_aparcamiento` (tarea 090)
-# y `eventos_cercanos` (tarea 095) son las únicas con lógica real -- solo
-# `opciones_movilidad` sigue levantando NotImplementedError.
-NOT_IMPLEMENTED_TOOL_FUNCTIONS = [
-    tools.opciones_movilidad,
-]
+# Las 6 tools ya tienen lógica real (opciones_movilidad, tarea 096, es la
+# última) -- no queda ninguna con NotImplementedError.
+NOT_IMPLEMENTED_TOOL_FUNCTIONS: list = []
 
 
 class ToolSignatureTests(unittest.TestCase):
