@@ -337,7 +337,7 @@ locals {
     for f in fileset(local.ingesta_source_root, "**") :
     f
     if !startswith(f, "tests/") && !startswith(f, "capturas/samples/") &&
-       !strcontains(f, "__pycache__/") && !endswith(f, ".pyc") && !endswith(f, ".pyo")
+    !strcontains(f, "__pycache__/") && !endswith(f, ".pyc") && !endswith(f, ".pyo")
   ]
 }
 
