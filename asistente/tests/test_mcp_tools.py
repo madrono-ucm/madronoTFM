@@ -25,12 +25,12 @@ TOOL_FUNCTIONS = [
     tools.eventos_cercanos,
 ]
 
-# `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081) y
-# `afluencia_estimada` (tarea 089) son las únicas con lógica real -- el
-# resto siguen levantando NotImplementedError.
+# `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081),
+# `afluencia_estimada` (tarea 089) y `disponibilidad_aparcamiento` (tarea
+# 090) son las únicas con lógica real -- el resto siguen levantando
+# NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS = [
     tools.opciones_movilidad,
-    tools.disponibilidad_aparcamiento,
     tools.eventos_cercanos,
 ]
 
@@ -223,6 +223,98 @@ class CalidadAireToolTests(unittest.TestCase):
 
         self.assertEqual(resultado.hora, 14)
         self.assertEqual(resultado.valor, 40.0)
+
+
+_APARCAMIENTOS_COLUMNS = [
+    _column("parking_id", "varchar"),
+    _column("name", "varchar"),
+    _column("hour", "integer"),
+    _column("avg_free_spaces", "double"),
+    _column("avg_occupancy_ratio", "double"),
+    _column("total_spaces", "integer"),
+    _column("samples_count", "bigint"),
+]
+
+
+class DisponibilidadAparcamientoToolTests(unittest.TestCase):
+    def test_sin_aparcamientos_coincidentes_devuelve_sin_datos_sin_excepcion(self):
+        client = FakeAthenaClient(_APARCAMIENTOS_COLUMNS, [])
+
+        resultado = tools._disponibilidad_aparcamiento_impl(
+            "Zona Inexistente", datetime(2026, 8, 20, 14, tzinfo=_MADRID), athena_client=client
+        )
+
+        self.assertEqual(resultado.aparcamientos_consultados, [])
+        self.assertIsNone(resultado.plazas_libres)
+        self.assertEqual(resultado.zona, "Zona Inexistente")
+        self.assertIn("aparcamientos_por_parking_hora", resultado.fuente_dataset)
+
+    def test_un_aparcamiento_coincidente_devuelve_sus_plazas(self):
+        rows = [_row("73", "Plaza de Oriente", "4", "189.0", "0.89", "212", "1")]
+        client = FakeAthenaClient(_APARCAMIENTOS_COLUMNS, rows)
+
+        resultado = tools._disponibilidad_aparcamiento_impl(
+            "Plaza de Oriente", datetime(2026, 8, 20, 4, tzinfo=_MADRID), athena_client=client
+        )
+
+        self.assertEqual(resultado.plazas_libres, 189)
+        self.assertEqual(resultado.plazas_totales, 212)
+        self.assertEqual(resultado.hora, 4)
+        self.assertEqual(resultado.aparcamientos_consultados, ["Plaza de Oriente"])
+
+    def test_varios_aparcamientos_coincidentes_suma_plazas_en_vez_de_tomar_el_peor_caso(self):
+        # A diferencia de calidad_aire (peor caso), aquí la capacidad de
+        # varios aparcamientos que coinciden con la zona es real y aditiva.
+        rows = [
+            _row("1", "Chamberí Norte", "10", "50.0", "0.5", "100", "2"),
+            _row("2", "Chamberí Sur", "10", "30.0", "0.7", "100", "2"),
+        ]
+        client = FakeAthenaClient(_APARCAMIENTOS_COLUMNS, rows)
+
+        resultado = tools._disponibilidad_aparcamiento_impl(
+            "Chamberí", datetime(2026, 8, 20, 10, tzinfo=_MADRID), athena_client=client
+        )
+
+        self.assertEqual(resultado.plazas_libres, 80)
+        self.assertEqual(resultado.plazas_totales, 200)
+        self.assertEqual(sorted(resultado.aparcamientos_consultados), ["Chamberí Norte", "Chamberí Sur"])
+
+    def test_sin_momento_usa_la_hora_mas_reciente_del_dia(self):
+        rows = [
+            _row("1", "Retiro", "9", "10.0", "0.9", "100", "1"),
+            _row("1", "Retiro", "15", "60.0", "0.4", "100", "1"),
+        ]
+        client = FakeAthenaClient(_APARCAMIENTOS_COLUMNS, rows)
+
+        resultado = tools._disponibilidad_aparcamiento_impl("Retiro", None, athena_client=client)
+
+        self.assertEqual(resultado.hora, 15)
+        self.assertEqual(resultado.plazas_libres, 60)
+
+    def test_avg_free_spaces_nulo_se_excluye_de_la_suma_en_vez_de_contar_como_cero(self):
+        rows = [
+            _row("1", "Sin Muestras", "10", None, None, "100", "0"),
+            _row("2", "Con Muestras", "10", "40.0", "0.6", "100", "2"),
+        ]
+        client = FakeAthenaClient(_APARCAMIENTOS_COLUMNS, rows)
+
+        resultado = tools._disponibilidad_aparcamiento_impl(
+            "a", datetime(2026, 8, 20, 10, tzinfo=_MADRID), athena_client=client
+        )
+
+        self.assertEqual(resultado.plazas_libres, 40)
+        self.assertEqual(resultado.plazas_totales, 200)
+
+    def test_momento_en_otra_zona_horaria_se_convierte_a_madrid(self):
+        rows = [_row("1", "Retiro", "14", "20.0", "0.8", "100", "1")]
+        client = FakeAthenaClient(_APARCAMIENTOS_COLUMNS, rows)
+
+        resultado = tools._disponibilidad_aparcamiento_impl(
+            "Retiro", datetime(2026, 8, 20, 12, tzinfo=ZoneInfo("UTC")), athena_client=client
+        )
+
+        self.assertEqual(resultado.hora, 14)
+        self.assertEqual(resultado.plazas_libres, 20)
 
 
 class FakeNeo4jResult:

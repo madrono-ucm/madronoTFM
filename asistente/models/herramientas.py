@@ -167,11 +167,23 @@ class OpcionMovilidad(BaseModel):
 
 
 class DisponibilidadAparcamiento(BaseModel):
-    """Plazas de aparcamiento libres estimadas en una zona."""
+    """Plazas de aparcamiento libres estimadas en una zona y momento
+    concretos (tarea 090: implementación real, ver
+    `asistente/mcp_agent/tools.py::disponibilidad_aparcamiento`).
+
+    A diferencia de `CalidadAireZona` (que toma el peor caso entre varias
+    estaciones coincidentes), varios aparcamientos que coinciden con `zona`
+    representan capacidad real distinta y aditiva -- `plazas_libres`/
+    `plazas_totales` son la **suma** entre los aparcamientos de
+    `aparcamientos_consultados`, no el de un único aparcamiento "peor caso".
+    """
 
     zona: str
+    momento: datetime
     plazas_libres: int | None = None
     plazas_totales: int | None = None
+    hora: int | None = None
+    aparcamientos_consultados: list[str] = Field(default_factory=list)
     fuente_dataset: str
 
 
