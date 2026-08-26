@@ -3,7 +3,7 @@ id: 93
 slug: recapturar-plan-drift-terraform-real
 title: 'QA: el plan de drift de doc/088 está obsoleto (55 cambios reales frente a
   los 15 documentados)'
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/093-recapturar-plan-drift-terraform-real
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-26T10:50:00+00:00'
-updated_at: '2026-08-26T11:01:55.749334+00:00'
+updated_at: '2026-08-26T12:04:59.325137+00:00'
 started_at: '2026-08-26T10:56:15.199625+00:00'
 submitted_at: '2026-08-26T11:01:55.749189+00:00'
-merged_at: null
+merged_at: '2026-08-26T12:04:56Z'
 ---
 
 ## Hallazgo de QA (verificado en vivo, no especulativo)
