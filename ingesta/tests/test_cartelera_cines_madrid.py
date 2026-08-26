@@ -13,10 +13,12 @@ import json
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 
 from ingesta.capturas.cartelera_cines_madrid import (
+    CaptureConfig,
     CINEMAS,
     DEFAULT_SAMPLE_PATH,
     SOURCE_NAME,
@@ -26,6 +28,7 @@ from ingesta.capturas.cartelera_cines_madrid import (
     fetch_cinema_showtimes,
     normalize_premiere,
     sweep_premieres,
+    sweep_showtimes,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -117,6 +120,38 @@ class FetchCinemaShowtimesTests(unittest.TestCase):
     def test_records_are_json_serializable(self):
         records = fetch_cinema_showtimes("cinesa_proyecciones", html=self.html, captured_at=CAPTURED_AT)
         json.dumps(records, ensure_ascii=False)
+
+
+class SweepShowtimesTests(unittest.TestCase):
+    """`sweep_showtimes` (tarea 090): agrega `fetch_cinema_showtimes` sobre
+    `config.cinema_ids` -- mockeado aquí (mismo criterio que
+    `test_lambda_handlers.py`) porque la lógica de red/parseo por cine ya
+    está cubierta por `FetchCinemaShowtimesTests`."""
+
+    def test_aggregates_records_across_configured_cinemas(self):
+        config = CaptureConfig(
+            base_url="https://example.invalid",
+            cinema_ids=["cinesa_proyecciones", "yelmo_ideal"],
+            timeout_seconds=1.0,
+            max_retries=1,
+            retry_backoff_seconds=0.0,
+        )
+        with patch(
+            "ingesta.capturas.cartelera_cines_madrid.fetch_cinema_showtimes"
+        ) as mock_fetch:
+            mock_fetch.side_effect = lambda cinema_id, **kwargs: [{"cinema_id": cinema_id}]
+            records = sweep_showtimes(config=config, captured_at=CAPTURED_AT)
+        self.assertEqual(mock_fetch.call_count, 2)
+        self.assertEqual([r["cinema_id"] for r in records], ["cinesa_proyecciones", "yelmo_ideal"])
+
+    def test_default_config_uses_one_cinema_per_chain(self):
+        with patch(
+            "ingesta.capturas.cartelera_cines_madrid.fetch_cinema_showtimes"
+        ) as mock_fetch:
+            mock_fetch.return_value = []
+            sweep_showtimes(captured_at=CAPTURED_AT)
+        called_cinema_ids = [call.args[0] for call in mock_fetch.call_args_list]
+        self.assertEqual(called_cinema_ids, ["cinesa_proyecciones", "yelmo_ideal"])
 
 
 class SweepPremieresTests(unittest.TestCase):
