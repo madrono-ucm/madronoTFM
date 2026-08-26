@@ -26,12 +26,11 @@ TOOL_FUNCTIONS = [
 ]
 
 # `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081),
-# `afluencia_estimada` (tarea 089) y `disponibilidad_aparcamiento` (tarea
-# 090) son las únicas con lógica real -- el resto siguen levantando
-# NotImplementedError.
+# `afluencia_estimada` (tarea 089), `disponibilidad_aparcamiento` (tarea 090)
+# y `eventos_cercanos` (tarea 093) son las únicas con lógica real -- solo
+# `opciones_movilidad` sigue levantando NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS = [
     tools.opciones_movilidad,
-    tools.eventos_cercanos,
 ]
 
 
@@ -454,6 +453,158 @@ class TraficoCercanoToolTests(unittest.TestCase):
 
         self.assertEqual(resultado.hora, 15)
         self.assertAlmostEqual(resultado.estaciones[0].avg_intensity_vph, 600.0)
+
+
+_AGENDA_EVENTOS_SILVER_COLUMNS = [
+    _column("event_id", "varchar"),
+    _column("title", "varchar"),
+    _column("venue_name", "varchar"),
+    _column("lat", "double"),
+    _column("lon", "double"),
+    _column("start_datetime", "varchar"),
+]
+
+
+class EventosCercanosToolTests(unittest.TestCase):
+    def test_sin_lugar_coincidente_devuelve_lista_vacia_sin_excepcion(self):
+        driver = FakeNeo4jDriver([])
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, [])
+
+        resultado = tools._eventos_cercanos_impl(
+            "Zona Inexistente",
+            500.0,
+            datetime(2026, 8, 20, 14, tzinfo=_MADRID),
+            neo4j_driver=driver,
+            athena_client=athena,
+        )
+
+        self.assertEqual(resultado, [])
+        # Sin ningún :Lugar coincidente no hace falta ni consultar Silver.
+        self.assertEqual(athena.start_query_execution_calls, [])
+
+    def test_evento_dentro_del_radio_se_incluye(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Retiro", "lat": 40.415, "lon": -3.684}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        eventos_rows = [
+            _row("ev1", "Concierto en el Retiro", "Auditorio Retiro", "40.415", "-3.684", "2026-08-25T20:00:00+02:00")
+        ]
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, eventos_rows)
+
+        resultado = tools._eventos_cercanos_impl(
+            "Retiro", 500.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(len(resultado), 1)
+        self.assertEqual(resultado[0].nombre, "Concierto en el Retiro")
+        self.assertEqual(resultado[0].lugar, "Auditorio Retiro")
+        self.assertAlmostEqual(resultado[0].distancia_m, 0.0, delta=1.0)
+        self.assertIn("silver.agenda_eventos", resultado[0].fuente_dataset)
+
+    def test_evento_fuera_del_radio_se_excluye(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Retiro", "lat": 40.415, "lon": -3.684}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        eventos_rows = [
+            _row("ev1", "Concierto Lejano", "Otro Sitio", "41.415", "-3.684", "2026-08-25T20:00:00+02:00")
+        ]
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, eventos_rows)
+
+        resultado = tools._eventos_cercanos_impl(
+            "Retiro", 500.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(resultado, [])
+
+    def test_evento_sin_coordenadas_se_excluye_en_vez_de_fallar(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Retiro", "lat": 40.415, "lon": -3.684}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        eventos_rows = [_row("ev1", "Sin coordenadas", "?", None, None, "2026-08-25T20:00:00+02:00")]
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, eventos_rows)
+
+        resultado = tools._eventos_cercanos_impl(
+            "Retiro", 500.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(resultado, [])
+
+    def test_eventos_se_ordenan_por_distancia_ascendente(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Sol", "lat": 40.4169, "lon": -3.7035}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        eventos_rows = [
+            _row("ev1", "Lejano", "Sitio A", "40.4200", "-3.7035", "2026-08-25T20:00:00+02:00"),
+            _row("ev2", "Cercano", "Sitio B", "40.4170", "-3.7035", "2026-08-25T21:00:00+02:00"),
+        ]
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, eventos_rows)
+
+        resultado = tools._eventos_cercanos_impl(
+            "Sol", 500.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual([e.nombre for e in resultado], ["Cercano", "Lejano"])
+
+    def test_varios_lugares_coincidentes_toma_la_distancia_minima_a_cualquiera(self):
+        # Dos :Lugar coinciden con "Centro" -- el evento solo tiene que estar
+        # cerca de UNO de ellos, no de todos.
+        neo4j_rows = [
+            {"lugar_id": "poi:1", "lugar_nombre": "Centro Lejano", "lat": 41.0, "lon": -3.7},
+            {"lugar_id": "poi:2", "lugar_nombre": "Centro Cercano", "lat": 40.4169, "lon": -3.7035},
+        ]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        eventos_rows = [_row("ev1", "Evento", "Sitio", "40.4169", "-3.7035", "2026-08-25T20:00:00+02:00")]
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, eventos_rows)
+
+        resultado = tools._eventos_cercanos_impl(
+            "Centro", 500.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(len(resultado), 1)
+        self.assertAlmostEqual(resultado[0].distancia_m, 0.0, delta=1.0)
+
+    def test_consulta_silver_acota_por_ventana_de_30_dias_desde_momento(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Retiro", "lat": 40.415, "lon": -3.684}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, [])
+
+        tools._eventos_cercanos_impl(
+            "Retiro", 500.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(len(athena.start_query_execution_calls), 1)
+        sql = athena.start_query_execution_calls[0]["QueryString"]
+        self.assertIn("2026-08-20", sql)
+        self.assertIn("2026-09-19", sql)  # momento + 30 días
+
+    def test_sin_momento_usa_el_instante_actual(self):
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Retiro", "lat": 40.415, "lon": -3.684}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, [])
+
+        resultado = tools._eventos_cercanos_impl(
+            "Retiro", 500.0, None, neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(resultado, [])
+        self.assertEqual(len(athena.start_query_execution_calls), 1)
+
+    def test_evento_repetido_en_varios_dias_de_ingestion_se_deduplica(self):
+        # Silver es un almacén persistente: el mismo event_id recibe una
+        # fila nueva cada día de ingestión en que la fuente lo sigue
+        # listando (ver docstring de `_eventos_cercanos_impl`) -- bug real
+        # encontrado verificando esta tool contra datos reales (mismo
+        # event_id repetido en la respuesta).
+        neo4j_rows = [{"lugar_id": "poi:1", "lugar_nombre": "Retiro", "lat": 40.415, "lon": -3.684}]
+        driver = FakeNeo4jDriver(neo4j_rows)
+        eventos_rows = [
+            _row("ev1", "Árboles de El Retiro", "CEA Retiro", "40.415", "-3.684", "2026-08-27T19:00:00+02:00"),
+            _row("ev1", "Árboles de El Retiro", "CEA Retiro", "40.415", "-3.684", "2026-08-27T19:00:00+02:00"),
+            _row("ev1", "Árboles de El Retiro", "CEA Retiro", "40.415", "-3.684", "2026-08-27T19:00:00+02:00"),
+        ]
+        athena = FakeAthenaClient(_AGENDA_EVENTOS_SILVER_COLUMNS, eventos_rows)
+
+        resultado = tools._eventos_cercanos_impl(
+            "Retiro", 500.0, datetime(2026, 8, 20, 14, tzinfo=_MADRID), neo4j_driver=driver, athena_client=athena
+        )
+
+        self.assertEqual(len(resultado), 1)
 
 
 if __name__ == "__main__":

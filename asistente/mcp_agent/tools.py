@@ -9,10 +9,10 @@ interfaz (firma y docstring, registradas como `tools` MCP en
 `asistente/mcp_agent/server.py`) a partir de lo que `ingesta/` ya captura
 hoy. `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081),
 `afluencia_estimada` (tarea 089, sustituye a la `afluencia_prevista`
-original -- ver su docstring) y `disponibilidad_aparcamiento` (tarea 090)
-ya leen datos reales; `opciones_movilidad` y `eventos_cercanos` siguen
-levantando `NotImplementedError` -- tareas de seguimiento separadas, sin
-bloqueo técnico, solo alcance.
+original -- ver su docstring), `disponibilidad_aparcamiento` (tarea 090) y
+`eventos_cercanos` (tarea 093) ya leen datos reales; solo
+`opciones_movilidad` sigue levantando `NotImplementedError` -- tarea de
+seguimiento separada, sin bloqueo técnico, solo alcance (cruza 3 datasets).
 
 Las funciones son planas (sin decorador `@mcp.tool()` aquí) a propósito, en
 dos capas separadas:
@@ -25,9 +25,10 @@ dos capas separadas:
 
 from __future__ import annotations
 
-from datetime import datetime
+import math
+from datetime import datetime, timedelta
 
-from asistente.athena import GOLD_DATABASE, run_athena_query, sql_literal
+from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, sql_literal
 from asistente.models.herramientas import (
     AfluenciaEstimada,
     CalidadAireZona,
@@ -45,6 +46,7 @@ from asistente.neo4j_client import (
     lugares_proximos_a_estaciones_ruido_query,
     lugares_proximos_a_estaciones_trafico_query,
     lugares_proximos_a_paradas_bicimad_query,
+    resolver_lugar_query,
     run_neo4j_query,
 )
 from asistente.timeutils import MADRID_TZ, now_madrid
@@ -812,22 +814,150 @@ def disponibilidad_aparcamiento(zona: str, momento: datetime | None = None) -> D
     return _disponibilidad_aparcamiento_impl(zona, momento)
 
 
+# Tabla Silver, no Gold (tarea 093 -- caso deliberadamente distinto al resto
+# de `tools`): Gold de este dataset (`agenda_eventos_por_categoria_
+# distrito_fecha`) agrega por categoría/distrito/fecha, sin lat/lon por
+# evento individual -- no sirve para "eventos cerca de un punto". Silver sí
+# conserva lat/lon reales por evento (`ingesta.capturas.agenda_eventos_madrid`,
+# tarea 017/056), ya validados por la puerta de calidad de
+# `procesamiento/silver_gold/agenda_eventos/transform.py`.
+_TABLA_AGENDA_EVENTOS_SILVER = "agenda_eventos"
+_FUENTE_AGENDA_EVENTOS_SILVER = f"silver.{_TABLA_AGENDA_EVENTOS_SILVER}"
+_FUENTE_GRAFO_EVENTOS_CERCANOS = "neo4j: (:Lugar) -- resuelve solo el punto de referencia, sin PROXIMO_A"
+
+# Ventana hacia delante desde `momento` en la que se buscan eventos (tarea
+# 093): Silver de `agenda_eventos` tiene cientos de particiones `fecha=`
+# reales que llegan hasta 2029 (eventos anunciados con mucha antelación,
+# ver doc/093-...md) -- sin acotar, "eventos cercanos" incluiría conciertos
+# de dentro de 3 años. 30 días cubre "próximos" de forma razonable sin
+# convertirse en un escaneo de toda la tabla.
+_VENTANA_DIAS_EVENTOS_CERCANOS = 30
+
+_EARTH_RADIUS_M = 6371000.0
+
+
+def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distancia en metros entre dos puntos WGS84 (fórmula del semiverseno).
+
+    Réplica deliberada de `grafo/geo.py::haversine_m` en vez de importarla
+    -- mismo criterio ya documentado en `asistente/timeutils.py`/`athena.py`:
+    `asistente/` se mantiene autocontenido, sin depender de `grafo/`.
+    """
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    d_phi = math.radians(lat2 - lat1)
+    d_lambda = math.radians(lon2 - lon1)
+    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
+    return 2 * _EARTH_RADIUS_M * math.asin(math.sqrt(a))
+
+
+def _eventos_cercanos_impl(
+    lugar: str,
+    radio_m: float,
+    momento: datetime | None,
+    *,
+    neo4j_driver=None,
+    athena_client=None,
+) -> "list[EventoCercano]":
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    query, params = resolver_lugar_query(lugar)
+    filas_lugar = run_neo4j_query(query, params, driver=neo4j_driver)
+    candidatos = [
+        (fila["lat"], fila["lon"]) for fila in filas_lugar if fila.get("lat") is not None and fila.get("lon") is not None
+    ]
+    if not candidatos:
+        return []
+
+    fecha_inicio = instante.date()
+    fecha_fin = fecha_inicio + timedelta(days=_VENTANA_DIAS_EVENTOS_CERCANOS)
+    # `fecha` (no `date`): a diferencia de Gold -- que renombra la partición
+    # a `date` al agregar, ver p.ej. `.withColumnRenamed("fecha", "date")`
+    # en `procesamiento/silver_gold/*/glue_silver_to_gold.py` -- Silver
+    # conserva su columna de partición original en español. Bug real
+    # encontrado verificando esta tool contra Athena real (`COLUMN_NOT_FOUND:
+    # 'date'`), ver doc/093-...md.
+    sql = f"""
+        SELECT event_id, title, venue_name, lat, lon, start_datetime
+        FROM {_TABLA_AGENDA_EVENTOS_SILVER}
+        WHERE fecha BETWEEN '{fecha_inicio.isoformat()}' AND '{fecha_fin.isoformat()}'
+    """
+    filas_eventos = run_athena_query(sql, SILVER_DATABASE, athena_client=athena_client)
+
+    # Silver es un almacén persistente, no deduplicado: el mismo evento
+    # recibe una fila nueva cada día de ingestión en que la fuente lo sigue
+    # listando mientras sigue vigente (ver docstring de
+    # `procesamiento/silver_gold/agenda_eventos/glue_silver_to_gold.py`) --
+    # confirmado contra datos reales en la tarea 093 (un mismo `event_id`
+    # apareció repetido en la respuesta antes de este `dict`). Se queda con
+    # una sola fila por `event_id` antes de calcular distancias.
+    filas_por_evento = {}
+    for fila in filas_eventos:
+        event_id = fila.get("event_id")
+        if event_id and event_id not in filas_por_evento:
+            filas_por_evento[event_id] = fila
+
+    resultado: "list[EventoCercano]" = []
+    for fila in filas_por_evento.values():
+        lat, lon = fila.get("lat"), fila.get("lon")
+        inicio = fila.get("start_datetime")
+        if lat is None or lon is None or not inicio:
+            # Sin coordenadas o sin hora de inicio, este evento no puede
+            # participar en un filtro de distancia ni ordenarse -- se
+            # excluye en vez de forzar un valor inventado (mismo criterio
+            # que el resto del patrón: no hay tantos eventos sin lat/lon
+            # como para que valga la pena una segunda vía de resolución).
+            continue
+        distancia_m = min(_haversine_m(lat, lon, clat, clon) for clat, clon in candidatos)
+        if distancia_m <= radio_m:
+            resultado.append(
+                EventoCercano(
+                    nombre=fila.get("title") or fila.get("event_id"),
+                    lugar=fila.get("venue_name") or "",
+                    distancia_m=distancia_m,
+                    inicio=inicio,
+                    fuente_dataset=_FUENTE_AGENDA_EVENTOS_SILVER,
+                )
+            )
+
+    resultado.sort(key=lambda evento: evento.distancia_m)
+    return resultado
+
+
 def eventos_cercanos(
     lugar: str, radio_m: float = 500.0, momento: datetime | None = None
-) -> list[EventoCercano]:
-    """Eventos o recintos con actividad cerca de un lugar de Madrid.
+) -> "list[EventoCercano]":
+    """Eventos con actividad cerca de un lugar de Madrid, dentro de los
+    próximos 30 días (tarea 093: implementación real, ver
+    `asistente/README.md`).
 
-    Fuente futura: combina `ingesta.capturas.agenda_eventos_madrid` (tarea
-    017) y `ingesta.capturas.agenda_recintos_madrid` agregados en Gold,
-    filtrados por proximidad geográfica al `lugar` dado.
+    Cruce en dos pasos, distinto al de `trafico_cercano`/`afluencia_estimada`
+    (que siguen `PROXIMO_A` hasta un nodo del grafo): (1) resuelve `lugar`
+    contra `:Lugar` (coincidencia de texto, ver `resolver_lugar_query`) y
+    toma sus coordenadas -- no hay ningún nodo `:Evento` en el grafo
+    todavía; (2) consulta **Silver** de `agenda_eventos` (no Gold, que
+    agrega por categoría/distrito/fecha sin lat/lon por evento -- ver
+    `_TABLA_AGENDA_EVENTOS_SILVER`) para la ventana `[momento, momento+30
+    días)`, y filtra por distancia real (Haversine, `_haversine_m`) a
+    cualquiera de los `:Lugar` coincidentes.
+
+    Si ningún `:Lugar` coincide con `lugar`, o ningún evento de Silver está
+    dentro de `radio_m` en esa ventana, no lanza una excepción: devuelve una
+    lista vacía. Los resultados se ordenan por `distancia_m` ascendente.
+
+    **`agenda_recintos_madrid` (tarea 022) queda fuera de esta tarea**: solo
+    tiene captura de muestra a Bronze, sin ningún pipeline Silver/Gold
+    construido todavía (a diferencia de `agenda_eventos`) -- no hay tabla
+    real que consultar.
 
     Args:
-        lugar: Lugar de referencia (dirección, lugar o coordenadas).
+        lugar: Nombre o identificador (parcial) de un `:Lugar` del grafo
+            (POI, aparcamiento, cine...) a consultar -- p.ej. "Retiro".
         radio_m: Radio de búsqueda en metros alrededor de `lugar`.
-        momento: Instante para el que se buscan eventos activos/próximos. Si
-            es `None`, se asume el instante actual.
+        momento: Instante de referencia; se buscan eventos cuyo
+            `start_datetime` cae entre `momento` y `momento` + 30 días. Si es
+            `None`, se asume el instante actual (hora de Madrid).
     """
-    raise NotImplementedError(
-        "eventos_cercanos: pendiente de Gold real para agenda_eventos_madrid "
-        "/ agenda_recintos_madrid (ver doc/041 y el docstring de este módulo)"
-    )
+    return _eventos_cercanos_impl(lugar, radio_m, momento)

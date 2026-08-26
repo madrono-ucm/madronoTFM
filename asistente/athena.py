@@ -19,6 +19,11 @@ import boto3
 
 ATHENA_WORKGROUP = os.environ.get("ATHENA_WORKGROUP", "madrono-tfm-dev-silver-gold")
 GOLD_DATABASE = os.environ.get("ATHENA_GOLD_DATABASE", "madrono-tfm_dev_gold")
+# Tarea 093: `eventos_cercanos` lee Silver directamente, no Gold -- Gold de
+# `agenda_eventos` agrega por categoría/distrito/fecha (sin lat/lon por
+# evento individual, ver doc/093-...md), la única fuente con posición real
+# por evento es Silver.
+SILVER_DATABASE = os.environ.get("ATHENA_SILVER_DATABASE", "madrono-tfm_dev_silver")
 
 _TERMINAL_STATES = {"SUCCEEDED", "FAILED", "CANCELLED"}
 _INTEGER_TYPES = {"tinyint", "smallint", "integer", "int", "bigint"}
