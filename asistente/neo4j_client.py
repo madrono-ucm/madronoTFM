@@ -114,6 +114,37 @@ def lugares_proximos_a_paradas_bicimad_query(nombre_lugar: str, radio_m: float) 
     return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
 
 
+def resolver_lugar_query(nombre_lugar: str) -> "tuple[str, dict]":
+    """Resuelve `nombre_lugar` contra `:Lugar` (mismo criterio de
+    coincidencia de texto que el resto de query builders de este módulo),
+    devolviendo solo sus coordenadas -- sin seguir ninguna relación
+    `PROXIMO_A`.
+
+    A diferencia de `lugares_proximos_a_*` (tarea 081/089), `eventos_cercanos`
+    (tarea 091) no cruza contra ningún nodo del grafo: no existe ningún
+    `:Evento` cargado todavía (`agenda_eventos`/`agenda_recintos` no forman
+    parte del grafo, ver `grafo/README.md`), y Gold de `agenda_eventos`
+    agrega por categoría/distrito/fecha (sin lat/lon por evento individual,
+    ver `doc/091-...md`) -- la única fuente con posición real por evento es
+    **Silver** (`ingesta.capturas.agenda_eventos_madrid`, lat/lon ya
+    normalizados). Esta consulta solo resuelve el punto de referencia; el
+    filtro de distancia contra los eventos de Silver se hace en Python
+    (`asistente/mcp_agent/tools.py::_haversine_m`), no en Cypher.
+
+    `l.ubicacion` es un `Point` WGS84 (`infra/neo4j/schema/schema.cypher`) --
+    se extraen `.latitude`/`.longitude` explícitamente porque el driver
+    `neo4j` devuelve un objeto `Point`, no dos escalares, y el resto de este
+    módulo (y `asistente/mcp_agent/tools.py`) trabaja con `lat`/`lon` planos.
+    """
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "RETURN l.id AS lugar_id, l.nombre AS lugar_nombre, "
+        "l.ubicacion.latitude AS lat, l.ubicacion.longitude AS lon"
+    )
+    return query, {"nombre_lugar": nombre_lugar}
+
+
 @lru_cache
 def _driver_from_env():
     from neo4j import GraphDatabase  # import perezoso, ver docstring del módulo
