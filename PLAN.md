@@ -125,7 +125,10 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `091`** (090 consumida el 25/8: rastreo de nuevos
+**Próximo número libre: `093`** (091 consumida el 26/8:
+`disponibilidad_aparcamiento`, ver `tasks/done/091-...md`. 092 consumida
+el 26/8 por una pasada de QA independiente — ver Pista Sistema. 090 consumida
+el 25/8: rastreo de nuevos
 datasets de `datos.madrid.es` y tres productores nuevos, ver
 `doc/090-nuevas-fuentes-parques-ser-emt-incidencias.md`. 083-086 consumidas el 25/8: investigación
 Google Maps/arquitectura, esquema de plataformas, plan de cierre, spec de
@@ -230,9 +233,16 @@ pese a estar en orden inverso de creación en este documento.
   de "alta prioridad" del rastreo inicial (ocupación de líneas EMT,
   campañas de aforos) resultaron ser datos anuales al verificarlos, no en
   vivo — descartados, ver `doc/090-...md`.
-- [ ] **Asistente: resto de tools** (`disponibilidad_aparcamiento`,
-  `eventos_cercanos`, `opciones_movilidad`) — sin bloqueo, se pueden ir
-  encolando una a una según el mismo patrón que `079`.
+- [ ] **Asistente: resto de tools** (`eventos_cercanos`,
+  `opciones_movilidad`) — sin bloqueo, se pueden ir encolando una a una
+  según el mismo patrón que `079` (`disponibilidad_aparcamiento` ya
+  completada, ver `tasks/done/091-...md`).
+- [ ] **[`092-terraform-fileset-excluir-pycache`](tasks/092-terraform-fileset-excluir-pycache.md)**
+  — QA (26/8): `terraform plan`/`apply` crashea con un error de codificación
+  si existe `__pycache__/` local bajo `ingesta/` (el `fileset` de
+  `lambda.tf` no lo excluye, solo excluye `tests/`/`capturas/samples/`).
+  Reproducido en vivo. Riesgo real para quien ejecute el "apply" de la
+  Prioridad 1 de `NEXT_STEPS.md` si antes ha corrido los tests localmente.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
