@@ -162,8 +162,21 @@ Definido como código versionado en
 unicidad, índices de propiedad e índices espaciales (`POINT INDEX`) para
 cuatro tipos de nodo, más el contrato documentado (en comentarios, ya que
 Neo4j no permite forzar el "tipo" de una relación con un constraint) de los
-tipos de relación. No se ha ejecutado contra ninguna instancia real —no
-existe ninguna todavía— y no carga ningún dato, solo declara el esquema.
+tipos de relación. No carga ningún dato, solo declara el esquema.
+
+**Aplicado contra la instancia real el 26/8 (tarea 094)** -- quedó
+pendiente desde que se creó la instancia (tarea 080) hasta que un QA
+posterior lo detectó: sin los constraints `..._id_unique`, cada
+`MERGE (n:Label {id: $id})`/`MATCH (a {id: ...})` de `grafo/cypher.py` hacía
+un escaneo completo sin índice sobre miles de nodos existentes -- probado
+en vivo, un `python3 -m grafo.cargar_grafo` real quedó colgado **3 horas**
+(96s de CPU real sobre 3h de reloj, la propia consulta `PROXIMO_A`
+confirmada como cuello de botella con `SHOW TRANSACTIONS`) antes de
+aplicar el esquema; el mismo recargue completo tras aplicarlo tardó unos
+20 minutos (dominado por el cómputo de `relaciones.ubicado_en`, point-in-
+polygon en Python puro contra ~131 barrios por cada uno de ~9000 nodos, no
+por la base de datos). Ver `doc/094-recargar-grafo-osm-aforos-instancia-
+real.md` para el detalle completo.
 
 ### Tipos de nodo
 

@@ -166,3 +166,20 @@ entre horas distintas).
 - Consulta la Prioridad 1 de `NEXT_STEPS.md` (drift de Terraform, tarea
   088) antes de asumir que el Gold desplegado realmente coincide con el
   código de `main` en el momento de ejecutar la recarga real.
+
+## Actualización 26/8 (tarea 094): recarga real ejecutada, sigue en 0 nodos, causa confirmada
+
+Ejecutado `python3 -m grafo.cargar_grafo` de verdad contra AuraDB (mismo
+comando que el punto 2 de arriba). Resultado: `MATCH (e:EstacionMedida
+{tipo: "aforos_peatones_bicicletas"}) RETURN count(e)` → **0**, verificado
+con Cypher real. Consistente con lo ya diagnosticado, no un fallo nuevo: la
+partición real de este dataset en Athena sigue invisible por la fórmula de
+`partition projection` demasiado estrecha (`doc/090`, fix ya escrito en
+`infra/terraform/glue.tf`, todavía sin `apply` -- Prioridad 1/2 de
+`NEXT_STEPS.md`). El resto de la recarga (`:Lugar`/`:EstacionMedida`
+distintos de aforos/`:ParadaTransporte`/relaciones) sí se completó con
+éxito -- ver `doc/094-recargar-grafo-osm-aforos-instancia-real.md` para el
+resultado completo, incluido un hallazgo real no relacionado con este
+dataset: `infra/neo4j/schema/schema.cypher` nunca se había aplicado a la
+instancia real, y una recarga completa contra el grafo ya poblado sin esos
+índices colgó 3 horas antes de detectarse y corregirse.
