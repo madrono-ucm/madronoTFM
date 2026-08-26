@@ -10,69 +10,45 @@ fue nunca.
 No sustituye al reparto por pista de [`PLAN.md`](PLAN.md#reparto-sin-conflictos)
 — cada ítem indica a qué pista pertenece (Sistema / Memoria / Ambos).
 
-## Prioridad 1 — Reconciliar el drift de Terraform (Sistema)
+## Prioridad 1 — ~~Reconciliar el drift de Terraform~~ Hecho (Sistema)
 
-**Por qué es la prioridad más alta**: descubierto el 25/8
-(`doc/083-investigacion-google-maps-arquitectura.md`) — el código
-Glue/Lambda desplegado en AWS puede no coincidir con `main` (48 objetos de
-código desactualizados en el `terraform plan` sin acotar). Esto significa
-que **no se puede confiar en que las correcciones ya fusionadas estén
-realmente en ejecución** — cualquier verificación futura contra datos
-reales hereda esta duda hasta que se resuelva.
+**Hecho (tarea 098)**: el plan real (recapturado, `10 to add, 55 to
+change, 5 to destroy` según `doc/093` había subido a `55/65/50` por más
+trabajo fusionado entre medias) se aplicó completo salvo la infraestructura
+de Kafka (tarea 042, deliberadamente excluida vía `-target` sobre los 329
+recursos ya en `state`, no vía `-exclude` — no soportado en esta versión de
+Terraform). `terraform apply`: **50 added, 64 changed, 50 destroyed**, sin
+errores. Un `terraform plan` posterior sin acotar confirma el estado
+deseado: solo Kafka pendiente (`5 to add, 0 to change, 0 to destroy`).
 
-1. ~~Añadir `codebuild:BatchGetProjects` al rol `madrono-terraform-deployer`~~
-   — **hecho, fuera de este repo, antes de la tarea 088**: el rol real
-   (`madrono-terraform-deployerEC2`) no está gestionado por el código
-   Terraform de este proyecto (es el rol de instancia EC2 creado a mano en
-   el bootstrap de la tarea 014), así que no hay ningún `.tf` que tocar; el
-   permiso ya aparece concedido en AWS vía la managed policy
-   `AWSCodeBuildAdminAccess` (ver `doc/088-terraform-drift-plan-sin-aplicar.md`,
-   Hallazgos 1 y 2). `terraform plan` sin acotar ya completa limpio.
-2. **Hecho (tarea 088), recapturado (tarea 093) — usar `doc/093`, no `doc/088`**:
-   `terraform plan` sin acotar generado y volcado íntegro en
-   `doc/093-recapturar-plan-drift-terraform-real.md`, con la categorización
-   por secciones — **pendiente la revisión humana** de ese documento antes
-   de aplicar nada. El resultado de `doc/088` (25/8, `5 to add, 15 to
-   change, 0 to destroy`) quedó obsoleto un día después: el trabajo real
-   fusionado entre medias (tarea 090, drift deliberado del zip compartido
-   de Glue + 4 scripts, arrastrando ~40 jobs Glue por `--extra-py-files`
-   compartido; y el fix de partition projection de `aforos_peatones_
-   bicicletas` de la tarea 087, escrito pero sin aplicar) subió el plan
-   real a **`10 to add, 55 to change, 5 to destroy`** (confirmado con un
-   `terraform plan` real el 26/8, no solo inferido). `doc/093` explica la
-   categorización completa (A-E) de por qué subió.
-3. **Pendiente**: tras la revisión humana del punto 2 (sobre `doc/093`,
-   plan vigente), una tarea nueva (creada aparte, patrón de dos tareas de
-   `tasks/README.md`) aplica y vuelve a verificar en vivo (`aws lambda
-   list-functions`, `aws glue get-jobs`, etc.) que el estado post-apply
-   coincide con lo esperado.
-4. Documentar en `doc/` el resultado de la tarea 3, igual que cualquier
-   otra tarea.
+Bloqueo real encontrado y resuelto en el camino: el usuario IAM local
+(`madrono-terraform-deployer`) no tenía el permiso `codebuild:
+BatchGetProjects` que sí tenía el rol de instancia EC2
+(`madrono-terraform-deployerEC2`) usado por sesiones anteriores — sin él,
+`terraform plan` fallaba en cascada y mostraba cifras infladas/incorrectas
+en vez de un error claro. Arreglado con una política inline acotada al
+ARN exacto del proyecto de CodeBuild (no la managed policy completa,
+bloqueada además por la cuota de 10 políticas/usuario). Ver `doc/098` para
+el detalle completo, incluida la verificación línea a línea de cada uno de
+los ~170 cambios antes de aplicar nada.
 
-**Advertencia para quien lo ejecute**: `terraform plan -destroy
--target=...` sobre un solo dataset puede arrastrar, por políticas IAM
-compartidas, la planificación de destruir **todos** los productores
-Lambda — probado el 25/8, no usar `-destroy -target` sin entender el grafo
-de dependencias primero.
-
-## Prioridad 2 — Tablas Gold rotas o inalcanzables, causas distintas (Sistema)
+## Prioridad 2 — ~~Tablas Gold rotas o inalcanzables~~ Hecho (Sistema)
 
 | Dataset | Síntoma | Causa | Dónde está documentado |
 |---|---|---|---|
 | `aparcamientos` | ~~Job `SUCCEEDED`, 0 filas escritas~~ **Resuelto** | Efecto colateral no documentado de la reescritura de lectura incremental (tareas 072/075) — ya no tenía el bug. Verificado con Athena real: 601 filas/día hasta hoy | `doc/090` |
 | `cartelera_cines_estrenos` | ~~Job falla (`AnalysisException`)~~ **Resuelto** | Causa real más profunda que "Silver vacío": sin escritor programado de sesiones (solo `sweep_premieres`), la puerta de calidad rechazaba el 100% de los lotes. Añadido `sweep_showtimes`/`event.tipo=="sesiones"` + schedule Terraform; de paso, arreglado un bug real (`Column 'fecha' does not exist`) presente también en `agenda_eventos` (rompiendo producción desde el 08-23) y `bluesky_menciones` | `doc/090` |
 | `afluencia_lugares` | Ya no es prioridad — ver tarea 086 | Bloqueado por Google Maps, sustituido | `doc/012`, `doc/083` |
-| `aforos_peatones_bicicletas` | Athena devuelve 0 filas pese a que el Parquet real existe en S3 | `projection.date.range`/`projection.fecha.range` del catálogo (`"2026-08-01,NOW+1DAY"`) más estrecho que el `measured_at` real de la fuente (`2024-06-30`, fuente municipal descontinuada desde entonces, confirmado contra `datos.madrid.es`) — partición invisible por fórmula, no por falta de dato. Fix ya escrito en `infra/terraform/glue.tf` (rango ampliado a `"2024-01-01,NOW+1DAY"`), sin aplicar. Su `glue_silver_to_gold.py` también tenía el mismo bug de `fecha` que `cartelera_cines_estrenos` — ya corregido (tarea 090), aunque no verificable en vivo hasta que la fuente vuelva a publicar | `doc/087`, `doc/090` |
+| `aforos_peatones_bicicletas` | ~~Athena devuelve 0 filas pese a que el Parquet real existe en S3~~ **Resuelto (tarea 098)** | `projection.date.range`/`projection.fecha.range` ampliado de `"2026-08-01,NOW+1DAY"` a `"2024-01-01,NOW+1DAY"`, aplicado de verdad. Verificado con Athena real tras el `apply`, sin ningún `MSCK REPAIR`: **1971 filas** en Silver y en Gold (antes 0) | `doc/087`, `doc/090`, `doc/098` |
 
-Ya no queda ninguna tabla Gold rota sin diagnosticar. Solo sigue pendiente
-aplicar el fix de partition projection de `aforos_peatones_bicicletas`
-(junto con la Prioridad 1, o antes si se aísla con cuidado) y relanzar
-`grafo/cargar_grafo.py`; aun así, no vuelve a ser señal *en vivo* (la
-fuente sigue descontinuada) — solo desbloquea el histórico real 2019-2024
-para análisis/ML, `afluencia_estimada` (tarea 089) ya no depende de ella.
-La tarea 090 dejó además un drift deliberado de Terraform (4 objetos S3 de
-script Glue + el zip compartido `procesamiento_source`, ver `doc/090`) que
-la Prioridad 1 debe absorber en su reconciliación.
+Ya no queda ninguna tabla Gold rota ni bloqueada. `aforos_peatones_
+bicicletas` sigue sin ser señal *en vivo* (la fuente municipal está
+descontinuada desde 2024-06-30) — el desbloqueo da acceso real al
+histórico 2019-2024 para análisis/ML; `afluencia_estimada` (tarea 089) no
+dependía de ella. Pendiente, si se decide usarlo: relanzar
+`grafo/cargar_grafo.py` para que los nodos de aforos entren también al
+grafo (tarea 087) — fuera del alcance de la 098, que solo restauraba el
+acceso vía Athena.
 
 ## Prioridad 3 — ~~Implementar la tarea 086 (afluencia por grafo)~~ Hecho, rediseñada (Sistema)
 
