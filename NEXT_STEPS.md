@@ -68,15 +68,16 @@ La tarea 090 dejó además un drift deliberado de Terraform (4 objetos S3 de
 script Glue + el zip compartido `procesamiento_source`, ver `doc/090`) que
 la Prioridad 1 debe absorber en su reconciliación.
 
-## Prioridad 3 — Implementar la tarea 086 (afluencia por grafo) (Sistema)
+## Prioridad 3 — ~~Implementar la tarea 086 (afluencia por grafo)~~ Hecho, rediseñada (Sistema)
 
-Especificación ya escrita (ver `tasks/086-afluencia-estimada-grafo.md`,
-PR pendiente) — sustituye la señal de Google Maps por una compuesta sobre
-`aforos_peatones_bicicletas` (proxy real de peatones) + `bicimad`/`trafico`
-como señales secundarias + `agenda_eventos` como indicador anticipado, vía
-el grafo Neo4j (mismo patrón que `trafico_cercano`, tarea 081). Depende de
-la Prioridad 2 (`aparcamientos`) solo si se quiere esa señal desde el
-principio — puede implementarse sin ella y añadirla después.
+**Hecho (tarea 089), con un diseño distinto al original de esta prioridad**:
+la especificación original de la tarea 086 usaba `aforos_peatones_
+bicicletas` como señal primaria (proxy real de peatones) — descartada tras
+la tarea 087, que confirmó que esa fuente municipal está descontinuada
+desde 2024-06-30 (ver `doc/087`). `afluencia_estimada` (tarea 089, ya real
+y verificada en vivo) combina en su lugar tráfico + ruido + BiciMAD +
+calidad del aire vía el grafo Neo4j (mismo patrón que `trafico_cercano`,
+tarea 081) — ver `asistente/README.md`. No depende de la Prioridad 2.
 
 ## Prioridad 4 — Resto de tools del asistente (Sistema)
 
@@ -84,7 +85,9 @@ principio — puede implementarse sin ella y añadirla después.
 extremo a extremo por tarea, no varias a la vez):
 
 - `opciones_movilidad` (cruza `trafico`+EMT+BiciMAD)
-- `disponibilidad_aparcamiento` (ya no bloqueada por la Prioridad 2 — `aparcamientos` tiene Gold real, ver `doc/090`)
+- ~~`disponibilidad_aparcamiento`~~ **Hecho (tarea 090)** — real, vía Athena
+  directo (una sola tabla, sin grafo), verificado en vivo
+  (`GET /disponibilidad-aparcamiento`), ver `doc/090`
 - `eventos_cercanos` (`agenda_eventos`+`agenda_recintos`)
 - Persistir `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD` como parámetros
   SSM `SecureString` (gap documentado desde la tarea 043, causó un bloqueo

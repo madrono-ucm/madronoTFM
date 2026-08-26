@@ -7,12 +7,12 @@ estimada, calidad del aire, opciones de movilidad, disponibilidad de
 aparcamiento y eventos cercanos. Estas cinco funciones anticipan esa
 interfaz (firma y docstring, registradas como `tools` MCP en
 `asistente/mcp_agent/server.py`) a partir de lo que `ingesta/` ya captura
-hoy. `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081) y
+hoy. `calidad_aire` (tarea 079), `trafico_cercano` (tarea 081),
 `afluencia_estimada` (tarea 089, sustituye a la `afluencia_prevista`
-original -- ver su docstring) ya leen datos reales; `opciones_movilidad`,
-`disponibilidad_aparcamiento` y `eventos_cercanos` siguen levantando
-`NotImplementedError` -- tareas de seguimiento separadas, sin bloqueo
-técnico, solo alcance.
+original -- ver su docstring) y `disponibilidad_aparcamiento` (tarea 090)
+ya leen datos reales; `opciones_movilidad` y `eventos_cercanos` siguen
+levantando `NotImplementedError` -- tareas de seguimiento separadas, sin
+bloqueo técnico, solo alcance.
 
 Las funciones son planas (sin decorador `@mcp.tool()` aquí) a propósito, en
 dos capas separadas:
@@ -196,6 +196,68 @@ def _calidad_aire_impl(
         hora=hora_objetivo,
         estaciones_consultadas=estaciones,
         fuente_dataset=_FUENTE_CALIDAD_AIRE,
+    )
+
+
+# Tabla Gold real (tarea 090 -- verificado en vivo con Athena, aparcamientos
+# ya no tenía el bug de "0 filas" de doc/052, ver doc/090). Columnas:
+# parking_id, name, hour, samples_count, first_measured_at, last_measured_at,
+# avg_free_spaces, avg_occupancy_ratio, total_spaces, lat, lon, partición
+# date.
+_TABLA_APARCAMIENTOS = "aparcamientos_por_parking_hora"
+_FUENTE_APARCAMIENTOS = f"gold.{_TABLA_APARCAMIENTOS}"
+
+
+def _disponibilidad_aparcamiento_impl(
+    zona: str, momento: datetime | None, *, athena_client=None
+) -> DisponibilidadAparcamiento:
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+    fecha = instante.date().isoformat()
+    zona_literal = sql_literal(zona.lower())
+
+    sql = f"""
+        SELECT parking_id, name, hour, avg_free_spaces, avg_occupancy_ratio, total_spaces, samples_count
+        FROM {_TABLA_APARCAMIENTOS}
+        WHERE date = '{fecha}'
+          AND (lower(name) LIKE '%{zona_literal}%' OR lower(parking_id) LIKE '%{zona_literal}%')
+    """
+    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+
+    if not filas:
+        return DisponibilidadAparcamiento(zona=zona, momento=instante, fuente_dataset=_FUENTE_APARCAMIENTOS)
+
+    if momento is not None:
+        hora_objetivo = instante.hour
+    else:
+        hora_objetivo = max(fila["hour"] for fila in filas)
+    filas_hora = [fila for fila in filas if fila["hour"] == hora_objetivo]
+
+    if not filas_hora:
+        return DisponibilidadAparcamiento(
+            zona=zona, momento=instante, hora=hora_objetivo, fuente_dataset=_FUENTE_APARCAMIENTOS
+        )
+
+    # A diferencia de `_calidad_aire_impl` (peor caso entre estaciones que
+    # coinciden), varios aparcamientos que coinciden con `zona` representan
+    # capacidad real distinta y aditiva -- se suman, no se toma un único
+    # "peor caso". Filas con `avg_free_spaces`/`total_spaces=None` (sin
+    # ninguna muestra válida esa hora) se excluyen de la suma en vez de
+    # tratarse como 0 plazas, que subestimaría la capacidad real.
+    aparcamientos = sorted({fila["name"] or fila["parking_id"] for fila in filas_hora})
+    libres = [fila["avg_free_spaces"] for fila in filas_hora if fila.get("avg_free_spaces") is not None]
+    totales = [fila["total_spaces"] for fila in filas_hora if fila.get("total_spaces") is not None]
+
+    return DisponibilidadAparcamiento(
+        zona=zona,
+        momento=instante,
+        hora=hora_objetivo,
+        plazas_libres=round(sum(libres)) if libres else None,
+        plazas_totales=sum(totales) if totales else None,
+        aparcamientos_consultados=aparcamientos,
+        fuente_dataset=_FUENTE_APARCAMIENTOS,
     )
 
 
@@ -719,19 +781,35 @@ def opciones_movilidad(
     )
 
 
-def disponibilidad_aparcamiento(zona: str) -> DisponibilidadAparcamiento:
-    """Plazas de aparcamiento libres estimadas en una zona de Madrid.
+def disponibilidad_aparcamiento(zona: str, momento: datetime | None = None) -> DisponibilidadAparcamiento:
+    """Plazas de aparcamiento libres estimadas en una zona de Madrid (tarea
+    090: implementación real, ver `asistente/README.md`).
 
-    Fuente futura: `ingesta.capturas.aparcamientos_madrid` (tarea 005)
-    agregado en Gold por zona/hora.
+    Fuente: `gold.aparcamientos_por_parking_hora` (mediciones reales de
+    `ingesta.capturas.aparcamientos_madrid`, tarea 005), consultada vía
+    Athena. Mismo criterio pragmático de resolución de `zona` que
+    `calidad_aire`: coincidencia de texto (case insensitive, `LIKE '%zona%'`)
+    contra `name`/`parking_id` -- no hay resolución por barrio/distrito
+    todavía (pendiente del grafo).
+
+    A diferencia de `calidad_aire` (que agrega tomando el peor caso entre
+    estaciones que coinciden), aquí varios aparcamientos que coinciden con
+    `zona` representan capacidad real distinta y aditiva: `plazas_libres`/
+    `plazas_totales` son la suma entre todos los aparcamientos encontrados,
+    no el de uno solo -- ver `_disponibilidad_aparcamiento_impl`.
+
+    Si ningún aparcamiento coincide (o no hay datos para la hora pedida), no
+    lanza una excepción: devuelve `DisponibilidadAparcamiento` con
+    `aparcamientos_consultados=[]` y `plazas_libres`/`plazas_totales=None`.
 
     Args:
-        zona: Barrio, distrito o aparcamiento concreto a consultar.
+        zona: Nombre o identificador (parcial) de uno o varios aparcamientos
+            públicos de Madrid a consultar -- p.ej. "Plaza de Oriente".
+        momento: Instante para el que se quiere el dato (se usa su fecha y
+            hora exacta). Si es `None`, se asume el instante actual (hora de
+            Madrid) y se usa la última hora con datos disponibles ese día.
     """
-    raise NotImplementedError(
-        "disponibilidad_aparcamiento: pendiente de Gold real para "
-        "aparcamientos_madrid (ver doc/041 y el docstring de este módulo)"
-    )
+    return _disponibilidad_aparcamiento_impl(zona, momento)
 
 
 def eventos_cercanos(
