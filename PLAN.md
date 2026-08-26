@@ -125,10 +125,10 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `093`** (091 consumida el 26/8:
-`disponibilidad_aparcamiento`, ver `tasks/done/091-...md`. 092 consumida
-el 26/8 por una pasada de QA independiente — ver Pista Sistema. 090 consumida
-el 25/8: rastreo de nuevos
+**Próximo número libre: `094`** (091 consumida el 26/8:
+`disponibilidad_aparcamiento`, ver `tasks/done/091-...md`. 092/093
+consumidas el 26/8 por una pasada de QA independiente — ver Pista Sistema.
+090 consumida el 25/8: rastreo de nuevos
 datasets de `datos.madrid.es` y tres productores nuevos, ver
 `doc/090-nuevas-fuentes-parques-ser-emt-incidencias.md`. 083-086 consumidas el 25/8: investigación
 Google Maps/arquitectura, esquema de plataformas, plan de cierre, spec de
@@ -243,6 +243,13 @@ pese a estar en orden inverso de creación en este documento.
   `lambda.tf` no lo excluye, solo excluye `tests/`/`capturas/samples/`).
   Reproducido en vivo. Riesgo real para quien ejecute el "apply" de la
   Prioridad 1 de `NEXT_STEPS.md` si antes ha corrido los tests localmente.
+- [ ] **[`093-recapturar-plan-drift-terraform-real`](tasks/093-recapturar-plan-drift-terraform-real.md)**
+  — QA (26/8): el plan de `doc/088` (`5 to add, 15 to change, 0 to
+  destroy`) está obsoleto — el `terraform plan` real de hoy da
+  `10 to add, 55 to change, 5 to destroy` (cascada de los 4 scripts Glue +
+  el zip compartido que la tarea 090 desplegó manualmente a S3). El equipo
+  no debe crear la tarea de "apply" de la Prioridad 1 sobre el número
+  antiguo.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
