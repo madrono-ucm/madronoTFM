@@ -1062,3 +1062,19 @@ To perform exactly these actions, run the following command to apply:
 El fichero de plan binario (`/tmp/plan088b.tfplan`) es un artefacto local efímero de esta
 sesión (gitignored, `*.tfplan`), no se ha commiteado ni persiste — la tarea siguiente que
 aplique debe generar su propio `terraform plan` antes de `apply`, no reutilizar este.
+
+## Actualización 26/8: este plan quedó obsoleto, ver `doc/093`
+
+QA (tarea 093) detectó que, un día después, el plan real ya no es `5 to add, 15 to
+change, 0 to destroy` sino **`10 to add, 55 to change, 5 to destroy`**. La causa no es un
+error de esta tarea ni de `doc/088`: entre el 25/8 y el 26/8 se fusionó trabajo real
+(tarea 090, arreglo de `Column 'fecha' does not exist` en 4 datasets Gold, desplegado
+deliberadamente a mano en S3 sin pasar por Terraform, más el fix de partition projection
+de `aforos_peatones_bicicletas` de la tarea 087, escrito en `glue.tf` pero nunca
+aplicado) que introdujo drift adicional real, no reflejado en el número citado aquí.
+
+**Quien vaya a revisar/aplicar el drift de la Prioridad 1 debe usar el plan de `doc/093`
+(26/8), no el de este documento** — `doc/093` categoriza el incremento completo (A-E) y
+confirma contra el `terraform plan` real por qué subió. Este documento se deja sin
+reescribir, tal como indica `tasks/README.md`, para mantener el registro histórico de lo
+que se encontró el 25/8.
