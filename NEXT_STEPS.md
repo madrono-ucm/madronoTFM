@@ -28,18 +28,24 @@ reales hereda esta duda hasta que se resuelva.
    permiso ya aparece concedido en AWS vía la managed policy
    `AWSCodeBuildAdminAccess` (ver `doc/088-terraform-drift-plan-sin-aplicar.md`,
    Hallazgos 1 y 2). `terraform plan` sin acotar ya completa limpio.
-2. **Hecho (tarea 088)**: `terraform plan` sin acotar generado y volcado
-   íntegro en `doc/088-terraform-drift-plan-sin-aplicar.md`, con la
-   categorización por secciones — **pendiente la revisión humana** de ese
-   documento antes de aplicar nada. Resultado real: `5 to add, 15 to
-   change, 0 to destroy` (mucho menor que el `53/61/65` de `doc/083` — los
-   48 `aws_s3_object.glue_script_*` de aquella sesión ya no aparecen, el
-   código Glue desplegado ya coincide con `main`; solo quedan 14
-   redespliegues de código Lambda y los 5 recursos de Kafka ya conocidos).
-3. **Pendiente**: tras la revisión humana del punto 2, una tarea nueva
-   (creada aparte, patrón de dos tareas de `tasks/README.md`) aplica y
-   vuelve a verificar en vivo (`aws lambda list-functions`, `aws glue
-   get-jobs`, etc.) que el estado post-apply coincide con lo esperado.
+2. **Hecho (tarea 088), recapturado (tarea 093) — usar `doc/093`, no `doc/088`**:
+   `terraform plan` sin acotar generado y volcado íntegro en
+   `doc/093-recapturar-plan-drift-terraform-real.md`, con la categorización
+   por secciones — **pendiente la revisión humana** de ese documento antes
+   de aplicar nada. El resultado de `doc/088` (25/8, `5 to add, 15 to
+   change, 0 to destroy`) quedó obsoleto un día después: el trabajo real
+   fusionado entre medias (tarea 090, drift deliberado del zip compartido
+   de Glue + 4 scripts, arrastrando ~40 jobs Glue por `--extra-py-files`
+   compartido; y el fix de partition projection de `aforos_peatones_
+   bicicletas` de la tarea 087, escrito pero sin aplicar) subió el plan
+   real a **`10 to add, 55 to change, 5 to destroy`** (confirmado con un
+   `terraform plan` real el 26/8, no solo inferido). `doc/093` explica la
+   categorización completa (A-E) de por qué subió.
+3. **Pendiente**: tras la revisión humana del punto 2 (sobre `doc/093`,
+   plan vigente), una tarea nueva (creada aparte, patrón de dos tareas de
+   `tasks/README.md`) aplica y vuelve a verificar en vivo (`aws lambda
+   list-functions`, `aws glue get-jobs`, etc.) que el estado post-apply
+   coincide con lo esperado.
 4. Documentar en `doc/` el resultado de la tarea 3, igual que cualquier
    otra tarea.
 
