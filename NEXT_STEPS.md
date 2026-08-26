@@ -118,15 +118,24 @@ queda ninguna con `NotImplementedError`:
   `afluencia_estimada` contra Neo4j real (la 081 solo pudo verificar la
   mitad de Athena/Gold), ver `asistente/README.md`.
 
-## Prioridad 5 — CI mínima (Sistema, recomendado no bloqueante)
+## Prioridad 5 — ~~CI mínima~~ Hecho, parcial (Sistema)
 
-No existe `.github/workflows/` — nada corre los tests existentes
-automáticamente ni habría detectado el drift de la Prioridad 1 antes de
-que lo hiciera una sesión manual. Una CI mínima (tests de
-`ingesta/`/`procesamiento/`/`grafo/`/`asistente/`/`herramientas/` +
-`terraform validate`/`terraform plan` de solo lectura en cada PR) es barata
-de montar y da la "posibilidad de review y QA" automática que complementa
-la revisión humana de PRs ya existente.
+**Hecho (tarea 097)**: `.github/workflows/ci.yml`, dos jobs en cada PR/push
+a `main` — `tests` (841 tests reales de `ingesta/`/`procesamiento/`/
+`grafo/`/`asistente/`/`herramientas/`, ninguno necesita credenciales) y
+`terraform` (`fmt -check` + `validate`, sin backend remoto —
+`init -backend=false`, deliberadamente sin necesitar credenciales AWS como
+secreto de este repositorio). De paso corrigió el nit de formato real que
+`doc/090`/`doc/093` ya habían dejado en `lambda.tf` (bloqueaba
+`fmt -check`) y 3 tests con `read_text()` sin `encoding="utf-8"` explícito
+(fallaban en Windows, nunca en Linux -- por eso no se habían visto en CI
+hasta ahora, que no existía).
+
+**Sigue pendiente, fuera de esta tarea**: `terraform plan` de solo lectura
+en cada PR -- necesita credenciales AWS reales como secreto del
+repositorio (recomendado: rol OIDC de solo lectura, no claves estáticas),
+una decisión que le corresponde a quien administra el repositorio en
+GitHub, no a esta tarea.
 
 ## Prioridad 6 — Memoria (Memoria, y Ambos para §5-§7)
 

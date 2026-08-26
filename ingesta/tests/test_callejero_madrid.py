@@ -174,7 +174,7 @@ class CommittedSampleTests(unittest.TestCase):
     }
 
     def test_vias_sample_matches_schema(self):
-        records = json.loads((SAMPLES_DIR / "callejero_madrid_vias_sample.json").read_text())
+        records = json.loads((SAMPLES_DIR / "callejero_madrid_vias_sample.json").read_text(encoding="utf-8"))
         self.assertGreater(len(records), 0)
         for record in records:
             self.assertEqual(set(record.keys()), self.EXPECTED_VIA_KEYS)
@@ -183,7 +183,7 @@ class CommittedSampleTests(unittest.TestCase):
             self.assertIn("lon", record["start_node"])
 
     def test_cruces_sample_matches_schema(self):
-        records = json.loads((SAMPLES_DIR / "callejero_madrid_cruces_sample.json").read_text())
+        records = json.loads((SAMPLES_DIR / "callejero_madrid_cruces_sample.json").read_text(encoding="utf-8"))
         self.assertGreater(len(records), 0)
         for record in records:
             self.assertEqual(set(record.keys()), self.EXPECTED_CROSSING_KEYS)
