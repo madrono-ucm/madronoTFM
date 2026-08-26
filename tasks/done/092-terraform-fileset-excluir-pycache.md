@@ -3,7 +3,7 @@ id: 92
 slug: terraform-fileset-excluir-pycache
 title: 'QA: terraform plan/apply crashea si existe __pycache__ local en ingesta/ (fileset
   sin excluir bytecode)'
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/092-terraform-fileset-excluir-pycache
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-26T10:45:00+00:00'
-updated_at: '2026-08-26T10:42:58.229466+00:00'
+updated_at: '2026-08-26T10:55:12.457236+00:00'
 started_at: '2026-08-26T10:37:18.521241+00:00'
 submitted_at: '2026-08-26T10:42:58.229444+00:00'
-merged_at: null
+merged_at: '2026-08-26T10:54:49Z'
 ---
 
 ## Hallazgo de QA (verificado en vivo, no especulativo)
