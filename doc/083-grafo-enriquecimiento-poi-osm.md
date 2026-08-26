@@ -129,3 +129,26 @@ espera — comportamiento ya cubierto por los reintentos con backoff de
   tarea no ha vuelto a ejecutar la carga completa — queda para quien revise
   el PR decidir si recargar el grafo de producción con estas propiedades
   nuevas.
+
+## Actualización 26/8 (tarea 094): ejecutado contra la instancia real -- 0 coincidencias, como se podía anticipar
+
+Un QA posterior (tarea 094) detectó que esta recarga nunca se había hecho
+(los conteos de la instancia real seguían idénticos a los de `doc/080`).
+Ejecutado `python3 -m grafo.cargar_grafo` de verdad contra AuraDB: el
+enriquecimiento corrió sin errores, pero **0 de los 383 `:Lugar` reales
+quedaron con `osm_id`** -- verificado con Cypher real
+(`MATCH (l:Lugar) WHERE l.osm_id IS NOT NULL RETURN count(l)` → `0`), no
+solo con tests. No es un bug de esta tarea ni de la 094: la "Cobertura real
+limitada a 6 POIs de muestra" ya señalada arriba hace que la probabilidad
+de que alguno de los 383 `:Lugar` reales caiga a ≤30m de exactamente uno de
+esos 6 puntos fijos sea, en la práctica, prácticamente nula. El código de
+enriquecimiento (`nodos.enrich_lugares_con_osm`) está verificado como
+correcto (tests unitarios + esta ejecución real sin errores); lo que falta
+es la captura real y completa de POIs de OSM ya descrita en el punto
+anterior -- sigue como trabajo futuro, ahora con evidencia real de que la
+muestra de 6 no es suficiente para producir ninguna coincidencia real.
+Ver `doc/094-recargar-grafo-osm-aforos-instancia-real.md` para el detalle
+completo de esta verificación (incluido un hallazgo real no relacionado:
+`infra/neo4j/schema/schema.cypher` nunca se había aplicado a la instancia
+real, causando que una recarga completa colgara 3 horas antes de
+corregirlo).
