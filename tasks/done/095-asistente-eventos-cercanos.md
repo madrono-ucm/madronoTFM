@@ -6,8 +6,8 @@ status: done
 force: false
 allow_infra_apply: false
 branch: task/095-asistente-eventos-cercanos
-pr_number: 138
-pr_url: 'https://github.com/madrono-ucm/madronoTFM/pull/138'
+pr_number: 139
+pr_url: 'https://github.com/madrono-ucm/madronoTFM/pull/139'
 attempts: 0
 next_retry_at: null
 last_error: null
