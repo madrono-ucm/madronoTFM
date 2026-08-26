@@ -3,19 +3,19 @@ id: 94
 slug: recargar-grafo-osm-aforos-instancia-real
 title: 'QA: la instancia real de Neo4j no tiene el enriquecimiento OSM (083) ni los
   nodos de aforos (087), pese a estar dados por completados'
-status: failed
+status: done
 force: false
 allow_infra_apply: false
 branch: task/094-recargar-grafo-osm-aforos-instancia-real
-pr_number: null
-pr_url: null
-attempts: 0
+pr_number: 143
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/143
+attempts: 1
 next_retry_at: null
-last_error: claude finalizó sin crear ningún commit
+last_error: null
 created_at: '2026-08-26T10:55:00+00:00'
-updated_at: '2026-08-26T12:09:54.782469+00:00'
+updated_at: '2026-08-26T16:45:00+00:00'
 started_at: '2026-08-26T12:06:02.219979+00:00'
-submitted_at: null
+submitted_at: '2026-08-26T16:45:00+00:00'
 merged_at: null
 ---
 
@@ -107,3 +107,21 @@ con Cypher real (no mocks) que los datos están ahí.
 - Queda documentado, con la misma honestidad que `doc/087`, si los nodos de
   aforos se cargaron o siguen bloqueados por la fuente descontinuada.
 - Hay un commit real con `doc/094-...md`.
+
+## Retomada de forma interactiva (26/8) tras el `status: failed` del demonio
+
+El primer intento automático del demonio terminó en `failed` sin ningún
+commit (`last_error: claude finalizó sin crear ningún commit`), bloqueando
+el resto de la cola. Retomada interactivamente con acceso real a AWS/Neo4j.
+
+En el proceso se encontró y corrigió un problema real más grave que el
+ticket original: `infra/neo4j/schema/schema.cypher` nunca se había
+aplicado contra la instancia real (solo existía como documentación),
+causando que un `python3 -m grafo.cargar_grafo` real quedara colgado 3
+horas (confirmado con `SHOW TRANSACTIONS`: cada `MERGE`/`MATCH` por `id`
+sin índice escaneaba todos los nodos existentes). Corregido aplicando el
+esquema (operación puramente aditiva, `IF NOT EXISTS`) y verificado que la
+misma consulta pasó de tardar minutos a 2-5ms. Detalle completo,
+resultados finales verificados con Cypher real, y las actualizaciones a
+`doc/083`/`doc/087`/`infra/neo4j/README.md`/`grafo/README.md`, en
+`doc/094-recargar-grafo-osm-aforos-instancia-real.md`.
