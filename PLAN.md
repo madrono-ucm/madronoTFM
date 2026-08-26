@@ -125,7 +125,8 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `094`** (091 consumida el 26/8:
+**Próximo número libre: `095`** (094 consumida el 26/8 por la misma pasada
+de QA — ver Pista Sistema. 091 consumida el 26/8:
 `disponibilidad_aparcamiento`, ver `tasks/done/091-...md`. 092/093
 consumidas el 26/8 por una pasada de QA independiente — ver Pista Sistema.
 090 consumida el 25/8: rastreo de nuevos
@@ -250,6 +251,13 @@ pese a estar en orden inverso de creación en este documento.
   el zip compartido que la tarea 090 desplegó manualmente a S3). El equipo
   no debe crear la tarea de "apply" de la Prioridad 1 sobre el número
   antiguo.
+- [ ] **[`094-recargar-grafo-osm-aforos-instancia-real`](tasks/094-recargar-grafo-osm-aforos-instancia-real.md)**
+  — QA (26/8): verificado con Cypher real que la instancia real de Neo4j
+  sigue sin el enriquecimiento OSM de la tarea `083` (0 `:Lugar` con campos
+  OSM) ni los nodos de aforos de la tarea `087` (conteo de
+  `EstacionMedida` sin cambios desde `080`) — ambos documentados como
+  pendientes en sus respectivos `doc/`, pero sin ningún ticket accionable
+  hasta ahora.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
