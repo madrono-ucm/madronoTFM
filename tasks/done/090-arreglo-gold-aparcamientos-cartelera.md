@@ -6,8 +6,8 @@ status: done
 force: false
 allow_infra_apply: true
 branch: task/090-arreglo-gold-aparcamientos-cartelera
-pr_number: null
-pr_url: null
+pr_number: 134
+pr_url: 'https://github.com/madrono-ucm/madronoTFM/pull/134'
 attempts: 0
 next_retry_at: null
 last_error: null
