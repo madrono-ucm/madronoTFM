@@ -84,15 +84,25 @@ tarea 081) — ver `asistente/README.md`. No depende de la Prioridad 2.
 `asistente/README.md` ya documenta el patrón (task 079: una tool de
 extremo a extremo por tarea, no varias a la vez):
 
-- `opciones_movilidad` (cruza `trafico`+EMT+BiciMAD)
+- `opciones_movilidad` (cruza `trafico`+EMT+BiciMAD) — única tool que queda
+  pendiente
 - ~~`disponibilidad_aparcamiento`~~ **Hecho (tarea 090)** — real, vía Athena
   directo (una sola tabla, sin grafo), verificado en vivo
   (`GET /disponibilidad-aparcamiento`), ver `doc/090`
-- `eventos_cercanos` (`agenda_eventos`+`agenda_recintos`)
-- Persistir `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD` como parámetros
-  SSM `SecureString` (gap documentado desde la tarea 043, causó un bloqueo
-  real en la verificación de la tarea 081) — hacerlo junto con cualquiera
-  de estas tools evita que se repita.
+- ~~`eventos_cercanos`~~ **Hecho (tarea 095)** — resuelve el lugar contra el
+  grafo y filtra por distancia real contra **Silver** de `agenda_eventos`
+  (Gold agrega por categoría/distrito/fecha, sin lat/lon por evento;
+  `agenda_recintos_madrid` queda fuera, sin pipeline Silver/Gold propio
+  todavía), verificado en vivo (`GET /eventos-cercanos`) — encontró y
+  corrigió dos bugs reales (columna de partición `fecha` vs `date`, y
+  deduplicación por `event_id`), ver `doc/095`
+- ~~Persistir `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD` como parámetros
+  SSM `SecureString`~~ **Ya existen** (confirmado en la tarea 095,
+  `/madrono-tfm/dev/secrets/neo4j-*`) — el gap de la tarea 043 se cerró en
+  algún momento entre la 081 y la 095, sin documentarlo aquí. Sigue
+  pendiente repetir con ellas la verificación completa de `trafico_cercano`/
+  `afluencia_estimada` contra Neo4j real (la 081 solo pudo verificar la
+  mitad de Athena/Gold), ver `asistente/README.md`.
 
 ## Prioridad 5 — CI mínima (Sistema, recomendado no bloqueante)
 
