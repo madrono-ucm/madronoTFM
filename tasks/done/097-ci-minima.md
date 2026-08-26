@@ -6,15 +6,15 @@ status: done
 force: false
 allow_infra_apply: false
 branch: task/097-ci-minima
-pr_number: null
-pr_url: null
+pr_number: 142
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/142
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: null
-updated_at: '2026-08-26T14:15:00Z'
+updated_at: '2026-08-26T16:30:00Z'
 started_at: '2026-08-26T14:00:00Z'
-submitted_at: '2026-08-26T14:15:00Z'
+submitted_at: '2026-08-26T16:30:00Z'
 merged_at: null
 ---
 
