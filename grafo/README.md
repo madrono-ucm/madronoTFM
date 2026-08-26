@@ -43,7 +43,7 @@ código puro, testado con fixtures, sin conectar a nada.
 | `geo.py` | No | Point-in-polygon (ray casting sobre GeoJSON `Polygon`/`MultiPolygon`), distancia Haversine y "vecino más cercano dentro de un radio" (`nearest_within_radius`, tarea 083), todo Python puro sin dependencias de geometría (tarea 070). |
 | `relaciones.py` | No | `PERTENECE_A` (Barrio→Distrito, tarea 067); `UBICADO_EN` y `PROXIMO_A` (tarea 070, usan `geo.py`); `CONECTADO_CON` (tarea 071, adyacencia real de red de transporte a partir de rutas CRTM). |
 | `cypher.py` | Solo `Neo4jLoader`, de forma perezosa | Traduce esos `dict` a sentencias `MERGE` parametrizadas (funciones `*_query()`, Python puro) y las ejecuta contra una instancia real (`Neo4jLoader`, que hace `from neo4j import GraphDatabase` dentro de `__init__`, no a nivel de módulo). |
-| `cargar_grafo.py` | Solo al importar `Neo4jLoader` (perezoso hasta instanciarlo) | Entry point que encadena `extract.py` → `nodos.py`/`relaciones.py` → `cypher.py`. No ejecutado contra ninguna instancia real (tarea 069). |
+| `cargar_grafo.py` | Solo al importar `Neo4jLoader` (perezoso hasta instanciarlo) | Entry point que encadena `extract.py` → `nodos.py`/`relaciones.py` → `cypher.py`. Ejecutado varias veces contra la instancia real (tareas 080/087/094), ver "Cómo se carga" más abajo. |
 | `requirements.txt` | — | `neo4j` (solo para `Neo4jLoader`, no instalado en esta EC2) y `boto3` (para `extract.py`, ya instalado). |
 | `tests/` | No | `unittest`, sin conexión real ni el driver instalado (ver más abajo). |
 
@@ -434,7 +434,7 @@ número de nodos estable).
 - `cargar_grafo.py::cargar_grafo()` llama a `enrich_lugares_con_osm` sobre la
   lista de `lugares` justo antes de `loader.load_lugares(lugares)`.
 
-## Cómo se cargaría (cuando exista una instancia real)
+## Cómo se carga (instancia real: AuraDB Free, tareas 080/094)
 
 Ver `grafo/cargar_grafo.py::cargar_grafo()` para el bloque completo (nodos +
 `PERTENECE_A`/`UBICADO_EN`/`PROXIMO_A`/`CONECTADO_CON`), no repetido aquí.
@@ -448,11 +448,17 @@ tanto para `nodos.paradas_transporte_from_crtm_bronze` como para
 `relaciones.conectado_con`, en ese orden (nodos antes que la relación).
 
 Este mismo bloque, encapsulado, es `grafo/cargar_grafo.py::cargar_grafo()`
-(`python3 -m grafo.cargar_grafo` como script). **No se ha ejecutado nunca
-contra una instancia real** (bloqueado, ver arriba) — sí se ha ejecutado
-`extract.py` contra Athena/S3 reales (ver tabla de arriba), pero no la carga
-Cypher completa. Requiere ejecutar antes `infra/neo4j/schema/schema.cypher`
-(los constraints `UNIQUE` de los que dependen los `MERGE`).
+(`python3 -m grafo.cargar_grafo` como script). **Ejecutado varias veces
+contra la instancia real** (tarea 080, primera carga; tarea 087, Fase A de
+`aforos_peatones_bicicletas`; tarea 094, recarga completa) -- ver
+`infra/neo4j/README.md`, "Esquema inicial del grafo", para un hallazgo real
+de la tarea 094: `infra/neo4j/schema/schema.cypher` (los constraints
+`UNIQUE` de los que dependen los `MERGE`) no se había aplicado nunca contra
+la instancia real pese a que este documento ya advertía que hacía falta --
+una recarga contra el grafo ya poblado, sin esos índices, colgó 3 horas
+reales antes de detectarse y corregirse. **Aplicar `schema.cypher` es un
+prerrequisito real, no solo documental, antes de cualquier recarga
+completa.**
 
 ## Tests
 
