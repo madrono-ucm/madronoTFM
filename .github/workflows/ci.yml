@@ -1,0 +1,70 @@
+# CI mínima (tarea 097, Prioridad 5 de NEXT_STEPS.md).
+#
+# Dos jobs independientes:
+#   - `tests`: la suite real de `ingesta/`/`procesamiento/`/`grafo/`/
+#     `asistente/`/`herramientas/` (841 tests, ninguno necesita
+#     credenciales ni conexión real -- todos mockean Athena/Neo4j/boto3
+#     donde hace falta, ver los docstrings de cada `test_*.py`).
+#   - `terraform`: `fmt -check` + `validate` de solo lectura, sin backend
+#     remoto (`init -backend=false`) para no necesitar credenciales AWS
+#     como secreto de este repositorio -- deliberadamente no incluye
+#     `terraform plan` (necesitaría acceso real al backend S3/DynamoDB y al
+#     rol de la cuenta, una decisión de las credenciales que debe tomar
+#     quien administra el repositorio, no esta tarea).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            ingesta/requirements.txt
+            procesamiento/requirements.txt
+            grafo/requirements.txt
+            asistente/requirements.txt
+            herramientas/costes/requirements.txt
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ingesta/requirements.txt
+          pip install -r procesamiento/requirements.txt
+          pip install -r grafo/requirements.txt
+          pip install -r asistente/requirements.txt
+          pip install -r herramientas/costes/requirements.txt
+          pip install pytest
+
+      - name: Ejecutar tests
+        run: python -m pytest ingesta/ procesamiento/ grafo/ asistente/ herramientas/ -v
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.8"
+
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+
+      - name: terraform init (sin backend remoto, sin credenciales AWS)
+        run: terraform init -backend=false -input=false
+
+      - name: terraform validate
+        run: terraform validate

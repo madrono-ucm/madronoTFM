@@ -151,7 +151,7 @@ class CommittedSampleTests(unittest.TestCase):
     }
 
     def test_sample_matches_schema(self):
-        records = json.loads((SAMPLES_DIR / "poi_madrid_sample.json").read_text())
+        records = json.loads((SAMPLES_DIR / "poi_madrid_sample.json").read_text(encoding="utf-8"))
         self.assertGreater(len(records), 0)
         for record in records:
             self.assertEqual(set(record.keys()), self.EXPECTED_KEYS)
