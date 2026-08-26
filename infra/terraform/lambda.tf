@@ -326,14 +326,18 @@ locals {
   }
 
   # Ruta absoluta a `ingesta/` y lista de sus ficheros (relativos a esa
-  # ruta), excluyendo `tests/` y `capturas/samples/` (fixtures/datos de
-  # prueba, no código de producción). `fileset` solo devuelve ficheros, no
-  # directorios.
+  # ruta), excluyendo `tests/`, `capturas/samples/` (fixtures/datos de
+  # prueba, no código de producción) y cualquier `__pycache__/`/`.pyc`/
+  # `.pyo` (bytecode cacheado por ejecuciones locales de los tests, nunca
+  # commiteado -- ver .gitignore -- pero su presencia local hacía fallar
+  # `terraform plan`/`apply` con "contents ... are not valid UTF-8", tarea
+  # 092). `fileset` solo devuelve ficheros, no directorios.
   ingesta_source_root = "${path.module}/../../ingesta"
   ingesta_source_files = [
     for f in fileset(local.ingesta_source_root, "**") :
     f
-    if !startswith(f, "tests/") && !startswith(f, "capturas/samples/")
+    if !startswith(f, "tests/") && !startswith(f, "capturas/samples/") &&
+       !strcontains(f, "__pycache__/") && !endswith(f, ".pyc") && !endswith(f, ".pyo")
   ]
 }
 
