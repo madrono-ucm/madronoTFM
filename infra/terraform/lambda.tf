@@ -18,11 +18,13 @@
 #     que atiende tanto "avisos" como "previsión", así que es una sola
 #     entrada aquí aunque la tabla de cadencias del enunciado la liste como
 #     dos filas).
-#   - `local.schedules`: una entrada por regla de EventBridge Scheduler (20
+#   - `local.schedules`: una entrada por regla de EventBridge Scheduler (21
 #     en total: 14 productores con 1 schedule cada uno, salvo
 #     aemet_prevision_avisos con 6 —4 avisos + 2 previsión, mismo Lambda,
-#     distinto `input`— y cams_calidad_aire con 2). Cada entrada referencia
-#     a qué productor apunta vía `producer_key`.
+#     distinto `input`—, cams_calidad_aire con 2, y cartelera_cines_estrenos
+#     con 2 —estrenos + sesiones, tarea 090, mismo Lambda, distinto
+#     `input.tipo`—). Cada entrada referencia a qué productor apunta vía
+#     `producer_key`.
 # ---------------------------------------------------------------------------
 
 locals {
@@ -157,7 +159,7 @@ locals {
     cartelera_cines_estrenos = {
       module      = "cartelera_cines_madrid"
       dataset     = "cartelera_cines_estrenos"
-      description = "Barrido de estrenos de cartelera de cines de Madrid (SensaCine) -> Bronze/cartelera_cines_estrenos"
+      description = "Estrenos o sesiones de cine de Madrid (SensaCine), según event.tipo -> Bronze/cartelera_cines_estrenos"
       timeout     = 180
       memory_mb   = 256
       secret_env  = []
@@ -302,6 +304,19 @@ locals {
       expression   = "cron(0 8 * * ? *)"
       timezone     = "Europe/Madrid"
       input        = null
+    }
+    # Tarea 090: 1x/día, 07:00 hora de Madrid -- antes que el barrido de
+    # estrenos (08:00), para que la mayor parte de las sesiones del día
+    # sigan siendo futuras respecto a `captured_at` cuando la puerta de
+    # calidad de Silver las evalúe (`showtime_already_passed`, ver
+    # `procesamiento/silver_gold/cartelera_cines_estrenos/transform.py`).
+    # Mismo Lambda que el schedule de arriba, `input.tipo` distinto -- mismo
+    # patrón que aemet_prevision_avisos.
+    cartelera_cines_estrenos_sesiones = {
+      producer_key = "cartelera_cines_estrenos"
+      expression   = "cron(0 7 * * ? *)"
+      timezone     = "Europe/Madrid"
+      input        = { tipo = "sesiones" }
     }
   }
 

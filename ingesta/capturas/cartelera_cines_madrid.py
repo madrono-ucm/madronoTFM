@@ -102,16 +102,32 @@ se conectaría un productor Kafka para un futuro barrido diario real
 (`sweep_premieres`, o un barrido de `CINEMAS` completo) está marcado aquí
 por consistencia, aunque no se despliega ningún scheduling en esta tarea.
 
-## Handler Lambda (tarea 028): solo `sweep_premieres`, no `fetch_cinema_showtimes`
+## Handler Lambda: `sweep_premieres` (tarea 028) y `sweep_showtimes` (tarea 090)
 
-`lambda_handler` envuelve únicamente `sweep_premieres` (sin límite, no los
-`DEFAULT_PREMIERES_LIMIT` de la muestra), pensado para el barrido diario
-ligero que ya anticipaba su docstring. `fetch_cinema_showtimes` no tiene
-handler propio: queda para que lo invoque bajo demanda el futuro servicio
-conversacional (mismo criterio que `search_place` en
-`bluesky_menciones_madrid.py` o `fetch_venue_agenda` en
-`agenda_recintos_madrid.py`), no un schedule — la cartelera horaria de un
-cine concreto solo tiene sentido cuando alguien pregunta por ese cine.
+`lambda_handler` decide qué barrido ejecutar según `event.get("tipo")`,
+mismo patrón que `aemet_prevision_avisos.py` (un único Lambda/schedule
+Terraform, `input.tipo` distinto por regla de EventBridge):
+
+- `"estrenos"` (por defecto, compatibilidad con el schedule original de la
+  tarea 028): `sweep_premieres`, sin límite.
+- `"sesiones"`: `sweep_showtimes` sobre `config.cinema_ids` (por defecto
+  `DEFAULT_CINEMA_IDS`, un cine por cadena).
+
+**Por qué hacía falta (descubierto en la tarea 090)**: hasta esa tarea,
+`lambda_handler` solo envolvía `sweep_premieres` — el único tipo de
+registro real en Bronze era `"estreno_semana"` (película + fecha de
+estreno, sin cine ni horario), que `validate_record`
+(`procesamiento/silver_gold/cartelera_cines_estrenos/transform.py`) rechaza
+siempre con `"not_a_screening_session"` porque la puerta de calidad exige
+cine y horario de sesión. Sin ningún escritor programado de sesiones,
+Silver salía sistemáticamente vacío (0 de 0 expectations con
+`element_count=0`, verificado contra el informe de Great Expectations real
+del 2026-08-25) y Gold nunca llegaba a producirse — no un bug de
+`procesamiento/`, sino la ausencia de este segundo modo de captura, ya
+señalada como bloqueante real por el docstring de `transform.py` desde la
+tarea 055. `fetch_cinema_showtimes` (bajo demanda, un cine) sigue sin
+handler propio — sigue pensado para que lo invoque el futuro servicio
+conversacional, mismo criterio que `search_place`/`fetch_venue_agenda`.
 """
 
 from __future__ import annotations
@@ -411,6 +427,29 @@ def fetch_cinema_showtimes(
     return records
 
 
+def sweep_showtimes(
+    config: "Optional[CaptureConfig]" = None,
+    captured_at: "Optional[datetime]" = None,
+) -> "list[dict]":
+    """Cartelera completa de todos los cines de `config.cinema_ids` — modo barrido programado (tarea 090).
+
+    A diferencia de `fetch_cinema_showtimes` (bajo demanda, un solo cine),
+    recorre varios cines para producir periódicamente registros de tipo
+    sesión — el único tipo que la puerta de calidad de Silver acepta (ver
+    docstring del módulo, "Handler Lambda"). Usa `config.cinema_ids`
+    (`DEFAULT_CINEMA_IDS` por defecto, un cine por cadena) en vez de
+    `CINEMAS` completo, mismo criterio de alcance moderado que el resto del
+    módulo frente a los términos de uso de SensaCine (ver docstring,
+    "Términos de uso").
+    """
+    config = config or CaptureConfig.from_env()
+    captured_at = captured_at or now_madrid()
+    records: "list[dict]" = []
+    for cinema_id in config.cinema_ids:
+        records.extend(fetch_cinema_showtimes(cinema_id, config=config, captured_at=captured_at))
+    return records
+
+
 def _parse_duration_minutes(text: str) -> "Optional[int]":
     match = re.search(r"(\d+)\s*h\s*(\d+)?\s*min", text)
     if match:
@@ -522,10 +561,20 @@ def capture_sample(
 
 
 def lambda_handler(event, context):
-    """Punto de entrada AWS Lambda (tarea 028): estrenos de la semana completos a Bronze real."""
+    """Punto de entrada AWS Lambda: estrenos (tarea 028) o sesiones reales de cine (tarea 090).
+
+    `event.get("tipo")`: `"estrenos"` (por defecto) o `"sesiones"` — ver
+    docstring del módulo, "Handler Lambda", para por qué hace falta el
+    segundo modo.
+    """
+    tipo = (event or {}).get("tipo", "estrenos")
     config = CaptureConfig.from_env()
-    records = sweep_premieres(config=config)
-    logger.info("Estrenos capturados (captura completa): %d", len(records))
+    if tipo == "sesiones":
+        records = sweep_showtimes(config=config)
+        logger.info("Sesiones capturadas (barrido completo de cines): %d", len(records))
+    else:
+        records = sweep_premieres(config=config)
+        logger.info("Estrenos capturados (captura completa): %d", len(records))
     writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
     out_path = writer.write_batch(records)
     logger.info("Captura Lambda completada: %s", out_path)

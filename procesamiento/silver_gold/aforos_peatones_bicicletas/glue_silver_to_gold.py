@@ -71,11 +71,21 @@ def main() -> None:
         job.commit()
         return
 
-    silver_df = spark.read.parquet(silver_partition_path)
+    # `hora` sí se infiere como columna de partición física (es el nivel
+    # inmediato bajo la ruta leída), pero `fecha` no -- al acotar la lectura
+    # a `fecha=<fecha>/` (tarea 076) esa partición queda fija en la propia
+    # ruta y Spark deja de exponerla como columna, igual que
+    # `aparcamientos_silver_to_gold.py` (tarea 072). Se añade de vuelta con
+    # el valor ya conocido en vez de asumir que Spark la habría inferido --
+    # mismo bug real que `cartelera_cines_estrenos_silver_to_gold.py`
+    # (`AnalysisException: Column 'fecha' does not exist`), encontrado y
+    # corregido en la tarea 090 en los 3 jobs del patrón que lo tenían
+    # latente; este en concreto no había fallado aún en producción porque la
+    # fuente de `aforos_peatones_bicicletas` está descontinuada desde
+    # 2026-06-30 (ver doc/087) y `partition_has_objects` nunca deja pasar
+    # ninguna ejecución real hasta aquí.
+    silver_df = spark.read.parquet(silver_partition_path).withColumn("fecha", F.lit(fecha))
 
-    # `fecha`/`hora` ya son las columnas de partición físicas de Silver (ver
-    # glue_bronze_to_silver.py); agrupar por ellas permite a Spark aprovechar
-    # partition pruning si `silver_path` acota un rango de fechas concreto.
     # `mode` entra en la clave de agrupación (mismo criterio que `pollutant`
     # en `calidad_aire`/`magnitude` en `meteorologia`): peatones y bicicletas
     # se miden en redes de estaciones distintas, ver docstring de
