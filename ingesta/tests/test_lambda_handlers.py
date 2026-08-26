@@ -286,7 +286,7 @@ class CamsLambdaHandlerTests(unittest.TestCase):
 
 
 class CarteleraLambdaHandlerTests(unittest.TestCase):
-    def test_uses_sweep_premieres_without_limit(self):
+    def test_default_tipo_uses_sweep_premieres_without_limit(self):
         records = [{"record_type": "estreno_semana"}]
         with tempfile.TemporaryDirectory() as tmp:
             with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp}):
@@ -297,6 +297,21 @@ class CarteleraLambdaHandlerTests(unittest.TestCase):
         _, kwargs = mock_fn.call_args
         self.assertNotIn("limit", kwargs)
         self.assertEqual(result["dataset"], "cartelera_cines_estrenos")
+
+    def test_tipo_sesiones_uses_sweep_showtimes(self):
+        # Tarea 090: sin esto, Bronze nunca produce registros de sesión
+        # (cine+horario), y la puerta de calidad de Silver rechaza el 100%
+        # de los `estreno_semana` de `sweep_premieres` -- ver docstring de
+        # `procesamiento/silver_gold/cartelera_cines_estrenos/transform.py`.
+        records = [{"cinema_id": "cinesa_proyecciones", "showtime_id": "1"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp}):
+                with patch.object(cartelera_cines_madrid, "sweep_showtimes") as mock_fn:
+                    mock_fn.return_value = records
+                    result = cartelera_cines_madrid.lambda_handler({"tipo": "sesiones"}, None)
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "cartelera_cines_estrenos")
+        self.assertEqual(result["records_written"], 1)
 
 
 if __name__ == "__main__":

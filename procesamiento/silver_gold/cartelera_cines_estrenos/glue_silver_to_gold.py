@@ -77,11 +77,18 @@ def main() -> None:
         job.commit()
         return
 
-    silver_df = spark.read.parquet(silver_partition_path)
+    # `fecha` es columna de partición física de Silver (ver
+    # glue_bronze_to_silver.py), pero al acotar la lectura a una única
+    # partición `fecha=<fecha>/` (tarea 076, lectura incremental) Spark deja
+    # de inferirla como columna -- solo `hora=` varía bajo esa ruta, mismo
+    # motivo por el que `aparcamientos_silver_to_gold.py` recalcula sus
+    # columnas de partición tras acotar la lectura (tarea 072). Se añade de
+    # vuelta con el valor ya conocido (`fecha`, calculado arriba) en vez de
+    # asumir que Spark la habría inferido -- bug real encontrado en la
+    # verificación contra datos reales de la tarea 090 (`AnalysisException:
+    # Column 'fecha' does not exist`).
+    silver_df = spark.read.parquet(silver_partition_path).withColumn("fecha", F.lit(fecha))
 
-    # `fecha` ya es una columna de partición física de Silver (ver
-    # glue_bronze_to_silver.py); agrupar por ella permite a Spark aprovechar
-    # partition pruning si `silver_path` acota un rango de fechas concreto.
     # `movie_url`/`cinema_id` entran en la clave de agrupación junto a
     # `fecha` (mismo criterio que `aggregate.py`: incluir ambas dimensiones
     # deja disponibles tanto la vista "por película" como "por cine" sin

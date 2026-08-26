@@ -51,23 +51,20 @@ tratarlos como su propia entidad (p.ej. "estrenos de la semana", sin cine ni
 horario), el criterio a seguir es un dataset/tabla Silver/Gold aparte, no
 forzarlos en este esquema de sesiones.
 
-**Aviso importante para tareas futuras, descubierto en esta sesión**: el
-único escritor programado de Bronze de este dataset hoy es `lambda_handler`
-(`ingesta/capturas/cartelera_cines_madrid.py`), y envuelve **únicamente
-`sweep_premieres`** -- no hay ningún schedule que escriba sesiones
-(`fetch_cinema_showtimes` es solo bajo demanda, pensado para un futuro
-servicio conversacional, sin ningún handler Lambda propio, ver el docstring
-de ese módulo, apartado "Handler Lambda"). Confirmado en
-`doc/033-conectar-lambda-layer-verificar.md`: la única invocación real
-registrada de este dataset escribió 6 registros, los 6 de tipo
-`estreno_semana`. Esto significa que, con el estado actual de `ingesta/`,
-esta puerta de calidad rechazaría el 100% de los lotes reales de Bronze
-capturados hasta ahora -- no hay todavía ningún escritor programado que
-produzca sesiones. No se ha corregido aquí (fuera de alcance: esta tarea es
-solo `procesamiento/`); queda documentado como bloqueante real para poder
-ejecutar este pipeline contra datos de producción: haría falta una tarea
-futura que añada un escritor programado de sesiones (p.ej. un
-`lambda_handler` adicional que recorra `CINEMAS`, o ampliar el existente).
+**Arreglado en la tarea 090**: hasta esa tarea, el único escritor
+programado de Bronze de este dataset era `lambda_handler`
+(`ingesta/capturas/cartelera_cines_madrid.py`), y envolvía **únicamente
+`sweep_premieres`** -- ningún schedule escribía sesiones
+(`fetch_cinema_showtimes` era solo bajo demanda). Confirmado en
+`doc/033-conectar-lambda-layer-verificar.md` y de nuevo en vivo en la tarea
+090 (informe de Great Expectations real del 2026-08-25 con
+`element_count=0` en las 5 expectations): con solo `estreno_semana` en
+Bronze, esta puerta de calidad rechazaba el 100% de los lotes reales
+capturados, así que Silver salía vacío y Gold nunca llegaba a producirse.
+La tarea 090 añadió `sweep_showtimes`/`event.tipo == "sesiones"`
+(`lambda_handler`, ver su docstring) y el schedule Terraform
+correspondiente -- Bronze ya recibe registros de sesión real que sí pasan
+esta puerta.
 
 ## Puerta de calidad: horario de sesión ya pasado respecto a la captura
 

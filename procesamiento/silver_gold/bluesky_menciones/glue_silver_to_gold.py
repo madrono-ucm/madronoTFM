@@ -71,13 +71,22 @@ def main() -> None:
         job.commit()
         return
 
-    silver_df = spark.read.parquet(silver_partition_path)
+    # `hora` sí se infiere como columna de partición física (nivel inmediato
+    # bajo la ruta leída), pero `fecha` no -- al acotar la lectura a
+    # `fecha=<fecha>/` (tarea 076) esa partición queda fija en la ruta y
+    # Spark deja de exponerla como columna. Se añade de vuelta con el valor
+    # ya conocido -- bug real (`AnalysisException: Column 'fecha' does not
+    # exist`) que ya había fallado en producción los días 2026-08-23 y
+    # 2026-08-24 (ver historial real de
+    # `madrono-tfm-dev-bluesky-menciones-silver-to-gold`; los días en que el
+    # job "tuvo éxito" fue porque `partition_has_objects` cortó antes de
+    # llegar aquí, no porque el `groupBy` funcionara), encontrado y
+    # corregido en la tarea 090 junto con el mismo bug en
+    # `cartelera_cines_estrenos`/`agenda_eventos`/`aforos_peatones_bicicletas`.
+    silver_df = spark.read.parquet(silver_partition_path).withColumn("fecha", F.lit(fecha))
 
-    # `fecha`/`hora` ya son las columnas de partición físicas de Silver (ver
-    # glue_bronze_to_silver.py); agrupar por ellas permite a Spark
-    # aprovechar partition pruning si `silver_path` acota un rango de
-    # fechas concreto. `mode`/`match_term` entran en la clave junto a
-    # `fecha`/`hora` -- mismo criterio que `aggregate.py`.
+    # `mode`/`match_term` entran en la clave junto a `fecha`/`hora` -- mismo
+    # criterio que `aggregate.py`.
     gold_df = (
         silver_df.groupBy("mode", "match_term", "fecha", "hora")
         .agg(

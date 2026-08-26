@@ -53,19 +53,20 @@ de dependencias primero.
 
 | Dataset | Síntoma | Causa | Dónde está documentado |
 |---|---|---|---|
-| `aparcamientos` | Job `SUCCEEDED`, 0 filas escritas | **Sin diagnosticar** | `doc/052` |
-| `cartelera_cines_estrenos` | Job falla (`AnalysisException`) | Silver vacío (0 filas pasan el filtro de calidad) + lectura sin schema explícito | `doc/063` |
+| `aparcamientos` | ~~Job `SUCCEEDED`, 0 filas escritas~~ **Resuelto** | Efecto colateral no documentado de la reescritura de lectura incremental (tareas 072/075) — ya no tenía el bug. Verificado con Athena real: 601 filas/día hasta hoy | `doc/090` |
+| `cartelera_cines_estrenos` | ~~Job falla (`AnalysisException`)~~ **Resuelto** | Causa real más profunda que "Silver vacío": sin escritor programado de sesiones (solo `sweep_premieres`), la puerta de calidad rechazaba el 100% de los lotes. Añadido `sweep_showtimes`/`event.tipo=="sesiones"` + schedule Terraform; de paso, arreglado un bug real (`Column 'fecha' does not exist`) presente también en `agenda_eventos` (rompiendo producción desde el 08-23) y `bluesky_menciones` | `doc/090` |
 | `afluencia_lugares` | Ya no es prioridad — ver tarea 086 | Bloqueado por Google Maps, sustituido | `doc/012`, `doc/083` |
-| `aforos_peatones_bicicletas` | Athena devuelve 0 filas pese a que el Parquet real existe en S3 | `projection.date.range`/`projection.fecha.range` del catálogo (`"2026-08-01,NOW+1DAY"`) más estrecho que el `measured_at` real de la fuente (`2024-06-30`, fuente municipal descontinuada desde entonces, confirmado contra `datos.madrid.es`) — partición invisible por fórmula, no por falta de dato. Fix ya escrito en `infra/terraform/glue.tf` (rango ampliado a `"2024-01-01,NOW+1DAY"`), sin aplicar | `doc/087` |
+| `aforos_peatones_bicicletas` | Athena devuelve 0 filas pese a que el Parquet real existe en S3 | `projection.date.range`/`projection.fecha.range` del catálogo (`"2026-08-01,NOW+1DAY"`) más estrecho que el `measured_at` real de la fuente (`2024-06-30`, fuente municipal descontinuada desde entonces, confirmado contra `datos.madrid.es`) — partición invisible por fórmula, no por falta de dato. Fix ya escrito en `infra/terraform/glue.tf` (rango ampliado a `"2024-01-01,NOW+1DAY"`), sin aplicar. Su `glue_silver_to_gold.py` también tenía el mismo bug de `fecha` que `cartelera_cines_estrenos` — ya corregido (tarea 090), aunque no verificable en vivo hasta que la fuente vuelva a publicar | `doc/087`, `doc/090` |
 
-`aparcamientos` sigue siendo la más urgente de las tres sin resolver (job
-"exitoso" que no escribe nada, sin pista real de la causa). `aforos_peatones_
-bicicletas` ya tiene diagnóstico y fix escritos (tarea 087) — solo falta
-aplicar el cambio de Terraform (junto con la Prioridad 1, o antes si se
-aísla con cuidado) y relanzar `grafo/cargar_grafo.py`; aun así, no vuelve a
-ser señal *en vivo* (la fuente sigue descontinuada) — solo desbloquea el
-histórico real 2019-2024 para análisis/ML, `afluencia_estimada` (tarea 089)
-ya no depende de ella.
+Ya no queda ninguna tabla Gold rota sin diagnosticar. Solo sigue pendiente
+aplicar el fix de partition projection de `aforos_peatones_bicicletas`
+(junto con la Prioridad 1, o antes si se aísla con cuidado) y relanzar
+`grafo/cargar_grafo.py`; aun así, no vuelve a ser señal *en vivo* (la
+fuente sigue descontinuada) — solo desbloquea el histórico real 2019-2024
+para análisis/ML, `afluencia_estimada` (tarea 089) ya no depende de ella.
+La tarea 090 dejó además un drift deliberado de Terraform (4 objetos S3 de
+script Glue + el zip compartido `procesamiento_source`, ver `doc/090`) que
+la Prioridad 1 debe absorber en su reconciliación.
 
 ## Prioridad 3 — Implementar la tarea 086 (afluencia por grafo) (Sistema)
 
@@ -83,7 +84,7 @@ principio — puede implementarse sin ella y añadirla después.
 extremo a extremo por tarea, no varias a la vez):
 
 - `opciones_movilidad` (cruza `trafico`+EMT+BiciMAD)
-- `disponibilidad_aparcamiento` (depende de la Prioridad 2)
+- `disponibilidad_aparcamiento` (ya no bloqueada por la Prioridad 2 — `aparcamientos` tiene Gold real, ver `doc/090`)
 - `eventos_cercanos` (`agenda_eventos`+`agenda_recintos`)
 - Persistir `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD` como parámetros
   SSM `SecureString` (gap documentado desde la tarea 043, causó un bloqueo

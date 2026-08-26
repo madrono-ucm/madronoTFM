@@ -79,7 +79,17 @@ def main() -> None:
         job.commit()
         return
 
-    silver_df = spark.read.parquet(silver_partition_path)
+    # `fecha` es columna de partición física de Silver (derivada de
+    # `start_datetime`, ver glue_bronze_to_silver.py), pero al acotar la
+    # lectura a una única partición `fecha=<fecha>/` (tarea 076) Spark deja
+    # de inferirla como columna -- esa partición queda fija en la propia
+    # ruta leída. Se añade de vuelta con el valor ya conocido -- bug real
+    # (`AnalysisException: Column 'fecha' does not exist`) que llevaba
+    # fallando en producción todos los días desde el 2026-08-23 (ver
+    # historial real de `madrono-tfm-dev-agenda-eventos-silver-to-gold`),
+    # encontrado y corregido en la tarea 090 junto con el mismo bug en
+    # `cartelera_cines_estrenos`/`aforos_peatones_bicicletas`.
+    silver_df = spark.read.parquet(silver_partition_path).withColumn("fecha", F.lit(fecha))
 
     # `category`/`district` ausentes se agrupan bajo un sentinela en vez de
     # descartarse -- mismo criterio que `aggregate.py` (ver docstring de ese
@@ -87,11 +97,6 @@ def main() -> None:
     normalized_df = silver_df.withColumn(
         "category_key", F.coalesce(F.col("category"), F.lit(UNKNOWN_CATEGORY))
     ).withColumn("district_key", F.coalesce(F.col("district"), F.lit(UNKNOWN_DISTRICT)))
-
-    # `fecha` ya es una columna de partición física de Silver (derivada de
-    # `start_datetime`, ver glue_bronze_to_silver.py); agrupar por ella
-    # permite a Spark aprovechar partition pruning si `silver_path` acota un
-    # rango de fechas concreto.
     gold_df = (
         normalized_df.groupBy("category_key", "district_key", "fecha")
         .agg(
