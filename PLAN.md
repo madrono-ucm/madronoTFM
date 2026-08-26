@@ -125,11 +125,18 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `095`** (094 consumida el 26/8 por la misma pasada
-de QA — ver Pista Sistema. 091 consumida el 26/8:
-`disponibilidad_aparcamiento`, ver `tasks/done/091-...md`. 092/093
-consumidas el 26/8 por una pasada de QA independiente — ver Pista Sistema.
-090 consumida el 25/8: rastreo de nuevos
+**Próximo número libre: `099`** (095/096 consumidas el 26/8: resto de
+tools del asistente (`eventos_cercanos`, `opciones_movilidad`). 097
+consumida el 26/8: CI mínima (Prioridad 5 de `NEXT_STEPS.md`). 098
+consumida el 26/8: reconciliación real del drift de Terraform (Prioridad 1)
+y desbloqueo del Gold de aforos (Prioridad 2) — ver Pista Sistema. Un fix
+de CI posterior el mismo día (referenciado como "tarea 099" en el mensaje
+de commit) no llegó a crear `tasks/099-...md` ni `doc/099-...md` — de ahí
+que `099` siga siendo el próximo número realmente libre, no `100`. 094
+consumida el 26/8 por la misma pasada de QA — ver Pista Sistema. 091
+consumida el 26/8: `disponibilidad_aparcamiento`, ver
+`tasks/done/091-...md`. 092/093 consumidas el 26/8 por una pasada de QA
+independiente — ver Pista Sistema. 090 consumida el 25/8: rastreo de nuevos
 datasets de `datos.madrid.es` y tres productores nuevos, ver
 `doc/090-nuevas-fuentes-parques-ser-emt-incidencias.md`. 083-086 consumidas el 25/8: investigación
 Google Maps/arquitectura, esquema de plataformas, plan de cierre, spec de
@@ -258,6 +265,33 @@ pese a estar en orden inverso de creación en este documento.
   `EstacionMedida` sin cambios desde `080`) — ambos documentados como
   pendientes en sus respectivos `doc/`, pero sin ningún ticket accionable
   hasta ahora.
+- [x] **[`095-asistente-eventos-cercanos`](tasks/done/095-asistente-eventos-cercanos.md)**
+  — **completada** (PR #139). Resuelve el lugar contra el grafo y filtra
+  por distancia real contra Silver de `agenda_eventos`; corrigió dos bugs
+  reales (columna de partición `fecha` vs `date`, deduplicación por
+  `event_id`) — ver `doc/095-...md`.
+- [x] **[`096-asistente-opciones-movilidad`](tasks/done/096-asistente-opciones-movilidad.md)**
+  — **completada** (PR #141). Última de las 6 `tools` originales del
+  esqueleto de la tarea 044 — ya ninguna tiene `NotImplementedError`.
+  Simplificación deliberada: sin routing real por calles,
+  `duracion_estimada_min` queda en `None` — ver `doc/096-...md`.
+- [x] **[`097-ci-minima`](tasks/done/097-ci-minima.md)** — **completada**
+  (PR #142). `.github/workflows/ci.yml`: job `tests` (841 tests reales,
+  sin credenciales) + job `terraform` (`fmt -check` + `validate`, sin
+  backend remoto) en cada PR/push a `main` — Prioridad 5 de
+  `NEXT_STEPS.md`, hecha parcial (falta `terraform plan` real, necesita
+  credenciales AWS como secreto del repo, decisión de quien administra
+  GitHub) — ver `doc/097-...md`. Un fix de seguimiento el mismo día quitó
+  una referencia a un `procesamiento/requirements.txt` que nunca existió
+  (PR #145), sin `tasks/`/`doc/` propios.
+- [x] **[`098-reconciliar-drift-terraform-y-aforos-gold`](tasks/done/098-reconciliar-drift-terraform-y-aforos-gold.md)**
+  — **completada** (sesión interactiva, PR #144). Prioridades 1 y 2 de
+  `NEXT_STEPS.md` cerradas: `terraform apply` real (50 added, 64 changed,
+  50 destroyed, Kafka excluido a propósito) tras resolver un permiso IAM
+  (`codebuild:BatchGetProjects`) que faltaba en el usuario local; Gold de
+  `aforos_peatones_bicicletas` desbloqueado ampliando la partition
+  projection de fechas (1971 filas verificadas en Athena real, antes 0) —
+  ver `doc/098-...md`. Ya no queda ninguna tabla Gold rota ni bloqueada.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
@@ -317,6 +351,21 @@ Glue/Lambda desplegado desactualizado respecto al repositorio) — nuevo
 bloqueador a reconciliar, ver `NEXT_STEPS.md`. Detalle completo en
 `PROGRESS.md` y `doc/083-investigacion-google-maps-arquitectura.md`.
 
+**26/8** — Cerradas las 6 `tools` originales del esqueleto del asistente:
+`095-asistente-eventos-cercanos` y `096-asistente-opciones-movilidad`
+completadas, ninguna `tool` tiene ya `NotImplementedError` (Prioridad 4 de
+`NEXT_STEPS.md`, completa). `097-ci-minima` añade
+`.github/workflows/ci.yml` (tests + `terraform fmt`/`validate` en cada PR,
+Prioridad 5, parcial — falta `terraform plan` real con credenciales de
+repo). `098-reconciliar-drift-terraform-y-aforos-gold` cierra las
+Prioridades 1 y 2: `terraform apply` real aplicado (50 added, 64 changed,
+50 destroyed, Kafka excluido a propósito) tras resolver un permiso IAM
+que faltaba en el usuario local, y Gold de `aforos_peatones_bicicletas`
+desbloqueado (1971 filas verificadas en Athena real, antes 0). Ya no queda
+ninguna tabla Gold rota ni bloqueada, ni bloqueador de infraestructura
+activo — ver `NEXT_STEPS.md` y `doc/098-...md`. Solo quedan pendientes los
+gaps menores de Prioridad 7 y el arranque de la Pista Memoria.
+
 **Para la semana que viene**
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
 - [x] Crear y encolar `079-asistente-tool-calidad-aire` — completada
@@ -325,5 +374,6 @@ bloqueador a reconciliar, ver `NEXT_STEPS.md`. Detalle completo en
 - [x] Corregir la región de las credenciales de Neo4j en SSM (25/8)
 - [x] Crear y encolar `082-verificar-trafico-cercano-neo4j-real`
 - [x] Descartar Google Maps y diseñar su sustituto (25/8, tarea 083/086)
-- [ ] Reconciliar el drift de Terraform detectado el 25/8 (ver `NEXT_STEPS.md`)
+- [x] Reconciliar el drift de Terraform detectado el 25/8 (26/8, tarea 098
+  — ver `NEXT_STEPS.md`)
 - [ ] Empezar a reescribir §5 de la memoria con la arquitectura real
