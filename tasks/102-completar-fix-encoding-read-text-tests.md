@@ -3,19 +3,19 @@ id: 102
 slug: completar-fix-encoding-read-text-tests
 title: 'QA: quedan 2 ficheros de test con el mismo bug de encoding que la tarea 097
   dijo haber arreglado (3 de 5)'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/102-completar-fix-encoding-read-text-tests
-pr_number: null
-pr_url: null
+pr_number: 149
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/149
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-27T21:20:00+00:00'
-updated_at: '2026-08-27T22:16:08.647291+00:00'
+updated_at: '2026-08-27T22:18:21.002370+00:00'
 started_at: '2026-08-27T22:16:08.647266+00:00'
-submitted_at: null
+submitted_at: '2026-08-27T22:18:21.002228+00:00'
 merged_at: null
 ---
 
