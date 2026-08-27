@@ -26,8 +26,10 @@ from ingesta.capturas.afluencia_lugares_madrid import (
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 SAMPLES_DIR = Path(__file__).parent.parent / "capturas" / "samples"
 
-POPULARTIMES_FIXTURE = json.loads((FIXTURES_DIR / "populartimes_get_id_sample.json").read_text())
-FIND_PLACE_FIXTURE = json.loads((FIXTURES_DIR / "find_place_sample.json").read_text())
+POPULARTIMES_FIXTURE = json.loads(
+    (FIXTURES_DIR / "populartimes_get_id_sample.json").read_text(encoding="utf-8")
+)
+FIND_PLACE_FIXTURE = json.loads((FIXTURES_DIR / "find_place_sample.json").read_text(encoding="utf-8"))
 
 CAPTURED_AT = datetime(2026, 8, 13, 10, 0, 0, tzinfo=timezone.utc)
 
@@ -110,7 +112,9 @@ class CommittedSampleTests(unittest.TestCase):
     }
 
     def test_sample_matches_schema(self):
-        records = json.loads((SAMPLES_DIR / "afluencia_lugares_madrid_sample.json").read_text())
+        records = json.loads(
+            (SAMPLES_DIR / "afluencia_lugares_madrid_sample.json").read_text(encoding="utf-8")
+        )
         self.assertGreaterEqual(len(records), 3)
         self.assertLessEqual(len(records), 5)
         for record in records:
@@ -131,7 +135,9 @@ class CommittedSampleTests(unittest.TestCase):
         # Ver docstring del módulo: no hay GOOGLE_MAPS_API_KEY configurada en
         # este entorno, así que la muestra commiteada es de ejemplo, no una
         # captura real.
-        records = json.loads((SAMPLES_DIR / "afluencia_lugares_madrid_sample.json").read_text())
+        records = json.loads(
+            (SAMPLES_DIR / "afluencia_lugares_madrid_sample.json").read_text(encoding="utf-8")
+        )
         self.assertTrue(all(record["is_mock"] for record in records))
 
 
