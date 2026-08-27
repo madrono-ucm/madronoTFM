@@ -1,19 +1,20 @@
 ---
 id: 100
 slug: normalizar-eol-terraform-file-hash
-title: "QA: la tarea 098 no reconcilió el drift de Terraform — son finales de línea CRLF, no un apply incompleto"
-status: pending
+title: 'QA: la tarea 098 no reconcilió el drift de Terraform — son finales de línea
+  CRLF, no un apply incompleto'
+status: in_progress
 force: false
 allow_infra_apply: false
-branch: null
+branch: task/100-normalizar-eol-terraform-file-hash
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-27T19:10:00+00:00"
-updated_at: "2026-08-27T19:10:00+00:00"
-started_at: null
+created_at: '2026-08-27T19:10:00+00:00'
+updated_at: '2026-08-27T19:05:26.511108+00:00'
+started_at: '2026-08-27T19:05:26.511081+00:00'
 submitted_at: null
 merged_at: null
 ---
