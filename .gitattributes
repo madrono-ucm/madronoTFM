@@ -1,0 +1,22 @@
+# Normaliza los finales de línea a LF para cualquier checkout (Linux o
+# Windows), sean cuales sean los ajustes locales de core.autocrlf de quien
+# clona el repositorio.
+#
+# Motivo (tarea 100): sin este fichero, un `terraform apply` ejecutado desde
+# un checkout que normaliza a CRLF (Windows, o `core.autocrlf=true`) sube a
+# S3 objetos cuyo contenido difiere solo en EOL del mismo fichero en un
+# checkout LF. Como el hash del contenido forma parte de la clave S3
+# (`file()`/`filemd5()` en Terraform), esto produce un "drift" perpetuo y
+# falso entre entornos -- cada `terraform plan` posterior desde el checkout
+# contrario ve un cambio real que no lo es (ver doc/100-normalizar-eol-terraform-file-hash.md).
+#
+# Se usa el criterio amplio `* text=auto eol=lf` (detección automática de
+# texto vs. binario por Git, forzando LF en lo detectado como texto) en vez
+# de listar extensión por extensión: es más robusto ante ficheros de texto
+# con extensiones no previstas, y Git ya excluye correctamente el contenido
+# binario real de la conversión. Los dos binarios conocidos del repositorio
+# se marcan explícitamente por claridad y como salvaguarda.
+* text=auto eol=lf
+
+*.docx binary
+*.nc binary
