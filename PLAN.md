@@ -125,7 +125,11 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `099`** (095/096 consumidas el 26/8: resto de
+**Próximo número libre: `101`** (100 consumida el 27/8 por una auditoría de
+QA de la tarea 098 — ver Pista Sistema. Nota: "099" se usó como etiqueta de
+un commit de CI suelto (`09da5eb`) sin crear nunca `tasks/099-*.md`, así
+que ese número no tiene fichero propio — se salta para evitar confusión,
+no se reutiliza. 095/096 consumidas el 26/8: resto de
 tools del asistente (`eventos_cercanos`, `opciones_movilidad`). 097
 consumida el 26/8: CI mínima (Prioridad 5 de `NEXT_STEPS.md`). 098
 consumida el 26/8: reconciliación real del drift de Terraform (Prioridad 1)
@@ -292,6 +296,16 @@ pese a estar en orden inverso de creación en este documento.
   `aforos_peatones_bicicletas` desbloqueado ampliando la partition
   projection de fechas (1971 filas verificadas en Athena real, antes 0) —
   ver `doc/098-...md`. Ya no queda ninguna tabla Gold rota ni bloqueada.
+- [ ] **[`100-normalizar-eol-terraform-file-hash`](tasks/100-normalizar-eol-terraform-file-hash.md)**
+  — QA (27/8), auditoría de la tarea 098: el `terraform plan` sigue
+  mostrando `55/64/50` (add/change/destroy) desde esta EC2 pese al `apply`
+  ya hecho — **no es un `apply` incompleto ni una regresión**, verificado
+  byte a byte que los 4 scripts de la tarea 090 (y el resto) están
+  desplegados con el contenido correcto, solo con finales de línea `CRLF`
+  (el entorno donde se ejecutó el `apply` real normalizaba a `CRLF`; esta
+  EC2 usa `LF`, y el repo no tiene `.gitattributes`). Sin corregirlo, el
+  drift "falso" puede rebotar entre entornos indefinidamente cada vez que
+  alguien lo "reconcilie" desde un checkout distinto.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
