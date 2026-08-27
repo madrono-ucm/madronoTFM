@@ -177,7 +177,9 @@ class CommittedSampleTests(unittest.TestCase):
 
     def test_districts_sample_matches_schema(self):
         records = json.loads(
-            (SAMPLES_DIR / "barrios_distritos_madrid_distritos_sample.json").read_text()
+            (SAMPLES_DIR / "barrios_distritos_madrid_distritos_sample.json").read_text(
+                encoding="utf-8"
+            )
         )
         self.assertGreater(len(records), 0)
         self.assertLessEqual(len(records), 5)
@@ -191,7 +193,9 @@ class CommittedSampleTests(unittest.TestCase):
 
     def test_neighbourhoods_sample_matches_schema(self):
         records = json.loads(
-            (SAMPLES_DIR / "barrios_distritos_madrid_barrios_sample.json").read_text()
+            (SAMPLES_DIR / "barrios_distritos_madrid_barrios_sample.json").read_text(
+                encoding="utf-8"
+            )
         )
         self.assertGreater(len(records), 0)
         district_ids = set()
@@ -206,7 +210,9 @@ class CommittedSampleTests(unittest.TestCase):
         # distritos también incluidos en la muestra (fixture/sample coherente
         # como grafo padre-hijo, mismo criterio que viales/cruces en la tarea 009).
         districts = json.loads(
-            (SAMPLES_DIR / "barrios_distritos_madrid_distritos_sample.json").read_text()
+            (SAMPLES_DIR / "barrios_distritos_madrid_distritos_sample.json").read_text(
+                encoding="utf-8"
+            )
         )
         sampled_district_ids = {d["district_id"] for d in districts}
         self.assertTrue(district_ids.issubset(sampled_district_ids))
