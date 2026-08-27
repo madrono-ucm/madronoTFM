@@ -93,6 +93,13 @@ proyecto (andamiaje, estructura de carpetas...) o para tareas sueltas sin depend
 que confíes en revisar después con calma en vez de antes — no para tareas de las que
 dependan otras posteriores importantes.
 
+**Limitación conocida (ver `doc/101-...md`)**: `merge_pr()` fusiona sin esperar a que
+los checks de CI (`.github/workflows/ci.yml`) terminen, y `main` no tiene branch
+protection — un `force: true` con CI en rojo puede fusionarse igualmente. `doc/101`
+documenta el diseño para arreglar ambas cosas, pendiente de aprobación humana explícita
+antes de aplicarse (afecta al comportamiento del demonio para todas las tareas
+`force: true`, no solo a la que lo active).
+
 ## Qué NO debe hacer una tarea
 
 El demonio ejecuta `claude` con permisos totales y sin supervisión humana en tiempo
