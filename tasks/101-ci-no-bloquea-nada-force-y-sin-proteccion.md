@@ -3,19 +3,19 @@ id: 101
 slug: ci-no-bloquea-nada-force-y-sin-proteccion
 title: 'QA: la CI (097) corre y suele estar en verde, pero no bloquea ningún merge
   — ni en tareas force:true ni por falta de branch protection'
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: false
 branch: task/101-ci-no-bloquea-nada-force-y-sin-proteccion
-pr_number: null
-pr_url: null
+pr_number: 148
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/148
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-27T21:20:00+00:00'
-updated_at: '2026-08-27T21:12:54.532958+00:00'
+updated_at: '2026-08-27T21:17:07.149596+00:00'
 started_at: '2026-08-27T21:12:54.532935+00:00'
-submitted_at: null
+submitted_at: '2026-08-27T21:17:07.149437+00:00'
 merged_at: null
 ---
 
