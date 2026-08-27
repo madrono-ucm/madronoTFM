@@ -3,7 +3,7 @@ id: 102
 slug: completar-fix-encoding-read-text-tests
 title: 'QA: quedan 2 ficheros de test con el mismo bug de encoding que la tarea 097
   dijo haber arreglado (3 de 5)'
-status: in_review
+status: done
 force: true
 allow_infra_apply: false
 branch: task/102-completar-fix-encoding-read-text-tests
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-27T21:20:00+00:00'
-updated_at: '2026-08-27T22:18:21.002370+00:00'
+updated_at: '2026-08-27T22:19:28.620337+00:00'
 started_at: '2026-08-27T22:16:08.647266+00:00'
 submitted_at: '2026-08-27T22:18:21.002228+00:00'
-merged_at: null
+merged_at: '2026-08-27T22:18:25Z'
 ---
 
 ## Hallazgo de QA (auditoría de la tarea 097, hallazgo menor)
