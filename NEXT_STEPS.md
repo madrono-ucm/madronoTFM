@@ -113,6 +113,16 @@ repositorio (recomendado: rol OIDC de solo lectura, no claves estáticas),
 una decisión que le corresponde a quien administra el repositorio en
 GitHub, no a esta tarea.
 
+**QA (tarea 101)**: la CI corre y suele estar en verde, pero hoy no
+bloquea ningún merge real -- `main` no tiene branch protection
+(`gh api .../branches/main/protection` → 404) y las tareas `force: true`
+fusionan su PR (`merge_pr()`, `tasks/scripts/gh_git.py:164`) sin esperar en
+absoluto a que los checks de CI terminen. `doc/101-...md` documenta las dos
+recomendaciones (activar branch protection exigiendo los checks `tests` +
+`terraform`, y hacer que `merge_pr()` espere a los checks antes de
+fusionar) con el comando/diseño ya listos para aplicar -- pendientes de
+aprobación humana explícita antes de ejecutarse, ninguno aplicado todavía.
+
 ## Prioridad 6 — Memoria (Memoria, y Ambos para §5-§7)
 
 `PLAN.md` ya tiene el reparto exacto por sección
