@@ -125,7 +125,9 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `101`** (100 consumida el 27/8 por una auditoría de
+**Próximo número libre: `103`** (101/102 consumidas el 27/8 por una
+auditoría de QA de la tarea 097 — ver Pista Sistema. 100 consumida el 27/8
+por una auditoría de
 QA de la tarea 098 — ver Pista Sistema. Nota: "099" se usó como etiqueta de
 un commit de CI suelto (`09da5eb`) sin crear nunca `tasks/099-*.md`, así
 que ese número no tiene fichero propio — se salta para evitar confusión,
@@ -296,16 +298,31 @@ pese a estar en orden inverso de creación en este documento.
   `aforos_peatones_bicicletas` desbloqueado ampliando la partition
   projection de fechas (1971 filas verificadas en Athena real, antes 0) —
   ver `doc/098-...md`. Ya no queda ninguna tabla Gold rota ni bloqueada.
-- [ ] **[`100-normalizar-eol-terraform-file-hash`](tasks/100-normalizar-eol-terraform-file-hash.md)**
-  — QA (27/8), auditoría de la tarea 098: el `terraform plan` sigue
-  mostrando `55/64/50` (add/change/destroy) desde esta EC2 pese al `apply`
-  ya hecho — **no es un `apply` incompleto ni una regresión**, verificado
-  byte a byte que los 4 scripts de la tarea 090 (y el resto) están
-  desplegados con el contenido correcto, solo con finales de línea `CRLF`
-  (el entorno donde se ejecutó el `apply` real normalizaba a `CRLF`; esta
-  EC2 usa `LF`, y el repo no tiene `.gitattributes`). Sin corregirlo, el
-  drift "falso" puede rebotar entre entornos indefinidamente cada vez que
-  alguien lo "reconcilie" desde un checkout distinto.
+- [x] **[`100-normalizar-eol-terraform-file-hash`](tasks/done/100-normalizar-eol-terraform-file-hash.md)**
+  — **completada** (PR #147). QA (27/8), auditoría de la tarea 098: el
+  `terraform plan` seguía mostrando `55/64/50` (add/change/destroy) desde
+  esta EC2 pese al `apply` ya hecho — **no era un `apply` incompleto ni una
+  regresión**, verificado byte a byte que los 4 scripts de la tarea 090 (y
+  el resto) estaban desplegados con el contenido correcto, solo con
+  finales de línea `CRLF` (el entorno donde se ejecutó el `apply` real
+  normalizaba a `CRLF`; esta EC2 usa `LF`, el repo no tenía
+  `.gitattributes`). Añadido `.gitattributes` forzando `LF`.
+- [ ] **[`101-ci-no-bloquea-nada-force-y-sin-proteccion`](tasks/101-ci-no-bloquea-nada-force-y-sin-proteccion.md)**
+  — QA (27/8), auditoría de la tarea 097: la CI corre y suele estar en
+  verde, pero **no bloquea ningún merge real** — `main` no tiene branch
+  protection (`404 Branch not protected`), y las tareas `force: true` (la
+  mayoría de la cola) fusionan el PR sin esperar a que la CI termine
+  (`merge_pr()` en `madronoTFM-agent` no usa `--auto` ni comprueba
+  `checks`). Verificado con el histórico real: la propia tarea 097 quedó
+  con CI roja en `main` varias horas tras su primer `push`. Necesita
+  decisión del usuario (branch protection y/o esperar checks en
+  `force: true` cambian el comportamiento del flujo de trabajo del
+  equipo).
+- [ ] **[`102-completar-fix-encoding-read-text-tests`](tasks/102-completar-fix-encoding-read-text-tests.md)**
+  — QA (27/8), hallazgo menor de la misma auditoría: la tarea 097 arregló
+  3 tests con `read_text()` sin `encoding="utf-8"` (bug solo en Windows),
+  pero quedaron 2 ficheros más (7 llamadas) con el mismo patrón sin
+  arreglar — limpieza mecánica, `force: true`.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
