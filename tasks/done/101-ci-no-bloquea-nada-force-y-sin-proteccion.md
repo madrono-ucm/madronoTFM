@@ -3,7 +3,7 @@ id: 101
 slug: ci-no-bloquea-nada-force-y-sin-proteccion
 title: 'QA: la CI (097) corre y suele estar en verde, pero no bloquea ningún merge
   — ni en tareas force:true ni por falta de branch protection'
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/101-ci-no-bloquea-nada-force-y-sin-proteccion
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-27T21:20:00+00:00'
-updated_at: '2026-08-27T21:17:07.149596+00:00'
+updated_at: '2026-08-27T22:15:05.806215+00:00'
 started_at: '2026-08-27T21:12:54.532935+00:00'
 submitted_at: '2026-08-27T21:17:07.149437+00:00'
-merged_at: null
+merged_at: '2026-08-27T22:14:08Z'
 ---
 
 ## Hallazgo de QA (auditoría de la tarea 097, verificado en vivo)
