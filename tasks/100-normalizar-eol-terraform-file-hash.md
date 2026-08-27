@@ -3,19 +3,19 @@ id: 100
 slug: normalizar-eol-terraform-file-hash
 title: 'QA: la tarea 098 no reconcilió el drift de Terraform — son finales de línea
   CRLF, no un apply incompleto'
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: false
 branch: task/100-normalizar-eol-terraform-file-hash
-pr_number: null
-pr_url: null
+pr_number: 147
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/147
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-27T19:10:00+00:00'
-updated_at: '2026-08-27T19:05:26.511108+00:00'
+updated_at: '2026-08-27T19:08:49.240320+00:00'
 started_at: '2026-08-27T19:05:26.511081+00:00'
-submitted_at: null
+submitted_at: '2026-08-27T19:08:49.240179+00:00'
 merged_at: null
 ---
 
