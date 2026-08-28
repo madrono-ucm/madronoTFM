@@ -155,7 +155,7 @@ de código nuevo).
 | # | Ítem | Pista | Estado 28/8 |
 |---|---|---|---|
 | 1 | **`modelado/` — fundación (Tier 0)**: feature store, arnés de CV temporal, líneas base, MLflow, Evidently, export ONNX | Sistema | ⬜ sin empezar (tickets de ML sin crear) |
-| 2 | **`FIL_01`** + **`FIL_02`→`FIL_05`** + **`FIL_06`** — fundación de datos completa **antes** del modelado pesado | Sistema | 🟡 mayoría hecha — ver `tasks/FIL_00_README.md`: `FIL_01`/`FIL_02` ✅; `FIL_03`/`FIL_05` Ingesta→Bronze ✅ (Silver/Gold aplazado); `FIL_04` 203 parques `:Lugar` cargados, faltan sus `PROXIMO_A`; `FIL_06` Google Maps retirado ✅, Glue job derivado pendiente. Bloqueo: `FIL_08` (recarga de Neo4j) |
+| 2 | **`FIL_01`** + **`FIL_02`→`FIL_06`** + **`FIL_08`** — fundación de datos | Sistema | ✅ **mayoría cerrada** (PRs #150-155) — `FIL_01`/`02`/`04`/`06`/`08` ✅; `FIL_03`/`FIL_05` Ingesta→Bronze ✅ (Silver/Gold aplazado, el JSON Bronze ya es consumible); `FIL_07` ⬜ (prioridad más baja). Ver `tasks/FIL_00_README.md`. La instancia real de Neo4j tiene aforos + 203 parques + sus `PROXIMO_A`; `afluencia_lugares` ya es una tabla Gold horaria derivada de sensores |
 | 3 | **`VIC_01`–`VIC_04`** — reescritura de §1–§6 a la realidad | Memoria | ⬜ |
 | 4 | **Tier 1** — forecasters LightGBM (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | Sistema | ⬜ |
 | 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema | ⬜ |
@@ -163,13 +163,12 @@ de código nuevo).
 | 7 | **Tier 4** — tool `*_prevista` (ONNX), reentrenamiento nocturno, backtest incremental | Sistema | ⬜ |
 | 8 | **`FIL_07`** (EMT multi-parada) — aditivo, la prioridad más baja | Sistema | ⬜ |
 
-### Nuevo bloqueo (28/8): recarga de Neo4j — `FIL_08`
+### ~~Bloqueo (28/8): recarga de Neo4j~~ Resuelto — `FIL_08` (PR #154)
 
-`cargar_grafo.py` cae por `neo4j.exceptions.SessionExpired` en recargas
-largas contra AuraDB Free (falló 3 veces el 28/8; una recarga que sí
-terminó tardó 51 min). Los nodos entran; las relaciones (`PROXIMO_A` sobre
-todo) no. Bloquea el cierre de `FIL_04` (parques) y la parte 2 de `FIL_06`.
-`FIL_08` propone `UNWIND` + reintento por lote en `grafo/cypher.py`.
+`cargar_grafo.py` caía por `SessionExpired` en recargas largas contra
+AuraDB Free (4 fallos el 28/8). `FIL_08` reescribió `_run_all` con `UNWIND`
+por lotes + reintento/reconexión: recarga completa en **~9 min, limpia**.
+Con eso se cerró `FIL_04` (203 parques con `PROXIMO_A`) y `FIL_06` parte 2.
 
 ## 7. Siguiente paso inmediato
 
