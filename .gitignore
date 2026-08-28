@@ -234,3 +234,10 @@ tasks/scripts/*.log
 # por defecto), no se commitea al repo.
 ingesta/bronze/
 /bronze/
+
+# modelado/ (pista de ML): datos regenerables y artefactos locales, no se
+# commitean (los paneles se reconstruyen con `modelado.features.build`, los
+# runs de MLflow y las figuras/CSV de evaluación se regeneran).
+modelado/_data/
+modelado/mlruns/
+modelado/evaluation/artifacts/
