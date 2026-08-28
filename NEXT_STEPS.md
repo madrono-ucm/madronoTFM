@@ -10,6 +10,167 @@ fue nunca.
 No sustituye al reparto por pista de [`PLAN.md`](PLAN.md#reparto-sin-conflictos)
 — cada ítem indica a qué pista pertenece (Sistema / Memoria / Ambos).
 
+---
+
+# Estado a 28/8 — Fundación de datos y decisiones críticas para el cierre
+
+Sesión del 28/8: chequeo de salud de **todas** las fuentes Madrid integradas
++ rastreo del código/docs de datapoints planificados pero ausentes, hecho
+porque la fase de ML del TFM (objetivo de la memoria §3.2: *"entrenar
+modelos predictivos de afluencia, congestión y calidad del aire"*) necesita
+una fundación de datos sólida y completa **antes** de diseñar nada de ML.
+Los arreglos de fundación se han convertido en tickets `FIL_*`
+(`tasks/FIL_00_README.md`) — fuera de la cola del demonio, para trabajarlos
+de forma interactiva.
+
+## 1. Qué funciona hoy (verificado contra AWS real)
+
+**14 productores continuos, todos con Lambda + EventBridge Scheduler + Glue
+Bronze→Silver→Gold, última ejecución en verde:** `trafico`, `calidad_aire`,
+`meteorologia`, `bicimad`, `aparcamientos`, `transporte_publico_emt`,
+`ruido`, `agenda_eventos`, `bluesky_menciones`, `cartelera_cines_estrenos`,
+`cams_calidad_aire`, `aemet_avisos` — Bronze fresco (horario o diario según
+cadencia), Gold consultable en Athena. Puertas de calidad Great Expectations
+reales en cada `bronze_to_silver` (`procesamiento/silver_gold/*/ge_suite.py`,
+informes en `silver/_quality_reports/`).
+
+## 2. Gaps de fundación de datos → tickets `FIL_*`
+
+| Ticket | Problema | Impacto |
+|---|---|---|
+| `FIL_01` | `aemet_prevision` silver→gold **falla en producción** ("Failed to delete key"); Gold con 4 filas sin refrescar | Perdemos la previsión meteo como feature/contexto |
+| `FIL_02` | Los 3 productores de la tarea 090 (`emt_incidencias`, `parques_jardines`, `ser_calles`) **solo tienen código de muestra** — sin `lambda_handler`, sin Bronze | Prerrequisito de FIL_03/04/05 |
+| `FIL_03` | `emt_incidencias` sin desplegar | Señal de disrupción para `opciones_movilidad` y para ML (corredores afectados) |
+| `FIL_04` | `parques_jardines` sin desplegar; **no hay ni un `:Lugar` de tipo parque en el grafo** | El caso de uso "paseo por el parque" de la memoria no tiene datos |
+| `FIL_05` | `ser_calles` sin desplegar | Aparcamiento en calle (capacidad estática); posible mejora de `disponibilidad_aparcamiento` |
+| `FIL_06` | **`afluencia_lugares` está muerto**: 100% Google Maps `populartimes`, sin clave posible, muestra `is_mock`, Gold con **0 filas**. Las Lambda/Glue "tienen éxito" con entrada mock y ocultan el hueco | **Es la capacidad estrella de la memoria** *("¿merece la pena ir a un lugar?")*. Sin ella el TFM es débil |
+| `FIL_07` | `transporte_publico_emt` captura **1 sola parada** ("71") — límite de diseño del productor, no de la fuente | Señal EMT pobre para asistente y ML |
+
+Fuentes descontinuadas / net-new (no son bug, son decisión — ver §5):
+`aforos_peatones_bicicletas` (fuente municipal congelada 2024-06-30, solo
+histórico); "SER. Tiques de aparcamiento" (ocupación en vivo, dataset aparte
+no integrado); recarga de VE, plazas PMR, infraestructura ciclista,
+observación por satélite (Copernicus/Sentinel) — todas **nombradas** en la
+memoria o el radar de `doc/090`, ninguna construida.
+
+## 3. Brecha memoria ↔ realidad (arquitectura descrita vs construida)
+
+La memoria (§5) describe una pila que **en varios puntos no es la que se ha
+construido**. Esto ya está señalado en `PLAN.md` (bloqueador 3) pero aquí va
+el mapa completo:
+
+| Componente en la memoria | Estado real |
+|---|---|
+| Apache Kafka + Kafka Connect + registro Avro | **No construido.** `infra/terraform/kafka.tf` existe pero se excluyó del `apply` a propósito (tarea 042). En su lugar: Lambda + EventBridge Scheduler |
+| Ruta caliente Flink/KSQL, ventanas en streaming | **No construido.** No hay ruta caliente ni procesamiento en streaming en absoluto |
+| Delta Lake (tablas Delta en 3 capas) | **No construido.** Parquet + catálogo Glue + Athena Partition Projection |
+| Spark batch sobre Silver | Construido como **Glue** (Spark por debajo) ✓ |
+| Grafo urbano en Neo4j desde Gold | Construido ✓ (AuraDB Free, cargado; 9430 nodos) |
+| **MLOps: MLflow + Evidently + ONNX** | **No construido.** No existe nada de ML. Directorio `modelado/` no existe |
+| Cuadro de mando Power BI + modelo semántico DAX | **No construido** |
+| Asistente FastAPI + agente MCP | Construido ✓ (6 tools con lógica real) |
+| Puertas de calidad Great Expectations | Construido ✓ (por dataset) |
+| Cuadernos de evaluación (Anexo C, §7) | **No construidos** |
+
+## 4. La realidad de los datos para ML
+
+El demonio de ingesta lleva funcionando en continuo **desde el 2026-08-14**.
+Bronze no tiene nada anterior. Profundidad real por tabla Gold (consultado
+en Athena el 28/8):
+
+| Tabla | Filas | Cobertura temporal |
+|---|---|---|
+| `trafico_por_punto_hora` | 1.45M | **14 días** horarios, ~4300 puntos |
+| `calidad_aire_..._contaminante_hora` | 37k | **14 días** horarios, ~24 estaciones |
+| `meteorologia_..._magnitud_hora` | 24k | **15 días** horarios |
+| `bicimad_por_estacion_hora` | 218k | **19 días** horarios |
+| `ruido_...` | 620 | 5 días |
+| `aforos_peatones_bicicletas` | 1971 | **1 día** (2024-06-30, fuente congelada) |
+| `afluencia_lugares_...` | **0** | — |
+
+Implicación: solo cabe un modelo de **horizonte corto** (predecir 1–3 h
+vista desde lags recientes + calendario + meteo + vecinos de grafo), con
+holdout temporal (p.ej. últimos 3 días) y comparación contra líneas base
+(persistencia, climatología horaria). **No hay datos para patrones
+estacionales/diarios largos** — eso pasa a ser una limitación explícita de
+§7.4. Los estudios de ablación que describe §7.3 (fusión multi-señal vs
+fuente única; "solo sustrato europeo común") sí son viables con esta
+ventana.
+
+## 5. Decisiones tomadas (28/8, con Filippos)
+
+1. **`afluencia_lugares`** → **señal derivada** (metodología de la tarea 089:
+   lugar → sensores `PROXIMO_A` → tráfico+ruido+bici+aire), materializada
+   como serie temporal Gold horaria. Es un target/feature de ML de primer
+   nivel. Fórmula documentada como aproximación, igual que `indice_calidad`.
+   → `FIL_06`.
+
+2. **Memoria §5–§6** → **reescribir a la arquitectura real** (Lambda +
+   EventBridge + Glue + Athena + Neo4j + FastAPI/MCP) como decisión de
+   diseño justificada a coste 0 (§5.4 ya lo respalda). Kafka/Flink/Delta,
+   Power BI y satélite → §7.5 Futuras líneas. La narrativa lambda
+   "caliente/fría" solo se mantiene admitiendo que la ruta caliente no se
+   implementó. → tickets `VIC_*`.
+
+3. **Modelo ML — es el elemento central del TFM.** Prioridad nº 1: una
+   **arquitectura de mejores prácticas** en `modelado/` (feature store sin
+   fugas → CV temporal → líneas base → MLflow tracking+registry → Evidently
+   → export ONNX). Sobre ella:
+   - **Tier 1** — forecasters LightGBM multi-horizonte (1/3/6 h) para
+     **calidad del aire, congestión de tráfico y afluencia derivada** + un
+     clasificador de "episodio" por target. SHAP.
+   - **Tier 2 (el "wow")** — **GNN espacio-temporal** sobre el grafo Neo4j,
+     multi-tarea (AQ + congestión + afluencia), multi-horizonte. Importancia
+     de aristas para explicabilidad. Alinea con "redes neuronales de grafos"
+     (memoria §2/§5.2).
+   - **Tier 4** — tool del asistente `*_prevista` servida desde ONNX;
+     reentrenamiento nocturno programado; backtest incremental según se
+     acumulan datos.
+   Modelo entrenado con ~14 días (→ ~550+ snapshots para la entrega): se
+   acepta como demostración de metodología; ventana corta = limitación
+   declarada de §7.4. Holdout = últimos 3 días.
+
+4. **Power BI** → **retirado del alcance**, se documenta en §7.5 Futuras
+   líneas.
+
+5. **Observación por satélite** → **futura línea**. CAMS (previsión) ya
+   cubre el "sustrato europeo común" para la ablación de §7.3.
+
+6. **CI que no bloquea merges (tarea 101)** → **se deja como está**; se
+   documenta como limitación en §7.4. No se activa branch protection ni se
+   cambia `merge_pr()` antes del cierre.
+
+7. **Pendiente (decisión 8)**: ¿se mantienen las dos ablaciones de §7.3
+   (fusión multi-señal vs fuente única; "solo sustrato europeo común") o se
+   recorta §7.3 a solo la comparación GNN vs GBT vs baseline + la
+   explicabilidad? Afecta al alcance de los tickets de ML y a la redacción
+   de §7.3.
+
+## 6. Triage por deadline (~2.5 semanas) — orden acordado
+
+Dos pistas en paralelo: **Sistema** (Filippos + tickets `FIL_*`) y
+**Memoria** (Víctor + tickets `VIC_*`, arrancan desde el día 1 sin depender
+de código nuevo).
+
+| # | Ítem | Pista |
+|---|---|---|
+| 1 | **`modelado/` — fundación (Tier 0)**: feature store, arnés de CV temporal, líneas base, MLflow, Evidently, export ONNX | Sistema |
+| 2 | **`FIL_01`** (arreglar `aemet_prevision`) + **`FIL_02`→`FIL_05`** (desplegar `emt_incidencias` / `parques_jardines` / `ser_calles`) + **`FIL_06`** (`afluencia_lugares` derivado) — fundación de datos completa **antes** del modelado pesado, para que el GNN entrene con el conjunto de features rico | Sistema |
+| 3 | **`VIC_01`–`VIC_04`** — reescritura de §1–§6 a la realidad | Memoria |
+| 4 | **Tier 1** — forecasters LightGBM (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | Sistema |
+| 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema |
+| 6 | **`VIC_05`–`VIC_06`** — §7 (resultados, métricas, explicabilidad, limitaciones, futuras líneas) usando 4–5 salidas reales de los modelos | Memoria |
+| 7 | **Tier 4** — tool `*_prevista` (ONNX), reentrenamiento nocturno, backtest incremental | Sistema |
+| 8 | **`FIL_07`** (EMT multi-parada) — aditivo, la prioridad más baja | Sistema |
+
+## 7. Siguiente paso inmediato
+
+- Crear los tickets numerados de ML en `tasks/` (`modelado/`, análogos a
+  `FIL_*`) — pendiente del reparto daemon vs interactivo.
+- Resolver la decisión 8 (ablaciones de §7.3).
+
+---
+
 ## Prioridad 1 — ~~Reconciliar el drift de Terraform~~ Hecho (Sistema)
 
 **Hecho (tarea 098)**: el plan real (recapturado, `10 to add, 55 to
@@ -142,12 +303,31 @@ duplica aquí. Dos añadidos de esta sesión:
 
 ## Prioridad 7 — Gaps menores, sin bloquear nada (Sistema)
 
-- `transporte_publico_emt` Gold solo tiene 1 `stop_id` real distinto
-  (`grafo/README.md`) — investigar si es un límite de la fuente EMT o un
-  bug de captura.
-- `grafo/README.md` sigue diciendo "no existe ninguna instancia Neo4j
-  real" pese a que la tarea 080 cargó una — actualizar cuando se toque ese
-  directorio por cualquier otro motivo.
+- ~~`transporte_publico_emt` Gold solo tiene 1 `stop_id` real distinto —
+  ¿límite de la fuente o bug de captura?~~ **Investigado (28/8): ninguno de
+  los dos.** `ingesta/capturas/transporte_publico_madrid.py` consulta el
+  endpoint EMT de llegadas, que es de **una parada por llamada**, y tanto
+  `capture_all()` como `lambda_handler()` usan un único `config.stop_id`
+  (por defecto `"71"`, heredado de la muestra puntual de las tareas
+  003/024). La EMT publica miles de paradas — ampliarlo es una **feature
+  nueva** (enumerar `stop_id` desde `crtm_red_transporte_madrid` o un
+  endpoint de paradas EMT, y recorrerlos respetando el rate-limit de
+  MobilityLabs), no un arreglo. Encolar como tarea del agente solo si se
+  decide que la cobertura EMT importa para el asistente antes del 17/9;
+  hoy `trafico_cercano`/`opciones_movilidad` ya funcionan sin ella.
+- ~~`grafo/README.md` sigue diciendo "no existe ninguna instancia Neo4j
+  real"~~ **Corregido (28/8)**: `grafo/README.md` e `infra/neo4j/README.md`
+  llevan una nota de estado que refleja que la instancia existe y está
+  cargada (tareas 080/087/094) y que el esquema se aplicó el 26/8.
+- ~~**Recargar el grafo real con los nodos de aforos (tarea 087)**~~
+  **Hecho (28/8)**: se encontró y arregló un segundo bloqueador
+  (`grafo/extract.py` filtraba aforos a los últimos 14 días; la fuente está
+  congelada en 2024-06-30 → 0 filas siempre). Quitado el filtro solo para
+  esa función. Recarga real ejecutada: **83** `:EstacionMedida {tipo:
+  "aforos_peatones_bicicletas"}` en la instancia real, **38** con
+  `PROXIMO_A` a un `:Lugar`. Ver `doc/094` §"Actualización 28/8".
+  Enriquecimiento OSM **sigue en 0** — pendiente una captura Overpass
+  completa a Bronze (trabajo mayor, `doc/083`/`doc/094`).
 - Visibilidad de coste: dar de alta `ce:GetCostAndUsage` sigue pendiente
   (bloqueado antes por el clasificador de seguridad del entorno, `doc/078`)
   — revisar si merece reintentarse antes del cierre.
