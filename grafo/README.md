@@ -29,10 +29,15 @@ las 4 relaciones del esquema: `PERTENECE_A` (Barrio→Distrito, tarea 067),
 (proximidad genérica por Haversine, tarea 070) y `CONECTADO_CON` (adyacencia
 real de red de transporte, tarea 071).
 
-**Sigue sin existir ninguna instancia Neo4j real** (bloqueo de alta manual en
-`https://console.neo4j.io`, documentado en `infra/neo4j/README.md` desde la
-tarea 043, sin resolver por esta tarea). Todo el código de este directorio es
-código puro, testado con fixtures, sin conectar a nada.
+**Nota de estado (28/8)**: los tres párrafos anteriores describen el alcance
+tal como quedó en la tarea 071. Desde entonces la instancia Neo4j real
+**existe y está cargada** (AuraDB Free, alta resuelta en la tarea 080, ver
+"Bloqueadores" en `PLAN.md`): `cargar_grafo.py` se ha ejecutado end-to-end
+contra ella tres veces (tareas 080/087/094) y el esquema
+(`infra/neo4j/schema/schema.cypher`) quedó aplicado el 26/8 (tarea 094). El
+código de este directorio sigue siendo puro y testado con fixtures, pero
+"sin conectar a nada" ya no describe el estado del proyecto — ver "Cómo se
+carga" más abajo.
 
 ## Estructura
 
@@ -533,8 +538,8 @@ tests a fecha de la tarea 083):
   conectado_con` consume directamente esos mismos registros de ruta. Las 4
   relaciones del esquema del grafo (`schema.cypher`) están ahora completas.
   Con `CONECTADO_CON` implementada, `cargar_grafo.py::cargar_grafo()` ya
-  cubre las 4 relaciones sin ningún hueco — la única pieza pendiente para
-  ejecutarlo end-to-end sigue siendo la instancia Neo4j real (ver abajo).
+  cubre las 4 relaciones sin ningún hueco, y desde la tarea 080 se ejecuta
+  end-to-end contra la instancia real (ver "Cómo se carga").
   El límite ya conocido desde la tarea 067 (resolución de entidades entre
   fuentes fuera de alcance: `crtm_red_transporte_madrid` y
   `transporte_publico_emt` pueden representar la misma parada física con dos
@@ -551,13 +556,12 @@ tests a fecha de la tarea 083):
   Bronze reales desde S3") queda superada por esa vía distinta (Athena, no
   releer Parquet), que era justamente la decisión ya tomada por el
   enunciado de esta tarea.
-- El bloqueo real (alta manual de AuraDB Free) sigue siendo el mismo que
-  documentó la tarea 043 — ninguna tarea de ETL puede resolverlo, solo un
-  humano completando el flujo de `https://console.neo4j.io`. Con `extract.py`
-  ya escrito y las 4 relaciones del esquema ya implementadas (tareas
-  067/070/071), la siguiente tarea de grafo con una instancia real
-  disponible podría ejecutar `grafo/cargar_grafo.py` end-to-end sin más
-  cambios en este directorio.
+- ~~El bloqueo real (alta manual de AuraDB Free)~~ **Resuelto** (tarea 080):
+  la instancia real existe y `grafo/cargar_grafo.py` ya se ejecuta
+  end-to-end contra ella sin cambios en este directorio (tareas
+  080/087/094). Lo que quedó escrito en las tareas 067/070/071 —
+  `extract.py` y las 4 relaciones del esquema listas — se confirmó correcto
+  al ejecutarlo de verdad.
 - `relaciones.proximo_a` es `O(n²)` en el número de nodos con ubicación —
   ver la nota de rendimiento en la sección dedicada arriba. No es un
   problema con los volúmenes reales de hoy, pero si una tarea futura amplía
@@ -565,11 +569,19 @@ tests a fecha de la tarea 083):
   convendría revisar si sigue siendo aceptable antes de ejecutar
   `cargar_grafo.py` contra una instancia real.
 - **`transporte_publico_emt_por_parada_hora` Gold solo tiene 1 parada
-  distinta** (`stop_id = "71"`) en las 8 particiones reales de esta sesión —
-  no es un límite de la consulta de esta tarea, es el estado real de la
-  ingesta de ese dataset a fecha 2026-08-21. Si una tarea futura amplía la
-  captura de EMT a más paradas, `fetch_paradas_emt()` no necesita ningún
-  cambio — empezaría a devolver más filas automáticamente.
+  distinta** (`stop_id = "71"`). **Investigado (28/8, Prioridad 7 de
+  `NEXT_STEPS.md`): no es un límite de la fuente ni un bug de captura, es el
+  alcance con el que se construyó el productor.**
+  `ingesta/capturas/transporte_publico_madrid.py` consulta el endpoint EMT
+  `/v2/transport/busemtmad/stops/{stop_id}/arrives/`, que es **una parada
+  por llamada**, y tanto `capture_all()` como `lambda_handler()` usan un
+  único `config.stop_id` (por defecto `"71"`, o `$EMT_STOP_ID`) — heredado
+  de la muestra puntual de las tareas 003/024. La EMT publica miles de
+  paradas; ampliarlo es una **feature nueva** (enumerar `stop_id` — p. ej.
+  desde `crtm_red_transporte_madrid` o un endpoint de paradas EMT — y
+  recorrerlos respetando el rate-limit de MobilityLabs), no un arreglo.
+  `fetch_paradas_emt()` no necesita cambios: empezaría a devolver más filas
+  en cuanto la ingesta capture más paradas.
 - **`aparcamientos_por_parking_hora` Gold está completamente vacío** (0
   objetos reales, solo un marcador `_$folder$`) — un tercer caso de Gold
   vacío, además de los dos ya conocidos desde la tarea 063

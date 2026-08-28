@@ -269,15 +269,26 @@ def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dic
     escribir el SQL. `station_id` ya es único por estación (las redes de
     peatones `PERM_PEA##` y de bicicletas `PERM_BICI##` usan identificadores
     propios), así que no hace falta agrupar también por `mode` para
-    identificar el nodo."""
-    sql = f"""
+    identificar el nodo.
+
+    **Sin `_recent_date_filter()`, a diferencia de trafico/calidad_aire/ruido**
+    (verificado el 28/8, Prioridad 7 de `NEXT_STEPS.md`): la fuente municipal
+    de aforos peatones/bicicletas está descontinuada desde 2024-06-30, así
+    que todo el Gold real (1971 filas, 83 estaciones) tiene `date =
+    '2024-06-30'`. Un filtro "últimos 14 días" deja la consulta en 0 filas y
+    los nodos de aforos nunca entran al grafo (tarea 087) pese a que la tabla
+    tiene datos -- exactamente lo que ocurría hasta esta fecha. La ventana
+    reciente existe para acotar el escaneo en series vivas de cientos de
+    millones de filas; aquí la tabla entera son ~2000 filas, así que
+    escanearla completa para quedarse con la última ubicación conocida por
+    estación (`max_by(col, date)`) es correcto y barato."""
+    sql = """
         SELECT station_id,
                max_by(address, date) AS address,
                max_by(district, date) AS district,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM aforos_peatones_bicicletas_por_estacion_modo_hora
-        WHERE {_recent_date_filter()}
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)

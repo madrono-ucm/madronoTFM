@@ -183,3 +183,16 @@ resultado completo, incluido un hallazgo real no relacionado con este
 dataset: `infra/neo4j/schema/schema.cypher` nunca se había aplicado a la
 instancia real, y una recarga completa contra el grafo ya poblado sin esos
 índices colgó 3 horas antes de detectarse y corregirse.
+
+## Actualización 28/8: los 83 nodos de aforos YA están en la instancia real
+
+Tras la tarea 098 (que aplicó el `apply` que desbloqueó el Gold en Athena),
+se relanzó `cargar_grafo.py` y se encontró un **segundo bloqueador**:
+`grafo/extract.py::fetch_estaciones_aforos_peatones_bicicletas()` filtraba a
+los últimos 14 días con `_recent_date_filter()`, pero la fuente está
+congelada en 2024-06-30, así que devolvía 0 filas siempre. Arreglado
+(quitar el filtro solo de esa función — la tabla entera son ~2000 filas).
+Recarga real ejecutada: `MATCH (e:EstacionMedida {tipo:
+"aforos_peatones_bicicletas"}) RETURN count(e)` → **83**, y **38** de ellos
+con una relación `PROXIMO_A` hacia un `:Lugar`. Detalle completo en
+`doc/094`, sección "Actualización 28/8".
