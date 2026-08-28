@@ -8,13 +8,13 @@ depends_on: [FIL_02]
 created_at: "2026-08-28"
 ---
 
-> **Estado 28/8: 🟡 Casi.** Lambda + schedule semanal desplegados → Bronze
-> (203 parques). `grafo/`: `fetch_parques_bronze`, `lugar_from_parque_bronze`
-> (`tipo="parque"`), en `cargar_grafo.py`, tests. **203 `:Lugar {tipo:"parque"}`
-> cargados en la instancia real de Neo4j.** PR #151, `doc/FIL-03-05`.
-> **Pendiente**: sus relaciones `PROXIMO_A` — `cargar_grafo.py` cae por
-> `neo4j.exceptions.SessionExpired` en AuraDB Free (3 intentos fallidos el
-> 28/8). Ver `doc/FIL-06` "Problema abierto" y el `FIL_08` sugerido.
+> **Estado 28/8: ✅ HECHO.** Lambda + schedule semanal → Bronze (203
+> parques). `grafo/`: `fetch_parques_bronze`, `lugar_from_parque_bronze`
+> (`tipo="parque"`), en `cargar_grafo.py`, tests (PR #151). Sus relaciones
+> `PROXIMO_A` quedaron bloqueadas por cortes de AuraDB Free hasta que
+> `FIL_08` (recarga por lotes `UNWIND`) lo arregló: recarga limpia en ~9 min,
+> **203 `:Lugar {tipo:"parque"}`, 199 con `PROXIMO_A` a un sensor** (antes 0),
+> 203 con `UBICADO_EN`. Ver `doc/FIL-08`.
 
 ## Context
 

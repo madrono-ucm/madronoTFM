@@ -5,7 +5,9 @@ Python puro; solo `Neo4jLoader` importa `neo4j`, de forma perezosa)."""
 
 import unittest
 
+from grafo import cypher
 from grafo.cypher import (
+    Neo4jLoader,
     barrio_query,
     conectado_con_query,
     distrito_query,
@@ -166,6 +168,109 @@ class ConectadoConQueryTests(unittest.TestCase):
         }
         query, _ = conectado_con_query(relacion)
         self.assertIn("[r:CONECTADO_CON {linea: $linea}]", query)
+
+
+class ToUnwindTests(unittest.TestCase):
+    def test_convierte_parametros_a_row(self):
+        q, _ = proximo_a_query({"origen_id": "a", "destino_id": "b", "distancia_m": 5})
+        unwind = cypher._to_unwind(q)
+        self.assertTrue(unwind.startswith("UNWIND $rows AS row\n"))
+        self.assertIn("row.origen_id", unwind)
+        self.assertIn("row.distancia_m", unwind)
+        self.assertNotIn("$origen_id", unwind)
+
+    def test_no_toca_literales_ni_row(self):
+        q, _ = conectado_con_query(
+            {"origen": {"id": "a"}, "destino": {"id": "b"}, "modo": "bus", "linea": "1"}
+        )
+        unwind = cypher._to_unwind(q)
+        self.assertIn("'crtm_red_transporte_madrid'", unwind)  # literal intacto
+        self.assertIn("row.origen_lat", unwind)
+
+
+class _FakeTx:
+    def __init__(self, session):
+        self._session = session
+
+    def run(self, query, **kwargs):
+        self._session.calls.append((query, kwargs))
+        if self._session.fail_next:
+            self._session.fail_next = False
+            raise self._session.transient_exc("conexión caída (simulado)")
+        return self
+
+    def consume(self):
+        return None
+
+
+class _FakeSession:
+    def __init__(self, driver):
+        self._driver = driver
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def execute_write(self, fn):
+        return fn(_FakeTx(self._driver))
+
+
+class _FakeDriver:
+    def __init__(self, transient_exc):
+        self.calls = []
+        self.fail_next = False
+        self.transient_exc = transient_exc
+        self.reconnects = 0
+
+    def session(self, **kwargs):
+        return _FakeSession(self)
+
+    def close(self):
+        pass
+
+
+class RunAllBatchingTests(unittest.TestCase):
+    """FIL_08: `_run_all` agrupa por sentencia y ejecuta en lotes `UNWIND`,
+    con reintento/reconexión ante cortes transitorios."""
+
+    def _loader_con_fake(self, transient_exc):
+        loader = object.__new__(Neo4jLoader)
+        loader._database = "neo4j"
+        loader._uri = "neo4j+s://x"
+        loader._auth = ("u", "p")
+        fake = _FakeDriver(transient_exc)
+        loader._driver = fake
+        loader._reconectar = lambda: setattr(fake, "reconnects", fake.reconnects + 1)
+        return loader, fake
+
+    def test_agrupa_y_batchea(self):
+        try:
+            from neo4j.exceptions import SessionExpired
+        except ImportError:
+            self.skipTest("driver neo4j no instalado")
+        loader, fake = self._loader_con_fake(SessionExpired)
+        # 2500 distritos + 10 barrios -> 3 lotes de distrito (1000/1000/500) + 1 de barrio
+        nodos = [{"codigo": f"D{i}", "nombre": f"n{i}"} for i in range(2500)]
+        loader.load_distritos(nodos)
+        loader.load_barrios([{"codigo": f"B{i}", "distrito_codigo": "D0"} for i in range(10)])
+        self.assertEqual(len(fake.calls), 4)
+        self.assertTrue(all(c[0].startswith("UNWIND $rows AS row") for c in fake.calls))
+        self.assertEqual([len(c[1]["rows"]) for c in fake.calls], [1000, 1000, 500, 10])
+        self.assertIn(":Distrito", fake.calls[0][0])
+
+    def test_reintenta_y_reconecta_ante_error_transitorio(self):
+        try:
+            from neo4j.exceptions import SessionExpired
+        except ImportError:
+            self.skipTest("driver neo4j no instalado")
+        loader, fake = self._loader_con_fake(SessionExpired)
+        cypher._BACKOFF_BASE_S = 0.0  # sin espera real en el test
+        fake.fail_next = True
+        loader.load_distritos([{"codigo": "D1", "nombre": "n"}])
+        self.assertEqual(fake.reconnects, 1)
+        self.assertEqual(len(fake.calls), 2)  # 1 fallo + 1 éxito
 
 
 class Neo4jLoaderSinDriverTests(unittest.TestCase):

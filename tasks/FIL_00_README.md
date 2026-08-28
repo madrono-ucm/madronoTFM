@@ -28,11 +28,11 @@ foundation first. Findings and the full decision-making picture are in
 | `FIL_01` | Fix `aemet_prevision` silver→gold (fallo en prod) | ✅ **HECHO** — IAM aplicado, job → SUCCEEDED, Gold fresco (PR #151, `doc/FIL-01`) |
 | `FIL_02` | `lambda_handler` + BronzeWriter en los 3 módulos de la tarea 090 | ✅ **HECHO** (PR #150) |
 | `FIL_03` | Desplegar `emt_incidencias` | 🟡 **Ingesta hecha** — Lambda + schedule 30 min → Bronze real (~110 incidencias). Silver/Gold aplazado (PR #151, `doc/FIL-03-05`) |
-| `FIL_04` | Desplegar `parques_jardines` + parques `:Lugar` en el grafo | 🟡 **Casi** — Lambda + schedule → Bronze (203 parques); 203 `:Lugar {tipo:"parque"}` cargados en Neo4j; **falta** crear sus `PROXIMO_A` (recarga de `cargar_grafo.py` cae por `SessionExpired` en AuraDB Free — ver `doc/FIL-06` "Problema abierto") (PR #151) |
+| `FIL_04` | Desplegar `parques_jardines` + parques `:Lugar` en el grafo | ✅ **HECHO** — Lambda + schedule → Bronze (203 parques); tras `FIL_08` la recarga completa: **203 `:Lugar {tipo:"parque"}`, 199 con `PROXIMO_A` a un sensor** (antes 0) (PR #151, `doc/FIL-08`) |
 | `FIL_05` | Desplegar `ser_calles` | 🟡 **Ingesta hecha** — Lambda + schedule semanal (512 MB) → Bronze (34.486 tramos). Silver/Gold + valoración `disponibilidad_aparcamiento` aplazados (PR #151) |
 | `FIL_06` | `afluencia_lugares`: retirar Google Maps, señal derivada como Gold | 🟡 **Parte 1/2 hecha** — productor Google Popular Times retirado y aplicado (Lambda/schedule/SSM destruidos), `populartimes` fuera. Fórmula compartida `nivel.py` + tests. **Parte 2/2** (Glue job horario) especificada en `doc/FIL-06`, sin construir (PR #152) |
 | `FIL_07` | `transporte_publico_emt`: capturar más de una parada | ⬜ **Sin empezar** (prioridad más baja) |
-| `FIL_08` | `cargar_grafo.py` resiliente a cortes de AuraDB Free (`UNWIND` + reintento) | ⬜ **Sin empezar** — bloquea el cierre de `FIL_04` y la parte 2 de `FIL_06` |
+| `FIL_08` | `cargar_grafo.py` resiliente a cortes de AuraDB Free (`UNWIND` + reintento) | ✅ **HECHO** — `_run_all` por lotes `UNWIND` + reintento/reconexión; recarga real limpia en ~9 min (antes: 4 fallos / 51 min). +4 tests. Cierra `FIL_04` (PR pendiente, `doc/FIL-08`) |
 
 ### Seguimiento surgido en la ejecución
 
