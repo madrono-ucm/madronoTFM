@@ -7,6 +7,8 @@ allow_infra_apply: false
 created_at: "2026-08-28"
 ---
 
+> **Estado 28/8: 🟡 mayoría hecha.** `modelado/` creado con la estructura; `features/{athena,panel,build}.py`; 8 tests (incl. no-fuga). Paneles reales verificados contra Athena: `calidad_aire` 39.942 filas/123 ent (`grafo-lugares` 17.542/54), `trafico` 1.511.995/4.702 (`grafo-lugares` 580.325/1.813). Flag `--scope all|grafo-lugares`. Lectura Athena por CSV de S3 (~22 s vs >15 min). `doc/ML-01`. **Falta**: join real de meteo/previsión AEMET; festivos desde el fichero real; `afluencia` (la Gold de FIL_06 aún sin horas suficientes).
+
 ## Objetivo
 
 Nuevo directorio `modelado/` (hermano de `ingesta/`/`procesamiento/`/
