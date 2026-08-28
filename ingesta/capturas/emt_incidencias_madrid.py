@@ -56,9 +56,15 @@ from typing import Optional
 
 import requests
 
-from .bronze import MADRID_TZ, now_madrid
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
+
+# Prefijo de la capa Bronze para este dataset (ver `lambda_handler`). Plano,
+# sin sufijo -- se evita a propósito el desajuste nombre-de-modulo /
+# nombre-de-dataset que arrastra `afluencia_lugares_patron_tipico` (ver
+# `infra/terraform/glue.tf`).
+DATASET_NAME = "emt_incidencias"
 
 DEFAULT_SOURCE_URL = (
     "https://datos.madrid.es/dataset/202992-0-emt-incidencias/resource/"
@@ -214,6 +220,35 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza TODAS las incidencias activas del feed (sin recorte de muestra).
+
+    A diferencia de `capture_sample` (que corta a `config.sample_size` para
+    el fixture versionado), esto es la captura completa pensada para el
+    handler Lambda: el feed RSS ya trae solo las incidencias vigentes, así
+    que "completa" aquí es "sin el slicing `[:sample_size]`", no otra
+    fuente. El feed es en vivo (cambia varias veces al día), así que un
+    schedule real de este productor debe ser de minutos, no horario -- ver
+    docstring del módulo.
+    """
+    ingested_at = now_madrid()
+    incidencias_rss = fetch_raw_incidencias(config)
+    root = ET.fromstring(incidencias_rss)
+    records = [normalize_record(item, ingested_at) for item in root.findall(".//item")]
+    logger.info("Incidencias EMT capturadas (captura completa): %d", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (FIL_03): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

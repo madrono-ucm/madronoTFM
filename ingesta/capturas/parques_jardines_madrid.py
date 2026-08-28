@@ -54,9 +54,12 @@ from typing import Optional
 
 import requests
 
-from .bronze import MADRID_TZ, now_madrid
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
+
+# Prefijo de la capa Bronze para este dataset (ver `lambda_handler`).
+DATASET_NAME = "parques_jardines"
 
 DEFAULT_SOURCE_URL = (
     "https://datos.madrid.es/dataset/200761-0-parques-jardines/resource/"
@@ -163,12 +166,12 @@ def _to_float(raw: Optional[str]) -> Optional[float]:
         return None
 
 
-def select_sample_parques(parques_xml: bytes, sample_size: int) -> "list[ET.Element]":
-    """Recorre el XML en orden y toma los primeros `sample_size` parques con
-    coordenadas conocidas -- se descartan sin coordenadas por robustez
-    (no debería ocurrir, mismo criterio que `poi_madrid.py`)."""
+def _iter_parques_con_coordenadas(parques_xml: bytes) -> "list[ET.Element]":
+    """Todos los `<contenido>` del catálogo que traen LATITUD y LONGITUD.
+    Se descartan los que no las traen por robustez (no debería ocurrir,
+    mismo criterio que `poi_madrid.py`)."""
     root = ET.fromstring(parques_xml)
-    selected: "list[ET.Element]" = []
+    parques: "list[ET.Element]" = []
     for contenido in root.findall(".//contenido"):
         atributos = contenido.find("atributos")
         localizacion = _attr_element(atributos, "LOCALIZACION")
@@ -176,10 +179,13 @@ def select_sample_parques(parques_xml: bytes, sample_size: int) -> "list[ET.Elem
             continue
         if not _attr(localizacion, "LATITUD") or not _attr(localizacion, "LONGITUD"):
             continue
-        selected.append(contenido)
-        if len(selected) >= sample_size:
-            break
-    return selected
+        parques.append(contenido)
+    return parques
+
+
+def select_sample_parques(parques_xml: bytes, sample_size: int) -> "list[ET.Element]":
+    """Los primeros `sample_size` parques con coordenadas conocidas."""
+    return _iter_parques_con_coordenadas(parques_xml)[:sample_size]
 
 
 def normalize_record(contenido: ET.Element, ingested_at: datetime) -> dict:
@@ -249,6 +255,33 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza TODOS los parques del catálogo (sin recorte de muestra).
+
+    Pensado para el handler Lambda: es un dato de referencia (cambia poco),
+    así que el schedule real de este productor debe ser de baja frecuencia
+    (semanal), no horario -- ver docstring del módulo y `FIL_04`.
+    """
+    ingested_at = now_madrid()
+    parques_xml = fetch_raw_parques(config)
+    records = [
+        normalize_record(contenido, ingested_at)
+        for contenido in _iter_parques_con_coordenadas(parques_xml)
+    ]
+    logger.info("Parques capturados (captura completa): %d", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (FIL_04): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

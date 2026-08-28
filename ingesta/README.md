@@ -3427,6 +3427,10 @@ caso real encontrado y cubierto por un test: "Bosque de los Abrazos
 Perdidos" no las tiene) -- se descartan sin coordenadas, mismo criterio que
 `poi_madrid.py`.
 
+**FIL_02**: el módulo ya expone `capture_all(config)` y
+`lambda_handler(event, context)` (`DATASET_NAME = "parques_jardines"`).
+Despliegue de infra + nodos `:Lugar` de tipo parque en el grafo: `FIL_04`.
+
 ### Ejecutar
 
 ```bash
@@ -3497,6 +3501,11 @@ dataset (`distrito`/`cod_distrito` separados, `numero_finca`/
 constante entre recursos (UTF-8 con BOM en unos, Latin-1 en otros) -- ambos
 casos cubiertos con fallback en el código.
 
+**FIL_02**: el módulo ya expone `capture_all(config)` y
+`lambda_handler(event, context)` (`DATASET_NAME = "ser_calles"`). Nota: la
+captura completa son ~34.500 tramos -- la Lambda de `FIL_05` necesita
+memoria/timeout holgados. Despliegue de infra: `FIL_05`.
+
 ### Ejecutar
 
 ```bash
@@ -3556,6 +3565,11 @@ productores sin infraestructura de scheduling real detrás -- un futuro
 productor continuo debería programarse con la cadencia que merece un feed
 que cambia varias veces al día, no asumir que basta con añadir
 `--interval-seconds`.
+
+**FIL_02**: el módulo ya expone `capture_all(config)` (captura completa, sin
+recorte de muestra) y `lambda_handler(event, context)` (escribe a Bronze
+real vía `BronzeWriter`, `DATASET_NAME = "emt_incidencias"`). El despliegue
+de la Lambda + schedule + Glue Silver/Gold es `FIL_03`.
 
 ### Ejecutar
 
