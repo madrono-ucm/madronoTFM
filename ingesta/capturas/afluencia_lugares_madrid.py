@@ -1,4 +1,21 @@
-"""Captura puntual de afluencia (popularidad tipo Google) de lugares de Madrid.
+"""RETIRADO (FIL_06). Captura de afluencia (popularidad tipo Google) de lugares de Madrid.
+
+**Este módulo ya no se despliega.** `afluencia_lugares` dependía al 100% de
+Google Popular Times, que no puede dar datos a coste 0 (tarea 083): la Lambda
+programada fallaba en cada ejecución por falta de `GOOGLE_MAPS_API_KEY` y el
+Gold estaba a 0 filas. La capacidad de "afluencia de un lugar" se sustituye
+por una señal **derivada de sensores propios vía el grafo Neo4j** (tarea 089,
+`afluencia_estimada`), materializada como serie temporal Gold por un job
+aparte -- ver `procesamiento/afluencia_lugares/` y `doc/FIL-06-*.md`.
+
+Se conserva el fichero como referencia del esquema que producía
+`normalize_record` (la memoria del TFM, §6.8, documenta por qué se evaluó y
+descartó esta vía). No lo reactives: `populartimes` ya no está en
+`ingesta/requirements.txt` y el productor no está en `infra/terraform/`.
+
+---
+
+Descripción original:
 
 Descarga, para una muestra pequeña de lugares conocidos de Madrid (Puerta
 del Sol, Parque del Retiro, Mercado de San Miguel...), la popularidad en

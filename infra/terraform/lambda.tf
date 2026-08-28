@@ -31,12 +31,14 @@ locals {
   # Nombre corto de cada SSM SecureString con una credencial que alguna
   # función necesita. El valor real NUNCA vive en este repositorio (ver
   # `aws_ssm_parameter.secrets` más abajo y `var.ssm_secret_placeholder_value`).
+  # FIL_06: `GOOGLE_MAPS_API_KEY` retirado junto con el productor
+  # `afluencia_lugares`. Al quitarlo, `terraform apply` destruye su parámetro
+  # SSM placeholder (nunca tuvo valor real).
   secrets = {
-    EMT_CLIENT_ID       = "/${var.project_name}/${var.environment}/secrets/emt-client-id"
-    EMT_PASS_KEY        = "/${var.project_name}/${var.environment}/secrets/emt-pass-key"
-    GOOGLE_MAPS_API_KEY = "/${var.project_name}/${var.environment}/secrets/google-maps-api-key"
-    AEMET_API_KEY       = "/${var.project_name}/${var.environment}/secrets/aemet-api-key"
-    CAMS_ADS_API_KEY    = "/${var.project_name}/${var.environment}/secrets/cams-ads-api-key"
+    EMT_CLIENT_ID    = "/${var.project_name}/${var.environment}/secrets/emt-client-id"
+    EMT_PASS_KEY     = "/${var.project_name}/${var.environment}/secrets/emt-pass-key"
+    AEMET_API_KEY    = "/${var.project_name}/${var.environment}/secrets/aemet-api-key"
+    CAMS_ADS_API_KEY = "/${var.project_name}/${var.environment}/secrets/cams-ads-api-key"
   }
 
   # Una entrada por función Lambda. `secret_env` lista los nombres de
@@ -99,15 +101,15 @@ locals {
       memory_mb   = 256
       secret_env  = []
     }
-    afluencia_lugares = {
-      module      = "afluencia_lugares_madrid"
-      dataset     = "afluencia_lugares_patron_tipico"
-      description = "Patrón típico de afluencia de lugares (Google Popular Times) -> Bronze/afluencia_lugares_patron_tipico"
-      timeout     = 300
-      memory_mb   = 256
-      secret_env  = ["GOOGLE_MAPS_API_KEY"]
-    }
+    # FIL_06: `afluencia_lugares` (Google Popular Times) retirado. Coste 0
+    # imposible (tarea 083), la Lambda fallaba en cada ejecución programada
+    # por falta de `GOOGLE_MAPS_API_KEY`, y el Gold estaba a 0 filas. Se
+    # sustituye por una señal derivada de sensores vía el grafo (tarea 089),
+    # materializada por un job aparte -- ver `procesamiento/afluencia_lugares/`
+    # y `doc/FIL-06-*.md`. Al quitar esta entrada, `terraform apply` destruye
+    # la función Lambda, su log group y su schedule.
     aforos_peatones_bicicletas = {
+      module      = "aforos_peatones_bicicletas_madrid"
       module      = "aforos_peatones_bicicletas_madrid"
       dataset     = "aforos_peatones_bicicletas"
       description = "Aforos de peatones/bicicletas de Madrid (último día disponible) -> Bronze/aforos_peatones_bicicletas"
@@ -248,13 +250,8 @@ locals {
       timezone     = "Europe/Madrid"
       input        = null
     }
-    afluencia_lugares = {
-      # 1x/semana, lunes 06:00 hora de Madrid.
-      producer_key = "afluencia_lugares"
-      expression   = "cron(0 6 ? * MON *)"
-      timezone     = "Europe/Madrid"
-      input        = null
-    }
+    # FIL_06: schedule de `afluencia_lugares` (Google Popular Times) retirado
+    # junto con su productor -- ver el comentario en `local.producers`.
     aforos_peatones_bicicletas = {
       # 1x/mes, día 1 a las 06:00 hora de Madrid.
       producer_key = "aforos_peatones_bicicletas"
