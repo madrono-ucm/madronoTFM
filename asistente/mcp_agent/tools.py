@@ -417,6 +417,13 @@ _UMBRALES_RUIDO_DB = ((55.0, "bajo"), (70.0, "medio"))
 # alrededor), no verificado contra una definición oficial del campo.
 _UMBRALES_BICIMAD_OCUPACION = ((0.3, "bajo"), (0.6, "medio"))
 
+# NOTA (FIL_06): la fórmula de `nivel_estimado` está duplicada, byte a byte,
+# en `procesamiento/silver_gold/afluencia_lugares/nivel.py`, que la usa el
+# job por lotes que materializa la señal como Gold horario. Es la copia
+# canónica; un cambio de fórmula debe reflejarse en ambas (o, mejor, esta
+# función debería pasar a importar de allí -- pendiente, evita tocar este
+# módulo ya testado en la misma pasada que lo introdujo).
+
 # Traduce las etiquetas de las tres señales que sí alimentan `nivel_estimado`
 # (tráfico/ruido/BiciMAD, no calidad del aire) a una severidad 0-2 común
 # para poder combinarlas -- ver `afluencia_estimada`.
