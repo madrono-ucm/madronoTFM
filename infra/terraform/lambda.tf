@@ -164,6 +164,37 @@ locals {
       memory_mb   = 256
       secret_env  = []
     }
+    # FIL_03/04/05: los tres productores de la tarea 090 pasan de "muestra
+    # commiteada" a productor real (handler + BronzeWriter añadidos en
+    # FIL_02). Solo capa de Ingesta -> Bronze; Silver/Gold es trabajo aparte
+    # (para `parques_jardines` se lee Bronze directo en `grafo/extract.py`,
+    # mismo criterio que `poi_madrid`).
+    emt_incidencias = {
+      module      = "emt_incidencias_madrid"
+      dataset     = "emt_incidencias"
+      description = "Incidencias/alteraciones del servicio de EMT Madrid (feed RSS en vivo) -> Bronze/emt_incidencias"
+      timeout     = 60
+      memory_mb   = 256
+      secret_env  = []
+    }
+    parques_jardines = {
+      module      = "parques_jardines_madrid"
+      dataset     = "parques_jardines"
+      description = "Parques y jardines municipales de Madrid (referencia) -> Bronze/parques_jardines"
+      timeout     = 60
+      memory_mb   = 256
+      secret_env  = []
+    }
+    ser_calles = {
+      module      = "ser_calles_madrid"
+      dataset     = "ser_calles"
+      description = "Calles/plazas del Servicio de Estacionamiento Regulado (SER) de Madrid (referencia) -> Bronze/ser_calles"
+      # ~34.500 tramos: descarga un CSV de varios MB y lo parsea entero. Mismo
+      # perfil que aforos (300s/512MB), no el de los productores ligeros.
+      timeout    = 300
+      memory_mb  = 512
+      secret_env = []
+    }
   }
 
   # Una entrada por regla de EventBridge Scheduler. `producer_key` referencia
@@ -317,6 +348,27 @@ locals {
       expression   = "cron(0 7 * * ? *)"
       timezone     = "Europe/Madrid"
       input        = { tipo = "sesiones" }
+    }
+    # FIL_03: feed en vivo, cambia varias veces al día -> cada 30 min.
+    emt_incidencias = {
+      producer_key = "emt_incidencias"
+      expression   = "rate(30 minutes)"
+      timezone     = null
+      input        = null
+    }
+    # FIL_04/05: datos de referencia (la fuente SER se actualiza
+    # trimestralmente; los parques casi nunca) -> 1x/semana, lunes madrugada.
+    parques_jardines = {
+      producer_key = "parques_jardines"
+      expression   = "cron(0 5 ? * MON *)"
+      timezone     = "Europe/Madrid"
+      input        = null
+    }
+    ser_calles = {
+      producer_key = "ser_calles"
+      expression   = "cron(30 5 ? * MON *)"
+      timezone     = "Europe/Madrid"
+      input        = null
     }
   }
 

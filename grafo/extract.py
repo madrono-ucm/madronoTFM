@@ -419,6 +419,15 @@ def fetch_poi_bronze(s3_client=None) -> "list[dict]":
     return _read_bronze_records("poi_madrid", s3_client)
 
 
+def fetch_parques_bronze(s3_client=None) -> "list[dict]":
+    """Parques y jardines municipales (`ingesta/capturas/parques_jardines_madrid.py`,
+    FIL_04). Bronze-only, igual que `poi_madrid`: no tiene Silver/Gold, se lee
+    el JSON directo de S3. El productor corre 1x/semana, así que hay pocos
+    ficheros; `dedupe_nodes` (en `nodos.lugares_from_parques_bronze`) resuelve
+    las reejecuciones por `id`."""
+    return _read_bronze_records("parques_jardines", s3_client)
+
+
 def fetch_paradas_crtm_bronze(s3_client=None) -> "list[dict]":
     return _read_bronze_records("crtm_red_transporte_madrid", s3_client)
 
