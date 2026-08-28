@@ -33,17 +33,54 @@ Verificado con test explícito (`test_panel.py::BuildPanelTests`): para toda
 fila en `t`, `value_lag_kh < value` (pasado) y `target_h1 == value(t+1)`
 (futuro). Regla documentada en `modelado/README.md`.
 
+## `--scope` — ¿traer toda la red o solo los nodos que importan?
+
+Pregunta planteada por Filippos. Verificado con Cypher: de **4 702**
+`:EstacionMedida` de tráfico, **1 813** tienen `PROXIMO_A` a un `:Lugar`;
+de **24** estaciones de calidad del aire, solo **11**. `build.py --scope`:
+
+- `all` (por defecto): toda la red. Para el target de **congestión de red**
+  (predecir en cualquier sensor de Madrid) y la ablación de fuente única de
+  §7.3.
+- `grafo-lugares`: solo los sensores con `PROXIMO_A` a un `:Lugar`. Para la
+  **fusión** / la afluencia / lo que alimenta al asistente.
+
+`ML_02` elige el scope por experimento. No se limita por rendimiento (ver
+abajo), solo por criterio de modelado.
+
+## Rendimiento — lectura de Athena
+
+`run_athena_query` (de `grafo.extract`, reutilizado) pagina el resultado con
+`get_query_results` a 1000 filas/llamada. Para el panel de tráfico (~1,5 M
+filas) son ~1500 round-trips a la API → **>15 min**. `query_df` de
+`modelado/features/athena.py` lee en su lugar el **CSV que Athena deja en
+S3** (`ResultConfiguration.OutputLocation`) de una vez con
+`pandas.read_csv`: el mismo panel en **~22 s**. `_reindex_horario_completo`
+también se vectorizó (`MultiIndex.from_product`, sin bucle Python por
+entidad).
+
 ## Ejecución real contra Athena (28/8)
 
 `AWS_PROFILE=madrono python -m modelado.features.build ...`:
 
-| Target | Filas | Entidades | Ventana | Features |
+| Target / scope | Filas | Entidades | Ventana | s |
 |---|---|---|---|---|
-| `calidad_aire` | **39 940** | 123 (estación × contaminante) | 2026-08-15 01:00 → 08-28 15:00 | 19 (4 lags + 4 rolling + calendario) |
-| `trafico` | _(en curso, ver `doc/` al cerrar)_ | ~4 300 puntos | ~14 días | 19 |
+| `calidad_aire` / `all` | 39 942 | 123 (estación × contaminante) | 2026-08-15 01:00 → 08-28 15:00 | ~17 |
+| `calidad_aire` / `grafo-lugares` | 17 542 | 54 (11 estaciones cerca de un `:Lugar`) | ídem | ~5 |
+| `trafico` / `all` | **1 511 995** | 4 702 puntos | ídem | ~22 |
+| `trafico` / `grafo-lugares` | 580 325 | 1 813 puntos | ídem | ~20 |
+| `afluencia` (Gold de FIL_06) | 0 | 0 | — | — |
 
-8 tests de `panel.py` en verde. `pandas 3.0.5` / `pyarrow 25.0.1` instalados
-(`--only-binary :all:` — no hay wheels de fuente para Python 3.14).
+19 features (4 lags + 4 estadísticos rolling + 11 de calendario). Targets
+`h1/h3/h6`.
+
+**`afluencia` da 0 filas**: la tabla Gold de FIL_06 solo tiene ~1 h de datos
+(el job horario acaba de empezar) → `build_panel` descarta todo (sin lags
+posibles con una sola hora). Se rellenará solo según el job acumule horas;
+no es un bug.
+
+8 tests de `panel.py` en verde. `pandas 3.0.5` / `pyarrow 25.0.1` (`--only-binary
+:all:` — no hay wheels de fuente para Python 3.14).
 
 ## Pendiente / siguiente (`ML_02`)
 

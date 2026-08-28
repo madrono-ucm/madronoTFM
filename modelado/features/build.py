@@ -151,6 +151,11 @@ def construir(
     if gold.empty:
         raise SystemExit(f"Athena no devolvió filas para {target} en [{desde}, {hasta}]")
 
+    # `query_df` lee el CSV de Athena con `read_csv` -> infiere tipos; hay
+    # `entity_id` que son numéricos (`point_id` de tráfico) y se cargan como
+    # int. El resto del pipeline los trata como str (split por `__`, merge
+    # con ids del grafo).
+    gold["entity_id"] = gold["entity_id"].astype(str)
     gold["ts"] = pd.to_datetime(gold["date"]) + pd.to_timedelta(gold["hour"].astype(int), unit="h")
     gold["value"] = pd.to_numeric(gold["value"], errors="coerce")
     gold = gold.dropna(subset=["value"])[["entity_id", "ts", "value", "lat", "lon"]]
