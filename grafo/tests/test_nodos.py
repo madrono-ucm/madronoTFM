@@ -39,7 +39,9 @@ from grafo.nodos import (
     estaciones_medida_from_trafico_gold,
     lugar_from_aparcamientos_gold,
     lugar_from_cartelera_cines_gold,
+    lugar_from_parque_bronze,
     lugar_from_poi_bronze,
+    lugares_from_parques_bronze,
     lugares_from_poi_bronze,
     parada_transporte_from_bicimad_gold,
     parada_transporte_from_transporte_publico_emt_gold,
@@ -349,6 +351,23 @@ class LugarTests(unittest.TestCase):
     def test_lugares_from_poi_bronze_dedup(self):
         records = _load_sample("poi_madrid_sample.json")
         nodes = lugares_from_poi_bronze(records + records)
+        self.assertEqual(len(nodes), len(records))
+
+    def test_from_parque_bronze(self):
+        records = _load_sample("parques_jardines_madrid_sample.json")
+        node = lugar_from_parque_bronze(records[0])
+        self.assertEqual(node["id"], f"parques_jardines:{records[0]['park_id']}")
+        self.assertEqual(node["tipo"], "parque")
+        self.assertEqual(node["fuente"], "parques_jardines")
+        self.assertEqual(node["nombre"], records[0]["name"])
+        self.assertIsNotNone(node["ubicacion"])
+
+    def test_lugar_from_parque_bronze_sin_id(self):
+        self.assertIsNone(lugar_from_parque_bronze({"name": "Sin id"}))
+
+    def test_lugares_from_parques_bronze_dedup(self):
+        records = _load_sample("parques_jardines_madrid_sample.json")
+        nodes = lugares_from_parques_bronze(records + records)
         self.assertEqual(len(nodes), len(records))
 
     def test_from_aparcamientos_gold(self):

@@ -307,6 +307,23 @@ def lugar_from_poi_bronze(record: dict) -> Optional[dict]:
     }
 
 
+def lugar_from_parque_bronze(record: dict) -> Optional[dict]:
+    """Parque/jardín municipal (`ingesta/capturas/parques_jardines_madrid.py`,
+    FIL_04). Bronze-only, mismo contrato que `lugar_from_poi_bronze`. Cubre el
+    caso de uso "paseo por el parque" -- hasta FIL_04 no había ningún `:Lugar`
+    de tipo parque en el grafo."""
+    park_id = record.get("park_id")
+    if not park_id:
+        return None
+    return {
+        "id": f"parques_jardines:{park_id}",
+        "nombre": record.get("name"),
+        "tipo": "parque",
+        "fuente": "parques_jardines",
+        "ubicacion": _location(record),
+    }
+
+
 def lugar_from_aparcamientos_gold(record: dict) -> Optional[dict]:
     parking_id = record.get("parking_id")
     if not parking_id:
@@ -339,6 +356,10 @@ def lugar_from_cartelera_cines_gold(record: dict) -> Optional[dict]:
 
 def lugares_from_poi_bronze(records: "Iterable[dict]") -> "list[dict]":
     return dedupe_nodes(lugar_from_poi_bronze(r) for r in records)
+
+
+def lugares_from_parques_bronze(records: "Iterable[dict]") -> "list[dict]":
+    return dedupe_nodes(lugar_from_parque_bronze(r) for r in records)
 
 
 def lugares_from_aparcamientos_gold(records: "Iterable[dict]") -> "list[dict]":

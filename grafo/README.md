@@ -60,7 +60,7 @@ carga" más abajo.
 | `:Barrio` | `barrio_from_bronze` / `barrios_from_bronze` | `barrios_distritos_madrid` (Bronze, barrios) |
 | `:EstacionMedida` | `estacion_medida_from_trafico_gold`, `..._calidad_aire_gold`, `..._ruido_gold`, `..._aforos_peatones_bicicletas_gold` (+ plural) | Gold de `trafico`, `calidad_aire`, `ruido`, `aforos_peatones_bicicletas` (tarea 087) |
 | `:ParadaTransporte` | `parada_transporte_from_transporte_publico_emt_gold`, `..._bicimad_gold`, `paradas_transporte_from_crtm_bronze` | Gold de `transporte_publico_emt`, `bicimad`; Bronze de `crtm_red_transporte_madrid` |
-| `:Lugar` | `lugar_from_poi_bronze`, `..._aparcamientos_gold`, `..._cartelera_cines_gold` (+ plural) | Bronze de `poi_madrid`; Gold de `aparcamientos`, `cartelera_cines_estrenos` |
+| `:Lugar` | `lugar_from_poi_bronze`, `..._parque_bronze` (FIL_04), `..._aparcamientos_gold`, `..._cartelera_cines_gold` (+ plural) | Bronze de `poi_madrid` y `parques_jardines`; Gold de `aparcamientos`, `cartelera_cines_estrenos` |
 
 `id` sigue el formato que ya documentaba `schema.cypher`
 (`"<fuente>:<id_origen>"`), donde `fuente` es siempre el nombre del dataset
