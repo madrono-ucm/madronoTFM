@@ -7,6 +7,10 @@ allow_infra_apply: false
 created_at: "2026-08-28"
 ---
 
+> **Estado 28/8: ✅ HECHO.** `capture_all()` + `lambda_handler()` +
+> `DATASET_NAME` en los 3 módulos; 3 clases de test nuevas; smoke test en
+> vivo (110 / 203 / 34.486 registros). PR #150. 844 tests en verde.
+
 ## Context
 
 Task 090 (25/8) added three capture modules but **only in "sample" form** —

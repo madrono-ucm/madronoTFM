@@ -19,19 +19,31 @@ codebase/doc scan for planned-but-missing datapoints, done because the ML
 phase of the TFM (memoria objective: *"entrenar modelos predictivos de
 afluencia, congestión y calidad del aire"*) needs a solid, complete data
 foundation first. Findings and the full decision-making picture are in
-`NEXT_STEPS.md` (section "Foundation gaps — 2026-08-28").
+`NEXT_STEPS.md`, sección "Estado a 28/8".
 
-## Tickets
+## Tickets — estado a 2026-08-28
 
-| Ticket | What | Depends on |
+| Ticket | Qué | Estado |
 |---|---|---|
-| `FIL_01` | Fix `aemet_prevision` silver→gold Glue job (failing in prod) | — |
-| `FIL_02` | Add `lambda_handler` + Bronze writer to the 3 task-090 capture modules | — |
-| `FIL_03` | Deploy `emt_incidencias` producer end-to-end (Lambda + schedule + Glue B→S→G) | FIL_02 |
-| `FIL_04` | Deploy `parques_jardines` producer + add park `:Lugar` to the graph | FIL_02 |
-| `FIL_05` | Deploy `ser_calles` producer end-to-end | FIL_02 |
-| `FIL_06` | Rework `afluencia_lugares`: retire Google Maps, materialise estimated-afluencia Gold time-series | graph reload w/ aforos (done 2026-08-28) |
-| `FIL_07` | `transporte_publico_emt`: capture more than one stop | — |
+| `FIL_01` | Fix `aemet_prevision` silver→gold (fallo en prod) | ✅ **HECHO** — IAM aplicado, job → SUCCEEDED, Gold fresco (PR #151, `doc/FIL-01`) |
+| `FIL_02` | `lambda_handler` + BronzeWriter en los 3 módulos de la tarea 090 | ✅ **HECHO** (PR #150) |
+| `FIL_03` | Desplegar `emt_incidencias` | 🟡 **Ingesta hecha** — Lambda + schedule 30 min → Bronze real (~110 incidencias). Silver/Gold aplazado (PR #151, `doc/FIL-03-05`) |
+| `FIL_04` | Desplegar `parques_jardines` + parques `:Lugar` en el grafo | 🟡 **Casi** — Lambda + schedule → Bronze (203 parques); 203 `:Lugar {tipo:"parque"}` cargados en Neo4j; **falta** crear sus `PROXIMO_A` (recarga de `cargar_grafo.py` cae por `SessionExpired` en AuraDB Free — ver `doc/FIL-06` "Problema abierto") (PR #151) |
+| `FIL_05` | Desplegar `ser_calles` | 🟡 **Ingesta hecha** — Lambda + schedule semanal (512 MB) → Bronze (34.486 tramos). Silver/Gold + valoración `disponibilidad_aparcamiento` aplazados (PR #151) |
+| `FIL_06` | `afluencia_lugares`: retirar Google Maps, señal derivada como Gold | 🟡 **Parte 1/2 hecha** — productor Google Popular Times retirado y aplicado (Lambda/schedule/SSM destruidos), `populartimes` fuera. Fórmula compartida `nivel.py` + tests. **Parte 2/2** (Glue job horario) especificada en `doc/FIL-06`, sin construir (PR #152) |
+| `FIL_07` | `transporte_publico_emt`: capturar más de una parada | ⬜ **Sin empezar** (prioridad más baja) |
+| `FIL_08` | `cargar_grafo.py` resiliente a cortes de AuraDB Free (`UNWIND` + reintento) | ⬜ **Sin empezar** — bloquea el cierre de `FIL_04` y la parte 2 de `FIL_06` |
+
+### Seguimiento surgido en la ejecución
+
+- **Recarga de Neo4j poco fiable**: `cargar_grafo.py` cae por
+  `neo4j.exceptions.SessionExpired` en recargas largas contra AuraDB Free
+  (falló 3 veces el 28/8). Bloquea el cierre de `FIL_04` y la parte 2 de
+  `FIL_06`. Sugerido: `FIL_08` — hacer `cargar_grafo.py` resiliente (`UNWIND`
+  para agrupar los `MERGE`, reconexión/reintento por lote).
+- **Silver/Gold de `emt_incidencias` / `ser_calles`**: bloque `glue.tf` +
+  `aggregate.py` + `ge_suite.py` + tabla Athena. Solo si la fase de ML lo
+  necesita agregado; el JSON de Bronze ya es consumible.
 
 ## Deployment note
 

@@ -152,21 +152,30 @@ Dos pistas en paralelo: **Sistema** (Filippos + tickets `FIL_*`) y
 **Memoria** (Víctor + tickets `VIC_*`, arrancan desde el día 1 sin depender
 de código nuevo).
 
-| # | Ítem | Pista |
-|---|---|---|
-| 1 | **`modelado/` — fundación (Tier 0)**: feature store, arnés de CV temporal, líneas base, MLflow, Evidently, export ONNX | Sistema |
-| 2 | **`FIL_01`** (arreglar `aemet_prevision`) + **`FIL_02`→`FIL_05`** (desplegar `emt_incidencias` / `parques_jardines` / `ser_calles`) + **`FIL_06`** (`afluencia_lugares` derivado) — fundación de datos completa **antes** del modelado pesado, para que el GNN entrene con el conjunto de features rico | Sistema |
-| 3 | **`VIC_01`–`VIC_04`** — reescritura de §1–§6 a la realidad | Memoria |
-| 4 | **Tier 1** — forecasters LightGBM (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | Sistema |
-| 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema |
-| 6 | **`VIC_05`–`VIC_06`** — §7 (resultados, métricas, explicabilidad, limitaciones, futuras líneas) usando 4–5 salidas reales de los modelos | Memoria |
-| 7 | **Tier 4** — tool `*_prevista` (ONNX), reentrenamiento nocturno, backtest incremental | Sistema |
-| 8 | **`FIL_07`** (EMT multi-parada) — aditivo, la prioridad más baja | Sistema |
+| # | Ítem | Pista | Estado 28/8 |
+|---|---|---|---|
+| 1 | **`modelado/` — fundación (Tier 0)**: feature store, arnés de CV temporal, líneas base, MLflow, Evidently, export ONNX | Sistema | ⬜ sin empezar (tickets de ML sin crear) |
+| 2 | **`FIL_01`** + **`FIL_02`→`FIL_05`** + **`FIL_06`** — fundación de datos completa **antes** del modelado pesado | Sistema | 🟡 mayoría hecha — ver `tasks/FIL_00_README.md`: `FIL_01`/`FIL_02` ✅; `FIL_03`/`FIL_05` Ingesta→Bronze ✅ (Silver/Gold aplazado); `FIL_04` 203 parques `:Lugar` cargados, faltan sus `PROXIMO_A`; `FIL_06` Google Maps retirado ✅, Glue job derivado pendiente. Bloqueo: `FIL_08` (recarga de Neo4j) |
+| 3 | **`VIC_01`–`VIC_04`** — reescritura de §1–§6 a la realidad | Memoria | ⬜ |
+| 4 | **Tier 1** — forecasters LightGBM (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | Sistema | ⬜ |
+| 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema | ⬜ |
+| 6 | **`VIC_05`–`VIC_06`** — §7 usando 4–5 salidas reales de los modelos | Memoria | ⬜ |
+| 7 | **Tier 4** — tool `*_prevista` (ONNX), reentrenamiento nocturno, backtest incremental | Sistema | ⬜ |
+| 8 | **`FIL_07`** (EMT multi-parada) — aditivo, la prioridad más baja | Sistema | ⬜ |
+
+### Nuevo bloqueo (28/8): recarga de Neo4j — `FIL_08`
+
+`cargar_grafo.py` cae por `neo4j.exceptions.SessionExpired` en recargas
+largas contra AuraDB Free (falló 3 veces el 28/8; una recarga que sí
+terminó tardó 51 min). Los nodos entran; las relaciones (`PROXIMO_A` sobre
+todo) no. Bloquea el cierre de `FIL_04` (parques) y la parte 2 de `FIL_06`.
+`FIL_08` propone `UNWIND` + reintento por lote en `grafo/cypher.py`.
 
 ## 7. Siguiente paso inmediato
 
-- Crear los tickets numerados de ML en `tasks/` (`modelado/`, análogos a
-  `FIL_*`) — pendiente del reparto daemon vs interactivo.
+- **`FIL_08`** — sin una recarga fiable de Neo4j, `FIL_04` y `FIL_06`
+  parte 2 no cierran y el GNN (Tier 2) se queda sin el grafo completo.
+- Crear los tickets numerados de ML en `tasks/` (`modelado/`).
 - Resolver la decisión 8 (ablaciones de §7.3).
 
 ---

@@ -8,6 +8,13 @@ depends_on: [FIL_02]
 created_at: "2026-08-28"
 ---
 
+> **Estado 28/8: 🟡 Ingesta hecha.** Lambda `madrono-tfm-dev-emt_incidencias`
+> + schedule `rate(30 minutes)` desplegados (`terraform apply -target`);
+> invocada de verdad → Bronze real (~110 incidencias). PR #151,
+> `doc/FIL-03-05-deploy-productores-tarea-090.md`.
+> **Pendiente**: Silver/Gold (bloque `glue.tf` + `aggregate.py` + `ge_suite.py`
+> + tabla Athena) — solo si la fase de ML lo necesita agregado.
+
 ## Context
 
 `emt_incidencias_madrid.py` captures the live RSS feed of EMT service

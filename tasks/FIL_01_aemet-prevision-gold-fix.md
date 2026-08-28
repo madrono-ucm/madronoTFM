@@ -7,6 +7,10 @@ allow_infra_apply: true
 created_at: "2026-08-28"
 ---
 
+> **Estado 28/8: ✅ HECHO.** `s3:DeleteObject` añadido a la policy IAM
+> (`terraform apply -target`: 0/1/0), job re-lanzado → SUCCEEDED, Gold
+> refrescado en Athena. PR #151. Detalle: `doc/FIL-01-aemet-prevision-gold-fix.md`.
+
 ## Context
 
 Health-check on 2026-08-28 found the Glue job
