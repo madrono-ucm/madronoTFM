@@ -39,8 +39,44 @@ from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    DoubleType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from procesamiento.silver_gold.afluencia_lugares.estimada import fila_gold, sensores_por_tipo
+
+# Esquema explícito: sin él, `createDataFrame` falla ("Some of types cannot be
+# determined after inferring") cuando una columna sale entera a `None` (p. ej.
+# `avg_laeq_db` si ningún `:Lugar` tiene una estación de ruido cerca con dato).
+_GOLD_SCHEMA = StructType(
+    [
+        StructField("schema_version", IntegerType()),
+        StructField("lugar_id", StringType()),
+        StructField("tipo", StringType()),
+        StructField("lat", DoubleType()),
+        StructField("lon", DoubleType()),
+        StructField("date", StringType()),
+        # `hora` como string con relleno a 2 dígitos (`"05"`, `"17"`): así la
+        # partición `hora=05` casa con `projection.hora.digits = "2"` del
+        # catálogo (mismo criterio que el resto de tablas Gold del proyecto).
+        StructField("hora", StringType()),
+        StructField("nivel_estimado", StringType()),
+        StructField("n_trafico", IntegerType()),
+        StructField("n_ruido", IntegerType()),
+        StructField("n_bicimad", IntegerType()),
+        StructField("n_calidad_aire", IntegerType()),
+        StructField("avg_service_level", DoubleType()),
+        StructField("avg_laeq_db", DoubleType()),
+        StructField("avg_bicimad_occ", DoubleType()),
+        StructField("avg_aqi_value", DoubleType()),
+        StructField("data_completeness", IntegerType()),
+        StructField("processed_at", StringType()),
+    ]
+)
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
@@ -77,8 +113,12 @@ def _gold_por_estacion(
     spark: SparkSession, path: str, fecha: str, hora: int, id_col: str, valor_cols: "list[str]"
 ) -> "dict[str, dict]":
     """Lee `path/date=<fecha>/` y devuelve `{id_real: {col: valor}}` para la
-    `hora` objetivo (o, si esa tabla no tiene columna `hour`, cualquier fila
-    del día). `id_real` = valor de `id_col` (Gold ya lo guarda sin prefijo).
+    **hora más reciente disponible** del día (no la exacta: el Silver->Gold
+    de sensores del grupo horario corre en el minuto 10 y este job en el 20,
+    así que la hora en curso puede no estar escrita todavía -- mismo criterio
+    que `asistente/mcp_agent/tools.py`). Si la tabla no tiene columna `hour`
+    (ruido: partición por `date`+`period`), se toma cualquier fila del día.
+    `id_real` = valor de `id_col` (Gold ya lo guarda sin prefijo).
     """
     try:
         df = spark.read.parquet(f"{path.rstrip('/')}/date={fecha}/")
@@ -86,7 +126,12 @@ def _gold_por_estacion(
         return {}
     cols = df.columns
     if "hour" in cols:
-        df = df.filter(F.col("hour") == hora)
+        hora_max = df.agg(F.max(F.when(F.col("hour") <= hora, F.col("hour")))).collect()[0][0]
+        if hora_max is None:
+            hora_max = df.agg(F.max("hour")).collect()[0][0]
+        if hora_max is None:
+            return {}
+        df = df.filter(F.col("hour") == hora_max)
     seleccion = [id_col] + [c for c in valor_cols if c in cols]
     out: "dict[str, dict]" = {}
     for row in df.select(*seleccion).collect():
@@ -156,8 +201,10 @@ def main() -> None:
         ),
     }
 
-    filas = [
-        fila_gold(
+    hora_pad = f"{hora:02d}"
+    filas = []
+    for l in lugares:
+        f = fila_gold(
             lugar={"id": l["id"], "tipo": l.get("tipo"), "lat": l.get("lat"), "lon": l.get("lon")},
             sensores=sensores_por_tipo(l.get("sensores") or []),
             valores_gold=valores_gold,
@@ -165,14 +212,19 @@ def main() -> None:
             hora=hora,
             processed_at=processed_at,
         )
-        for l in lugares
-    ]
+        f["hora"] = hora_pad  # partición zero-padded, ver `_GOLD_SCHEMA`
+        filas.append(f)
 
     if not filas:
         job.commit()
         return
 
-    gold_df = spark.createDataFrame(filas)
+    # `filas` son dicts con exactamente las 18 claves de `_GOLD_SCHEMA`
+    # (`fila_gold` + `date` ya incluida). Se ordenan a tuplas por el orden
+    # del esquema para no depender de la inferencia por dict.
+    campos = [f.name for f in _GOLD_SCHEMA.fields]
+    filas_tupla = [tuple(f.get(c) for c in campos) for f in filas]
+    gold_df = spark.createDataFrame(filas_tupla, schema=_GOLD_SCHEMA)
     gold_df.write.mode("overwrite").partitionBy("date", "hora").parquet(args["gold_path"])
 
     job.commit()
