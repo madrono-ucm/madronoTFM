@@ -27,7 +27,30 @@ veces no lo duplique -- idempotente, igual que el propio `schema.cypher`.
 
 from __future__ import annotations
 
+import logging
+import re
+import time
 from typing import Iterable
+
+logger = logging.getLogger(__name__)
+
+# FIL_08: tamaño de lote para el `UNWIND`. Con los índices de `schema.cypher`
+# aplicados (tarea 094) cada `MERGE` por `id` dentro del lote es barato; el
+# objetivo es cambiar decenas de miles de idas y vueltas de red (que AuraDB
+# Free cortaba, `SessionExpired`) por unas pocas.
+_BATCH_SIZE = 1000
+_MAX_REINTENTOS = 5
+_BACKOFF_BASE_S = 2.0
+
+_PARAM_RE = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*)")
+
+
+def _to_unwind(query: str) -> str:
+    """Convierte una sentencia parametrizada con `$x` en su forma por lotes:
+    `UNWIND $rows AS row <query con $x -> row.x>`. Seguro para las sentencias
+    de este módulo -- todas usan `$nombre` solo como parámetro, nunca dentro
+    de un literal de cadena."""
+    return "UNWIND $rows AS row\n" + _PARAM_RE.sub(r"row.\1", query)
 
 # ---------------------------------------------------------------------------
 # Construcción de sentencias (Python puro, sin `neo4j`).
@@ -244,9 +267,22 @@ class Neo4jLoader:
 
         self._driver = GraphDatabase.driver(uri, auth=(username, password))
         self._database = database
+        self._uri = uri
+        self._auth = (username, password)
 
     def close(self) -> None:
         self._driver.close()
+
+    def _reconectar(self) -> None:
+        """Recrea el driver -- lo llama `_ejecutar_lote` tras un corte de
+        conexión de AuraDB Free (`SessionExpired`/`ServiceUnavailable`)."""
+        from neo4j import GraphDatabase
+
+        try:
+            self._driver.close()
+        except Exception:  # noqa: BLE001 -- el driver ya está roto, da igual
+            pass
+        self._driver = GraphDatabase.driver(self._uri, auth=self._auth)
 
     def __enter__(self) -> "Neo4jLoader":
         return self
@@ -254,10 +290,55 @@ class Neo4jLoader:
     def __exit__(self, *exc_info) -> None:
         self.close()
 
+    def _ejecutar_lote(self, unwind_query: str, filas: "list[dict]") -> None:
+        """Ejecuta un `UNWIND` sobre `filas` con reintento y reconexión ante
+        cortes transitorios de la conexión (FIL_08). Los errores de sintaxis
+        Cypher u otros no transitorios se propagan tal cual."""
+        from neo4j.exceptions import (  # import perezoso, ver docstring del módulo
+            ServiceUnavailable,
+            SessionExpired,
+            TransientError,
+        )
+
+        transitorios = (SessionExpired, ServiceUnavailable, TransientError)
+        for intento in range(1, _MAX_REINTENTOS + 1):
+            try:
+                with self._driver.session(database=self._database) as session:
+                    session.execute_write(lambda tx: tx.run(unwind_query, rows=filas).consume())
+                return
+            except transitorios as exc:  # noqa: PERF203
+                if intento == _MAX_REINTENTOS:
+                    raise
+                espera = _BACKOFF_BASE_S * intento
+                logger.warning(
+                    "Lote de %d filas falló (%s), intento %d/%d; reconectando en %.0fs",
+                    len(filas),
+                    type(exc).__name__,
+                    intento,
+                    _MAX_REINTENTOS,
+                    espera,
+                )
+                time.sleep(espera)
+                self._reconectar()
+
     def _run_all(self, queries: "Iterable[tuple[str, dict]]") -> None:
-        with self._driver.session(database=self._database) as session:
-            for query, params in queries:
-                session.run(query, params)
+        """Agrupa las sentencias por texto (dentro de cada `load_*` son
+        idénticas) y las ejecuta en lotes `UNWIND` en vez de una por una
+        (FIL_08: AuraDB Free cortaba la conexión con decenas de miles de
+        `session.run` seguidos)."""
+        por_query: "dict[str, list[dict]]" = {}
+        orden: "list[str]" = []
+        for query, params in queries:
+            if query not in por_query:
+                por_query[query] = []
+                orden.append(query)
+            por_query[query].append(params)
+
+        for query in orden:
+            filas = por_query[query]
+            unwind_query = _to_unwind(query)
+            for inicio in range(0, len(filas), _BATCH_SIZE):
+                self._ejecutar_lote(unwind_query, filas[inicio : inicio + _BATCH_SIZE])
 
     def load_distritos(self, nodes: "Iterable[dict]") -> None:
         self._run_all(distrito_query(n) for n in nodes)
