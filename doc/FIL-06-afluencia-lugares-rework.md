@@ -29,14 +29,58 @@ duplicada en `tools.py` con una nota; el refactor de `tools.py` para importar
 de `nivel.py` queda pendiente (evita tocar ese módulo ya testado en la misma
 pasada).
 
-## Parte 2/2 — el job por lotes (PENDIENTE)
+## Parte 2/2 — el job por lotes (HECHO, 28/8)
 
-**Objetivo**: tabla Gold `afluencia_lugares_por_lugar_fecha_hora` refrescada
-cada hora, una fila por `:Lugar` y hora: `nivel_estimado` + los valores de
-sensor de los que sale + `data_completeness`. Sin ninguna dependencia de
-Google.
+Tabla Gold `afluencia_lugares_por_lugar_fecha_hora` refrescada **cada hora**
+(trigger `aws_glue_trigger.afluencia_lugares_estimada`, `cron(20 * * * ? *)`
+UTC), una fila por `:Lugar`: `nivel_estimado` + los valores de sensor de los
+que sale + `data_completeness` (0..4). Sin ninguna dependencia de Google.
 
-### Diseño
+### Qué se construyó
+
+- `procesamiento/silver_gold/afluencia_lugares/estimada.py` (puro, testado):
+  `sensores_por_tipo()` agrupa los `PROXIMO_A` del grafo por tipo quitando el
+  prefijo `<fuente>:`; `fila_gold()` construye la fila (usa `nivel.py`).
+- `procesamiento/silver_gold/afluencia_lugares/glue_estimada.py`: job de Glue.
+  SSM → Neo4j (una consulta: `:Lugar` + sus sensores `PROXIMO_A`) → lee la
+  **hora más reciente** de la partición de hoy de las 4 tablas Gold de
+  sensores (Spark) → `fila_gold` por lugar → Parquet particionado por
+  `date` + `hora` (zero-pad `"17"`), `overwrite` dinámico = re-ejecución
+  idempotente.
+- `infra/terraform/glue.tf`:
+  - `aws_s3_object.glue_script_afluencia_lugares_silver_to_gold` repuntado a
+    `glue_estimada.py`; el job `afluencia_lugares_silver_to_gold` (mismo
+    recurso/nombre, sin destroy) con `--additional-python-modules
+    "neo4j==5.28.1"` (¡sin coma! Glue separa por comas, `neo4j>=5,<6` falla)
+    + los args `--neo4j_*_param` y `--*_gold_path`.
+  - IAM (`glue_afluencia_lugares_data_access`): `ssm:GetParameter` sobre
+    `.../secrets/neo4j-*` + `kms:Decrypt` acotado por `kms:ViaService`;
+    `s3:GetObject` sobre las 4 tablas Gold de sensores; `s3:DeleteObject`
+    sobre el prefijo Gold propio (overwrite dinámico).
+  - `aws_glue_catalog_table.afluencia_lugares_gold`: esquema nuevo (columnas
+    `lugar_id`/`tipo`/`nivel_estimado`/`n_*`/`avg_*`/`data_completeness`),
+    partición `date` + `hora`, `projection.hora` `digits = "2"`.
+  - `afluencia_lugares_bronze_to_silver` queda como job muerto (sin trigger).
+- `infra/terraform/glue_scheduling.tf`: `afluencia_lugares` sale de
+  `glue_trigger_daily_datasets` (destruye sus 2 triggers diarios) y gana el
+  trigger `SCHEDULED` horario propio.
+
+### Verificación (28/8)
+
+`aws glue start-job-run` → **SUCCEEDED** (~80 s). Athena:
+`SELECT nivel_estimado, count(*) FROM afluencia_lugares_por_lugar_fecha_hora
+GROUP BY 1` → **534 `bajo`, 7 `medio`, 45 `sin_datos`** (586 `:Lugar` en
+total). Ejemplo real: `poi_madrid:69452` → `bajo`, con 8 estaciones de
+tráfico + 4 de BiciMAD + 1 de calidad del aire cerca (`data_completeness = 3`).
+`n_ruido` casi siempre 0 (Gold de ruido aún muy escaso, pocas estaciones).
+
+Tres iteraciones hasta el verde: (1) `neo4j>=5,<6` con coma → el instalador
+de módulos de Glue lo parte en dos; (2) `createDataFrame` sin esquema
+explícito falla si una columna sale entera a `None`; (3) filtro `hour ==
+hora` exacto → la hora en curso aún no está en Gold, se cambió a "hora
+máxima disponible del día" (mismo criterio que `asistente/tools.py`).
+
+### Diseño original (referencia)
 
 Un **Glue job** (reutiliza el recurso `aws_glue_job.afluencia_lugares_
 silver_to_gold` ya existente de la tarea 060, repuntando su script):

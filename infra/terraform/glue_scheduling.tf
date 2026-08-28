@@ -157,15 +157,38 @@ locals {
   #     desde Madrid: su Bronze más tardío ya está expresado en UTC
   #     (`local.schedules.cams_0900_utc`, 09:00 UTC, precisamente para no
   #     depender del cambio de hora español) -- 15 min después, 09:15 UTC.
+  # FIL_06 parte 2: `afluencia_lugares` sale del grupo diario Bronze->Silver->
+  # Gold. Ya no tiene Bronze; su job (`afluencia_lugares_silver_to_gold`,
+  # repuntado a `glue_estimada.py`) se lanza con un trigger SCHEDULED horario
+  # propio, definido más abajo (`afluencia_lugares_estimada`).
   glue_trigger_daily_datasets = {
     ruido                      = { schedule = "cron(0 6 * * ? *)" }
     agenda_eventos             = { schedule = "cron(0 6 * * ? *)" }
     bluesky_menciones          = { schedule = "cron(0 6 * * ? *)" }
-    afluencia_lugares          = { schedule = "cron(0 6 * * ? *)" }
     aforos_peatones_bicicletas = { schedule = "cron(0 6 * * ? *)" }
     cartelera_cines_estrenos   = { schedule = "cron(15 6 * * ? *)" }
     aemet_prevision_avisos     = { schedule = "cron(15 6 * * ? *)" }
     cams_calidad_aire          = { schedule = "cron(15 9 * * ? *)" }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# FIL_06 parte 2: afluencia_lugares (señal derivada de sensores vía grafo)
+# ---------------------------------------------------------------------------
+
+resource "aws_glue_trigger" "afluencia_lugares_estimada" {
+  name              = "${local.glue_afluencia_lugares_prefix}-scheduled-estimada"
+  description       = "Lanza el job de afluencia derivada cada hora, minuto 20 (después del Silver->Gold del grupo horario en el minuto 10, para leer sus tablas ya frescas). FIL_06 parte 2."
+  type              = "SCHEDULED"
+  schedule          = "cron(20 * * * ? *)"
+  start_on_creation = true
+
+  actions {
+    job_name = aws_glue_job.afluencia_lugares_silver_to_gold.name
+  }
+
+  lifecycle {
+    ignore_changes = [start_on_creation]
   }
 }
 

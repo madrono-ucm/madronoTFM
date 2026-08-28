@@ -7,15 +7,17 @@ allow_infra_apply: true
 created_at: "2026-08-28"
 ---
 
-> **Estado 28/8: 🟡 Parte 1/2 hecha.** Productor Google Popular Times
-> **retirado y aplicado**: Lambda + schedule + parámetro SSM
-> `GOOGLE_MAPS_API_KEY` destruidos (`terraform apply -target`: 4 destroyed),
-> `populartimes` fuera de `requirements`, módulo con banner RETIRADO.
-> Fórmula compartida `procesamiento/silver_gold/afluencia_lugares/nivel.py`
-> + 7 tests. PR #152. **Parte 2/2** (Glue job horario que materializa la
-> señal como Gold) especificada al detalle en
-> `doc/FIL-06-afluencia-lugares-rework.md`, **sin construir** — necesita el
-> grafo con los `PROXIMO_A` de los parques (ver `FIL_04` / `FIL_08`).
+> **Estado 28/8: ✅ HECHO.**
+> **Parte 1** (PR #152): productor Google Popular Times retirado y aplicado
+> (Lambda/schedule/SSM `GOOGLE_MAPS_API_KEY` destruidos), `populartimes`
+> fuera, módulo con banner RETIRADO, fórmula compartida `nivel.py` + tests.
+> **Parte 2** (aplicada y verificada): `estimada.py` + `glue_estimada.py`
+> (SSM → Neo4j → hora más reciente de las 4 tablas Gold de sensores →
+> `fila_gold` por `:Lugar` → Parquet `date`/`hora`). Job repuntado, IAM
+> ampliada (SSM neo4j-* + KMS + read de las 4 Gold + DeleteObject), catálogo
+> Gold con esquema nuevo, trigger `SCHEDULED` `cron(20 * * * ? *)`. Job
+> ejecutado → SUCCEEDED; Athena: **534 `bajo` / 7 `medio` / 45 `sin_datos`**
+> sobre 586 `:Lugar`. Sin ninguna dependencia de Google. `doc/FIL-06`.
 
 ## Context — this is the headline foundation gap
 

@@ -7507,11 +7507,15 @@ resource "aws_s3_object" "glue_script_afluencia_lugares_bronze_to_silver" {
 }
 
 resource "aws_s3_object" "glue_script_afluencia_lugares_silver_to_gold" {
-  bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/afluencia_lugares_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_silver_to_gold.py")}.py"
-  content = file("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_silver_to_gold.py")
+  bucket = aws_s3_bucket.build_artifacts.id
+  # FIL_06 parte 2: el job de este dataset ya no es Silver->Gold sino un job
+  # que deriva la señal de sensores vía Neo4j (`glue_estimada.py`). El
+  # `glue_bronze_to_silver.py`/`glue_silver_to_gold.py` originales (Google
+  # Popular Times) quedan como referencia del esquema retirado.
+  key     = "glue-scripts/afluencia_lugares_estimada-${filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_estimada.py")}.py"
+  content = file("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_estimada.py")
 
-  etag = filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_silver_to_gold.py")
+  etag = filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_estimada.py")
 }
 
 data "aws_iam_policy_document" "glue_afluencia_lugares_assume_role" {
@@ -7597,6 +7601,11 @@ data "aws_iam_policy_document" "glue_afluencia_lugares_data_access" {
 
     actions = [
       "s3:PutObject",
+      # FIL_06 parte 2: `glue_estimada.py` escribe con `mode("overwrite")`
+      # dinámico (re-ejecutar la misma hora es idempotente), que borra la
+      # partición `date=/hora=` antes de reescribirla -> necesita
+      # `DeleteObject` (mismo caso que `aemet_prevision`, FIL_01).
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -7605,6 +7614,47 @@ data "aws_iam_policy_document" "glue_afluencia_lugares_data_access" {
       "${aws_s3_bucket.lakehouse["gold"].arn}/afluencia_lugares_por_lugar_fecha_hora/*",
       "${aws_s3_bucket.lakehouse["gold"].arn}/afluencia_lugares_por_lugar_fecha_hora_$folder$",
     ]
+  }
+
+  # FIL_06 parte 2: el job lee la última fila Gold de las 4 tablas de
+  # sensores (tráfico/ruido/BiciMAD/calidad del aire) para derivar el
+  # `nivel_estimado` de cada `:Lugar`. Lectura, no escritura.
+  statement {
+    sid    = "ReadSensorGoldTablesForAfluenciaEstimada"
+    effect = "Allow"
+
+    actions = ["s3:GetObject"]
+    resources = [
+      "${aws_s3_bucket.lakehouse["gold"].arn}/trafico_por_punto_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/ruido_por_estacion_periodo_fecha/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/bicimad_por_estacion_hora/*",
+      "${aws_s3_bucket.lakehouse["gold"].arn}/calidad_aire_por_estacion_contaminante_hora/*",
+    ]
+  }
+
+  # FIL_06 parte 2: credenciales de Neo4j (grafo urbano) de SSM. Params
+  # `SecureString` con `alias/aws/ssm` (clave gestionada por AWS) -> el
+  # `kms:Decrypt` se acota con `kms:ViaService` a SSM.
+  statement {
+    sid    = "ReadNeo4jSecretsForAfluenciaEstimada"
+    effect = "Allow"
+
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.project_name}/${var.environment}/secrets/neo4j-*"]
+  }
+
+  statement {
+    sid    = "DecryptNeo4jSecretsViaSSM"
+    effect = "Allow"
+
+    actions   = ["kms:Decrypt"]
+    resources = ["arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:key/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${var.aws_region}.amazonaws.com"]
+    }
   }
 
   statement {
@@ -7626,6 +7676,10 @@ data "aws_iam_policy_document" "glue_afluencia_lugares_data_access" {
         "afluencia_lugares/*",
         "afluencia_lugares_por_lugar_fecha_hora/*",
         "_quality_reports/afluencia_lugares/*",
+        "trafico_por_punto_hora/*",
+        "ruido_por_estacion_periodo_fecha/*",
+        "bicimad_por_estacion_hora/*",
+        "calidad_aire_por_estacion_contaminante_hora/*",
         "glue-temp/*",
       ]
     }
@@ -7790,7 +7844,10 @@ resource "aws_glue_catalog_table" "afluencia_lugares_silver" {
 resource "aws_glue_catalog_table" "afluencia_lugares_gold" {
   name          = "afluencia_lugares_por_lugar_fecha_hora"
   database_name = aws_glue_catalog_database.gold.name
-  description   = "Afluencia de lugares de Madrid agregada por lugar, fecha y hora: afluencia en vivo media y valor típico correspondiente (tarea 060)."
+  # FIL_06 parte 2: nivel_estimado por :Lugar y hora, derivado de los
+  # sensores PROXIMO_A del grafo (no ya Google Popular Times). Nuevo esquema
+  # de columnas y partición por date + hora.
+  description = "afluencia_lugares (FIL_06 p2): nivel_estimado (bajo/medio/alto) por :Lugar y hora, derivado de tráfico/ruido/BiciMAD/calidad del aire cercanos vía el grafo Neo4j."
 
   table_type = "EXTERNAL_TABLE"
 
@@ -7803,11 +7860,20 @@ resource "aws_glue_catalog_table" "afluencia_lugares_gold" {
     "projection.date.format"        = "yyyy-MM-dd"
     "projection.date.interval"      = "1"
     "projection.date.interval.unit" = "DAYS"
-    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/afluencia_lugares_por_lugar_fecha_hora/date=$${date}/"
+    "projection.hora.type"          = "integer"
+    "projection.hora.range"         = "0,23"
+    "projection.hora.digits"        = "2"
+    "storage.location.template"     = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/afluencia_lugares_por_lugar_fecha_hora/date=$${date}/hora=$${hora}/"
   }
 
   partition_keys {
     name = "date"
+    type = "string"
+  }
+  partition_keys {
+    # `glue_estimada.py` escribe `hora` con relleno a 2 dígitos (`hora=05`)
+    # para casar con `projection.hora.digits = "2"`.
+    name = "hora"
     type = "string"
   }
 
@@ -7825,32 +7891,12 @@ resource "aws_glue_catalog_table" "afluencia_lugares_gold" {
       type = "int"
     }
     columns {
-      name = "place_id"
+      name = "lugar_id"
       type = "string"
     }
     columns {
-      name = "name"
+      name = "tipo"
       type = "string"
-    }
-    columns {
-      name = "hour"
-      type = "int"
-    }
-    columns {
-      name = "day_of_week"
-      type = "string"
-    }
-    columns {
-      name = "samples_count"
-      type = "bigint"
-    }
-    columns {
-      name = "avg_live_pct"
-      type = "double"
-    }
-    columns {
-      name = "typical_pct"
-      type = "double"
     }
     columns {
       name = "lat"
@@ -7861,12 +7907,44 @@ resource "aws_glue_catalog_table" "afluencia_lugares_gold" {
       type = "double"
     }
     columns {
-      name = "first_ingested_at"
+      name = "nivel_estimado"
       type = "string"
     }
     columns {
-      name = "last_ingested_at"
-      type = "string"
+      name = "n_trafico"
+      type = "int"
+    }
+    columns {
+      name = "n_ruido"
+      type = "int"
+    }
+    columns {
+      name = "n_bicimad"
+      type = "int"
+    }
+    columns {
+      name = "n_calidad_aire"
+      type = "int"
+    }
+    columns {
+      name = "avg_service_level"
+      type = "double"
+    }
+    columns {
+      name = "avg_laeq_db"
+      type = "double"
+    }
+    columns {
+      name = "avg_bicimad_occ"
+      type = "double"
+    }
+    columns {
+      name = "avg_aqi_value"
+      type = "double"
+    }
+    columns {
+      name = "data_completeness"
+      type = "int"
     }
     columns {
       name = "processed_at"
@@ -7916,8 +7994,12 @@ resource "aws_glue_job" "afluencia_lugares_bronze_to_silver" {
 }
 
 resource "aws_glue_job" "afluencia_lugares_silver_to_gold" {
-  name        = "${local.glue_afluencia_lugares_prefix}-silver-to-gold"
-  description = "Silver -> Gold de afluencia de lugares: afluencia en vivo media y valor típico por lugar/fecha/hora (tarea 060)."
+  name = "${local.glue_afluencia_lugares_prefix}-silver-to-gold"
+  # FIL_06 parte 2: ya no es Silver->Gold. Deriva `nivel_estimado` por
+  # `:Lugar` de los sensores `PROXIMO_A` del grafo Neo4j + la última fila
+  # Gold de tráfico/ruido/BiciMAD/calidad del aire. El nombre del recurso y
+  # del job se mantienen para no forzar un destroy/recreate en cascada.
+  description = "afluencia_lugares (FIL_06 p2): nivel_estimado por :Lugar desde el grafo Neo4j + Gold de sensores -> gold/afluencia_lugares_por_lugar_fecha_hora."
 
   role_arn          = aws_iam_role.glue_afluencia_lugares.arn
   glue_version      = var.glue_version
@@ -7933,14 +8015,26 @@ resource "aws_glue_job" "afluencia_lugares_silver_to_gold" {
   }
 
   default_arguments = {
-    "--job-language"                     = "python"
-    "--TempDir"                          = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
-    "--extra-py-files"                   = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    "--job-language"   = "python"
+    "--TempDir"        = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/glue-temp/"
+    "--extra-py-files" = "s3://${aws_s3_bucket.build_artifacts.bucket}/${aws_s3_object.procesamiento_source.key}"
+    # Glue separa `--additional-python-modules` por comas -> un rango
+    # `neo4j>=5,<6` se interpreta como dos módulos ("neo4j>=5" y "<6") y el
+    # instalador falla. Versión fijada (mismo criterio que
+    # `great_expectations_pip_spec`), sin coma.
+    "--additional-python-modules"        = "neo4j==5.28.1"
     "--enable-continuous-cloudwatch-log" = "true"
     "--enable-metrics"                   = "true"
     "--job-bookmark-option"              = "job-bookmark-disable"
-    "--silver_path"                      = "s3://${aws_s3_bucket.lakehouse["silver"].bucket}/afluencia_lugares/"
     "--gold_path"                        = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/afluencia_lugares_por_lugar_fecha_hora/"
+    "--neo4j_uri_param"                  = "/${var.project_name}/${var.environment}/secrets/neo4j-uri"
+    "--neo4j_user_param"                 = "/${var.project_name}/${var.environment}/secrets/neo4j-username"
+    "--neo4j_pass_param"                 = "/${var.project_name}/${var.environment}/secrets/neo4j-password"
+    "--neo4j_db_param"                   = "/${var.project_name}/${var.environment}/secrets/neo4j-database"
+    "--trafico_gold_path"                = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/trafico_por_punto_hora/"
+    "--ruido_gold_path"                  = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/ruido_por_estacion_periodo_fecha/"
+    "--bicimad_gold_path"                = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/bicimad_por_estacion_hora/"
+    "--calidad_aire_gold_path"           = "s3://${aws_s3_bucket.lakehouse["gold"].bucket}/calidad_aire_por_estacion_contaminante_hora/"
   }
 
   depends_on = [aws_cloudwatch_log_group.glue_afluencia_lugares]
