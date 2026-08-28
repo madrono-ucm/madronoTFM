@@ -7,8 +7,14 @@ allow_infra_apply: false
 created_at: "2026-08-28"
 ---
 
-> **Surgido el 28/8** ejecutando `FIL_04`. Bloquea el cierre de `FIL_04`
-> (relaciones `PROXIMO_A` de los parques) y la parte 2 de `FIL_06`.
+> **Estado 28/8: ✅ HECHO.** `_run_all` reescrito con `UNWIND` por lotes de
+> 1000 + `_ejecutar_lote` con reintento/reconexión. Recarga real de
+> verificación: ~9 min, `EXIT=0`, sin ningún corte (antes: 4 fallos
+> seguidos / 51 min la única que terminó). 203 `:Lugar {tipo:"parque"}`, 199
+> con `PROXIMO_A` a un sensor (antes 0). +4 tests. Cierra `FIL_04`,
+> desbloquea `FIL_06` parte 2. Detalle: `doc/FIL-08-cargar-grafo-resiliente.md`.
+>
+> Surgió el 28/8 ejecutando `FIL_04`.
 
 ## Problema
 
