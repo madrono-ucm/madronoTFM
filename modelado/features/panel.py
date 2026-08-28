@@ -46,18 +46,29 @@ def add_calendar_features(
 
 
 def _reindex_horario_completo(df: pd.DataFrame, *, ts_col: str = "ts") -> pd.DataFrame:
-    """Reindexa cada `entity_id` a un rango horario continuo entre su primer
-    y último `ts`, rellenando huecos con NaN -- así `shift(k)` significa "hace
-    k horas de reloj", no "k observaciones", aunque falten capturas."""
-    partes = []
-    for eid, g in df.groupby("entity_id", sort=False):
-        g = g.sort_values(ts_col).drop_duplicates(ts_col)
-        idx = pd.date_range(g[ts_col].min(), g[ts_col].max(), freq="h")
-        g = g.set_index(ts_col).reindex(idx)
-        g["entity_id"] = eid
-        g.index.name = ts_col
-        partes.append(g.reset_index())
-    return pd.concat(partes, ignore_index=True) if partes else df.copy()
+    """Reindexa cada `entity_id` a un rango horario continuo entre el primer
+    y el último `ts` **globales**, rellenando huecos con NaN -- así `shift(k)`
+    significa "hace k horas de reloj", no "k observaciones", aunque falten
+    capturas.
+
+    Vectorizado (sin bucle Python por entidad): producto cartesiano
+    `entidades × horas` vía `MultiIndex.from_product` + `reindex`. Un rango
+    global común, no uno por entidad -- para ~14 días de datos con captura
+    horaria continua la diferencia es despreciable y evita miles de
+    `date_range`/`concat`. Las filas NaN al principio de una serie corta se
+    descartan luego en `build_panel` (warm-up)."""
+    if df.empty:
+        return df.copy()
+    df = df.sort_values(["entity_id", ts_col]).drop_duplicates(["entity_id", ts_col])
+    horas = pd.date_range(df[ts_col].min(), df[ts_col].max(), freq="h")
+    entidades = df["entity_id"].unique()
+    full = pd.MultiIndex.from_product([entidades, horas], names=["entity_id", ts_col])
+    out = (
+        df.set_index(["entity_id", ts_col])
+        .reindex(full)
+        .reset_index()
+    )
+    return out
 
 
 def add_lag_rolling_features(

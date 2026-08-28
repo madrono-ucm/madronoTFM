@@ -76,6 +76,36 @@ def _cargar_festivos(path: "str | None") -> "set":
     return fechas
 
 
+def _neo4j_driver():
+    import os
+
+    from neo4j import GraphDatabase
+
+    return GraphDatabase.driver(
+        os.environ["NEO4J_URI"],
+        auth=(os.environ["NEO4J_USERNAME"], os.environ["NEO4J_PASSWORD"]),
+    ), os.environ.get("NEO4J_DATABASE", "neo4j")
+
+
+def _entidades_cerca_de_lugar(tipo: str, radio_m: float = 300.0) -> "set[str]":
+    """Ids (sin prefijo `<fuente>:`) de las `:EstacionMedida` de `tipo` que
+    tienen un `PROXIMO_A` a un `:Lugar` dentro de `radio_m` -- el subconjunto
+    que le importa al asistente / a la señal de afluencia. Ver la discusión
+    en `tasks/ML_01`: para el target de congestión "de red" se usa `all`;
+    para la fusión / afluencia, este subconjunto (~1.800 de ~4.700 en
+    tráfico)."""
+    driver, db = _neo4j_driver()
+    q = (
+        "MATCH (e:EstacionMedida {tipo:$t})-[p:PROXIMO_A]-(:Lugar) "
+        "WHERE p.distancia_m <= $r RETURN DISTINCT e.id AS id"
+    )
+    try:
+        with driver.session(database=db) as s:
+            return {r["id"].split(":", 1)[-1] for r in s.run(q, t=tipo, r=radio_m)}
+    finally:
+        driver.close()
+
+
 def _vecinos_desde_grafo(tipo: str, radio_m: float = 300.0) -> "dict[str, list[str]]":
     """`{entity_id: [entity_id de vecinos]}` para estaciones del mismo `tipo`
     conectadas por `PROXIMO_A` dentro de `radio_m`. `entity_id` = id del nodo
@@ -109,6 +139,7 @@ def construir(
     desde: str,
     hasta: str,
     *,
+    scope: str = "all",
     festivos_path: "str | None" = None,
     con_vecinos: bool = False,
     athena_client=None,
@@ -123,6 +154,22 @@ def construir(
     gold["ts"] = pd.to_datetime(gold["date"]) + pd.to_timedelta(gold["hour"].astype(int), unit="h")
     gold["value"] = pd.to_numeric(gold["value"], errors="coerce")
     gold = gold.dropna(subset=["value"])[["entity_id", "ts", "value", "lat", "lon"]]
+
+    if scope == "grafo-lugares":
+        if not spec["graph_tipo"]:
+            raise SystemExit(f"scope=grafo-lugares no aplica a {target} (sin nodo de sensor en el grafo)")
+        cerca = _entidades_cerca_de_lugar(spec["graph_tipo"])
+        # `entity_id` de calidad_aire es `station__pollutant`; el grafo indexa
+        # por `station` -> se compara la parte anterior a `__`.
+        est = gold["entity_id"].str.split("__", n=1).str[0]
+        antes = gold["entity_id"].nunique()
+        gold = gold[est.isin(cerca)]
+        logger.info(
+            "scope=grafo-lugares: %d/%d entidades (%d estaciones cerca de un :Lugar)",
+            gold["entity_id"].nunique(), antes, len(cerca),
+        )
+        if gold.empty:
+            raise SystemExit("scope=grafo-lugares dejó el panel vacío")
 
     vecinos = None
     if con_vecinos and spec["graph_tipo"]:
@@ -143,6 +190,11 @@ def main(argv=None) -> int:
     ap.add_argument("--desde", required=True, help="fecha ISO inclusive (yyyy-mm-dd)")
     ap.add_argument("--hasta", required=True, help="fecha ISO inclusive (yyyy-mm-dd)")
     ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument(
+        "--scope", default="all", choices=["all", "grafo-lugares"],
+        help="'all' = toda la red (target de congestión de red); 'grafo-lugares' = "
+        "solo sensores con PROXIMO_A a un :Lugar (fusión / afluencia). Necesita Neo4j.",
+    )
     ap.add_argument("--festivos", default=None, help="JSON de calendario_laboral_madrid (opcional)")
     ap.add_argument("--con-vecinos", action="store_true", help="añade features de vecinos (necesita Neo4j)")
     ap.add_argument("--log-level", default="INFO")
@@ -151,7 +203,7 @@ def main(argv=None) -> int:
 
     p = construir(
         args.target, args.desde, args.hasta,
-        festivos_path=args.festivos, con_vecinos=args.con_vecinos,
+        scope=args.scope, festivos_path=args.festivos, con_vecinos=args.con_vecinos,
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     p.to_parquet(args.out, index=False)
