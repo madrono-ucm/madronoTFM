@@ -57,6 +57,7 @@ def cargar_grafo(loader: Neo4jLoader) -> None:
 
     lugares = (
         nodos.lugares_from_poi_bronze(extract.fetch_poi_bronze())
+        + nodos.lugares_from_parques_bronze(extract.fetch_parques_bronze())
         + nodos.lugares_from_aparcamientos_gold(extract.fetch_lugares_aparcamientos())
         + nodos.lugares_from_cartelera_cines_gold(extract.fetch_lugares_cartelera_cines())
     )
