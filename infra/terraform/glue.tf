@@ -6339,6 +6339,15 @@ data "aws_iam_policy_document" "glue_aemet_prevision_avisos_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject`: ESTE dataset es el unico del patron que escribe Gold
+      # con `mode("overwrite")` (no `"append"`) -- su clave de negocio
+      # `(municipio_code, leadtime_days)` no lleva fecha, asi que cada ejecucion
+      # recalcula la tabla entera (ver `glue_silver_to_gold.py`, lineas 92-132).
+      # `overwrite` estatico borra el directorio destino antes de reescribir, lo
+      # que necesita `DeleteObject`. El resto de datasets usan `append` y por eso
+      # no lo tienen. Sin este permiso el job falla con "Failed to delete key:
+      # aemet_prevision_por_municipio_leadtime" (FIL_01).
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]

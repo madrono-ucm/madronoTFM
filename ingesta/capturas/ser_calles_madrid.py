@@ -84,9 +84,12 @@ from typing import Optional
 
 import requests
 
-from .bronze import MADRID_TZ, now_madrid
+from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
+
+# Prefijo de la capa Bronze para este dataset (ver `lambda_handler`).
+DATASET_NAME = "ser_calles"
 
 DATASET_ID = "218228-0-ser-calles"
 CATALOG_API_URL = f"https://datos.madrid.es/api/action/package_show?id={DATASET_ID}"
@@ -251,18 +254,19 @@ def _split_zone_color(raw: Optional[str]) -> "tuple[Optional[str], Optional[str]
     return None, value
 
 
-def select_sample_calles(calles_csv: str, sample_size: int) -> "list[dict]":
-    """Recorre el CSV en orden y toma las primeras `sample_size` filas con
-    coordenadas conocidas."""
+def _iter_calles_con_coordenadas(calles_csv: str) -> "list[dict]":
+    """Todas las filas del CSV que traen `gis_x` y `gis_y` no vacíos."""
     reader = csv.DictReader(io.StringIO(calles_csv), delimiter=";")
-    selected: "list[dict]" = []
-    for row in reader:
-        if not (row.get("gis_x") or "").strip() or not (row.get("gis_y") or "").strip():
-            continue
-        selected.append(row)
-        if len(selected) >= sample_size:
-            break
-    return selected
+    return [
+        row
+        for row in reader
+        if (row.get("gis_x") or "").strip() and (row.get("gis_y") or "").strip()
+    ]
+
+
+def select_sample_calles(calles_csv: str, sample_size: int) -> "list[dict]":
+    """Las primeras `sample_size` filas con coordenadas conocidas."""
+    return _iter_calles_con_coordenadas(calles_csv)[:sample_size]
 
 
 def normalize_record(row: dict, ingested_at: datetime) -> dict:
@@ -324,6 +328,35 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     _write_json(records, out_path)
     logger.info("Muestra escrita en %s", out_path)
     return out_path
+
+
+def capture_all(config: CaptureConfig) -> "list[dict]":
+    """Descarga y normaliza TODOS los tramos de calle SER (sin recorte de muestra).
+
+    Pensado para el handler Lambda: dato de referencia (la fuente se
+    actualiza trimestralmente), así que el schedule real debe ser semanal,
+    no horario -- ver docstring del módulo y `FIL_05`.
+    """
+    ingested_at = now_madrid()
+    csv_url = resolve_latest_csv_url(config)
+    logger.info("Recurso CSV más reciente resuelto: %s", csv_url)
+    calles_csv = fetch_raw_calles(config, csv_url)
+    records = [
+        normalize_record(row, ingested_at)
+        for row in _iter_calles_con_coordenadas(calles_csv)
+    ]
+    logger.info("Tramos de calle SER capturados (captura completa): %d", len(records))
+    return records
+
+
+def lambda_handler(event, context):
+    """Punto de entrada AWS Lambda (FIL_05): captura completa a Bronze real."""
+    config = CaptureConfig.from_env()
+    records = capture_all(config)
+    writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)
+    out_path = writer.write_batch(records)
+    logger.info("Captura Lambda completada: %s", out_path)
+    return {"dataset": DATASET_NAME, "records_written": len(records), "location": str(out_path)}
 
 
 def main(argv: "list[str] | None" = None) -> int:

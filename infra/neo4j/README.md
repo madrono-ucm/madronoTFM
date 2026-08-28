@@ -126,8 +126,18 @@ esas tareas, en vez de intentar rodearlo.
      -f infra/neo4j/schema/schema.cypher
    ```
 
-Ninguno de estos 4 pasos se ha completado en esta tarea — no existe ninguna
-instancia real, ninguna credencial y no se ha cargado ningún dato.
+Ninguno de estos 4 pasos se completó en la tarea 043 (esta), cuando se
+escribió lo de arriba — no existía instancia, ni credencial, ni dato.
+
+**Actualización (28/8): los 4 pasos están hechos.** La instancia AuraDB Free
+real se creó en la tarea 080; las credenciales viven en SSM
+(`/madrono-tfm/dev/secrets/neo4j-*`, `eu-west-1` — confirmado en la tarea
+095); el esquema (`schema.cypher`) se aplicó el 26/8 (tarea 094, ver
+"Esquema inicial del grafo" abajo); y `grafo/cargar_grafo.py` ha cargado el
+grafo completo tres veces (tareas 080/087/094). Los párrafos siguientes
+sobre "cómo se conectaría" y "no existe ningún proceso de carga" describen
+el estado de la tarea 043 y ya no son vigentes — se conservan como
+histórico del diseño.
 
 ## Cómo se conectaría el proyecto (variables de entorno, sin hardcodear nada)
 

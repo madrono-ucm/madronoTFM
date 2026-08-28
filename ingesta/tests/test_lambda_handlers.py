@@ -33,8 +33,11 @@ from ingesta.capturas import (
     calidad_aire_madrid,
     cams_calidad_aire_madrid,
     cartelera_cines_madrid,
+    emt_incidencias_madrid,
     meteorologia_madrid,
+    parques_jardines_madrid,
     ruido_madrid,
+    ser_calles_madrid,
     trafico_madrid,
     transporte_publico_madrid,
 )
@@ -312,6 +315,46 @@ class CarteleraLambdaHandlerTests(unittest.TestCase):
         mock_fn.assert_called_once()
         self.assertEqual(result["dataset"], "cartelera_cines_estrenos")
         self.assertEqual(result["records_written"], 1)
+
+
+class EmtIncidenciasLambdaHandlerTests(unittest.TestCase):
+    """FIL_02: handler nuevo del productor de la tarea 090 (feed RSS en vivo)."""
+
+    def test_writes_full_capture_to_bronze(self):
+        records = [{"incident_id": "a", "affected_lines": ["1"]}, {"incident_id": "b"}]
+        result, written, mock_fn = _run_handler_writing_records(
+            emt_incidencias_madrid, "capture_all", records
+        )
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "emt_incidencias")
+        self.assertEqual(result["records_written"], 2)
+        self.assertEqual(written, records)
+
+
+class ParquesJardinesLambdaHandlerTests(unittest.TestCase):
+    """FIL_02: handler nuevo del productor de la tarea 090 (referencia semanal)."""
+
+    def test_writes_full_capture_to_bronze(self):
+        records = [{"park_id": "1", "name": "Retiro"}]
+        result, written, mock_fn = _run_handler_writing_records(
+            parques_jardines_madrid, "capture_all", records
+        )
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "parques_jardines")
+        self.assertEqual(written, records)
+
+
+class SerCallesLambdaHandlerTests(unittest.TestCase):
+    """FIL_02: handler nuevo del productor de la tarea 090 (referencia semanal)."""
+
+    def test_writes_full_capture_to_bronze(self):
+        records = [{"street": "Gran Vía", "num_spaces": 12}]
+        result, written, mock_fn = _run_handler_writing_records(
+            ser_calles_madrid, "capture_all", records
+        )
+        mock_fn.assert_called_once()
+        self.assertEqual(result["dataset"], "ser_calles")
+        self.assertEqual(written, records)
 
 
 if __name__ == "__main__":

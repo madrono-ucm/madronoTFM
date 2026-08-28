@@ -151,6 +151,53 @@ entonces).
   está escrito en `infra/terraform/glue.tf` pero sin `apply` (Prioridad
   1/2 de `NEXT_STEPS.md`).
 
+## Actualización 28/8 — recarga rerun tras la tarea 098; un segundo bloqueador de aforos, arreglado
+
+La tarea 098 (26/8) aplicó el `terraform apply` que desbloqueó el Gold de
+`aforos_peatones_bicicletas` en Athena (1971 filas reales, antes 0). Pero
+**nadie relanzó `cargar_grafo.py` después**, así que la instancia real
+seguía con 0 nodos de aforos. Al relanzarlo hoy (28/8, con credenciales
+AWS `AWS_PROFILE=madrono` + Neo4j de SSM) se encontró un **segundo
+bloqueador**, distinto del de partition projection:
+
+`grafo/extract.py::fetch_estaciones_aforos_peatones_bicicletas()` aplicaba
+`_recent_date_filter()` (últimos 14 días), igual que las funciones de
+`trafico`/`calidad_aire`/`ruido`. Pero la fuente de aforos está **congelada
+en 2024-06-30** — las 1971 filas de Gold tienen todas `date = "2024-06-30"`,
+así que el filtro "últimos 14 días" dejaba la consulta en **0 filas** y los
+nodos nunca entraban al grafo, aunque la tabla ya tuviera datos.
+
+**Arreglo** (`grafo/extract.py`): quitar `_recent_date_filter()` solo de esa
+función. La tabla entera son ~2000 filas (fuente descontinuada), así que
+escanearla completa para quedarse con la última ubicación conocida por
+estación (`max_by(col, date)`) es correcto y barato. Los 93 tests de
+`grafo/` siguen en verde (el `test_extract.py` de aforos no comprueba el
+SQL, solo el parseo).
+
+### Resultado final, verificado con Cypher real (28/8)
+
+```
+MATCH (e:EstacionMedida) RETURN e.tipo, count(e)
+  aforos_peatones_bicicletas  83     (antes 0)
+  calidad_aire                23
+  ruido                       31
+  trafico                     4702
+
+MATCH (n) RETURN count(n)              → 9530   (antes ~9346)
+MATCH ()-[r:PROXIMO_A]->() RETURN count(r) → 48024  (antes 46037; +1987 de la proximidad de aforos)
+MATCH (e:EstacionMedida {tipo:'aforos_peatones_bicicletas'})-[:PROXIMO_A]-(l:Lugar)
+  RETURN count(DISTINCT e)             → 38     (aforos con un :Lugar cercano)
+```
+
+- **OSM sigue en 0** — mismo motivo que arriba (muestra de 6 POIs). Sin
+  cambios; el fix real es una captura Overpass completa (trabajo futuro,
+  `doc/083`).
+- La recarga tardó ~51 min (vs ~20 la anterior) — free tier de AuraDB más
+  lento hoy; no hubo cuelgue, los conteos avanzaron de forma monótona todo
+  el rato. `MERGE` idempotente, sin pérdida ni corrupción.
+- Único efecto real: 83 nodos nuevos + sus relaciones. No se tocó
+  `infra/terraform/` ni se aplicó nada en AWS (el fix es solo Python).
+
 ## Restricciones respetadas
 
 - Ninguna credencial de Neo4j se ha escrito en el repositorio -- leídas de
