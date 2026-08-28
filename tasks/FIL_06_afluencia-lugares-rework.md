@@ -7,6 +7,16 @@ allow_infra_apply: true
 created_at: "2026-08-28"
 ---
 
+> **Estado 28/8: 🟡 Parte 1/2 hecha.** Productor Google Popular Times
+> **retirado y aplicado**: Lambda + schedule + parámetro SSM
+> `GOOGLE_MAPS_API_KEY` destruidos (`terraform apply -target`: 4 destroyed),
+> `populartimes` fuera de `requirements`, módulo con banner RETIRADO.
+> Fórmula compartida `procesamiento/silver_gold/afluencia_lugares/nivel.py`
+> + 7 tests. PR #152. **Parte 2/2** (Glue job horario que materializa la
+> señal como Gold) especificada al detalle en
+> `doc/FIL-06-afluencia-lugares-rework.md`, **sin construir** — necesita el
+> grafo con los `PROXIMO_A` de los parques (ver `FIL_04` / `FIL_08`).
+
 ## Context — this is the headline foundation gap
 
 `afluencia_lugares` is the memoria's answer to *"¿merece la pena ir a un

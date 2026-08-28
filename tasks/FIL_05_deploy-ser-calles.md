@@ -8,6 +8,13 @@ depends_on: [FIL_02]
 created_at: "2026-08-28"
 ---
 
+> **Estado 28/8: 🟡 Ingesta hecha.** Lambda `madrono-tfm-dev-ser_calles`
+> (512 MB / 300 s por el CSV de ~15 MB) + schedule semanal desplegados;
+> invocada → Bronze real (34.486 tramos). PR #151, `doc/FIL-03-05`.
+> **Pendiente**: Silver/Gold + la valoración de si mejora
+> `disponibilidad_aparcamiento` (la ocupación en vivo sigue necesitando
+> "SER. Tiques de aparcamiento", aparte).
+
 ## Context
 
 `ser_calles_madrid.py` captures the streets/plazas of Madrid's regulated

@@ -7,6 +7,9 @@ allow_infra_apply: true
 created_at: "2026-08-28"
 ---
 
+> **Estado 28/8: ⬜ Sin empezar.** Prioridad más baja del lote (aditivo, no
+> bloquea la defensa). El productor sigue capturando 1 sola parada ("71").
+
 ## Context
 
 `transporte_publico_emt_por_parada_hora` Gold has exactly **1 distinct
