@@ -62,17 +62,36 @@ data "archive_file" "procesamiento_source" {
 # Artefactos del job (script + librería común) en el bucket de artefactos de
 # build ya existente (tarea 032, `aws_s3_bucket.build_artifacts`) -- reutilizado
 # a propósito en vez de crear un bucket nuevo solo para dos ficheros .py y un
-# .zip pequeño: incluye el hash del contenido en la key, así que un cambio en
-# el código sube a una key nueva sin pisar la anterior (mismo motivo que
-# `layer_source_key` en lambda_layer_build.tf).
+# .zip pequeño.
+#
+# La librería común (`procesamiento.zip`) la comparten ~37 jobs de Glue vía
+# `--extra-py-files`. Usa una **key estable** (sin el hash del contenido):
+# un cambio en `procesamiento/` reescribe el mismo objeto in situ (`etag`
+# dispara el `PutObject`), y Glue descarga el objeto fresco en cada
+# ejecución. Antes la key llevaba el hash (`procesamiento-<md5>.zip`), y eso
+# rompió producción (tarea 106): un `terraform apply -target=<subconjunto>`
+# tras un cambio de código subía la nueva key y borraba la vieja, dejando a
+# los jobs no incluidos en el `-target` apuntando a una key inexistente
+# (`LAUNCH ERROR ... key does not exist`). Con la key estable, un apply
+# parcial ya no puede dejar a ningún job huérfano: la URL de
+# `--extra-py-files` es una constante, nunca cambia.
 # ---------------------------------------------------------------------------
 
 resource "aws_s3_object" "procesamiento_source" {
   bucket = aws_s3_bucket.build_artifacts.id
-  key    = "glue-libs/procesamiento-${data.archive_file.procesamiento_source.output_md5}.zip"
+  key    = "glue-libs/procesamiento.zip"
   source = data.archive_file.procesamiento_source.output_path
 
+  # `etag` = md5 del contenido: Terraform reescribe la MISMA key cuando
+  # `procesamiento/` cambia (update in-place, sin destroy, sin key nueva).
   etag = data.archive_file.procesamiento_source.output_md5
+
+  # Solo relevante en la migración desde la key con hash (tarea 106): crea
+  # `procesamiento.zip` antes de borrar `procesamiento-<md5>.zip`, para que
+  # los ~37 jobs que se re-apuntan en el mismo apply nunca vean un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_bronze_to_silver" {
