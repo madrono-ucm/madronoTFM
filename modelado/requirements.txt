@@ -9,7 +9,12 @@ pyarrow>=15,<20
 # Grafo (ML_01 features de vecinos, ML_05 GNN): consulta el grafo real.
 neo4j>=5,<6
 
-# Los tiers posteriores añaden aquí: lightgbm, shap (ML_03); mlflow (ML_04);
+# Tier 1 (ML_03): forecasters de arbol + explicabilidad + figuras.
+lightgbm>=4.5,<5
+shap>=0.46,<1
+matplotlib>=3.8,<4
+
+# Los tiers posteriores añaden aquí: mlflow (ML_04);
 # torch, torch_geometric (ML_05); evidently (ML_06); onnx, onnxruntime,
 # skl2onnx/onnxmltools (ML_07). Se van añadiendo ticket a ticket para no
 # arrastrar dependencias pesadas antes de usarlas.
