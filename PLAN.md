@@ -125,7 +125,9 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `104`** (103 consumida el 29/8 por una auditoría
+**Próximo número libre: `105`** (104 consumida el 29/8 por una auditoría
+de QA del disco de la EC2 — ver Pista Sistema. 103 consumida el 29/8 por
+una auditoría
 de QA del track de ML — ver Pista Sistema. 101/102 consumidas el 27/8 por una
 auditoría de QA de la tarea 097 — ver Pista Sistema. 100 consumida el 27/8
 por una auditoría de
@@ -319,17 +321,25 @@ pese a estar en orden inverso de creación en este documento.
   — **completada**. Hallazgo menor de la misma auditoría: 2 ficheros más
   (7 llamadas) con el mismo bug de `read_text()` sin `encoding="utf-8"`
   que la tarea 097 no había cubierto del todo — arreglado.
-- [ ] **[`103-modelado-ci-y-dependencia-sistema-libgomp`](tasks/103-modelado-ci-y-dependencia-sistema-libgomp.md)**
-  — QA (29/8), verificando si `VIC_05` podía avanzar: `ML_02`/`ML_03`
-  (Tier 1) confirmados **realmente completos** (tests en verde tras
-  instalar `libgomp1`, que faltaba en esta EC2 y hacía fallar LightGBM;
-  métricas reales verosímiles en `modelado/evaluation/artifacts/`) — el
-  `status: pending` del front-matter estaba simplemente desactualizado,
-  corregido a `done`. `ML_01` se deja en `pending` (su propia nota admite
-  gaps reales). Hallazgo nuevo: `modelado/` no está en absoluto en la CI
-  (tarea 097) — el único módulo del proyecto sin cobertura automática.
-  **`VIC_05` ya puede avanzar**: Tier 1 (`ML_03`) y Tier 2 (`ML_05`)
-  tienen salidas reales.
+- [x] **[`103-modelado-ci-y-dependencia-sistema-libgomp`](tasks/done/103-modelado-ci-y-dependencia-sistema-libgomp.md)**
+  — **completada**. QA (29/8), verificando si `VIC_05` podía avanzar:
+  `ML_02`/`ML_03` (Tier 1) confirmados **realmente completos** (tests en
+  verde tras instalar `libgomp1`, que faltaba en esta EC2 y hacía fallar
+  LightGBM; métricas reales verosímiles en
+  `modelado/evaluation/artifacts/`) — el `status: pending` del
+  front-matter estaba simplemente desactualizado, corregido a `done`.
+  `modelado/` no estaba en la CI (tarea 097) — arreglado: verificado con
+  `gh run list` que la CI corre `modelado/` en verde en cada push/PR
+  desde entonces.
+- [ ] **[`104-ec2-root-volume-al-limite`](tasks/104-ec2-root-volume-al-limite.md)**
+  — QA (29/8): `df -h /` de esta EC2 al 95% (375M libres de 6,7G) — ya
+  causó un fallo real (`pip install` con `Disk quota exceeded`) durante
+  esta sesión. El stack de ML (`torch`/`lightgbm`/`mlflow`/`onnx`, 934M
+  en `~/.local`) pesa mucho más que cuando se aprovisionó la instancia.
+  Con `ML_10` corriendo un `cron` de reentrenamiento nocturno en la misma
+  instancia, el riesgo ya no es puntual. Propone redimensionar el volumen
+  EBS (requiere aprobación, coste marginal) o, como mitigación inmediata
+  sin coste, limpieza rutinaria de cachés.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
