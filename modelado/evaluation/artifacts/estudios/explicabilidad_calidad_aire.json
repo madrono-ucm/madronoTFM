@@ -1,0 +1,174 @@
+{
+ "target": "calidad_aire",
+ "shap_top": {
+  "h1": [
+   {
+    "feature": "value",
+    "importancia": 13.72452
+   },
+   {
+    "feature": "value_roll24h_mean",
+    "importancia": 3.85128
+   },
+   {
+    "feature": "value_lag_1h",
+    "importancia": 0.82703
+   },
+   {
+    "feature": "hora",
+    "importancia": 0.41888
+   },
+   {
+    "feature": "value_lag_24h",
+    "importancia": 0.39101
+   },
+   {
+    "feature": "hora_cos",
+    "importancia": 0.30855
+   },
+   {
+    "feature": "hora_sin",
+    "importancia": 0.25123
+   },
+   {
+    "feature": "value_lag_3h",
+    "importancia": 0.14815
+   }
+  ],
+  "h3": [
+   {
+    "feature": "value_roll24h_mean",
+    "importancia": 9.04167
+   },
+   {
+    "feature": "value",
+    "importancia": 6.11041
+   },
+   {
+    "feature": "hora_cos",
+    "importancia": 0.74791
+   },
+   {
+    "feature": "value_lag_1h",
+    "importancia": 0.59908
+   },
+   {
+    "feature": "hora",
+    "importancia": 0.5773
+   },
+   {
+    "feature": "hora_sin",
+    "importancia": 0.47028
+   },
+   {
+    "feature": "value_roll3h_mean",
+    "importancia": 0.36109
+   },
+   {
+    "feature": "value_lag_2h",
+    "importancia": 0.31649
+   }
+  ],
+  "h6": [
+   {
+    "feature": "value_roll24h_mean",
+    "importancia": 11.88213
+   },
+   {
+    "feature": "value",
+    "importancia": 1.26081
+   },
+   {
+    "feature": "value_roll3h_mean",
+    "importancia": 1.22545
+   },
+   {
+    "feature": "hora_cos",
+    "importancia": 1.21802
+   },
+   {
+    "feature": "value_lag_3h",
+    "importancia": 0.81092
+   },
+   {
+    "feature": "value_lag_24h",
+    "importancia": 0.44894
+   },
+   {
+    "feature": "hora",
+    "importancia": 0.38949
+   },
+   {
+    "feature": "value_roll24h_std",
+    "importancia": 0.3377
+   }
+  ]
+ },
+ "aristas_top": [
+  {
+   "a": "28079035__O3",
+   "b": "28079049__O3",
+   "importancia": 0.010168
+  },
+  {
+   "a": "28079050__PM10",
+   "b": "28079058__O3",
+   "importancia": 0.007328
+  },
+  {
+   "a": "28079050__PM2.5",
+   "b": "28079058__O3",
+   "importancia": 0.002903
+  },
+  {
+   "a": "28079017__O3",
+   "b": "28079047__PM10",
+   "importancia": 0.002448
+  },
+  {
+   "a": "28079050__PM10",
+   "b": "28079058__NOx",
+   "importancia": 0.001974
+  },
+  {
+   "a": "28079017__O3",
+   "b": "28079047__PM2.5",
+   "importancia": 0.001938
+  },
+  {
+   "a": "28079050__PM10",
+   "b": "28079058__NO2",
+   "importancia": 0.001855
+  },
+  {
+   "a": "28079017__O3",
+   "b": "28079047__NO",
+   "importancia": 0.001838
+  }
+ ],
+ "aristas_ejemplo": {
+  "nodo": "28079035__O3",
+  "vecinos_por_importancia": [
+   {
+    "vecino": "28079049__O3",
+    "importancia": 0.010168
+   },
+   {
+    "vecino": "28079049__NOx",
+    "importancia": 0.001136
+   },
+   {
+    "vecino": "28079049__NO2",
+    "importancia": 0.001057
+   },
+   {
+    "vecino": "28079049__NO",
+    "importancia": 0.00065
+   },
+   {
+    "vecino": "28079035__SO2",
+    "importancia": 0.000625
+   }
+  ]
+ }
+}
