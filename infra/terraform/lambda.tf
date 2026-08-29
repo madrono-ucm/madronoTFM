@@ -13,11 +13,12 @@
 #     paquetes con extensiones compiladas (netCDF4) requiere una herramienta
 #     de build específica (Docker/manylinux), no un `pip install` directo
 #     aquí. Queda documentado como pendiente antes del `apply` real.
-#   - `local.producers`: una entrada por función Lambda (14, una por módulo
-#     con `lambda_handler`; `aemet_prevision_avisos.py` es un único módulo
-#     que atiende tanto "avisos" como "previsión", así que es una sola
-#     entrada aquí aunque la tabla de cadencias del enunciado la liste como
-#     dos filas).
+#   - `local.producers`: una entrada por función Lambda (16, una por módulo
+#     con `lambda_handler`; +`emt_incidencias`/`parques_jardines`/`ser_calles`
+#     por FIL_03/04/05, -`afluencia_lugares` por FIL_06). `aemet_prevision_avisos.py`
+#     es un único módulo que atiende tanto "avisos" como "previsión", así que
+#     es una sola entrada aquí aunque la tabla de cadencias del enunciado la
+#     liste como dos filas).
 #   - `local.schedules`: una entrada por regla de EventBridge Scheduler (21
 #     en total: 14 productores con 1 schedule cada uno, salvo
 #     aemet_prevision_avisos con 6 —4 avisos + 2 previsión, mismo Lambda,
