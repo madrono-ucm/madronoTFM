@@ -161,8 +161,43 @@ def create_pr(worktree_dir: Path, branch: str, task, config) -> PullRequestInfo:
     return PullRequestInfo(number=int(match.group(1)), url=url)
 
 
+def _wait_for_checks(repo_path: Path, pr_number: int, config) -> None:
+    """Bloquea hasta que terminen los checks de CI del PR.
+
+    `gh pr checks --watch --fail-fast` sale con código != 0 en cuanto un check
+    falla, y con 0 cuando todos pasan. Un `subprocess.TimeoutExpired` (la CI
+    se cuelga o tarda más de lo previsto) se reconvierte a `GitError` para que
+    el llamador lo trate igual que cualquier otro fallo de merge: el PR se
+    queda en `in_review` a la espera de un merge manual, nunca deja al
+    demonio bloqueado indefinidamente.
+    """
+    try:
+        _run(
+            [
+                config.gh_bin, "pr", "checks", str(pr_number),
+                "--repo", config.github_repo,
+                "--watch", "--fail-fast",
+            ],
+            cwd=repo_path,
+            timeout=config.gh_checks_timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise GitError(
+            f"gh pr checks #{pr_number}: los checks no terminaron en "
+            f"{config.gh_checks_timeout_seconds}s"
+        ) from exc
+
+
 def merge_pr(repo_path: Path, pr_number: int, config) -> None:
-    """Fusiona un PR sin esperar revisión humana (solo para tareas con force: true)."""
+    """Fusiona un PR sin esperar revisión humana (solo para tareas con force: true).
+
+    Antes de fusionar espera a que la CI del PR termine en verde
+    (`_wait_for_checks`); si algún check requerido falla o no termina a
+    tiempo, lanza `GitError` y NO fusiona — el PR queda en `in_review` para
+    merge manual. Sin esto, un `force: true` con CI roja podía auto-fusionarse
+    igualmente (tarea 101).
+    """
+    _wait_for_checks(repo_path, pr_number, config)
     _run(
         [
             config.gh_bin, "pr", "merge", str(pr_number),

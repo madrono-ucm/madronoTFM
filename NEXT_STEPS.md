@@ -288,15 +288,17 @@ repositorio (recomendado: rol OIDC de solo lectura, no claves estáticas),
 una decisión que le corresponde a quien administra el repositorio en
 GitHub, no a esta tarea.
 
-**QA (tarea 101)**: la CI corre y suele estar en verde, pero hoy no
-bloquea ningún merge real -- `main` no tiene branch protection
-(`gh api .../branches/main/protection` → 404) y las tareas `force: true`
-fusionan su PR (`merge_pr()`, `tasks/scripts/gh_git.py:164`) sin esperar en
-absoluto a que los checks de CI terminen. `doc/101-...md` documenta las dos
-recomendaciones (activar branch protection exigiendo los checks `tests` +
-`terraform`, y hacer que `merge_pr()` espere a los checks antes de
-fusionar) con el comando/diseño ya listos para aplicar -- pendientes de
-aprobación humana explícita antes de ejecutarse, ninguno aplicado todavía.
+**QA (tarea 101) -- ✅ cerrada 29/8**: la CI no bloqueaba ningún merge por
+dos motivos, ambos resueltos:
+- `main` **ya tiene branch protection** exigiendo los checks `tests` +
+  `terraform` (`gh api ... PUT`, `strict=false`, `enforce_admins=false`).
+- `merge_pr()` (`tasks/scripts/gh_git.py`) **espera a la CI en verde**
+  (`gh pr checks --watch --fail-fast`, tope `GH_CHECKS_TIMEOUT_SECONDS`)
+  antes de auto-fusionar un `force: true`; si la CI falla o expira, el PR
+  queda en `in_review` para merge manual.
+Detalle y parámetros en `doc/101`. Pendiente no bloqueante: reiniciar el
+demonio en EC2 para que recoja el nuevo `merge_pr()`, y luego valorar
+`enforce_admins=true`.
 
 ## Prioridad 6 — Memoria (Memoria, y Ambos para §5-§7)
 

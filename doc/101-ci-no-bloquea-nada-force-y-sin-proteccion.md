@@ -1,4 +1,10 @@
-# 101 — QA: la CI (097) no bloquea ningún merge — decisión documentada, sin aplicar
+# 101 — QA: la CI (097) no bloquea ningún merge
+
+> **Actualización 29/8 — AMBAS recomendaciones aplicadas** (sesión
+> interactiva, con visto bueno explícito del usuario; ver §"Aplicado" al
+> final). El resto del documento es el análisis original de la tarea
+> autónoma, que dejó los dos cambios diseñados y verificados pero sin
+> ejecutar.
 
 ## Contexto
 
@@ -179,3 +185,47 @@ implementarse en una tarea futura ya con la decisión tomada).
   razonable, no la única configuración válida — en particular, revisar si
   se quiere `enforce_admins=true` y/o `strict=true` antes de aplicarlo tal
   cual.
+
+## Aplicado (29/8, sesión interactiva)
+
+### Recomendación 2 — `merge_pr()` espera a la CI  ✅ en código
+
+`tasks/scripts/gh_git.py`: nuevo `_wait_for_checks()` que corre
+`gh pr checks <n> --watch --fail-fast` (tope `GH_CHECKS_TIMEOUT_SECONDS`,
+por defecto 900 s; un `TimeoutExpired` se reconvierte a `GitError`).
+`merge_pr()` lo llama **antes** del `gh pr merge`. Si un check falla o no
+termina a tiempo, lanza `GitError` — que `agent_loop.py` ya trata como
+cualquier fallo de merge: el PR se queda en `in_review` para merge manual y
+se reintenta en ciclos posteriores. Config nueva
+`gh_checks_timeout_seconds` en `agent_loop.Config` + `config.example.env`.
+3 tests en `tasks/scripts/tests/test_gh_git.py` (orden checks→merge, no
+fusiona con CI roja, timeout→`GitError`). **Nota de despliegue**: el proceso
+del demonio en EC2 es un `while True` de larga vida; recogerá este cambio
+solo tras reiniciarlo (`systemctl restart` de su unit) — hasta entonces
+sigue con el `merge_pr()` viejo.
+
+### Recomendación 1 — branch protection en `main`  ✅ aplicada
+
+```
+gh api repos/madrono-ucm/madronoTFM/branches/main/protection --method PUT \
+  -f required_status_checks[strict]=false \
+  -f required_status_checks[contexts][]=tests \
+  -f required_status_checks[contexts][]=terraform \
+  -F enforce_admins=false -F required_pull_request_reviews=null \
+  -F restrictions=null
+```
+
+`tests` + `terraform` pasan a ser checks requeridos para fusionar en `main`.
+Parámetros según lo recomendado arriba: `strict=false` (menos fricción,
+fácil de endurecer), `enforce_admins=false` (un admin puede fusionar en una
+emergencia; y — mientras el demonio no se haya reiniciado con la Rec. 2 —
+sus tareas `force: true` que son admin siguen pudiendo auto-fusionarse; en
+la práctica no había ninguna `force: true` en vuelo al aplicarlo: la 104 es
+`force: false` y la 105 estaba `pending`). Sin `required_pull_request_reviews`
+(el hallazgo es sobre CI, no sobre exigir revisión humana).
+
+### Pendiente (no bloqueante)
+
+- Reiniciar el demonio en EC2 para que use el nuevo `merge_pr()`.
+- Cuando eso esté hecho y estable, valorar `enforce_admins=true` para que la
+  protección aplique sin excepción.
