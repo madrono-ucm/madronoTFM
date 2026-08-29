@@ -66,7 +66,7 @@ el mapa completo:
 | Delta Lake (tablas Delta en 3 capas) | **No construido.** Parquet + catálogo Glue + Athena Partition Projection |
 | Spark batch sobre Silver | Construido como **Glue** (Spark por debajo) ✓ |
 | Grafo urbano en Neo4j desde Gold | Construido ✓ (AuraDB Free, cargado; 9430 nodos) |
-| **MLOps: MLflow + Evidently + ONNX** | **No construido.** No existe nada de ML. Directorio `modelado/` no existe |
+| **MLOps: MLflow + Evidently + ONNX** | 🟡 **mayoría hecha (29/8)** — `modelado/`: MLflow tracking+registry (`ML_04`, backend SQLite) ✓, Evidently drift (`ML_06`) ✓, export ONNX (`ML_07`) ⬜ |
 | Cuadro de mando Power BI + modelo semántico DAX | **No construido** |
 | Asistente FastAPI + agente MCP | Construido ✓ (6 tools con lógica real) |
 | Puertas de calidad Great Expectations | Construido ✓ (por dataset) |
@@ -154,11 +154,11 @@ de código nuevo).
 
 | # | Ítem | Pista | Estado 28/8 |
 |---|---|---|---|
-| 1 | **`modelado/` — fundación (Tier 0)**: feature store, arnés de CV temporal, líneas base, MLflow, Evidently, export ONNX | Sistema | 🟡 **mayoría hecha** — `ML_02`/`ML_03`/`ML_04`/`ML_05` ✅ (verificado 29/8, ver fila 4/5); `ML_01` (feature store) 🟡 con gaps reales (falta join real de meteo/previsión AEMET, festivos desde fichero real); Evidently (`ML_06`) y export ONNX (`ML_07`) ⬜ |
+| 1 | **`modelado/` — fundación (Tier 0)**: feature store, arnés de CV temporal, líneas base, MLflow, Evidently, export ONNX | Sistema | 🟡 **mayoría hecha** — `ML_02`/`ML_03`/`ML_04`/`ML_05`/`ML_06` ✅ (verificado 29/8, ver filas 4/5); `ML_01` (feature store) 🟡 con gaps reales (falta join real de meteo/previsión AEMET, festivos desde fichero real); export ONNX (`ML_07`) ⬜ |
 | 2 | **`FIL_01`** + **`FIL_02`→`FIL_06`** + **`FIL_08`** — fundación de datos | Sistema | ✅ **mayoría cerrada** (PRs #150-155) — `FIL_01`/`02`/`04`/`06`/`08` ✅; `FIL_03`/`FIL_05` Ingesta→Bronze ✅ (Silver/Gold aplazado, el JSON Bronze ya es consumible); `FIL_07` ⬜ (prioridad más baja). Ver `tasks/FIL_00_README.md`. La instancia real de Neo4j tiene aforos + 203 parques + sus `PROXIMO_A`; `afluencia_lugares` ya es una tabla Gold horaria derivada de sensores |
 | 3 | **`VIC_01`–`VIC_04`** — reescritura de §5–§6 a la realidad | Memoria | ✅ **hecho (29/8)** — §5, §6.1–6.4, §6.5–6.6, §6.7–6.8 reescritas directamente en el `.docx` (Kafka/Flink/Delta/Power BI/streaming fuera de la descripción del sistema construido, solo en §7.5 con motivo). Ver notas "Hecho" en `tasks/VIC_01`–`VIC_04` |
 | 4 | **Tier 1** — forecasters LightGBM (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | Sistema | ✅ **hecho (regresión)** — `ML_03`. Verificado 29/8, independientemente de la nota del propio ticket: 3/3 tests en verde (tras instalar `libgomp1`, ausente en esta EC2 y necesario para LightGBM), métricas reales en `modelado/evaluation/artifacts/tier1_{calidad_aire,trafico}.csv` (skill score 0.29–0.78 sobre la mejor línea base). Clasificador de episodio → `ML_08` |
-| 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema | ✅ **hecho** — `ML_05`, ver `doc/ML-05-tier2-gnn-espacio-temporal.md` (no re-verificado de forma independiente el 29/8 por espacio en disco para `torch`; su propio doc referencia los paneles reales de `ML_01` y una tabla de métricas comparable a Tier 1) |
+| 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema | ✅ **hecho y verificado 29/8** — `ML_05`. `torch 2.13 cpu` instalado; STGNN entrenado end-to-end en los dos targets: `calidad_aire` (54 nodos) bate a persistencia a h3/h6 (+0.48/+0.55), `trafico` (1798 nodos) la bate en todos los horizontes (+0.39/+0.64/+0.79). 2 modelos `@champion` en MLflow. Importancia de aristas interpretable. 27 tests. Ver `doc/ML-05` |
 | 6 | **`VIC_05`–`VIC_06`** — §7 usando 4–5 salidas reales de los modelos | Memoria | 🟡 **`VIC_06` hecho (29/8)** — §7.4 (4→7 limitaciones) y §7.5 (5→10 futuras líneas) reescritas. **`VIC_05` (§7.1–7.3) ya puede avanzar** (29/8): Tier 1 y Tier 2 confirmados con salidas reales, ver filas 4–5 |
 | 7 | **Tier 4** — tool `*_prevista` (ONNX), reentrenamiento nocturno, backtest incremental | Sistema | ⬜ |
 | 8 | **`FIL_07`** (EMT multi-parada) — aditivo, la prioridad más baja | Sistema | ⬜ |
