@@ -2,10 +2,20 @@
 kind: ml
 title: "Cuadernos de evaluación para memoria §7 (baseline vs GBT vs GNN + ablaciones)"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_03, ML_05]
 created_at: "2026-08-28"
 ---
+
+> **Estado 29/8: ✅ HECHO (estudios 1 y 2).** `modelado/evaluation/estudios/`:
+> `estudio_comparacion.py` (puro) + `run_all.py`. Regenera
+> `modelado/evaluation/artifacts/estudios/` (`comparacion_<t>.csv`,
+> `comparacion_todos.csv`, `explicabilidad_<t>.json`, `skill_<t>.png`) y
+> loguea un run MLflow por estudio (`tags.study=`). Tablas reales:
+> `calidad_aire` LightGBM +0.29/+0.58/+0.68, STGNN +0.48/+0.55 a h3/h6;
+> `trafico` LightGBM +0.37/+0.61/+0.76. SHAP + importancia de aristas
+> consolidadas. **Ablaciones 3 y 4 descartadas** (decisión 8, ver `VIC_05`),
+> anotado en `doc/ML-08`. 39 tests en verde (+4 `test_ml08.py`).
 
 ## Objetivo
 
