@@ -55,7 +55,11 @@ Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
    Movido de la cola numerada (`tasks/done/106-...md`, redirigida) a la
    pista interactiva porque necesita un `terraform apply` real revisado y
    aprobado por un humano antes de ejecutarse (mismo criterio que las
-   tareas 098/100) — **solo falta esa aprobación**.
+   tareas 098/100). **Actualización (29/8 tarde)**: el código ya mejoró
+   (key estable para `procesamiento.zip`, PR #175, evita que esto vuelva a
+   pasar) pero **sigue sin aplicarse** — plan regenerado sobre ese commit,
+   misma magnitud y sigue seguro. **Solo falta la aprobación humana para
+   el `apply`.**
 1. ~~Alta de Neo4j AuraDB Free~~ — **resuelto y grafo cargado el 24/8.**
    Instancia real creada, credenciales en SSM (mismo patrón que
    EMT/AEMET/CAMS). Grafo completo cargado y verificado con Cypher real:

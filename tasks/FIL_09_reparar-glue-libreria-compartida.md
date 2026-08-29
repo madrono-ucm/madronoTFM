@@ -12,6 +12,14 @@ created_at: "2026-08-29"
 > completo, la causa raíz y el paso a paso de verificación ya están preparados
 > en [`doc/FIL-09-terraform-plan-glue-libreria-compartida.md`](../doc/FIL-09-terraform-plan-glue-libreria-compartida.md)
 > — **léelo primero**, este ticket resume lo mínimo para decidir y ejecutar.
+>
+> **Actualización (29/8, tarde)**: otra sesión ya aplicó un fix de código
+> mejor que el plan original (`glue.tf`, commit `89f0665`, PR #175): key
+> **estable** para `procesamiento.zip` en vez de resincronizar a otro hash
+> — un futuro `apply` parcial ya no puede volver a romper esto. Sigue sin
+> aplicarse. Plan **regenerado** sobre ese commit al final del documento
+> (misma magnitud, `49 add / 66 change / 49 destroy`, sigue sin
+> destrucciones sueltas) — **usa esa versión del plan, no la de arriba**.
 
 ## Qué está roto (verificado en vivo, no es una sospecha)
 
