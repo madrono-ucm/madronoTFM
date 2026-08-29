@@ -28,15 +28,20 @@ Word Online) — it does not merge in git.
 
 ## Tickets
 
-| Ticket | Sección(es) | Depende de |
-|---|---|---|
-| `VIC_01` | §5 Arquitectura (rewrite to real stack) | — |
-| `VIC_02` | §6.1–6.4 Fuentes, preparación, flujos | — |
-| `VIC_03` | §6.5 Orquestación · §6.6 Almacenamiento y consulta | — |
-| `VIC_04` | §6.7 Explotación · §6.8 Ética/legal | FIL_06 landing helps §6.7/§6.8 |
-| `VIC_05` | §7.1–7.3 Resultados, métricas, comparativas | ML Tier 1 + Tier 2 outputs |
-| `VIC_06` | §7.4 Limitaciones · §7.5 Futuras líneas | — (can draft now, refine later) |
-| `VIC_07` | §1 Resumen · §2 Palabras clave · §3–4 Introducción/Metodología (consistency pass) | after VIC_01–06 |
+| Ticket | Sección(es) | Depende de | Estado |
+|---|---|---|---|
+| `VIC_01` | §5 Arquitectura (rewrite to real stack) | — | ✅ done 29/8 (Claude) |
+| `VIC_02` | §6.1–6.4 Fuentes, preparación, flujos | — | ✅ done 29/8 (Claude) |
+| `VIC_03` | §6.5 Orquestación · §6.6 Almacenamiento y consulta | — | ✅ done 29/8 (Claude) |
+| `VIC_04` | §6.7 Explotación · §6.8 Ética/legal | FIL_06 landing helps §6.7/§6.8 | ✅ done 29/8 (Claude) — FIL_06 already landed |
+| `VIC_05` | §7.1–7.3 Resultados, métricas, comparativas | ML Tier 1 + Tier 2 outputs | ⬜ blocked, not started |
+| `VIC_06` | §7.4 Limitaciones · §7.5 Futuras líneas | — (can draft now, refine later) | ✅ done 29/8 (Claude) |
+| `VIC_07` | §1 Resumen · §2 Palabras clave · §3–4 Introducción/Metodología (consistency pass) | after VIC_01–06 | ⬜ not started — VIC_01–04/06 now merged, ready whenever Víctor wants to run this pass (VIC_05 still pending doesn't block it, §7 isn't in VIC_07's scope) |
+
+`VIC_01`–`VIC_04` and `VIC_06` were written directly into the `.docx` with
+`python-docx` (preserves paragraph styles/list numbering) rather than via
+Word Online turn-taking — coordinate before editing further so this doesn't
+collide with in-progress manual edits.
 
 ## Cross-cutting: claims in the June draft that must change
 

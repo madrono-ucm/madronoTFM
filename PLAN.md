@@ -330,11 +330,13 @@ pese a estar en orden inverso de creación en este documento.
 
 ### Pista Memoria
 
-Ver el reparto por sección de arriba. Como referencia de alcance: la
-memoria actual tiene ~19.000 caracteres (166 párrafos no vacíos) — es un
-documento de planificación, no un borrador de resultados; la sección 7
-(Resultados y conclusiones) está prácticamente vacía de contenido real y es
-la que más trabajo nuevo necesita.
+Ver el reparto por sección de arriba, y `tasks/VIC_00_README.md` para el
+detalle ticket a ticket (`VIC_01`–`VIC_07`, fuera de la cola del demonio).
+**Estado 29/8**: `VIC_01`–`VIC_04` y `VIC_06` completados — §5, §6.1–6.4,
+§6.5–6.6, §6.7–6.8, §7.4 y §7.5 ya reflejan la arquitectura real, sin
+Kafka/Flink/Delta/Power BI/streaming fuera de §7.5. Quedan `VIC_05`
+(§7.1–7.3, bloqueada por las salidas de ML) y `VIC_07` (pasada de
+consistencia sobre §1–§4, puede arrancar cuando se quiera).
 
 ## Estado semanal
 
@@ -397,6 +399,18 @@ ninguna tabla Gold rota ni bloqueada, ni bloqueador de infraestructura
 activo — ver `NEXT_STEPS.md` y `doc/098-...md`. Solo quedan pendientes los
 gaps menores de Prioridad 7 y el arranque de la Pista Memoria.
 
+**27–28/8** — QA de las tareas 097/098/100 (tickets `101`/`102`, CI sin
+poder de bloqueo real — ver `doc/101`). El 28/8, sesión de arquitectura:
+chequeo de salud de todas las fuentes reales + decisión de que el
+**modelado ML es el elemento central del TFM** — reparto reorganizado en
+tres pistas fuera de la cola del demonio: `FIL_*` (fundación de datos,
+Filippos), `VIC_*` (memoria, Víctor) y `ML_*` (a crear). Detalle completo
+en `NEXT_STEPS.md` §"Estado a 28/8". La mayoría de `FIL_01`–`FIL_08` ya
+cerrada (PRs #150–155).
+
+**29/8** — `VIC_01`–`VIC_04` y `VIC_06` completados (ver Pista Memoria
+arriba).
+
 **Para la semana que viene**
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
 - [x] Crear y encolar `079-asistente-tool-calidad-aire` — completada
@@ -407,4 +421,7 @@ gaps menores de Prioridad 7 y el arranque de la Pista Memoria.
 - [x] Descartar Google Maps y diseñar su sustituto (25/8, tarea 083/086)
 - [x] Reconciliar el drift de Terraform detectado el 25/8 (26/8, tarea 098
   — ver `NEXT_STEPS.md`)
-- [ ] Empezar a reescribir §5 de la memoria con la arquitectura real
+- [x] Empezar a reescribir §5 de la memoria con la arquitectura real —
+  completada y ampliada a §6/§7.4/§7.5 (29/8, `VIC_01`–`VIC_04`/`VIC_06`)
+- [ ] Crear los tickets numerados de ML (`modelado/`, Tier 0–4)
+- [ ] `VIC_07` — pasada de consistencia sobre §1–§4 (puede arrancar ya)

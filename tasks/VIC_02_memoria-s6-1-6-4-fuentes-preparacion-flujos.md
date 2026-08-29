@@ -2,7 +2,9 @@
 kind: vic
 title: "Memoria §6.1–6.4 — Fuentes, preparación de datos, flujos, procesamiento"
 owner: Víctor
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 created_at: "2026-08-28"
 ---
 
@@ -71,3 +73,13 @@ created_at: "2026-08-28"
 - §6.3/§6.4 no afirman que exista procesamiento en streaming.
 - La afluencia de lugares se describe como señal derivada, con su fórmula
   marcada como aproximación.
+
+## Hecho (29/8)
+
+§6.1–6.4 reescritas en `documents/Memoria_TFM FV.docx`. §6.1 mantiene la
+estructura de tres categorías del borrador pero con recuento real (24
+fuentes, 14 en producción continua) y estado de cada una (afluencia como
+señal derivada, aforos como histórico descontinuado, CAMS como
+enriquecimiento europeo real). §6.3/§6.4 ya no describen streaming/Kafka:
+un único flujo por lotes, con la última fila de Gold como "estado
+instantáneo".

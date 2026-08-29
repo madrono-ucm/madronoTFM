@@ -2,7 +2,9 @@
 kind: vic
 title: "Memoria §6.7 Explotación de resultados · §6.8 Ética/legal"
 owner: Víctor
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 created_at: "2026-08-28"
 ---
 
@@ -50,3 +52,12 @@ created_at: "2026-08-28"
 - §6.7 no menciona Power BI como entregable.
 - §6.8 no presenta la zona gris de Google como dependencia del sistema
   entregado; la reubica como alternativa descartada / futura línea.
+
+## Hecho (29/8)
+
+§6.7/§6.8 reescritas en `documents/Memoria_TFM FV.docx`. §6.7 describe las
+6 tools reales del asistente (sin Power BI, movido a §7.5) y menciona la
+séptima tool `*_prevista` de forma condicional ("cuando esté disponible"),
+sin afirmar que ya exista. §6.8 reencuadra la "zona gris" de Google como
+vía evaluada y descartada (coste 0 imposible, `doc/083`), no como
+dependencia activa.
