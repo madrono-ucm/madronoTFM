@@ -57,28 +57,29 @@ análisis de sentimiento — esa es una transformación de Silver/Gold, fuera de
 alcance de un productor de Bronze (mismo criterio que el resto de
 `ingesta/capturas/`).
 
-## Host real usado: `api.bsky.app`, no `public.api.bsky.app`
+## Autenticación (obligatoria desde 2025)
 
-El endpoint documentado por el AT Protocol para lectura pública sin
-autenticación es `https://public.api.bsky.app`. Se ha verificado en vivo
-desde este entorno que **ese host específico bloquea con un 403 (WAF de
-BunnyCDN, página HTML de error, no JSON) únicamente la llamada
-`app.bsky.feed.searchPosts`**, mientras que otros métodos de solo lectura en
-el mismo host (`app.bsky.actor.searchActors`,
-`app.bsky.unspecced.getPopularFeedGenerators`, `/xrpc/_health`) responden
-`200` con normalidad. El bloqueo persiste cambiando `User-Agent`,
-añadiendo `Accept`/`Origin`/`Referer` de navegador, y con o sin parámetros —
-apunta a un bloqueo de la ruta concreta para el rango de IP de esta EC2 (muy
-probablemente porque `searchPosts` es el endpoint más costoso de servir y
-más atractivo para scraping masivo, así que Bluesky/BunnyCDN lo protegen más
-que el resto). En cambio, `https://api.bsky.app` (el mismo host que usa
-`bsky.app`, la propia web de Bluesky, para sus peticiones al AppView) expone
-la **misma operación `app.bsky.feed.searchPosts`, con la misma respuesta**,
-y sí responde `200` desde este entorno, verificado en vivo repetidamente
-durante esta sesión. Por eso este módulo usa `https://api.bsky.app` como
-`BLUESKY_API_BASE_URL` por defecto, configurable por si en otro entorno
-(p.ej. la máquina donde corra el asistente en producción) `public.api.bsky.app`
-sí funciona o se prefiere por ser el host oficialmente documentado.
+`app.bsky.feed.searchPosts` **ya no admite acceso anónimo**: devuelve `403
+Forbidden`. Hay que autenticarse con una sesión de AT Protocol —
+`com.atproto.server.createSession` con `identifier` (el handle, p.ej.
+`madrono97.bsky.social`) + `password` (un **App Password** de Bluesky, NO la
+contraseña de la cuenta), que devuelve un `accessJwt` de vida corta (~2 h).
+Ese token se manda como `Authorization: Bearer …` en `searchPosts`.
+
+- `createSession` va contra el **PDS** de la cuenta
+  (`BLUESKY_AUTH_BASE_URL`, por defecto `https://bsky.social`).
+- `searchPosts` va contra el **AppView** (`BLUESKY_API_BASE_URL`, por
+  defecto `https://api.bsky.app`).
+- Credenciales: `BLUESKY_IDENTIFIER` / `BLUESKY_APP_PASSWORD` por entorno,
+  inyectadas desde SSM en la Lambda (ver `infra/terraform/lambda.tf`,
+  `local.secrets`). El App Password se revoca de forma independiente a la
+  cuenta y, por defecto, no da acceso a los DMs.
+- Una captura entera dura segundos, así que se crea **una** sesión por
+  ejecución y no se refresca el token (`create_session`).
+
+Nota histórica: antes de que Bluesky cerrara el endpoint, este módulo usaba
+`https://api.bsky.app` (en vez de `public.api.bsky.app`) para esquivar un
+403 que resultó ser el mismo bloqueo por falta de autenticación.
 
 TODO(kafka): igual que el resto de productores de datos que cambian con el
 tiempo (tráfico, calidad del aire, aforos...), el punto donde se conectaría
@@ -133,8 +134,12 @@ SOURCE_NAME = "bluesky_menciones_madrid"
 DATASET_NAME = "bluesky_menciones"
 
 SEARCH_POSTS_PATH = "/xrpc/app.bsky.feed.searchPosts"
+CREATE_SESSION_PATH = "/xrpc/com.atproto.server.createSession"
 
 DEFAULT_API_BASE_URL = "https://api.bsky.app"
+# `createSession` va contra el PDS de la cuenta, no contra el AppView: para
+# cuentas `*.bsky.social` es `https://bsky.social`.
+DEFAULT_AUTH_BASE_URL = "https://bsky.social"
 
 DEFAULT_SAMPLE_PATH = Path(__file__).parent / "samples" / "bluesky_menciones_madrid_sample.json"
 
@@ -213,11 +218,18 @@ def _env_list(name: str, default: "list[str]") -> "list[str]":
 class CaptureConfig:
     """Configuración de la captura, leída de variables de entorno.
 
-    No requiere ninguna credencial: `app.bsky.feed.searchPosts` es un
-    endpoint de lectura pública (ver docstring del módulo).
+    Desde 2025 `app.bsky.feed.searchPosts` **exige autenticación** (antes era
+    un endpoint de lectura pública). Se resuelve con una sesión de AT
+    Protocol: `identifier` (el handle, p.ej. `madrono97.bsky.social`) +
+    `app_password` (un *App Password* de Bluesky, NO la contraseña de la
+    cuenta). `app_password` llega por SSM (`BLUESKY_APP_PASSWORD`); sin él la
+    captura falla de forma explícita en `create_session`.
     """
 
     api_base_url: str
+    auth_base_url: str
+    identifier: "Optional[str]"
+    app_password: "Optional[str]"
     lang: str
     limit_per_query: int
     place_queries: "list[str]"
@@ -231,6 +243,9 @@ class CaptureConfig:
     def from_env(cls) -> "CaptureConfig":
         return cls(
             api_base_url=os.environ.get("BLUESKY_API_BASE_URL", DEFAULT_API_BASE_URL),
+            auth_base_url=os.environ.get("BLUESKY_AUTH_BASE_URL", DEFAULT_AUTH_BASE_URL),
+            identifier=os.environ.get("BLUESKY_IDENTIFIER") or None,
+            app_password=os.environ.get("BLUESKY_APP_PASSWORD") or None,
             lang=os.environ.get("BLUESKY_LANG", "es"),
             limit_per_query=_env_int("BLUESKY_LIMIT_PER_QUERY", 5),
             place_queries=_env_list("BLUESKY_SAMPLE_PLACES", DEFAULT_PLACE_QUERIES),
@@ -242,12 +257,42 @@ class CaptureConfig:
         )
 
 
-def _get_json_with_retries(config: CaptureConfig, url: str, params: dict) -> dict:
+def create_session(config: CaptureConfig) -> str:
+    """Crea una sesión de AT Protocol y devuelve el `accessJwt`.
+
+    El token vive ~2 h; una captura entera dura segundos, así que se crea uno
+    por ejecución y no se refresca. Falla de forma explícita si faltan las
+    credenciales o si `createSession` no responde 200.
+    """
+    if not config.identifier or not config.app_password:
+        raise RuntimeError(
+            "Faltan credenciales de Bluesky (BLUESKY_IDENTIFIER / BLUESKY_APP_PASSWORD); "
+            "searchPosts ya no admite acceso anónimo"
+        )
+    url = config.auth_base_url.rstrip("/") + CREATE_SESSION_PATH
+    resp = requests.post(
+        url,
+        json={"identifier": config.identifier, "password": config.app_password},
+        headers={"Accept": "application/json"},
+        timeout=config.timeout_seconds,
+    )
+    resp.raise_for_status()
+    token = resp.json().get("accessJwt")
+    if not token:
+        raise RuntimeError(f"createSession no devolvió accessJwt: {resp.text[:200]}")
+    return token
+
+
+def _get_json_with_retries(
+    config: CaptureConfig, url: str, params: dict, token: "Optional[str]" = None
+) -> dict:
     """Petición GET con reintentos simples y backoff lineal, devuelve JSON."""
     headers = {
         "Accept": "application/json",
         "User-Agent": "madrono-tfm-ingesta/0.1 (+madrono.ucm@gmail.com; academic research)",
     }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     last_exc: Optional[Exception] = None
     for attempt in range(1, config.max_retries + 1):
         try:
@@ -309,11 +354,13 @@ def search_posts_raw(
     since: "Optional[str]" = None,
     until: "Optional[str]" = None,
     limit: "Optional[int]" = None,
+    token: "Optional[str]" = None,
 ) -> "list[dict]":
     """Llama a `app.bsky.feed.searchPosts` y devuelve la lista cruda de `posts`.
 
     `since`/`until` son timestamps ISO-8601 tal como los espera la API
-    (p.ej. `"2026-08-01T00:00:00.000Z"`). Sin autenticación.
+    (p.ej. `"2026-08-01T00:00:00.000Z"`). Requiere `token` (accessJwt de
+    `create_session`); la API rechaza el acceso anónimo con 403.
     """
     params: dict = {"q": q, "limit": limit or config.limit_per_query}
     if lang:
@@ -323,7 +370,7 @@ def search_posts_raw(
     if until:
         params["until"] = until
     url = config.api_base_url.rstrip("/") + SEARCH_POSTS_PATH
-    payload = _get_json_with_retries(config, url, params)
+    payload = _get_json_with_retries(config, url, params, token=token)
     return payload.get("posts") or []
 
 
@@ -336,15 +383,18 @@ def search_place(
     until: "Optional[str]" = None,
     limit: "Optional[int]" = None,
     captured_at: "Optional[datetime]" = None,
+    token: "Optional[str]" = None,
 ) -> "list[dict]":
     """Búsqueda puntual por lugar/hashtag — modo "bajo demanda" del asistente.
 
     Pensada para invocarse en tiempo de consulta cuando el asistente no
-    tenga información concreta de un lugar que el usuario menciona.
+    tenga información concreta de un lugar que el usuario menciona. Crea su
+    propia sesión de Bluesky si no se le pasa `token`.
     """
     captured_at = captured_at or now_madrid()
+    token = token or create_session(config)
     q = _build_query(query, [f"#{tag.lstrip('#')}" for tag in (tags or [])])
-    raw_posts = search_posts_raw(config, q, lang=lang, since=since, until=until, limit=limit)
+    raw_posts = search_posts_raw(config, q, lang=lang, since=since, until=until, limit=limit, token=token)
     return [
         normalize_post(post, match_term=query, mode=MODE_SEARCH_PLACE, captured_at=captured_at)
         for post in raw_posts
@@ -360,6 +410,7 @@ def search_district_sweep(
     limit: "Optional[int]" = None,
     event_terms: "Optional[list[str]]" = None,
     captured_at: "Optional[datetime]" = None,
+    token: "Optional[str]" = None,
 ) -> "list[dict]":
     """Barrido general por distrito + eventos — modo "programado cada hora".
 
@@ -368,15 +419,17 @@ def search_district_sweep(
     más una búsqueda por cada término de `event_terms` (por defecto
     `config.event_terms`) combinado con "Madrid". Pensada para nutrir una
     serie histórica agregada por zona y hora, no para responder una
-    pregunta puntual.
+    pregunta puntual. Crea su propia sesión de Bluesky si no se le pasa
+    `token` (una sola para todo el barrido).
     """
     captured_at = captured_at or now_madrid()
+    token = token or create_session(config)
     event_terms = event_terms if event_terms is not None else config.event_terms
     records: "list[dict]" = []
 
     for district in districts:
         q = _build_query(district, ["Madrid"])
-        raw_posts = search_posts_raw(config, q, lang=lang, since=since, until=until, limit=limit)
+        raw_posts = search_posts_raw(config, q, lang=lang, since=since, until=until, limit=limit, token=token)
         records.extend(
             normalize_post(post, match_term=district, mode=MODE_DISTRICT_SWEEP, captured_at=captured_at)
             for post in raw_posts
@@ -384,7 +437,7 @@ def search_district_sweep(
 
     for term in event_terms:
         q = _build_query("Madrid", [term])
-        raw_posts = search_posts_raw(config, q, lang=lang, since=since, until=until, limit=limit)
+        raw_posts = search_posts_raw(config, q, lang=lang, since=since, until=until, limit=limit, token=token)
         records.extend(
             normalize_post(
                 post, match_term=f"eventos:{term}", mode=MODE_DISTRICT_SWEEP, captured_at=captured_at
@@ -413,13 +466,18 @@ def capture_sample(config: CaptureConfig, out_path: Path) -> Path:
     modo puede filtrar por `mode`.
     """
     captured_at = now_madrid()
+    token = create_session(config)
     records: "list[dict]" = []
 
     for query in config.place_queries:
-        records.extend(search_place(config, query, lang=config.lang, captured_at=captured_at))
+        records.extend(
+            search_place(config, query, lang=config.lang, captured_at=captured_at, token=token)
+        )
 
     records.extend(
-        search_district_sweep(config, config.districts, lang=config.lang, captured_at=captured_at)
+        search_district_sweep(
+            config, config.districts, lang=config.lang, captured_at=captured_at, token=token
+        )
     )
 
     logger.info("Posts de muestra capturados: %d", len(records))
@@ -436,8 +494,9 @@ def lambda_handler(event, context):
     muestra truncada que usa `CaptureConfig.from_env()` por defecto.
     """
     config = replace(CaptureConfig.from_env(), districts=DEFAULT_DISTRICTS, event_terms=DEFAULT_EVENT_TERMS)
+    token = create_session(config)
     records = search_district_sweep(
-        config, config.districts, lang=config.lang, event_terms=config.event_terms
+        config, config.districts, lang=config.lang, event_terms=config.event_terms, token=token
     )
     logger.info("Menciones capturadas (barrido completo por distrito): %d", len(records))
     writer = BronzeWriter(os.environ["BRONZE_BASE_PATH"], dataset=DATASET_NAME)

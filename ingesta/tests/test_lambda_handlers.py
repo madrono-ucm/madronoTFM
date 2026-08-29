@@ -187,11 +187,18 @@ class AforosLambdaHandlerTests(unittest.TestCase):
 class BlueskyLambdaHandlerTests(unittest.TestCase):
     def test_uses_full_district_and_event_term_lists(self):
         records = [{"mode": "distrito_sweep", "match_term": "Centro"}]
+        env = {
+            "BRONZE_BASE_PATH": None,  # set below to tmp
+            "BLUESKY_IDENTIFIER": "test.bsky.social",
+            "BLUESKY_APP_PASSWORD": "test-pass",
+        }
         with tempfile.TemporaryDirectory() as tmp:
-            with patch.dict("os.environ", {"BRONZE_BASE_PATH": tmp}):
-                with patch.object(bluesky_menciones_madrid, "search_district_sweep") as mock_sweep:
-                    mock_sweep.return_value = records
-                    result = bluesky_menciones_madrid.lambda_handler({}, None)
+            env["BRONZE_BASE_PATH"] = tmp
+            with patch.dict("os.environ", env):
+                with patch.object(bluesky_menciones_madrid, "create_session", return_value="JWT"):
+                    with patch.object(bluesky_menciones_madrid, "search_district_sweep") as mock_sweep:
+                        mock_sweep.return_value = records
+                        result = bluesky_menciones_madrid.lambda_handler({}, None)
         mock_sweep.assert_called_once()
         call_args = mock_sweep.call_args
         districts_arg = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("districts")
