@@ -25,6 +25,11 @@ mlflow>=2.16,<4
 # hace falta `torch_geometric`.
 torch>=2.2,<3
 
-# Los tiers posteriores añaden aquí: evidently (ML_06); onnx, onnxruntime,
-# skl2onnx/onnxmltools (ML_07). Se van añadiendo ticket a ticket para no
-# arrastrar dependencias pesadas antes de usarlas.
+# Vigilancia de deriva (ML_06). `drift.py` calcula PSI + KS con numpy
+# (siempre); Evidently solo para el informe HTML y es *best effort* (su API
+# cambia mucho entre versiones) — probado con 0.7.x.
+evidently>=0.7,<0.8
+
+# Los tiers posteriores añaden aquí: onnx, onnxruntime, skl2onnx/onnxmltools
+# (ML_07). Se van añadiendo ticket a ticket para no arrastrar dependencias
+# pesadas antes de usarlas.
