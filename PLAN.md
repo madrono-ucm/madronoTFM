@@ -339,11 +339,13 @@ pese a estar en orden inverso de creación en este documento.
 
 Ver el reparto por sección de arriba, y `tasks/VIC_00_README.md` para el
 detalle ticket a ticket (`VIC_01`–`VIC_07`, fuera de la cola del demonio).
-**Estado 29/8**: `VIC_01`–`VIC_04` y `VIC_06` completados — §5, §6.1–6.4,
-§6.5–6.6, §6.7–6.8, §7.4 y §7.5 ya reflejan la arquitectura real, sin
-Kafka/Flink/Delta/Power BI/streaming fuera de §7.5. Quedan `VIC_05`
-(§7.1–7.3, bloqueada por las salidas de ML) y `VIC_07` (pasada de
-consistencia sobre §1–§4, puede arrancar cuando se quiera).
+**Estado 29/8: los 7 tickets `VIC_*` están completos.** §1–§7.5 de la
+memoria reflejan ya la arquitectura y los resultados reales, sin
+Kafka/Flink/Delta/Power BI/streaming presentados como entregados en
+ningún sitio fuera de §5.3 (justificación del descarte) y §7.5 (futuras
+líneas). La memoria ya no necesita una pasada de "poner al día", solo
+revisión editorial humana y las ampliaciones que decida el equipo
+(ablaciones de la decisión 8, cuadernos de `ML_08` cuando existan).
 
 ## Estado semanal
 
@@ -415,8 +417,14 @@ Filippos), `VIC_*` (memoria, Víctor) y `ML_*` (a crear). Detalle completo
 en `NEXT_STEPS.md` §"Estado a 28/8". La mayoría de `FIL_01`–`FIL_08` ya
 cerrada (PRs #150–155).
 
-**29/8** — `VIC_01`–`VIC_04` y `VIC_06` completados (ver Pista Memoria
-arriba).
+**29/8** — Los 7 tickets `VIC_*` completados (ver Pista Memoria arriba).
+De paso, verificando si `VIC_05` podía avanzar, se confirmó
+independientemente que `ML_02`/`ML_03` (Tier 1) estaban realmente
+terminados (front-matter desactualizado, corregido) y se encontró que
+`modelado/` no tiene cobertura de CI (ticket `103`). Decisión tomada al
+escribir `VIC_05`: las ablaciones de §7.3 ("decisión 8" de
+`NEXT_STEPS.md`) se descartan para esta entrega por tiempo — recomendado
+revisar esta decisión con el equipo si aparece margen antes del 17/9.
 
 **Para la semana que viene**
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
@@ -429,6 +437,11 @@ arriba).
 - [x] Reconciliar el drift de Terraform detectado el 25/8 (26/8, tarea 098
   — ver `NEXT_STEPS.md`)
 - [x] Empezar a reescribir §5 de la memoria con la arquitectura real —
-  completada y ampliada a §6/§7.4/§7.5 (29/8, `VIC_01`–`VIC_04`/`VIC_06`)
-- [ ] Crear los tickets numerados de ML (`modelado/`, Tier 0–4)
-- [ ] `VIC_07` — pasada de consistencia sobre §1–§4 (puede arrancar ya)
+  completada y ampliada a **toda la memoria** (29/8, `VIC_01`–`VIC_07`,
+  los 7 tickets cerrados)
+- [x] Crear los tickets numerados de ML (`modelado/`, Tier 0–4) —
+  `ML_01`–`ML_06` creados y en su mayoría cerrados (ver `NEXT_STEPS.md`)
+- [ ] Resolver/revisar la decisión 8 (ablaciones de §7.3) con el equipo
+  si hay margen antes del cierre — de momento descartadas, documentado en
+  `VIC_05`
+- [ ] Cerrar `modelado/` en la CI (ticket `103`)

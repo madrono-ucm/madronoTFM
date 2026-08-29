@@ -2,7 +2,9 @@
 kind: vic
 title: "Memoria §7.1–7.3 — Resultados, métricas, comparativas (necesita salidas de ML)"
 owner: Víctor
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 depends_on: [ML Tier 1, ML Tier 2]
 created_at: "2026-08-28"
 ---
@@ -56,3 +58,25 @@ created_at: "2026-08-28"
 - §7.2 Tabla 3 rellena con métricas reales, no placeholders.
 - §7.3 coherente con lo que `modelado/evaluation/` produjo realmente.
 - La ventana corta de datos se nombra aquí y se remite a §7.4.
+
+## Hecho (29/8)
+
+§7.1–7.3 reescritas en `documents/Memoria_TFM FV.docx` con datos reales
+verificados (no de la nota del ticket: releídos directamente de
+`modelado/evaluation/artifacts/tier1_*.csv` y `doc/ML-05-...md`). Tabla 3
+reconstruida de cero (era una tabla "eje → métrica" genérica de 2
+columnas; ahora es una tabla real de 6 columnas con MAE/RMSE/skill por
+fuente, horizonte y modelo, indicando explícitamente contra qué línea
+base se mide cada skill score, porque LightGBM y el STGNN no siempre se
+miden contra la misma). §7.3 incluye la explicabilidad real de ambos
+modelos (SHAP / importancia de aristas) y una decisión explícita: las
+ablaciones de la "decisión 8" (`NEXT_STEPS.md`) se descartan para esta
+entrega por tiempo (`ML_08`, que las produciría, sigue sin construir) y
+se documentan como futura línea, no como omisión — recomiendo revisar
+esta decisión con el usuario si aparece tiempo antes del 17/9.
+
+De paso, corregido un hallazgo de la propia auditoría: la Tabla 2 (§5.4,
+`VIC_01`) todavía tenía una fila real de coste ("Live popular times / Pay
+per use Google Api ~29€/mes") que databa de antes de que se descartara
+Google Maps — corregida a 0 € / señal derivada, coherente con el resto
+de la sección ya reescrita.
