@@ -32,6 +32,7 @@ el chat antes de tocarlo y hacer `git pull` primero.
 | `VIKT_02` | §5.4/§5.5 (DevOps/MLOps) + §6.7/§4.1 (explotación/asistente): incorporar `ML_04` (registro + `@champion`), `ML_06` (deriva), `ML_07` (ONNX + `CONTRATO.md` + paridad), `ML_09` («seis»→«siete» tools, bucle de previsión), `ML_10` (reentrenamiento nocturno vía cron) | Sí | ✅ **done 29/8 (Claude)** |
 | `VIKT_03` | §7.1–7.4: consolidar Tabla 3 y §7.3 con la salida de `ML_08` (`run_all.py`), añadir a §7.4 la **curva de backtest incremental** de `ML_10` como evidencia de la ventana corta + la cota de paridad de `ML_07` + el resultado de deriva de `ML_06`. §7.5: `STGNN`→ONNX y `afluencia_prevista` como líneas futuras | Sí | ✅ **done 29/8 (Claude)** — Tabla 3 tráfico actualizada a los números consolidados de `run_all.py`, con footnote de scope |
 | `VIKT_04` | §8 Anexo — **reproducibilidad**: un comando por tabla/figura (`estudios/run_all.py`, `evaluation/backtest.py`, `export/to_onnx.py`, `training/retrain_nightly.py`, `evaluation/drift.py`), el layout de `modelado/` y `asistente/modelos/`, `mlflow ui`, la línea de `cron` | Sí | ✅ **done 29/8 (Claude)** |
+| `VIKT_05` | §7.5 — el gap de `ML_01` (meteo/festivos) que describe como "sin implementar" ya tiene código y tests reales (`modelado/features/exogenas.py`), encontrado en la ronda de evaluación técnica `VIC_08`-`15` | Sí | ⬜ pendiente — matiz importante antes de editar: confirmar si la Tabla 3 actual ya se entrenó con estas features o no |
 
 ## Fuentes técnicas (leer antes de escribir)
 
