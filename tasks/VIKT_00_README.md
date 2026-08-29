@@ -28,7 +28,7 @@ el chat antes de tocarlo y hacer `git pull` primero.
 
 | Ticket | Qué | Toca `.docx` | Depende de |
 |---|---|---|---|
-| `VIKT_01` | **QA sweep**: reconciliar todo el cuerpo de la memoria con el repo a fecha `ML_10`. Tabla de discrepancias (afirmación / texto actual / realidad / sección / severidad / arreglo) + grep de términos obsoletos. Deja `doc/VIKT-01-qa-memoria.md` | No | `ML_02`–`ML_10` |
+| `VIKT_01` | **QA sweep**: reconciliar todo el cuerpo de la memoria con el repo a fecha `ML_10`. Tabla de discrepancias + grep de términos obsoletos. Deja `doc/VIKT-01-qa-memoria.md` | No | ✅ **HECHO 29/8** — 14 discrepancias (2 media-alta), grep limpio, sin datos inventados. Repartidas a `VIKT_02/03/04` |
 | `VIKT_02` | §5.4/§5.5 (DevOps/MLOps) + §6.7/§4.1 (explotación/asistente): incorporar `ML_04` (registro + `@champion`), `ML_06` (deriva), `ML_07` (ONNX + `CONTRATO.md` + paridad), `ML_09` («seis»→«siete» tools, bucle de previsión), `ML_10` (reentrenamiento nocturno vía cron) | Sí | `VIKT_01` |
 | `VIKT_03` | §7.1–7.4: consolidar Tabla 3 y §7.3 con la salida de `ML_08` (`run_all.py`), añadir a §7.4 la **curva de backtest incremental** de `ML_10` como evidencia de la ventana corta + la cota de paridad de `ML_07` + el resultado de deriva de `ML_06`. §7.5: `STGNN`→ONNX y `afluencia_prevista` como líneas futuras | Sí | `VIKT_01` |
 | `VIKT_04` | §8 Anexo — **reproducibilidad**: un comando por tabla/figura (`estudios/run_all.py`, `evaluation/backtest.py`, `export/to_onnx.py`, `training/retrain_nightly.py`, `evaluation/drift.py`), el layout de `modelado/` y `asistente/modelos/`, `mlflow ui`, la línea de `cron` | Sí | `VIKT_01` |

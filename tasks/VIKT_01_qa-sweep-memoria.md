@@ -2,10 +2,19 @@
 kind: vikt
 title: "QA sweep — reconciliar la memoria con el repo a fecha ML_10"
 owner: Pista Memoria — QA (interactivo)
-status: pending
+status: done
 depends_on: [ML_02, ML_03, ML_04, ML_05, ML_06, ML_07, ML_08, ML_09, ML_10]
 created_at: "2026-08-29"
 ---
+
+> **Estado 29/8: ✅ HECHO.** Informe en `doc/VIKT-01-qa-memoria.md`.
+> Veredicto: la memoria está estructuralmente sana y sin datos inventados;
+> 14 discrepancias (2 media-alta: §6.7 «seis»→«siete» tools + previsión ya
+> servida; Tabla 3 tráfico no reproducible desde `run_all.py` por *scope*).
+> El grep de términos obsoletos sale limpio (todos legítimos salvo
+> "esquemas Avro" en el Anexo C). Discrepancias repartidas a
+> `VIKT_02`/`VIKT_03`/`VIKT_04`. Fix trivial aplicado en
+> `infra/terraform/lambda.tf` (comentario 14→16 productores).
 
 ## Objetivo
 
