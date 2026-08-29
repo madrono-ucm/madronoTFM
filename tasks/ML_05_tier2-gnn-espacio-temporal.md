@@ -2,10 +2,22 @@
 kind: ml
 title: "Tier 2 — GNN espacio-temporal multi-tarea sobre el grafo Neo4j (el elemento wow)"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_02]
 created_at: "2026-08-28"
 ---
+
+> **Estado 29/8: ✅ HECHO.** `models/stgnn.py` (GraphSAGE+GRU, capa
+> `ConvGraphSAGE` a mano → `d(loss)/d(edge_weight)` = importancia de
+> aristas, sin `torch_geometric`), `datasets/graph_snapshots.py` (grafo
+> k-NN gaussiano de coordenadas o `--aristas-json` de las `PROXIMO_A`
+> reales; snapshots `X/Y/M`; ventanas de secuencia sin fuga),
+> `training/train_stgnn.py` (end-to-end, split de `ML_02`, early stopping,
+> `--semilla`, MLflow `tier2` → `madrono-stgnn-<target>`).
+> `calidad_aire` (54 nodos): STGNN pierde con persistencia a h1 (esperado)
+> y la bate a h3/h6 (skill +0.48 / +0.55). Importancia de aristas
+> interpretable (O₃@28079035 ← O₃@28079049). `torch>=2.2,<3` en
+> requirements. 27 tests en verde (+7 `test_ml05.py`). `doc/ML-05`.
 
 ## Objetivo
 

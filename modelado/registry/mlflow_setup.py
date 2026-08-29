@@ -23,15 +23,20 @@ def configurar(experiment: str, *, tracking_uri: str | None = None) -> str:
 
     uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI") or _DEFAULT_URI
     mlflow.set_tracking_uri(uri)
-    if uri.startswith("sqlite:"):
+
+    # con backend SQLite hay que darle un `artifact_location` explícito al
+    # crear el experimento (no lo infiere como sí hace el file store).
+    art = f"file:{_DEFAULT_ARTIFACTS}" if uri.startswith("sqlite:") else None
+    if art:
         Path(_DEFAULT_ARTIFACTS).mkdir(parents=True, exist_ok=True)
-        try:
-            mlflow.set_experiment(experiment)
-        except Exception:  # noqa: BLE001 -- experimento nuevo: crear con location de artefactos
-            mlflow.create_experiment(experiment, artifact_location=f"file:{_DEFAULT_ARTIFACTS}")
-            mlflow.set_experiment(experiment)
-    else:
-        mlflow.set_experiment(experiment)
+
+    cliente = mlflow.MlflowClient()
+    exp = cliente.get_experiment_by_name(experiment)
+    if exp is None:
+        cliente.create_experiment(experiment, artifact_location=art)
+    elif exp.lifecycle_stage == "deleted":  # borrado en una corrida anterior
+        cliente.restore_experiment(exp.experiment_id)
+    mlflow.set_experiment(experiment)
     return uri
 
 
@@ -43,6 +48,7 @@ def log_run(
     tags: dict | None = None,
     model=None,
     model_flavor: str = "lightgbm",
+    model_kwargs: dict | None = None,
     artifacts: "list[str] | None" = None,
     registered_name: str | None = None,
 ) -> str:
@@ -67,8 +73,12 @@ def log_run(
                 mlflow.log_artifact(a)
         if model is not None:
             flavor = getattr(mlflow, model_flavor)
-            info = flavor.log_model(model, name="model")
-            if registered_name:
+            try:
+                info = flavor.log_model(model, name="model", **(model_kwargs or {}))
+            except Exception as exc:  # noqa: BLE001 -- incompat de flavor: no perder el run
+                mlflow.set_tag("modelo_no_logueado", type(exc).__name__)
+                info = None
+            if info is not None and registered_name:
                 mv = mlflow.register_model(info.model_uri, registered_name)
                 # `@champion` a la versión recién registrada. `ML_10`
                 # (reentrenamiento) solo lo mueve si la nueva supera a la
