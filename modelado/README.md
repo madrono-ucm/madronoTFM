@@ -16,6 +16,30 @@ limitación explícita de la memoria §7.4. Los estudios de ablación de §7.3
 (fusión multi-señal vs fuente única; "solo sustrato europeo común") sí son
 viables con esta ventana.
 
+## Prerrequisito de sistema: `libgomp1`
+
+`lightgbm` (Tier 1, `ML_03`) enlaza en tiempo de importación contra
+`libgomp.so.1`, el runtime de OpenMP. En una EC2/imagen que no lo traiga
+preinstalado, `import lightgbm` (y por tanto cualquier test que lo importe,
+p. ej. `modelado/tests/test_ml03.py`) falla con:
+
+```
+OSError: libgomp.so.1: cannot open shared object file: No such file or directory
+```
+
+No es un bug de código ni una regresión: es una dependencia de sistema
+ausente. Se instala con:
+
+```bash
+sudo apt-get install -y libgomp1
+```
+
+La CI (`.github/workflows/ci.yml`) ya instala este paquete antes de
+`pip install -r modelado/requirements.txt` de forma defensiva (ver
+`doc/103-modelado-ci-y-dependencia-sistema-libgomp.md`). Si trabajas en una
+EC2 nueva de forma interactiva, instálalo a mano antes de correr
+`pytest modelado/` para no perder tiempo diagnosticando este mismo error.
+
 ## Estructura
 
 | Dir | Contenido | Ticket |

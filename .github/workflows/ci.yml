@@ -2,13 +2,21 @@
 #
 # Dos jobs independientes:
 #   - `tests`: la suite real de `ingesta/`/`procesamiento/`/`grafo/`/
-#     `asistente/`/`herramientas/` (841 tests, ninguno necesita
-#     credenciales ni conexión real -- todos mockean Athena/Neo4j/boto3
-#     donde hace falta, ver los docstrings de cada `test_*.py`).
+#     `asistente/`/`herramientas/`/`modelado/` (todos mockean Athena/Neo4j/
+#     boto3 donde hace falta, o son puramente funciones puras sobre
+#     pandas/numpy -- ninguno necesita credenciales ni conexión real, ver
+#     los docstrings de cada `test_*.py`).
 #     `procesamiento/` no tiene `requirements.txt` propio a propósito: sus
 #     tests solo ejercitan lógica Python pura (nunca importan `pyspark`/
 #     `awsglue`/`great_expectations`, que solo usan los scripts reales de
 #     Glue, ejecutados dentro del runtime gestionado de AWS Glue, no aquí).
+#     `modelado/requirements.txt` instala LightGBM, que enlaza contra
+#     `libgomp.so.1` (runtime de OpenMP) en tiempo de importación. El paso
+#     `apt-get install -y libgomp1` es defensivo: no se ha podido confirmar
+#     con certeza si las imágenes `ubuntu-latest` de GitHub Actions ya la
+#     traen preinstalada (ver `doc/103-...md`), así que se instala siempre
+#     de forma explícita en vez de asumirlo -- es idempotente y barato
+#     (paquete ya presente => no-op en segundos).
 #   - `terraform`: `fmt -check` + `validate` de solo lectura, sin backend
 #     remoto (`init -backend=false`) para no necesitar credenciales AWS
 #     como secreto de este repositorio -- deliberadamente no incluye
@@ -37,6 +45,10 @@ jobs:
             grafo/requirements.txt
             asistente/requirements.txt
             herramientas/costes/requirements.txt
+            modelado/requirements.txt
+
+      - name: Instalar dependencia de sistema de LightGBM (modelado/)
+        run: sudo apt-get update && sudo apt-get install -y libgomp1
 
       - name: Instalar dependencias
         run: |
@@ -45,10 +57,11 @@ jobs:
           pip install -r grafo/requirements.txt
           pip install -r asistente/requirements.txt
           pip install -r herramientas/costes/requirements.txt
+          pip install -r modelado/requirements.txt
           pip install pytest
 
       - name: Ejecutar tests
-        run: python -m pytest ingesta/ procesamiento/ grafo/ asistente/ herramientas/ -v
+        run: python -m pytest ingesta/ procesamiento/ grafo/ asistente/ herramientas/ modelado/ -v
 
   terraform:
     runs-on: ubuntu-latest
