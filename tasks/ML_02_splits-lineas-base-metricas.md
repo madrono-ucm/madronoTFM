@@ -7,6 +7,8 @@ depends_on: [ML_01]
 created_at: "2026-08-28"
 ---
 
+> **Estado 29/8: ✅ HECHO.** `modelado/datasets/splits.py`, `models/baselines.py` (persistencia / seasonal_naive / climatología horaria), `evaluation/metrics.py` (MAE/RMSE/MAPE/skill_score/PR-AUC sin sklearn), `evaluation/run_baselines.py`. 16 tests. Suelo medido contra los paneles reales -- ver `doc/ML-02`.
+
 ## Objetivo
 
 El arnés de evaluación que compartirán Tier 1 (`ML_03`) y Tier 2 (`ML_05`):
