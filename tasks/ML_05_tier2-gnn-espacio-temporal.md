@@ -14,10 +14,14 @@ created_at: "2026-08-28"
 > reales; snapshots `X/Y/M`; ventanas de secuencia sin fuga),
 > `training/train_stgnn.py` (end-to-end, split de `ML_02`, early stopping,
 > `--semilla`, MLflow `tier2` → `madrono-stgnn-<target>`).
-> `calidad_aire` (54 nodos): STGNN pierde con persistencia a h1 (esperado)
-> y la bate a h3/h6 (skill +0.48 / +0.55). Importancia de aristas
-> interpretable (O₃@28079035 ← O₃@28079049). `torch>=2.2,<3` en
-> requirements. 27 tests en verde (+7 `test_ml05.py`). `doc/ML-05`.
+> `calidad_aire` (54 nodos): pierde con persistencia a h1 (esperado), la
+> bate a h3/h6 (skill +0.48 / +0.55). `trafico` (1798 nodos): **bate a
+> persistencia en todos los horizontes** (skill +0.39 / +0.64 / +0.79),
+> al nivel de LightGBM; ~40 min CPU. Importancia de aristas interpretable
+> (O₃@28079035 ← O₃@28079049; punto 5412 ← 5768). Ambos modelos
+> registrados (`madrono-stgnn-{calidad_aire,trafico}@champion`).
+> `torch>=2.2,<3` en requirements. 27 tests en verde (+7 `test_ml05.py`).
+> `doc/ML-05`.
 
 ## Objetivo
 

@@ -73,16 +73,28 @@ forecasting de calidad del aire / tráfico y coherente con la ventana corta
 de datos. Tier 1 (LightGBM) rinde algo mejor en MAE puntual; el STGNN es la
 pieza de **fusión sobre el grafo** y la de **explicabilidad por aristas**.
 
-### `trafico` (`avg_service_level`, scope `grafo-lugares`, 1813 nodos)
+### `trafico` (`avg_service_level`, scope `grafo-lugares`, 1798 nodos con coords, grafo k-NN)
 
-El STGNN también corre sobre el grafo de tráfico de 1.813 nodos, pero el
-bucle temporal por hora en CPU lo hace lento (~decenas de segundos por
-época) y no se re-entrena en cada commit. La comparación STGNN vs LightGBM
-vs persistencia en tráfico se consolida en los cuadernos de `ML_08` (§7),
-donde los tres modelos se corren bajo el mismo arnés. Expectativa razonada:
-en tráfico, donde la red es densa y LightGBM ya rinde muy alto (skill +0.78
-a h6, `doc/ML-03`), el margen del GNN es menor que en calidad del aire —
-su ventaja es la red de sensores **dispersa** y la fusión multi-señal.
+| h | modelo | n | MAE | RMSE | skill vs persistencia |
+|---|---|---|---|---|---|
+| 1 | **stgnn** | 124653 | **0.097** | 0.184 | **+0.39** |
+| 1 | persistencia | 124653 | 0.109 | 0.235 | 0.00 |
+| 3 | **stgnn** | 121070 | **0.100** | 0.194 | **+0.64** |
+| 3 | persistencia | 121070 | 0.158 | 0.325 | 0.00 |
+| 6 | **stgnn** | 115726 | **0.101** | 0.196 | **+0.79** |
+| 6 | persistencia | 115726 | 0.223 | 0.427 | 0.00 |
+
+En tráfico el STGNN **bate a la persistencia en todos los horizontes**
+(incluido h1, skill +0.39) y el margen crece con el horizonte (+0.79 a h6),
+al mismo nivel que LightGBM en Tier 1. El MAE se mantiene plano (~0.10 en
+h1/h3/h6) mientras la persistencia se degrada — el modelo capta la dinámica
+espacio-temporal de la congestión. Entrenamiento ~40 min en CPU (bucle
+temporal por hora sobre 1798 nodos); no se re-entrena en cada commit.
+
+Importancia de aristas (ejemplo real): la predicción del punto **`5412`**
+está **dominada por su vecino `5768`** (importancia ~46, el resto ~1e-5) —
+una dependencia de un solo vecino muy marcada, típica de un tramo cuyo
+estado lo fija el tramo contiguo.
 
 ## Explicabilidad — importancia de aristas
 
