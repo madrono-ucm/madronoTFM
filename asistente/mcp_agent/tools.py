@@ -31,6 +31,7 @@ from datetime import datetime, timedelta
 from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, sql_literal
 from asistente.models.herramientas import (
     AfluenciaEstimada,
+    CalidadAirePrevista,
     CalidadAireZona,
     DisponibilidadAparcamiento,
     EstacionCalidadAireCercana,
@@ -50,6 +51,7 @@ from asistente.neo4j_client import (
     resolver_lugar_query,
     run_neo4j_query,
 )
+from asistente import prevision
 from asistente.timeutils import MADRID_TZ, now_madrid
 
 # Tabla Gold real, ya verificada con datos de producción en las tareas
@@ -1161,3 +1163,167 @@ def eventos_cercanos(
             `None`, se asume el instante actual (hora de Madrid).
     """
     return _eventos_cercanos_impl(lugar, radio_m, momento)
+
+
+# --- calidad_aire_prevista (ML_09) -------------------------------------------
+
+_HORIZONTES_PREVISTA = (1, 3, 6)
+
+
+def _historial_por_hora(
+    filas: "list[dict]", station_id: str, pollutant: str
+) -> "tuple[float | None, dict[int, float], float | None, float | None, datetime | None]":
+    """De las filas de Gold, para `(station_id, pollutant)`: el valor de la
+    **última hora con lectura** (el "ahora" efectivo -- Gold va con varias
+    horas de retraso, así que el forecast se ancla al último dato real, igual
+    que las features del feature store de `ML_01`), un mapa
+    `{horas_atrás: avg_value}` para 1..24 respecto a ese ancla, la lat/lon y
+    el `datetime` del ancla."""
+    puntos: "dict[datetime, float]" = {}
+    lat = lon = None
+    for f in filas:
+        if f.get("station_id") != station_id or f.get("pollutant") != pollutant:
+            continue
+        if f.get("avg_value") is None:
+            continue
+        lat = f.get("lat", lat)
+        lon = f.get("lon", lon)
+        dt = datetime.fromisoformat(f["date"]).replace(hour=int(f["hour"]))
+        puntos[dt] = float(f["avg_value"])
+    if not puntos:
+        return None, {}, lat, lon, None
+    ancla = max(puntos)
+    historial = {
+        k: puntos[ancla - timedelta(hours=k)]
+        for k in range(1, 25)
+        if (ancla - timedelta(hours=k)) in puntos
+    }
+    return puntos[ancla], historial, lat, lon, ancla
+
+
+def _calidad_aire_prevista_impl(
+    zona: str, horizonte_horas: int, momento: datetime | None, *, athena_client=None
+) -> CalidadAirePrevista:
+    if horizonte_horas not in _HORIZONTES_PREVISTA:
+        raise ValueError(
+            f"horizonte_horas debe ser uno de {_HORIZONTES_PREVISTA}; recibido {horizonte_horas}"
+        )
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    hoy = instante.date()
+    ayer = (instante - timedelta(days=1)).date()
+    zona_literal = sql_literal(zona.lower())
+    sql = f"""
+        SELECT station_id, station_name, pollutant, unit, date, hour,
+               avg_value, lat, lon
+        FROM {_TABLA_CALIDAD_AIRE}
+        WHERE date IN ('{ayer.isoformat()}', '{hoy.isoformat()}')
+          AND (lower(station_name) LIKE '%{zona_literal}%'
+               OR lower(station_id) LIKE '%{zona_literal}%')
+    """
+    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+
+    fuente = _FUENTE_CALIDAD_AIRE
+    if not filas:
+        return CalidadAirePrevista(
+            zona=zona, momento=instante, horizonte_horas=horizonte_horas, fuente_dataset=fuente,
+        )
+
+    # elige (estación, contaminante): el de mayor ratio vs límite de
+    # referencia en su lectura más reciente -- mismo criterio conservador que
+    # `_calidad_aire_impl` (peor caso), pero fijando una sola estación.
+    ultima_por_par: "dict[tuple[str, str], dict]" = {}
+    for f in filas:
+        if f.get("avg_value") is None:
+            continue
+        par = (f["station_id"], f["pollutant"])
+        prev = ultima_por_par.get(par)
+        clave = (f["date"], int(f["hour"]))
+        if prev is None or clave > (prev["date"], int(prev["hour"])):
+            ultima_por_par[par] = f
+    if not ultima_por_par:
+        return CalidadAirePrevista(
+            zona=zona, momento=instante, horizonte_horas=horizonte_horas, fuente_dataset=fuente,
+        )
+
+    def _ratio(f: dict) -> float:
+        lim = _LIMITES_REFERENCIA_UGM3.get(f["pollutant"])
+        return (f["avg_value"] / lim) if lim else -1.0
+
+    (station_id, pollutant), fila_ref = max(ultima_por_par.items(), key=lambda kv: _ratio(kv[1]))
+
+    actual, historial, lat, lon, ancla = _historial_por_hora(filas, station_id, pollutant)
+    if actual is None or ancla is None:
+        return CalidadAirePrevista(
+            zona=zona, momento=instante, horizonte_horas=horizonte_horas, fuente_dataset=fuente,
+        )
+    # el forecast se ancla en la última hora con lectura real (Gold va con
+    # retraso); `momento` de la respuesta = ese ancla.
+    vector, completeness = prevision.construir_features(
+        actual, historial, instante=ancla, lat=lat, lon=lon,
+    )
+    if not prevision.modelo_disponible(horizonte_horas):
+        return CalidadAirePrevista(
+            zona=zona, momento=ancla, horizonte_horas=horizonte_horas,
+            estacion=fila_ref.get("station_name") or station_id, contaminante=pollutant,
+            valor_actual=round(actual, 1), unidad=fila_ref.get("unit"),
+            data_completeness=round(completeness, 2), fuente_dataset=fuente,
+        )
+
+    previsto = prevision.predecir(vector, horizonte=horizonte_horas)
+    limite = _LIMITES_REFERENCIA_UGM3.get(pollutant)
+    nivel = _clasificar_indice(previsto / limite) if limite else "sin_clasificar"
+
+    return CalidadAirePrevista(
+        zona=zona,
+        momento=ancla,
+        horizonte_horas=horizonte_horas,
+        estacion=fila_ref.get("station_name") or station_id,
+        contaminante=pollutant,
+        valor_previsto=round(previsto, 1),
+        valor_actual=round(actual, 1),
+        unidad=fila_ref.get("unit"),
+        nivel_previsto=nivel,
+        data_completeness=round(completeness, 2),
+        modelo=f"calidad_aire_h{horizonte_horas}.onnx (ML_07 / madrono-calidad_aire-h{horizonte_horas})",
+        fuente_dataset=fuente,
+    )
+
+
+def calidad_aire_prevista(
+    zona: str, horizonte_horas: int = 6, momento: datetime | None = None
+) -> CalidadAirePrevista:
+    """Previsión de calidad del aire para una estación de Madrid a 1, 3 o 6 h
+    vista (tarea `ML_09`, cierra el bucle observación→predicción→asistente de
+    la memoria §6.7 / §4.1).
+
+    Sirve la cifra corriendo el modelo **ONNX** de `ML_07` (LightGBM
+    multi-horizonte de `ML_03`, exportado) sobre las 19 features de
+    `modelado/export/CONTRATO.md`, construidas a partir de las últimas 24 h
+    de `gold.calidad_aire_por_estacion_contaminante_hora` (Athena, mismo
+    patrón que `calidad_aire`). El `.onnx` está vendido en
+    `asistente/modelos/` (copia del artefacto de `modelado.export.to_onnx`).
+
+    `zona` se resuelve por coincidencia de texto sobre
+    `station_name`/`station_id` (igual que `calidad_aire`: no hay resolución
+    por barrio/distrito). Entre las estaciones/contaminantes que coinciden se
+    fija el de mayor ratio frente a su límite de referencia (peor caso).
+
+    Devuelve `CalidadAirePrevista` con `valor_previsto` (µg/m³ a
+    `horizonte_horas`), `valor_actual`, `nivel_previsto` (índice simplificado,
+    igual que `calidad_aire`) y `data_completeness` (0..1): baja cuando
+    faltan lecturas históricas para construir las features. Si no hay
+    ninguna estación coincidente devuelve `nivel_previsto="sin_datos"` sin
+    lanzar excepción.
+
+    Args:
+        zona: Nombre o identificador (parcial) de una estación de la red de
+            calidad del aire de Madrid.
+        horizonte_horas: Horas por delante a prever. Uno de 1, 3 o 6.
+        momento: Instante de referencia (ISO 8601). Si es `None`, ahora
+            (hora de Madrid).
+    """
+    return _calidad_aire_prevista_impl(zona, horizonte_horas, momento)

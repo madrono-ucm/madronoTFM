@@ -6,11 +6,11 @@ movilidad y vida urbana de Madrid (p.ej. «¿voy al centro a las nueve de la
 noche del viernes?») con un veredicto, un nivel de fiabilidad y una
 explicación trazable a los datos.
 
-**Estado (tarea 096): las 6 `tools` originales ya tienen lógica real.** Este
+**Estado (tarea `ML_09`): 7 `tools`, todas con lógica real.** Este
 directorio define la estructura del servicio, el esquema de su respuesta y
-la interfaz de 6 `tools` (las 5 originales del esqueleto de la tarea 044,
-más `trafico_cercano`, tarea 081 -- no mapea 1:1 a un único origen de
-`ingesta/`, así que no formaba parte de ese esqueleto inicial). `calidad_aire`
+la interfaz de 7 `tools` (las 5 originales del esqueleto de la tarea 044,
+más `trafico_cercano`, tarea 081, y `calidad_aire_prevista`, tarea `ML_09`).
+`calidad_aire`
 (tarea 079) y `disponibilidad_aparcamiento` (tarea 090) leen datos reales de
 Gold vía Athena directamente (una sola tabla cada una, sin grafo).
 `trafico_cercano` (tarea 081) y `afluencia_estimada` (tarea 089) son las
@@ -36,14 +36,21 @@ de calles transitable -- `CONECTADO_CON`, tarea 071, solo conecta paradas de
 transporte público a lo largo de una línea CRTM, no un callejero) -- en su
 lugar resuelve origen/destino por separado contra el grafo y describe las
 condiciones reales de tráfico/BiciMAD/EMT cerca de cada extremo, sin
-inventar una duración. Las seis están montadas como agente MCP dentro de la
-app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
-`GET /trafico-cercano`, `GET /afluencia-estimada`,
-`GET /disponibilidad-aparcamiento`, `GET /eventos-cercanos`,
-`GET /opciones-movilidad`) — verificado con invocaciones reales contra la
-cuenta AWS de este proyecto, incluida la instancia real de Neo4j (ver
-"Verificación real" más abajo). No queda ninguna `tool` con
-`NotImplementedError`.
+inventar una duración. `calidad_aire_prevista` (tarea `ML_09`) cierra el
+bucle observación→predicción→asistente de la memoria (§6.7 / §4.1): sirve
+una **previsión** de calidad del aire a 1/3/6 h corriendo el modelo **ONNX**
+de `ML_07` (LightGBM multi-horizonte de `ML_03`, exportado; copia vendida en
+`asistente/modelos/`) sobre las 19 features de `modelado/export/CONTRATO.md`,
+construidas a partir de las últimas 24 h de Gold. Ancla el forecast en la
+última hora con lectura real (Gold va con retraso) y baja la fiabilidad si
+faltan features históricas. Las siete están montadas como agente MCP dentro
+de la app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
+`GET /calidad-aire-prevista`, `GET /trafico-cercano`,
+`GET /afluencia-estimada`, `GET /disponibilidad-aparcamiento`,
+`GET /eventos-cercanos`, `GET /opciones-movilidad`) — verificado con
+invocaciones reales contra la cuenta AWS de este proyecto, incluida la
+instancia real de Neo4j (ver "Verificación real" más abajo). No queda
+ninguna `tool` con `NotImplementedError`.
 
 ## Por qué solo `calidad_aire` en esta tarea
 
