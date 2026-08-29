@@ -73,11 +73,24 @@ python -m modelado.features.build --target calidad_aire --desde 2026-08-15 --has
 ```
 
 Lee Gold vía Athena (`features/athena.py`), construye el panel con las
-funciones puras de `features/panel.py` (testables sin credenciales) y lo
-escribe como Parquet. Targets soportados: `calidad_aire`
-(`avg_value` por estación/contaminante), `trafico`
-(`avg_service_level` por punto), `afluencia`
-(nivel numérico por `:Lugar`, de la tabla Gold de `FIL_06`).
+funciones puras de `features/panel.py` + `features/exogenas.py` (testables
+sin credenciales) y lo escribe como Parquet. Targets soportados:
+`calidad_aire` (`avg_value` por estación/contaminante), `trafico`
+(`avg_service_level` por punto), `afluencia` (nivel numérico por `:Lugar`,
+de la tabla Gold de `FIL_06`).
+
+Enriquecedores (por defecto activos; `doc/ML-01` para el detalle):
+
+- **Meteo observada** (`--sin-meteo` para desactivar): 5 columnas `meteo_*`
+  de `meteorologia_por_estacion_magnitud_hora`, uniendo cada sensor a la
+  estación meteo más cercana que reporta cada magnitud. `known_at = t`.
+- **Previsión AEMET** (`--sin-prevision`): 6 columnas `prev_*` de la Silver
+  `aemet_prevision` — la previsión del día tomada de la última elaboración
+  de un día anterior ("la de ayer para hoy"). Feature exógena de futuro
+  conocido, `known_at < t`.
+- **Festivos**: `--festivos` (por defecto la muestra commiteada del
+  calendario laboral de Madrid, año 2026 completo).
+- **Vecinos de grafo** (`--con-vecinos`): necesita Neo4j.
 
 Credenciales: `AWS_PROFILE=madrono` (`eu-west-1`), Neo4j en SSM — ver
 `infra/OPERACION.md`.
