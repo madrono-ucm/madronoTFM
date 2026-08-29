@@ -2,7 +2,9 @@
 kind: vikt
 title: "Memoria §7.1-7.5 — consolidar resultados con ML_08 + evidencia de backtest ML_10"
 owner: Pista Memoria — documentación (interactivo)
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 depends_on: [VIKT_01]
 created_at: "2026-08-29"
 ---
@@ -64,3 +66,18 @@ en vez de en artefactos sueltos, y añadir la evidencia nueva de `ML_06`
 ## Restricciones
 
 - Coordinar el turno del `.docx`. `git pull` antes.
+
+## Hecho (29/8)
+
+§7.1 (16 fuentes en producción continua, 7 tools), §7.2/Tabla 3 (números
+de tráfico LightGBM actualizados a los de
+`modelado/evaluation/artifacts/estudios/comparacion_todos.csv`, footnote
+explícito sobre el scope distinto del STGNN de tráfico), §7.3 (motivo de
+la decisión 8 reformulado — ya no "sin construir", sino "sin tiempo";
+ejemplos de explicabilidad consolidados) y §7.4/§7.5 (backtest
+incremental con la curva real 22-28/8, cota de paridad ONNX, resultado
+de deriva, y dos líneas futuras nuevas: STGNN→ONNX y el join de
+meteo/festivos de `ML_01`) reescritas en
+`documents/Memoria_TFM FV.docx`. Cada cifra trazable a
+`doc/ML-03`/`ML-05`/`ML-06`/`ML-07`/`ML-08`/`ML-10` y a los artefactos
+reales en `modelado/evaluation/artifacts/`, según `VIKT_01`.

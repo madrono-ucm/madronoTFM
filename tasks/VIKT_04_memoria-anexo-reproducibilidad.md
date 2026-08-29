@@ -2,7 +2,9 @@
 kind: vikt
 title: "Memoria §8 Anexo — reproducibilidad del pipeline de modelado"
 owner: Pista Memoria — documentación (interactivo)
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 depends_on: [VIKT_01]
 created_at: "2026-08-29"
 ---
@@ -55,3 +57,16 @@ todos los `doc/ML-*`, el informe de `VIKT_01`.
 ## Restricciones
 
 - Coordinar el turno del `.docx`. `git pull` antes.
+
+## Hecho (29/8)
+
+Anexo C reescrito en `documents/Memoria_TFM FV.docx`: ya no dice
+"esquemas Avro" (residuo, discrepancia #14 de `VIKT_01`) — ahora es la
+reproducibilidad real del pipeline de modelado, con el layout de
+`modelado/`, el prerrequisito de `libgomp1`, un comando por artefacto de
+la sección 7 (panel, Tier 1, Tier 2, estudios consolidados, deriva,
+backtest, export ONNX, reentrenamiento nocturno), `mlflow ui` y la nota
+de qué no se versiona en git. La nota trivial de `infra/terraform/
+lambda.tf` (14→16 productores) ya estaba corregida por otra sesión.
+
+Con esto los 4 tickets `VIKT_*` (01-04) quedan completos.

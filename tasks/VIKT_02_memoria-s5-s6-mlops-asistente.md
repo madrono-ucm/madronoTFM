@@ -2,7 +2,9 @@
 kind: vikt
 title: "Memoria §5.4/§5.5 + §6.7/§4.1 — MLOps real y bucle del asistente (post ML_04-10)"
 owner: Pista Memoria — documentación (interactivo)
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 depends_on: [VIKT_01]
 created_at: "2026-08-29"
 ---
@@ -56,3 +58,13 @@ que marque `VIKT_01`.
 ## Restricciones
 
 - Coordinar el turno del `.docx` (ver `VIKT_00`). `git pull` antes.
+
+## Hecho (29/8)
+
+§4.1 (cierra el bucle con `calidad_aire_prevista`), §5.4 (nota de coste 0
+del pipeline de modelado), §5.5 (MLflow SQLite+`@champion`, Evidently bajo
+demanda con el resultado real, ONNX+CONTRATO.md con la cota de paridad,
+reentrenamiento nocturno vía cron) y §6.7 (siete herramientas, ya sin el
+condicional "cuando esté disponible") reescritas en
+`documents/Memoria_TFM FV.docx`, con cada cifra tomada de `doc/ML-04`,
+`doc/ML-06`, `doc/ML-07`, `doc/ML-09`, `doc/ML-10` según señaló `VIKT_01`.
