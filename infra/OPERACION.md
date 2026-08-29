@@ -141,6 +141,83 @@ y mueve `@champion` solo si el reentreno no regresa. Historial en
 `modelado/evaluation/artifacts/nightly/historial.csv`. Curva de skill vs
 fecha: `python -m modelado.evaluation.backtest --panel … --target …`.
 
+## Espacio en disco de la EC2 del demonio (tarea 104)
+
+Esta EC2 tiene un volumen raíz **de solo 8 GiB** (`/dev/root`, ext4) y ya
+causó un fallo real de `pip install` por `OSError: Disk quota exceeded`. Ver
+`doc/104-ec2-root-volume-al-limite.md` para el detalle completo del QA; aquí
+solo el runbook.
+
+**Causa real encontrada (no el stack de ML):** un segundo clon completo del
+repo, `~/repos/madronoTFM` (sin `-agent`; mismo remoto, aparentemente un
+clon manual anterior al pipeline de agentes), tenía
+`infra/terraform/.terraform/providers/` con **692 MB** del provider de AWS
+descargado y nunca limpiado — el 11 % del disco entero en un único
+directorio no versionado. Es completamente regenerable
+(`.terraform.lock.hcl` sí está commiteado) y se borró sin riesgo:
+
+```bash
+rm -rf ~/repos/madronoTFM/infra/terraform/.terraform   # se recrea con `terraform init`
+```
+
+**Para que no vuelva a pasar** si se hace `terraform init` en más de un
+clon/worktree de este repo en la misma máquina: apunta todos a una única
+caché de providers compartida en vez de una copia por clon —
+
+```bash
+mkdir -p ~/.terraform.d/plugin-cache
+cat >> ~/.terraformrc <<'EOF'
+plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"
+EOF
+```
+
+**Limpieza adicional aplicada (segura, sin root, recurrente):** `pip cache
+purge` tras instalar dependencias pesadas de `modelado/`
+(pandas/pyarrow/lightgbm/shap/torch/onnx…) — ya liberó ~968 MB una vez.
+`~/.cache/pip` no cuenta en la cuota si no existe, así que un simple
+`pip cache purge` después de cada instalación grande evita que se acumule.
+`/tmp` en esta instancia es **tmpfs** (RAM, mount aparte), no toca el disco
+raíz — limpiarlo no ayuda con este problema aunque acumule ficheros
+sueltos de sesiones anteriores.
+
+**Pendiente, requiere `sudo` (no disponible en las sesiones de Claude Code
+sandboxed — hace falta acceso directo a la EC2):**
+
+```bash
+sudo apt-get clean                       # ~138M, paquetes .deb cacheados
+sudo journalctl --vacuum-time=7d         # ~65M, journal de systemd
+sudo snap remove --revision=13009 amazon-ssm-agent   # revisión antigua "disabled"
+sudo snap remove --revision=2411 core22              # revisión antigua "disabled"
+```
+
+**Pendiente, requiere aprobación humana explícita (coste real, igual que un
+`terraform apply`):** ampliar el volumen EBS raíz de 8 a 20-30 GiB. Este
+volumen **no está gestionado por Terraform** (el único `aws_instance` en
+`infra/terraform/` es el broker Kafka de la tarea 042; esta EC2 se
+aprovisionó a mano fuera de este repo, ver `doc/014`), así que el cambio es
+directo por CLI, no un `.tf`. **Ojo: esta EC2 vive en `eu-south-2`**, no en
+`eu-west-1` como el resto de la infra del proyecto — confirmado con
+`curl 169.254.169.254/latest/meta-data/placement/region` y
+`aws ec2 describe-volumes` (instance `i-0aa45f0df26b4b7e6`, volumen
+`vol-045f46fb5c526a771`, 8 GiB `gp3`):
+
+```bash
+# 1. Redimensionar el volumen (region eu-south-2, NO eu-west-1)
+aws ec2 modify-volume --volume-id vol-045f46fb5c526a771 --size 24 --region eu-south-2
+aws ec2 wait volume-in-use --volume-ids vol-045f46fb5c526a771 --region eu-south-2   # optimizing -> completed puede tardar
+
+# 2. Extender la partición y el filesystem (ext4 en /dev/nvme0n1p1)
+sudo growpart /dev/nvme0n1 1
+sudo resize2fs /dev/nvme0n1p1
+df -h /   # confirmar el nuevo tamaño, no solo `describe-volumes`
+```
+
+Con la mitigación aplicada en la tarea 104, el margen pasó de **375M/6,7G
+(95 %)** a **1,1G/6,7G (85 %, ~16 % libre)** — suficiente para no bloquear
+un `pip install` puntual, pero por debajo del 20 % recomendado; el
+redimensionado de EBS de arriba es la vía para un margen holgado y
+duradero de cara al cierre (17/9).
+
 ## Comandos de verificación útiles
 
 ```bash
