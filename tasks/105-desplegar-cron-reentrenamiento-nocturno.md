@@ -1,19 +1,20 @@
 ---
 id: 105
 slug: desplegar-cron-reentrenamiento-nocturno
-title: "QA: el reentrenamiento nocturno de ML_10 está diseñado y verificado a mano, pero el cron real nunca se instaló"
-status: pending
+title: 'QA: el reentrenamiento nocturno de ML_10 está diseñado y verificado a mano,
+  pero el cron real nunca se instaló'
+status: in_progress
 force: false
 allow_infra_apply: false
-branch: null
+branch: task/105-desplegar-cron-reentrenamiento-nocturno
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-29T19:35:00+00:00"
-updated_at: "2026-08-29T19:35:00+00:00"
-started_at: null
+created_at: '2026-08-29T19:35:00+00:00'
+updated_at: '2026-08-29T19:22:19.740392+00:00'
+started_at: '2026-08-29T19:22:19.740362+00:00'
 submitted_at: null
 merged_at: null
 ---
