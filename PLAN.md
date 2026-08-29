@@ -125,7 +125,9 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `105`** (104 consumida el 29/8 por una auditoría
+**Próximo número libre: `106`** (105 consumida el 29/8 por una auditoría
+de QA del reentrenamiento nocturno — ver Pista Sistema. 104 consumida el
+29/8 por una auditoría
 de QA del disco de la EC2 — ver Pista Sistema. 103 consumida el 29/8 por
 una auditoría
 de QA del track de ML — ver Pista Sistema. 101/102 consumidas el 27/8 por una
@@ -340,6 +342,15 @@ pese a estar en orden inverso de creación en este documento.
   instancia, el riesgo ya no es puntual. Propone redimensionar el volumen
   EBS (requiere aprobación, coste marginal) o, como mitigación inmediata
   sin coste, limpieza rutinaria de cachés.
+- [ ] **[`105-desplegar-cron-reentrenamiento-nocturno`](tasks/105-desplegar-cron-reentrenamiento-nocturno.md)**
+  — QA (29/8): el reentrenamiento nocturno de `ML_10` está construido y
+  verificado a mano, pero el `cron.d` real **nunca se instaló**
+  (verificado: `/etc/cron.d/` sin él, sin crontab de `ubuntu`) — su
+  propio `doc/ML-10` ya lo admitía como "paso de despliegue pendiente".
+  Corregida la redacción de la memoria (§5.5/§7.4, decía que ya estaba
+  programado) para no sobreclamar; el ticket es para desplegarlo de
+  verdad, con aprobación explícita (cron con credenciales AWS recurrente
+  y sin supervisión).
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
