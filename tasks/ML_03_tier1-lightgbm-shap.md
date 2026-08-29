@@ -7,6 +7,8 @@ depends_on: [ML_02]
 created_at: "2026-08-28"
 ---
 
+> **Estado 29/8: ✅ HECHO (regresión).** `models/gbt.py` + `shap_explain.py` + `training/train_gbt.py`. LightGBM bate a la mejor baseline en calidad_aire y trafico en h1/h3/h6 (skill +0.29..+0.78). SHAP coherente. Figuras + CSV en `modelado/evaluation/artifacts/`. Clasificador de episodio -> `ML_08` (umbrales por contaminante). Ver `doc/ML-03`.
+
 ## Objetivo
 
 Los primeros modelos reales, fuertes y explicables. Referencia contra la que

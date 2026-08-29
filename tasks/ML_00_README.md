@@ -36,7 +36,7 @@ son viables con esa ventana.
 |---|---|---|
 | `ML_01` | `modelado/` esqueleto + **feature store** | 🟡 mayoría hecha — paneles reales de `calidad_aire`/`trafico` (ambos scopes) verificados; falta join meteo + festivos. `doc/ML-01` |
 | `ML_02` | Splits temporales + **líneas base** + **módulo de métricas** | ✅ **HECHO** — `splits.py`/`baselines.py`/`metrics.py`/`run_baselines.py`, 16 tests. Suelo real medido (calidad_aire: persistencia MAE 2.74 a h1; trafico: climatología skill +0.74 a h6). `doc/ML-02` |
-| `ML_03` | **Tier 1**: LightGBM multi-horizonte (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | `ML_02` |
+| `ML_03` | **Tier 1**: LightGBM multi-horizonte + episodio + SHAP | ✅ **HECHO** (regresión) — bate a la mejor baseline en los dos targets y todos los horizontes (calidad_aire h6 skill +0.68; trafico h6 +0.78). SHAP: `value_roll24h_mean` domina. Episodio -> ML_08. `doc/ML-03` |
 | `ML_04` | **MLflow** tracking + model registry (params/metrics/artifacts, stages) | `ML_02` |
 | `ML_05` | **Tier 2**: GNN espacio-temporal multi-tarea + multi-horizonte + importancia de aristas | `ML_02`, grafo real (hecho) |
 | `ML_06` | **Evidently** — informe de deriva (train vs reciente) | `ML_01` |
