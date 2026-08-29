@@ -125,6 +125,22 @@ bloque del dataset más reciente y parecido (`bluesky_menciones`,
 5. `terraform plan` limpio después (solo Kafka pendiente).
 6. `doc/` con el resultado real (conteos, no tests).
 
+## Reentrenamiento nocturno de los modelos (ML_10)
+
+Cron 1×/día en la EC2 del demonio (coste 0, sin Terraform). El script es
+idempotente y termina solo.
+
+```cron
+# /etc/cron.d/madrono-retrain
+30 3 * * *  ubuntu  cd /opt/madrono && AWS_PROFILE=madrono /opt/madrono/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
+```
+
+Regenera el panel (`ML_01`), reentrena LightGBM (`ML_03`), evalúa (`ML_02`),
+loguea en MLflow (experimento `nightly`, backend SQLite `modelado/mlflow.db`)
+y mueve `@champion` solo si el reentreno no regresa. Historial en
+`modelado/evaluation/artifacts/nightly/historial.csv`. Curva de skill vs
+fecha: `python -m modelado.evaluation.backtest --panel … --target …`.
+
 ## Comandos de verificación útiles
 
 ```bash

@@ -2,10 +2,20 @@
 kind: ml
 title: "Tier 4 — reentrenamiento nocturno programado + backtest incremental"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_04]
 created_at: "2026-08-28"
 ---
+
+> **Estado 29/8: ✅ HECHO.** `modelado/evaluation/backtest.py` (rolling
+> origin → curva skill vs fecha, CSV+PNG) y `modelado/training/retrain_nightly.py`
+> (regenera panel + reentrena LightGBM + evalúa + loguea en MLflow
+> `nightly` + promueve `@champion` solo si no regresa; corre una vez y
+> termina). **Mecanismo elegido: cron en la EC2 del demonio** (coste 0, no
+> toca Terraform), en `infra/OPERACION.md` + `doc/ML-10`. Ejecución real
+> 29/8: 3 runs nuevos en `nightly`. Backtest `calidad_aire`: 21 puntos, skill
+> h6 sube de ~0.63 a ~0.80 con un bache real el 24–25/8. 45 tests en verde
+> (+6 `test_ml10.py`).
 
 ## Objetivo
 

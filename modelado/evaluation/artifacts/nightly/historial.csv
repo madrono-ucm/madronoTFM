@@ -1,0 +1,4 @@
+fecha,target,horizonte,skill_nuevo,skill_vigente,promovido,n_test,run_id
+2026-08-29,calidad_aire,1,0.2929,0.2929,True,7611,eeea45ed8ddd44bf8ba6473068e4c2d7
+2026-08-29,calidad_aire,3,0.5802,0.5802,True,7089,fc60d68a2b674a7785ba4a1aa4e9d1d2
+2026-08-29,calidad_aire,6,0.6753,0.6753,True,6358,1fcc31bf2e104bce982337cd78d63f99
