@@ -2,10 +2,25 @@
 kind: ml
 title: "ONNX export del modelo registrado + paridad nativo<->ONNX + contrato de entrada"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_04]
 created_at: "2026-08-28"
 ---
+
+> **Estado 29/8: ✅ HECHO.** `modelado/export/to_onnx.py`
+> (`cargar_champion` / `exportar_lightgbm` / `exportar_stgnn` / `paridad` /
+> `exportar`). 4 `.onnx` reales desde el registry:
+> `calidad_aire_h{1,3,6}` + `trafico_h6` en `modelado/export/artifacts/`,
+> con `metadata_props` (19 features en orden) y subidos a MLflow.
+> **Paridad**: media `|Δ|` 0.06–0.13 % de la escala del target (guarda
+> principal); cola p99 ≤ 2 % o ≤ 0.05 abs — discrepancia conocida del
+> convertidor LightGBM de onnxmltools en el límite de los splits, persiste
+> con doble precisión, documentada. `modelado/export/CONTRATO.md` completo.
+> **STGNN → ONNX**: `exportar_stgnn` implementada pero `torch.export` (torch
+> 2.13) no traza el forward (bucle temporal + `index_add` dinámico) →
+> pendiente/§7.5; el STGNN se sirve desde el registry PyTorch.
+> `onnx`/`onnxruntime`/`onnxmltools`/`onnxscript` en requirements. 35 tests
+> en verde (+3 `test_ml07.py`). `doc/ML-07`.
 
 ## Objetivo
 

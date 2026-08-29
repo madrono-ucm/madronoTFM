@@ -243,5 +243,9 @@ modelado/mlruns/
 modelado/mlflow.db
 modelado/mlartifacts/
 modelado/evaluation/artifacts/
-# mlflow con cwd = raíz del repo crea ./mlruns; se ignora igualmente.
+# mlflow con cwd = raíz del repo crea ./mlruns o ./mlflow.db; se ignoran igual.
 /mlruns/
+/mlflow.db
+
+# ML_07: los .onnx grandes se regeneran; solo se versiona el h6 + los paridad.json
+modelado/export/artifacts/
