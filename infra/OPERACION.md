@@ -125,19 +125,48 @@ bloque del dataset más reciente y parecido (`bluesky_menciones`,
 5. `terraform plan` limpio después (solo Kafka pendiente).
 6. `doc/` con el resultado real (conteos, no tests).
 
-## Reentrenamiento nocturno de los modelos (ML_10)
+## Reentrenamiento nocturno de los modelos (ML_10 / tarea 105)
 
-Cron 1×/día en la EC2 del demonio (coste 0, sin Terraform). El script es
-idempotente y termina solo.
+Cron 1×/día en la EC2 del demonio (coste 0, sin Terraform). El script
+(`modelado/training/retrain_nightly.py`) es idempotente y termina solo.
+
+**Estado (29/8, tarea 105): diseñado y verificado a mano, `cron` todavía
+sin instalar de verdad.** `ls /etc/cron.d/` y `crontab -l` en esta misma
+EC2 confirman que no hay ninguna entrada — la línea de abajo nunca llegó a
+copiarse. Además `/opt/madrono` **no existe**: esta EC2 tiene dos checkouts
+manuales del repo (`~/repos/madronoTFM` y `~/repos/madronoTFM-agent`, ver
+`doc/104-ec2-root-volume-al-limite.md`) y ninguno tiene un `.venv` con las
+dependencias de `modelado/requirements.txt` instaladas (`lightgbm`,
+`mlflow`, `torch`, `evidently`, `onnx*`… ~1 GiB). No instalar el cron a
+ciegas contra una ruta y un venv que no existen — usar el instalador de
+abajo, que lo comprueba primero.
 
 ```cron
-# /etc/cron.d/madrono-retrain
-30 3 * * *  ubuntu  cd /opt/madrono && AWS_PROFILE=madrono /opt/madrono/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
+# plantilla en infra/cron/madrono-retrain.cron — <REPO> = checkout real a usar
+30 3 * * *  ubuntu  cd <REPO> && AWS_PROFILE=madrono <REPO>/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
 ```
 
-Regenera el panel (`ML_01`), reentrena LightGBM (`ML_03`), evalúa (`ML_02`),
-loguea en MLflow (experimento `nightly`, backend SQLite `modelado/mlflow.db`)
-y mueve `@champion` solo si el reentreno no regresa. Historial en
+Instalación (manual, con aprobación humana explícita — igual criterio que
+un `terraform apply`):
+
+```bash
+python3 -m venv <REPO>/.venv
+<REPO>/.venv/bin/pip install -r <REPO>/modelado/requirements.txt
+REPO=<REPO> infra/cron/instalar_cron.sh   # comprueba disco libre y el venv antes de copiar el cron.d
+```
+
+`instalar_cron.sh` aborta si quedan menos de 3 GiB libres en `/` — con el
+volumen raíz de 8 GiB de esta EC2 y solo ~986 MiB libres a 29/8 (86 % de
+uso, ver la sección siguiente), **hoy no cumple el umbral**: instalar sin
+resolver el disco primero repetiría el `OSError: Disk quota exceeded` de
+la tarea 104, ahora todas las noches. Pendiente de que se libere disco
+(redimensionar el EBS, o migrar el checkout de producción a un volumen con
+más margen) antes de activar el cron de verdad.
+
+Una vez instalado, el job regenera el panel (`ML_01`), reentrena LightGBM
+(`ML_03`), evalúa (`ML_02`), loguea en MLflow (experimento `nightly`,
+backend SQLite `modelado/mlflow.db`) y mueve `@champion` solo si el
+reentreno no regresa. Historial en
 `modelado/evaluation/artifacts/nightly/historial.csv`. Curva de skill vs
 fecha: `python -m modelado.evaluation.backtest --panel … --target …`.
 
