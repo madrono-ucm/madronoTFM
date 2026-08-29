@@ -14,7 +14,12 @@ lightgbm>=4.5,<5
 shap>=0.46,<1
 matplotlib>=3.8,<4
 
-# Los tiers posteriores añaden aquí: mlflow (ML_04);
-# torch, torch_geometric (ML_05); evidently (ML_06); onnx, onnxruntime,
-# skl2onnx/onnxmltools (ML_07). Se van añadiendo ticket a ticket para no
-# arrastrar dependencias pesadas antes de usarlas.
+# Tracking + model registry (ML_04). Backend por defecto SQLite local
+# (`modelado/mlflow.db`); MLflow >=3 puso el backend de fichero en modo
+# mantenimiento y exige una base de datos.
+mlflow>=2.16,<4
+
+# Los tiers posteriores añaden aquí: torch, torch_geometric (ML_05);
+# evidently (ML_06); onnx, onnxruntime, skl2onnx/onnxmltools (ML_07). Se
+# van añadiendo ticket a ticket para no arrastrar dependencias pesadas
+# antes de usarlas.
