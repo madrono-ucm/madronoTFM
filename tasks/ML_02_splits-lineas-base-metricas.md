@@ -2,7 +2,7 @@
 kind: ml
 title: "Splits temporales + líneas base + módulo de métricas (arnés de evaluación)"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_01]
 created_at: "2026-08-28"
 ---

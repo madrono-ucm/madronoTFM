@@ -125,7 +125,8 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `103`** (101/102 consumidas el 27/8 por una
+**Próximo número libre: `104`** (103 consumida el 29/8 por una auditoría
+de QA del track de ML — ver Pista Sistema. 101/102 consumidas el 27/8 por una
 auditoría de QA de la tarea 097 — ver Pista Sistema. 100 consumida el 27/8
 por una auditoría de
 QA de la tarea 098 — ver Pista Sistema. Nota: "099" se usó como etiqueta de
@@ -307,22 +308,28 @@ pese a estar en orden inverso de creación en este documento.
   finales de línea `CRLF` (el entorno donde se ejecutó el `apply` real
   normalizaba a `CRLF`; esta EC2 usa `LF`, el repo no tenía
   `.gitattributes`). Añadido `.gitattributes` forzando `LF`.
-- [ ] **[`101-ci-no-bloquea-nada-force-y-sin-proteccion`](tasks/101-ci-no-bloquea-nada-force-y-sin-proteccion.md)**
-  — QA (27/8), auditoría de la tarea 097: la CI corre y suele estar en
-  verde, pero **no bloquea ningún merge real** — `main` no tiene branch
-  protection (`404 Branch not protected`), y las tareas `force: true` (la
-  mayoría de la cola) fusionan el PR sin esperar a que la CI termine
-  (`merge_pr()` en `madronoTFM-agent` no usa `--auto` ni comprueba
-  `checks`). Verificado con el histórico real: la propia tarea 097 quedó
-  con CI roja en `main` varias horas tras su primer `push`. Necesita
-  decisión del usuario (branch protection y/o esperar checks en
-  `force: true` cambian el comportamiento del flujo de trabajo del
-  equipo).
-- [ ] **[`102-completar-fix-encoding-read-text-tests`](tasks/102-completar-fix-encoding-read-text-tests.md)**
-  — QA (27/8), hallazgo menor de la misma auditoría: la tarea 097 arregló
-  3 tests con `read_text()` sin `encoding="utf-8"` (bug solo en Windows),
-  pero quedaron 2 ficheros más (7 llamadas) con el mismo patrón sin
-  arreglar — limpieza mecánica, `force: true`.
+- [x] **[`101-ci-no-bloquea-nada-force-y-sin-proteccion`](tasks/done/101-ci-no-bloquea-nada-force-y-sin-proteccion.md)**
+  — **completada** (PR #148). QA (27/8), auditoría de la tarea 097: la CI
+  corre y suele estar en verde, pero no bloqueaba ningún merge real —
+  `main` sin branch protection, `force: true` fusionaba sin esperar a los
+  checks. Decisión tomada el 28/8 (ver `NEXT_STEPS.md` §"Estado a 28/8",
+  decisión 6): **se deja como está** hasta el cierre, documentado como
+  limitación real en §7.4 de la memoria (`VIC_06`).
+- [x] **[`102-completar-fix-encoding-read-text-tests`](tasks/done/102-completar-fix-encoding-read-text-tests.md)**
+  — **completada**. Hallazgo menor de la misma auditoría: 2 ficheros más
+  (7 llamadas) con el mismo bug de `read_text()` sin `encoding="utf-8"`
+  que la tarea 097 no había cubierto del todo — arreglado.
+- [ ] **[`103-modelado-ci-y-dependencia-sistema-libgomp`](tasks/103-modelado-ci-y-dependencia-sistema-libgomp.md)**
+  — QA (29/8), verificando si `VIC_05` podía avanzar: `ML_02`/`ML_03`
+  (Tier 1) confirmados **realmente completos** (tests en verde tras
+  instalar `libgomp1`, que faltaba en esta EC2 y hacía fallar LightGBM;
+  métricas reales verosímiles en `modelado/evaluation/artifacts/`) — el
+  `status: pending` del front-matter estaba simplemente desactualizado,
+  corregido a `done`. `ML_01` se deja en `pending` (su propia nota admite
+  gaps reales). Hallazgo nuevo: `modelado/` no está en absoluto en la CI
+  (tarea 097) — el único módulo del proyecto sin cobertura automática.
+  **`VIC_05` ya puede avanzar**: Tier 1 (`ML_03`) y Tier 2 (`ML_05`)
+  tienen salidas reales.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar

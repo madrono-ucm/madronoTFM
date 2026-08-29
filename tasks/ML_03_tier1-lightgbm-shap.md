@@ -2,7 +2,7 @@
 kind: ml
 title: "Tier 1 — forecasters LightGBM multi-horizonte + clasificadores de episodio + SHAP"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_02]
 created_at: "2026-08-28"
 ---

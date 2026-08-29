@@ -34,7 +34,7 @@ Word Online) — it does not merge in git.
 | `VIC_02` | §6.1–6.4 Fuentes, preparación, flujos | — | ✅ done 29/8 (Claude) |
 | `VIC_03` | §6.5 Orquestación · §6.6 Almacenamiento y consulta | — | ✅ done 29/8 (Claude) |
 | `VIC_04` | §6.7 Explotación · §6.8 Ética/legal | FIL_06 landing helps §6.7/§6.8 | ✅ done 29/8 (Claude) — FIL_06 already landed |
-| `VIC_05` | §7.1–7.3 Resultados, métricas, comparativas | ML Tier 1 + Tier 2 outputs | ⬜ blocked, not started |
+| `VIC_05` | §7.1–7.3 Resultados, métricas, comparativas | ML Tier 1 + Tier 2 outputs | 🟢 unblocked 29/8 — `ML_03`/Tier 1 verified independently (real metrics, skill 0.29-0.78 vs best baseline) and `ML_05`/Tier 2 done, see `NEXT_STEPS.md` row 4-5. Not started yet |
 | `VIC_06` | §7.4 Limitaciones · §7.5 Futuras líneas | — (can draft now, refine later) | ✅ done 29/8 (Claude) |
 | `VIC_07` | §1 Resumen · §2 Palabras clave · §3–4 Introducción/Metodología (consistency pass) | after VIC_01–06 | ⬜ not started — VIC_01–04/06 now merged, ready whenever Víctor wants to run this pass (VIC_05 still pending doesn't block it, §7 isn't in VIC_07's scope) |
 
