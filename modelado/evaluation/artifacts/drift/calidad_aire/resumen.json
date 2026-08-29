@@ -1,0 +1,41 @@
+{
+ "target": "calidad_aire",
+ "ventana_ref": [
+  "2026-08-15 01:00:00",
+  "2026-08-25 15:00:00"
+ ],
+ "ventana_actual": [
+  "2026-08-25 15:00:00",
+  "2026-08-28 15:00:00"
+ ],
+ "n_ref": 31332,
+ "n_actual": 8610,
+ "n_features": 19,
+ "n_features_con_deriva": 3,
+ "n_deriva_psi": 3,
+ "n_deriva_ks": 16,
+ "features_con_deriva": [
+  "dia_semana",
+  "dsem_sin",
+  "dsem_cos"
+ ],
+ "features_deriva_psi": [
+  "dia_semana",
+  "dsem_sin",
+  "dsem_cos"
+ ],
+ "target_col": "target_h1",
+ "target_deriva": [
+  {
+   "feature": "target_h1",
+   "psi": 0.0683,
+   "ks_stat": 0.0917,
+   "ks_pvalue": 0.0,
+   "deriva_psi": false,
+   "deriva_ks": true,
+   "deriva": false
+  }
+ ],
+ "evidently_html": "modelado/evaluation/artifacts/drift/calidad_aire/evidently_drift.html",
+ "nota": "Ventana corta (NEXT_STEPS §4): la referencia (~10 d) y la actual (~3 d) no cubren los mismos días de la semana, de ahí el PSI alto de las features de calendario. KS con n grande marca casi todo; PSI (umbral 0.2) es el criterio de referencia. Ilustrativo, no concluyente (§7.4)."
+}

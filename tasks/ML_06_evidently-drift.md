@@ -2,10 +2,19 @@
 kind: ml
 title: "Evidently — informe de deriva (train vs datos recientes)"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_01]
 created_at: "2026-08-28"
 ---
+
+> **Estado 29/8: ✅ HECHO.** `modelado/evaluation/drift.py`: PSI + KS por
+> feature (numpy, siempre) + informe Evidently `DataDriftPreset` HTML/JSON
+> (best effort, probado con 0.7.21). Entry point
+> `python -m modelado.evaluation.drift --panel … --target …`. Resultado
+> real (calidad_aire y trafico): solo 3/19 features con PSI>0.2 y son las
+> de día de la semana (artefacto de partición ref 10 d vs actual 3 d); la
+> señal es estable. Ilustrativo, no concluyente (§7.4). `evidently>=0.7,<0.8`
+> en requirements. 32 tests en verde (+5 `test_ml06.py`). `doc/ML-06`.
 
 ## Objetivo
 
