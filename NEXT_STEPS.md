@@ -140,11 +140,14 @@ ventana.
    documenta como limitación en §7.4. No se activa branch protection ni se
    cambia `merge_pr()` antes del cierre.
 
-7. **Pendiente (decisión 8)**: ¿se mantienen las dos ablaciones de §7.3
-   (fusión multi-señal vs fuente única; "solo sustrato europeo común") o se
-   recorta §7.3 a solo la comparación GNN vs GBT vs baseline + la
-   explicabilidad? Afecta al alcance de los tickets de ML y a la redacción
-   de §7.3.
+7. **Decisión 8, resuelta 29/8 (al escribir `VIC_05`)**: se recorta §7.3 a
+   la comparación baseline vs LightGBM vs GNN + explicabilidad, ya escrita
+   con datos reales. Las dos ablaciones (fusión multi-señal vs fuente
+   única; "solo sustrato europeo común") se descartan **para esta
+   entrega** por tiempo — `ML_08` (que las produciría) no está construido
+   y quedan ~2.5 semanas. Documentado como decisión explícita en `VIC_05`,
+   no como omisión; revisar con el equipo si aparece margen antes del
+   17/9.
 
 ## 6. Triage por deadline (~2.5 semanas) — orden acordado
 
@@ -159,7 +162,7 @@ de código nuevo).
 | 3 | **`VIC_01`–`VIC_04`** — reescritura de §5–§6 a la realidad | Memoria | ✅ **hecho (29/8)** — §5, §6.1–6.4, §6.5–6.6, §6.7–6.8 reescritas directamente en el `.docx` (Kafka/Flink/Delta/Power BI/streaming fuera de la descripción del sistema construido, solo en §7.5 con motivo). Ver notas "Hecho" en `tasks/VIC_01`–`VIC_04` |
 | 4 | **Tier 1** — forecasters LightGBM (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | Sistema | ✅ **hecho (regresión)** — `ML_03`. Verificado 29/8, independientemente de la nota del propio ticket: 3/3 tests en verde (tras instalar `libgomp1`, ausente en esta EC2 y necesario para LightGBM), métricas reales en `modelado/evaluation/artifacts/tier1_{calidad_aire,trafico}.csv` (skill score 0.29–0.78 sobre la mejor línea base). Clasificador de episodio → `ML_08` |
 | 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema | ✅ **hecho y verificado 29/8** — `ML_05`. `torch 2.13 cpu` instalado; STGNN entrenado end-to-end en los dos targets: `calidad_aire` (54 nodos) bate a persistencia a h3/h6 (+0.48/+0.55), `trafico` (1798 nodos) la bate en todos los horizontes (+0.39/+0.64/+0.79). 2 modelos `@champion` en MLflow. Importancia de aristas interpretable. 27 tests. Ver `doc/ML-05` |
-| 6 | **`VIC_05`–`VIC_06`** — §7 usando 4–5 salidas reales de los modelos | Memoria | 🟡 **`VIC_06` hecho (29/8)** — §7.4 (4→7 limitaciones) y §7.5 (5→10 futuras líneas) reescritas. **`VIC_05` (§7.1–7.3) ya puede avanzar** (29/8): Tier 1 y Tier 2 confirmados con salidas reales, ver filas 4–5 |
+| 6 | **`VIC_05`–`VIC_06`** — §7 usando 4–5 salidas reales de los modelos | Memoria | ✅ **hecho (29/8)** — `VIC_06`: §7.4 (4→7 limitaciones) y §7.5 (5→10 futuras líneas). `VIC_05`: Tabla 3 reconstruida con MAE/RMSE/skill real por fuente/horizonte/modelo (Tier 1 vs Tier 2 vs línea base), explicabilidad real (SHAP + importancia de aristas); ablaciones de la decisión 8 descartadas para esta entrega (documentado el motivo, no omitido) |
 | 7 | **Tier 4** — tool `*_prevista` (ONNX), reentrenamiento nocturno, backtest incremental | Sistema | ⬜ |
 | 8 | **`FIL_07`** (EMT multi-parada) — aditivo, la prioridad más baja | Sistema | ⬜ |
 
@@ -172,10 +175,13 @@ Con eso se cerró `FIL_04` (203 parques con `PROXIMO_A`) y `FIL_06` parte 2.
 
 ## 7. Siguiente paso inmediato
 
-- **`FIL_08`** — sin una recarga fiable de Neo4j, `FIL_04` y `FIL_06`
-  parte 2 no cierran y el GNN (Tier 2) se queda sin el grafo completo.
-- Crear los tickets numerados de ML en `tasks/` (`modelado/`).
-- Resolver la decisión 8 (ablaciones de §7.3).
+- ~~`FIL_08`~~ — hecho.
+- ~~Crear los tickets numerados de ML en `tasks/` (`modelado/`)~~ — hecho.
+- ~~Resolver la decisión 8 (ablaciones de §7.3)~~ — resuelta 29/8, ver
+  sección 5, punto 7.
+- Los 7 tickets `VIC_*` están cerrados — la memoria ya no es el cuello de
+  botella. Quedan: `ML_07`–`ML_10` (Tier 4), `modelado/` en CI (ticket
+  `103`), y revisión editorial humana de todo lo reescrito.
 
 ---
 
