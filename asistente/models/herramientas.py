@@ -195,3 +195,33 @@ class EventoCercano(BaseModel):
     distancia_m: float
     inicio: datetime
     fuente_dataset: str
+
+
+class CalidadAirePrevista(BaseModel):
+    """Previsión de calidad del aire para una estación y horizonte (tarea
+    `ML_09`): la sirve `asistente.mcp_agent.tools.calidad_aire_prevista`
+    corriendo el modelo ONNX de `ML_07` (LightGBM multi-horizonte de `ML_03`,
+    exportado a ONNX) sobre las features construidas a partir de las últimas
+    24 h de `gold.calidad_aire_por_estacion_contaminante_hora`.
+
+    `valor_previsto` es µg/m³ del `contaminante` a `horizonte` horas vista;
+    `valor_actual` es la última lectura real (para contexto).
+    `nivel_previsto` reusa el índice simplificado de `CalidadAireZona`.
+    `data_completeness` (0..1) es la fracción de features históricas
+    disponibles (valor actual + lags 1/2/3/24 h); baja cuando faltan datos,
+    igual criterio que `AfluenciaEstimada`. `modelo` identifica el `.onnx`
+    que produjo la cifra (trazabilidad).
+    """
+
+    zona: str
+    momento: datetime
+    horizonte_horas: int
+    estacion: str | None = None
+    contaminante: str | None = None
+    valor_previsto: float | None = None
+    valor_actual: float | None = None
+    unidad: str | None = None
+    nivel_previsto: str = "sin_datos"
+    data_completeness: float = 0.0
+    modelo: str | None = None
+    fuente_dataset: str

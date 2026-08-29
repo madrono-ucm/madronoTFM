@@ -19,13 +19,14 @@ from asistente.mcp_agent.server import mcp
 TOOL_FUNCTIONS = [
     tools.afluencia_estimada,
     tools.calidad_aire,
+    tools.calidad_aire_prevista,
     tools.trafico_cercano,
     tools.opciones_movilidad,
     tools.disponibilidad_aparcamiento,
     tools.eventos_cercanos,
 ]
 
-# Las 6 tools ya tienen lógica real (opciones_movilidad, tarea 096, es la
+# Las 7 tools tienen lógica real (`calidad_aire_prevista`, tarea ML_09, es la
 # última) -- no queda ninguna con NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS: list = []
 

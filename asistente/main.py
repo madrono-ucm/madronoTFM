@@ -32,6 +32,7 @@ from asistente.mcp_agent.server import mcp
 from asistente.routers import (
     afluencia_estimada,
     calidad_aire,
+    calidad_aire_prevista,
     disponibilidad_aparcamiento,
     eventos_cercanos,
     health,
@@ -57,15 +58,17 @@ def create_app() -> FastAPI:
             "`calidad_aire` (tarea 079), `trafico_cercano` (tarea 081), "
             "`afluencia_estimada` (tarea 089, ambas cruzan el grafo urbano "
             "en Neo4j con Gold), `disponibilidad_aparcamiento` (tarea 090), "
-            "`eventos_cercanos` (tarea 095) y `opciones_movilidad` (tarea "
-            "096, sin routing real -- ver su docstring) ya leen datos "
-            "reales -- ver asistente/README.md."
+            "`eventos_cercanos` (tarea 095), `opciones_movilidad` (tarea "
+            "096, sin routing real -- ver su docstring) y "
+            "`calidad_aire_prevista` (tarea ML_09, previsión desde el modelo "
+            "ONNX de ML_07) ya leen datos reales -- ver asistente/README.md."
         ),
-        version="0.7.0",
+        version="0.8.0",
         lifespan=lifespan,
     )
     app.include_router(health.router)
     app.include_router(calidad_aire.router)
+    app.include_router(calidad_aire_prevista.router)
     app.include_router(trafico_cercano.router)
     app.include_router(afluencia_estimada.router)
     app.include_router(disponibilidad_aparcamiento.router)
