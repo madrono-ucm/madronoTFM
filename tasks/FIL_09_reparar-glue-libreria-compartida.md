@@ -2,10 +2,21 @@
 kind: fil
 title: "URGENTE — Reparar 37/48 jobs de Glue rotos: librería compartida procesamiento.zip inexistente en S3"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: true
 created_at: "2026-08-29"
 ---
+
+> **✅ RESUELTO 29/8** (sesión interactiva, `apply` aprobado por el usuario).
+> Tres pasos: (1) recuperados los 2 objetos S3 que faltaban → jobs vuelven a
+> arrancar; (2) re-lanzadas a mano las 27 cadenas bronze→silver→gold, todas
+> `SUCCEEDED`, Gold fresco verificado en Athena; (3) fix de recurrencia (key
+> estable `glue-libs/procesamiento.zip`, PR #175) + `terraform apply`
+> revisado (`2 add / 56 change / 2 destroy` — el plan fresco fue mucho menor
+> que el `49/66/49` del documento, ya reconciliado por 098/100 — Kafka
+> excluido, sin destrucciones sueltas). Estado final: **48/48 jobs en la key
+> estable, objeto único en S3, 0 jobs rotos**. Detalle y verificación en
+> `doc/FIL-09-...md` § "Resultado de la ejecución".
 
 > **Contexto**: encontrado durante una ronda de QA (sesión del 29/8) al revisar
 > la factura real de AWS con `herramientas/costes/desglose_glue.py`. El plan

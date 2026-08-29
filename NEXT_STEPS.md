@@ -173,6 +173,16 @@ AuraDB Free (4 fallos el 28/8). `FIL_08` reescribió `_run_all` con `UNWIND`
 por lotes + reintento/reconexión: recarga completa en **~9 min, limpia**.
 Con eso se cerró `FIL_04` (203 parques con `PROXIMO_A`) y `FIL_06` parte 2.
 
+### ~~Incidente (29/8): 37/48 jobs de Glue en `LAUNCH ERROR`~~ Resuelto — `FIL_09`
+
+La librería compartida `procesamiento.zip` llevaba el hash del contenido en
+la key S3; `apply` parciales (093/098/100) dejaron 37 jobs apuntando a
+generaciones ya borradas → ~28 h de Bronze→Silver roto. Resuelto: recuperación
+a mano (27 cadenas `SUCCEEDED`, Gold fresco en Athena) + key **estable**
+`glue-libs/procesamiento.zip` (PR #175, evita la recurrencia) + `terraform
+apply` revisado y aprobado (`2 add/56 change/2 destroy`, Kafka excluido).
+48/48 jobs en la key estable. Ver `doc/FIL-09-...md`.
+
 ## 7. Siguiente paso inmediato
 
 - ~~`FIL_08`~~ — hecho.
