@@ -1,19 +1,20 @@
 ---
 id: 103
 slug: modelado-ci-y-dependencia-sistema-libgomp
-title: "QA: modelado/ (el track de ML) no está en la CI, y LightGBM falla en esta EC2 por una librería de sistema ausente"
-status: pending
+title: 'QA: modelado/ (el track de ML) no está en la CI, y LightGBM falla en esta
+  EC2 por una librería de sistema ausente'
+status: in_progress
 force: true
 allow_infra_apply: false
-branch: null
+branch: task/103-modelado-ci-y-dependencia-sistema-libgomp
 pr_number: null
 pr_url: null
 attempts: 0
 next_retry_at: null
 last_error: null
-created_at: "2026-08-29T12:00:00+00:00"
-updated_at: "2026-08-29T12:00:00+00:00"
-started_at: null
+created_at: '2026-08-29T12:00:00+00:00'
+updated_at: '2026-08-29T10:44:06.556864+00:00'
+started_at: '2026-08-29T10:44:06.556792+00:00'
 submitted_at: null
 merged_at: null
 ---
