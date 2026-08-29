@@ -3,19 +3,19 @@ id: 105
 slug: desplegar-cron-reentrenamiento-nocturno
 title: 'QA: el reentrenamiento nocturno de ML_10 está diseñado y verificado a mano,
   pero el cron real nunca se instaló'
-status: in_progress
+status: in_review
 force: false
 allow_infra_apply: false
 branch: task/105-desplegar-cron-reentrenamiento-nocturno
-pr_number: null
-pr_url: null
+pr_number: 174
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/174
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-29T19:35:00+00:00'
-updated_at: '2026-08-29T19:22:19.740392+00:00'
+updated_at: '2026-08-29T19:26:56.228700+00:00'
 started_at: '2026-08-29T19:22:19.740362+00:00'
-submitted_at: null
+submitted_at: '2026-08-29T19:26:56.228677+00:00'
 merged_at: null
 ---
 
