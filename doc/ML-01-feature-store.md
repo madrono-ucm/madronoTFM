@@ -72,7 +72,7 @@ entidad).
 | `afluencia` (Gold de FIL_06) | 0 | 0 | — | — |
 
 19 features (4 lags + 4 estadísticos rolling + 11 de calendario). Targets
-`h1/h3/h6`.
+`h1/h3/h6`. **(Actualizado el 29/8 a 30 features — ver abajo.)**
 
 **`afluencia` da 0 filas**: la tabla Gold de FIL_06 solo tiene ~1 h de datos
 (el job horario acaba de empezar) → `build_panel` descarta todo (sin lags
@@ -82,12 +82,74 @@ no es un bug.
 8 tests de `panel.py` en verde. `pandas 3.0.5` / `pyarrow 25.0.1` (`--only-binary
 :all:` — no hay wheels de fuente para Python 3.14).
 
+## Cierre de huecos: meteo + previsión AEMET + festivos (29/8)
+
+Los tres enriquecedores que quedaban pendientes tras la primera pasada están
+ahora implementados y verificados contra Athena real.
+`modelado/features/exogenas.py` (funciones puras, 22 tests nuevos en
+`test_exogenas.py` + `test_build.py`):
+
+### Meteo observada — `weather_panel`
+
+Join espacial de `meteorologia_por_estacion_magnitud_hora` (formato largo):
+para cada entidad de sensor, la estación meteo **más cercana que reporta esa
+magnitud** (haversine sobre lat/lon; una asignación por magnitud porque no
+todas las estaciones miden todo — en la ventana: 24 estaciones dan
+`temperature_c`, 22 `humidity_pct`, 9 `wind_speed_ms`/`precipitation_lm2`,
+7 `pressure_mb`). 5 columnas `meteo_*`. `known_at = ts` (valor observado esa
+hora) → sin fuga. Simplificación asumida: no hay corte de distancia máxima
+(el área metropolitana de Madrid es pequeña y estas magnitudes varían poco
+espacialmente); una magnitud rara empareja con la estación más cercana
+aunque esté a varios km.
+
+### Previsión AEMET — `forecast_panel`
+
+De la tabla **Silver** `aemet_prevision` (la Gold
+`aemet_prevision_por_municipio_leadtime` es un `overwrite` sin histórico —
+4 filas, inservible para un panel temporal). Para el día de validez `D` se
+toma la **última `elaborated_at` de un día de calendario estrictamente
+anterior a `D`** ("la previsión de ayer para hoy"), y se agregan sus
+periodos: `prev_temp_max_c` (máx), `prev_temp_min_c` (mín),
+`prev_precip_prob_pct` (máx), `prev_wind_kmh` (media),
+`prev_humidity_max_pct` (máx), `prev_forecast_age_h` (antigüedad de la
+previsión a las 00:00 de `D`). 6 columnas. `known_at < D 00:00 ≤ ts` para
+toda hora de `D` → feature exógena de futuro conocido, sin fuga. El primer
+día de la ventana se queda sin previsión (no hay elaboración anterior) y sus
+filas van con NaN (se descartan casi todas en el warm-up). Solo hay 1
+municipio (Madrid) → misma previsión diaria para todas las entidades; es una
+señal diaria legítima, no un problema.
+
+### Festivos
+
+`--festivos` por defecto a la muestra commiteada
+`ingesta/capturas/samples/calendario_laboral_madrid_sample.json` (el año
+2026 completo; no hay pipeline Silver/Gold para este dataset). `_cargar_festivos`
+**arreglado**: antes metía *todas* las fechas del fichero en el set de
+festivos (con la muestra del año entero, marcaba todos los días como
+festivo); ahora filtra `is_holiday` / `day_type == "festivo"`. En la ventana
+2026-08-15..28 el único festivo real es el 15/8 (Asunción) — y ahora se
+marca solo ese día.
+
+### Ejecución real (29/8)
+
+`AWS_PROFILE=madrono python -m modelado.features.build --target ... --desde
+2026-08-15 --hasta 2026-08-28`:
+
+| Target / scope | Filas | Entidades | Features | meteo no-nulo | previsión no-nulo |
+|---|---|---|---|---|---|
+| `calidad_aire` / `all` | 39 942 | 123 | **30** | 83–90 % | 92,9 % (NaN = 1er día) |
+| `trafico` / `all` | 1 511 995 | 4 702 | **30** | ~85 % | 92,9 % |
+
+30 features = 19 previas + 5 `meteo_*` + 6 `prev_*`. Flags `--sin-meteo` /
+`--sin-prevision` para la ablación de fuente única de §7.3. El join de meteo
+y previsión es independiente de `--scope`.
+
 ## Pendiente / siguiente (`ML_02`)
 
 - Splits temporales + líneas base (persistencia, climatología, seasonal-naive)
   + módulo de métricas.
-- Enriquecer el panel con meteo (join espacial) y previsión AEMET —
-  esqueleto listo en `build.py`, falta el join real.
-- Festivos: `--festivos` acepta el JSON de `calendario_laboral_madrid`;
-  confirmar el formato del fichero real y subirlo a Bronze o commitear la
-  muestra.
+- `afluencia`: la Gold de `FIL_06` sigue acumulando horas; rehacer el panel
+  cuando tenga ventana suficiente para lags.
+- Mejora futura (no bloqueante): retener histórico de `elaborated_at` en la
+  Gold de previsión permitiría una feature de previsión a resolución
+  sub-diaria; hoy se resuelve leyendo Silver.
