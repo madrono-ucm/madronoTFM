@@ -3,19 +3,19 @@ id: 103
 slug: modelado-ci-y-dependencia-sistema-libgomp
 title: 'QA: modelado/ (el track de ML) no está en la CI, y LightGBM falla en esta
   EC2 por una librería de sistema ausente'
-status: in_progress
+status: in_review
 force: true
 allow_infra_apply: false
 branch: task/103-modelado-ci-y-dependencia-sistema-libgomp
-pr_number: null
-pr_url: null
+pr_number: 162
+pr_url: https://github.com/madrono-ucm/madronoTFM/pull/162
 attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-29T12:00:00+00:00'
-updated_at: '2026-08-29T10:44:06.556864+00:00'
+updated_at: '2026-08-29T10:46:14.534164+00:00'
 started_at: '2026-08-29T10:44:06.556792+00:00'
-submitted_at: null
+submitted_at: '2026-08-29T10:46:14.534022+00:00'
 merged_at: null
 ---
 
