@@ -42,7 +42,7 @@ son viables con esa ventana.
 | `ML_06` | **Evidently** — informe de deriva (train vs reciente) | ✅ **HECHO** — `evaluation/drift.py`: PSI+KS (numpy) + informe Evidently HTML/JSON (best effort). Real: solo las 3 features de día-de-semana con PSI>0.2 (artefacto de partición), señal estable. Ilustrativo (§7.4). `doc/ML-06` |
 | `ML_07` | **ONNX** export del modelo registrado + test de paridad nativo↔ONNX + contrato de entrada documentado | ✅ **HECHO** — `export/to_onnx.py`; 4 `.onnx` (`calidad_aire_h{1,3,6}` + `trafico_h6`) desde el registry, paridad media 0.06–0.13 % (cola p99 = artefacto conocido del convertidor LightGBM), `export/CONTRATO.md`. STGNN→ONNX bloqueado por `torch.export` → §7.5. `doc/ML-07` |
 | `ML_08` | **Cuadernos de evaluación §7** — baseline vs GBT vs GNN; + las 2 ablaciones de §7.3 (pendiente decisión 8) | ✅ **HECHO (estudios 1+2)** — `evaluation/estudios/` (`estudio_comparacion.py` + `run_all.py`), tablas + explicabilidad consolidadas a `artifacts/estudios/` + MLflow `tags.study=`. Ablaciones 3/4 descartadas (decisión 8). `doc/ML-08` |
-| `ML_09` | **Tier 4**: tool del asistente `calidad_aire_prevista` / `afluencia_prevista` desde ONNX | `ML_07` |
+| `ML_09` | **Tier 4**: tool del asistente `calidad_aire_prevista` / `afluencia_prevista` desde ONNX | ✅ **HECHO** (`calidad_aire_prevista`) — `asistente/prevision.py` + tool + `GET /calidad-aire-prevista`, `.onnx` de `ML_07` vendido en `asistente/modelos/`. Verificado en vivo contra Athena (O₃ Retiro 97 → h6 30). `afluencia_prevista` pendiente (STGNN sin ONNX). `doc/ML-09` |
 | `ML_10` | **Tier 4**: reentrenamiento nocturno programado + backtest incremental (los datos crecen hasta la entrega) | `ML_04` |
 
 ## Reparto daemon vs interactivo (pendiente de confirmar)

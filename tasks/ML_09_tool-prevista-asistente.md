@@ -2,10 +2,21 @@
 kind: ml
 title: "Tier 4 — tool del asistente calidad_aire_prevista / afluencia_prevista desde ONNX"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_07]
 created_at: "2026-08-28"
 ---
+
+> **Estado 29/8: ✅ HECHO (`calidad_aire_prevista`).** `asistente/prevision.py`
+> (features de CONTRATO.md + `onnxruntime`) + tool + router
+> `GET /calidad-aire-prevista` + registro MCP/FastAPI (v0.8.0).
+> `.onnx` de `ML_07` vendido en `asistente/modelos/`. **Verificado en vivo**
+> contra Athena real: O₃ Retiro 97 → h6 30.4 (ciclo diurno real del ozono),
+> PM10 Castellana 12 → 8.1. `data_completeness` baja la fiabilidad. Ancla el
+> forecast en la última hora con dato (bug de "anclar en ahora" detectado y
+> corregido en la verificación). `onnxruntime`+`numpy` en requirements.
+> 74 tests del asistente en verde (+9). `doc/ML-09`.
+> `afluencia_prevista` → pendiente (STGNN sin ONNX, `ML_07`).
 
 ## Objetivo
 
