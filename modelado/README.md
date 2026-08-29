@@ -57,3 +57,18 @@ escribe como Parquet. Targets soportados: `calidad_aire`
 
 Credenciales: `AWS_PROFILE=madrono` (`eu-west-1`), Neo4j en SSM — ver
 `infra/OPERACION.md`.
+
+## Entrenamiento
+
+```bash
+# Tier 1 — LightGBM multi-horizonte + SHAP (ML_03), loguea en MLflow (ML_04)
+python -m modelado.training.train_gbt --panel modelado/_data/panel_calidad_aire.parquet --nombre calidad_aire --mlflow tier1
+
+# Tier 2 — GNN espacio-temporal + importancia de aristas (ML_05)
+python -m modelado.training.train_stgnn --panel modelado/_data/panel_calidad_aire_grafo.parquet --nombre calidad_aire --mlflow tier2
+```
+
+`train_stgnn` deriva el grafo de las coordenadas del panel (k-NN gaussiano)
+salvo que se le pase `--aristas-json` con las `PROXIMO_A` reales exportadas
+de Neo4j. MLflow: backend SQLite local (`modelado/mlflow.db`), `mlflow ui
+--backend-store-uri sqlite:///modelado/mlflow.db` para la interfaz.
