@@ -40,26 +40,22 @@ alinear ambas cosas — ver [Reparto sin conflictos](#reparto-sin-conflictos).
 
 Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
 
-0. **URGENTE (29/8, activo ahora): 37 de 48 jobs de Glue (77 %) fallan en
-   `LAUNCH ERROR`** — la librería compartida `procesamiento.zip` a la que
-   apuntan no existe en S3 (varias generaciones distintas del fichero,
-   `terraform apply` parciales previos dejaron jobs "anclados" a hashes ya
-   borrados). Al menos 28 horas de Bronze→Silver roto para tráfico,
-   bicimad, transporte_publico_emt, meteorologia, calidad_aire y
-   aparcamientos — 6 de los 16 "productores en producción continua" que
-   describe la memoria. **Plan de reconciliación ya generado y verificado
-   como seguro** (sin destrucciones sueltas) — ver
-   [`FIL_09`](tasks/FIL_09_reparar-glue-libreria-compartida.md) y el plan
-   completo en
-   [`doc/FIL-09-terraform-plan-glue-libreria-compartida.md`](doc/FIL-09-terraform-plan-glue-libreria-compartida.md).
-   Movido de la cola numerada (`tasks/done/106-...md`, redirigida) a la
-   pista interactiva porque necesita un `terraform apply` real revisado y
-   aprobado por un humano antes de ejecutarse (mismo criterio que las
-   tareas 098/100). **Actualización (29/8 tarde)**: el código ya mejoró
-   (key estable para `procesamiento.zip`, PR #175, evita que esto vuelva a
-   pasar) pero **sigue sin aplicarse** — plan regenerado sobre ese commit,
-   misma magnitud y sigue seguro. **Solo falta la aprobación humana para
-   el `apply`.**
+0. ~~**URGENTE (29/8): 37 de 48 jobs de Glue (77 %) en `LAUNCH ERROR`**~~ —
+   **RESUELTO el 29/8.** La librería compartida `procesamiento.zip` llevaba
+   el hash del contenido en la key; `terraform apply` parciales previos
+   (093/098/100) dejaron 37 jobs apuntando a generaciones ya borradas →
+   ~28 h de Bronze→Silver roto para 12+ datasets. Resuelto en tres pasos:
+   (a) recuperados los objetos S3 que faltaban + re-lanzadas a mano las 27
+   cadenas bronze→silver→gold (todas `SUCCEEDED`, Gold fresco verificado en
+   Athena); (b) fix de recurrencia — key **estable**
+   `glue-libs/procesamiento.zip` (PR #175), un `apply -target` parcial ya no
+   puede dejar jobs huérfanos; (c) `terraform apply` revisado y aprobado por
+   el usuario (`2 add / 56 change / 2 destroy` — el plan fresco fue mucho
+   menor que el `49/66/49` del documento, ya reconciliado por 098/100 —
+   Kafka excluido, sin destrucciones sueltas). Estado final: **48/48 jobs en
+   la key estable, objeto único en S3, 0 jobs rotos**. Detalle en
+   [`doc/FIL-09-...md`](doc/FIL-09-terraform-plan-glue-libreria-compartida.md)
+   § "Resultado de la ejecución".
 1. ~~Alta de Neo4j AuraDB Free~~ — **resuelto y grafo cargado el 24/8.**
    Instancia real creada, credenciales en SSM (mismo patrón que
    EMT/AEMET/CAMS). Grafo completo cargado y verificado con Cypher real:
