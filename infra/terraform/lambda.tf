@@ -40,6 +40,12 @@ locals {
     EMT_PASS_KEY     = "/${var.project_name}/${var.environment}/secrets/emt-pass-key"
     AEMET_API_KEY    = "/${var.project_name}/${var.environment}/secrets/aemet-api-key"
     CAMS_ADS_API_KEY = "/${var.project_name}/${var.environment}/secrets/cams-ads-api-key"
+    # Bluesky exige autenticación en `searchPosts` desde 2025: sesión de AT
+    # Protocol con handle + App Password. `BLUESKY_IDENTIFIER` es el handle
+    # público (no es un secreto en sí, pero se gestiona igual que el resto
+    # para no añadir un mecanismo aparte); `BLUESKY_APP_PASSWORD` sí lo es.
+    BLUESKY_IDENTIFIER   = "/${var.project_name}/${var.environment}/secrets/bluesky-identifier"
+    BLUESKY_APP_PASSWORD = "/${var.project_name}/${var.environment}/secrets/bluesky-app-password"
   }
 
   # Una entrada por función Lambda. `secret_env` lista los nombres de
@@ -133,7 +139,7 @@ locals {
       description = "Barrido de menciones de Bluesky por distrito/evento -> Bronze/bluesky_menciones"
       timeout     = 180
       memory_mb   = 256
-      secret_env  = []
+      secret_env  = ["BLUESKY_IDENTIFIER", "BLUESKY_APP_PASSWORD"]
     }
     agenda_eventos = {
       module      = "agenda_eventos_madrid"
