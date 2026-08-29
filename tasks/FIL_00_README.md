@@ -34,6 +34,7 @@ foundation first. Findings and the full decision-making picture are in
 | `FIL_07` | `transporte_publico_emt`: capturar más de una parada | ⬜ **Sin empezar** (prioridad más baja) |
 | `FIL_08` | `cargar_grafo.py` resiliente a cortes de AuraDB Free (`UNWIND` + reintento) | ✅ **HECHO** — `_run_all` por lotes `UNWIND` + reintento/reconexión; recarga real limpia en ~9 min (antes: 4 fallos / 51 min). +4 tests. Cierra `FIL_04` (PR pendiente, `doc/FIL-08`) |
 | `FIL_09` | **URGENTE** — 37/48 jobs de Glue en `LAUNCH ERROR`, librería compartida `procesamiento.zip` inexistente en S3 (>28h roto) | ✅ **HECHO 29/8** — recuperación a mano (27 cadenas `SUCCEEDED`, Gold fresco en Athena) + key **estable** `glue-libs/procesamiento.zip` (PR #175) + `terraform apply` revisado y aprobado (`2 add/56 change/2 destroy`, Kafka excluido). 48/48 jobs en la key estable, objeto único en S3. Ver `doc/FIL-09-...md` § "Resultado de la ejecución" |
+| `FIL_10` | Aplicar la key estable de los 48 `glue_script_*` (código de la tarea 107, no urgente) | ⬜ **Código mergeado y plan listo, esperando aprobación humana para `apply`** — extiende el fix de `FIL_09` a los 48 scripts individuales (mismo riesgo, acotado a 1 job por incidente en vez de 37). Plan (48 add/67 change/48 destroy, sin destrucciones sueltas) y pasos de verificación en `doc/FIL-10-terraform-plan-glue-scripts-key-estable.md` |
 
 ### Seguimiento surgido en la ejecución
 
