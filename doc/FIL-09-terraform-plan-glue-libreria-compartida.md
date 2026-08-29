@@ -33757,3 +33757,64 @@ Terraform specifically suggests to use it as part of an error message.
 Note: You didn't use the -out option to save this plan, so Terraform can't
 guarantee to take exactly these actions if you run "terraform apply" now.
 ```
+
+---
+
+## Resultado de la ejecución (29/8, sesión interactiva, con aprobación humana)
+
+Resuelto en tres pasos, no solo el `apply`:
+
+### 1. Desbloqueo inmediato (sin Terraform)
+
+Se subió el `procesamiento.zip` actual (md5 `a7ba99ac…`, idéntico byte a byte
+al único objeto real que quedaba) a las **dos keys que faltaban**
+(`procesamiento-72e35fd9….zip`, `procesamiento-1ba560b7….zip`). Los 37 jobs
+volvieron a poder arrancar. Reversible (borrar esos 2 objetos).
+
+### 2. Recuperación de datos (sin Terraform)
+
+Re-lanzadas a mano las **27 cadenas** bronze→silver→gold de los 13 datasets
+afectados: **14/14 `bronze_to_silver` `SUCCEEDED`**, **13/13 `silver_to_gold`
+`SUCCEEDED`**. Athena Gold verificado fresco (`max_date = 2026-08-29`,
+`processed_at ≈ 21:50`) para trafico, calidad_aire, meteorologia, bicimad,
+transporte_publico_emt, afluencia_lugares, aparcamientos, cams_calidad_aire,
+agenda_eventos, aemet_prevision, cartelera_cines_estrenos. `ruido` (últimos
+datos 17/8) y `aforos` (fuente congelada 2024) sin cambios — comportamiento
+normal previo, no relacionado con el incidente.
+
+### 3. Fix de recurrencia + `terraform apply` revisado
+
+- **PR #175** (`89f0665`): `aws_s3_object.procesamiento_source` pasa a **key
+  estable** `glue-libs/procesamiento.zip` (sin hash), `etag` sigue
+  disparando la reescritura in situ. La URL de `--extra-py-files` es ahora
+  una constante → un `apply -target` parcial ya no puede dejar jobs
+  huérfanos.
+- **`terraform apply`** (aprobado por el usuario, plan guardado con `-out`,
+  método `-target` de este documento para excluir Kafka). **El plan fresco
+  regenerado sobre `89f0665` fue `2 add / 56 change / 2 destroy`** — no los
+  `49/66/49` del plan de arriba; esa cifra mayor era anterior a la
+  reconciliación de las tareas 098/100. Sin destrucciones sueltas: los 2
+  `destroy` son la mitad-baja de sendos `must be replaced` de objetos S3
+  (`procesamiento_source` migrando a la key estable con
+  `create_before_destroy`, y `layer_build_source` rotando por cambio de
+  `requirements.txt`). Resultado: `Apply complete! Resources: 2 added, 56
+  changed, 2 destroyed`, sin errores.
+- Post-apply: borradas las 2 keys squatter del paso 1; Terraform borró la
+  key con hash antigua. **`glue-libs/` queda con un único objeto,
+  `procesamiento.zip`.**
+
+### Verificación final
+
+- `aws glue get-jobs`: **48/48** jobs con `--extra-py-files` → `…/glue-libs/procesamiento.zip`
+  (los otros 10 sin el argumento). **0 jobs apuntando a un objeto inexistente.**
+- Ejecución real post-apply: `trafico_bronze_to_silver` lanzado a mano →
+  `SUCCEEDED` sobre la key estable. Los disparos **programados** de las
+  22:10 (calidad_aire, bicimad, meteorologia, transporte_publico_emt,
+  aparcamientos) → `SUCCEEDED` solos, ya sobre la key estable.
+- Athena: los 9 datasets comprobados con `max_date = 2026-08-29`.
+
+### Pendiente (no bloqueante, follow-ups del mismo anti-patrón)
+
+- `aws_s3_object.layer_build_source` (`lambda_layer_build.tf`) → key estable
+  (sigue con hash en la key; es el `1 destroy` recurrente de cada plan).
+- `aws_s3_object.glue_script_*` (~44, key con `filemd5`) → key estable.
