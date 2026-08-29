@@ -2,10 +2,21 @@
 kind: ml
 title: "MLflow — tracking de experimentos + model registry"
 owner: Filippos (interactive)
-status: pending
+status: done
 depends_on: [ML_02]
 created_at: "2026-08-28"
 ---
+
+> **Estado 29/8: ✅ HECHO.** `modelado/registry/mlflow_setup.py`
+> (`configurar` / `log_run` / `marcar_champion`) + `train_gbt.py --mlflow`.
+> Backend por defecto **`sqlite:///modelado/mlflow.db`** (MLflow ≥3 dejó el
+> backend de fichero en mantenimiento; el registry exige base de datos).
+> Artefactos en `modelado/mlartifacts/`. Migrable a un servidor MLflow vía
+> `MLFLOW_TRACKING_URI` sin tocar código. Verificado end-to-end: 6 runs en
+> el experimento `tier1`, 6 modelos registrados
+> (`madrono-{calidad_aire,trafico}-h{1,3,6}` v1) con alias `@champion`.
+> `mlflow>=2.16,<4` en requirements. 20 tests en verde (+1 `test_ml04.py`).
+> Writeup en `doc/ML-04-mlflow-tracking-registry.md`.
 
 ## Objetivo
 

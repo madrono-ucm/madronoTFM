@@ -36,10 +36,24 @@ def _mejor_baseline(train, test, horizon):
     return mejor, ref
 
 
-def entrenar_todo(panel: pd.DataFrame, *, nombre: str, horizontes=(1, 3, 6), umbral: float | None = None):
+def entrenar_todo(
+    panel: pd.DataFrame,
+    *,
+    nombre: str,
+    horizontes=(1, 3, 6),
+    umbral: float | None = None,
+    mlflow_experiment: str | None = None,
+):
     tr, va, te = temporal_split(panel)
     feats = gbt.columnas_features(panel)
     filas, artefactos = [], {}
+
+    log_run = None
+    if mlflow_experiment:
+        from modelado.registry.mlflow_setup import configurar, log_run
+
+        uri = configurar(mlflow_experiment)
+        print(f"MLflow: {uri}  experiment={mlflow_experiment}")
 
     for h in horizontes:
         model, _ = gbt.entrenar(tr, va, horizon=h, feature_cols=feats)
@@ -58,10 +72,30 @@ def entrenar_todo(panel: pd.DataFrame, *, nombre: str, horizontes=(1, 3, 6), umb
 
         Xtest, _, _ = gbt._xy(te, h, feats)
         imp = shap_explain.importancia_global(model, Xtest, top=15)
-        fig_ok = shap_explain.guardar_figura_importancia(
-            imp, _ART / f"shap_{nombre}_h{h}.png", titulo=f"{nombre} h{h} — importancia SHAP"
+        fig_path = _ART / f"shap_{nombre}_h{h}.png"
+        shap_explain.guardar_figura_importancia(
+            imp, fig_path, titulo=f"{nombre} h{h} — importancia SHAP"
         )
         artefactos[f"shap_h{h}"] = imp.to_dict("records")
+
+        if log_run:
+            log_run(
+                run_name=f"{nombre}_h{h}_lightgbm",
+                params={
+                    "target": nombre, "horizonte": h, "modelo": "lightgbm",
+                    "n_features": len(feats), "n_train": len(tr), "n_test": len(comun),
+                    **gbt.PARAMS_REG,
+                },
+                metrics={
+                    **{f"gbt_{k}": v for k, v in m_gbt.items()},
+                    **{f"baseline_{k}": v for k, v in m_bl.items()},
+                    "n_test": len(comun),
+                },
+                tags={"tier": "1", "baseline_ganadora": nombre_bl},
+                model=model, model_flavor="lightgbm",
+                artifacts=[str(fig_path)] if fig_path.exists() else [],
+                registered_name=f"madrono-{nombre}-h{h}",
+            )
 
         if umbral is not None:
             clf, _ = gbt.entrenar_clasificador_episodio(
@@ -91,10 +125,13 @@ def main(argv=None) -> int:
     ap.add_argument("--panel", required=True, type=Path)
     ap.add_argument("--nombre", required=True, help="etiqueta del target (calidad_aire / trafico / ...)")
     ap.add_argument("--umbral", type=float, default=None, help="umbral de 'episodio' (OMS / percentil)")
+    ap.add_argument("--mlflow", default=None, help="nombre de experimento MLflow (activa el logging + registro)")
     args = ap.parse_args(argv)
 
     panel = pd.read_parquet(args.panel)
-    tabla, art = entrenar_todo(panel, nombre=args.nombre, umbral=args.umbral)
+    tabla, art = entrenar_todo(
+        panel, nombre=args.nombre, umbral=args.umbral, mlflow_experiment=args.mlflow
+    )
 
     _ART.mkdir(parents=True, exist_ok=True)
     tabla.to_csv(_ART / f"tier1_{args.nombre}.csv", index=False)
