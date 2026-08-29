@@ -146,11 +146,16 @@ def build_panel(
     holidays: "set | None" = None,
     neighbours: "dict[str, list[str]] | None" = None,
     weather_df: "pd.DataFrame | None" = None,
+    daily_df: "pd.DataFrame | None" = None,
 ) -> pd.DataFrame:
     """Panel horario listo para entrenar: una fila por `(entity_id, ts)` con
     features (todas `known_at <= ts`) y una columna `target_h{h}` por
     horizonte (puede ser NaN al final de la serie -- el entrenamiento filtra
     por horizonte). Descarta el warm-up (filas sin ningún lag).
+
+    `weather_df`: features por `(entity_id, ts)` (meteo observada).
+    `daily_df`: features exógenas por día de calendario -- lleva una columna
+    `date` (str ISO) y se une por la fecha de `ts` (previsión AEMET).
     """
     df = _reindex_horario_completo(gold_df)
     df = add_lag_rolling_features(df, value_col=value_col, lags=lags, rolling_windows=rolling_windows)
@@ -158,6 +163,9 @@ def build_panel(
         df = add_neighbour_features(df, neighbours, value_col=value_col)
     if weather_df is not None and not weather_df.empty:
         df = df.merge(weather_df, on=["entity_id", "ts"], how="left")
+    if daily_df is not None and not daily_df.empty:
+        df["date"] = df["ts"].dt.strftime("%Y-%m-%d")
+        df = df.merge(daily_df, on="date", how="left").drop(columns="date")
     df = add_calendar_features(df, holidays=holidays)
     df = add_targets(df, value_col=value_col, horizons=horizons)
 

@@ -14,14 +14,28 @@ lags + rolling + targets) no necesita nada más que Athena.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import logging
 from pathlib import Path
 
-from modelado.features import panel
-from modelado.features.athena import query_df
+from modelado.features import exogenas, panel
+from modelado.features.athena import GOLD_DATABASE, query_df
 
 logger = logging.getLogger(__name__)
+
+_SILVER_DATABASE = "madrono-tfm_dev_silver"
+
+# Calendario laboral de Madrid: el productor deja una muestra completa del
+# año commiteada (no hay pipeline Silver/Gold; ver `tasks/ML_01`). Se usa
+# por defecto para no depender de un flag.
+_DEFAULT_FESTIVOS = (
+    Path(__file__).resolve().parents[2]
+    / "ingesta"
+    / "capturas"
+    / "samples"
+    / "calendario_laboral_madrid_sample.json"
+)
 
 # (tabla Gold, SQL que proyecta a entity_id / ts / value). `ts` se compone en
 # pandas a partir de `date` + `hour`; aquí solo se traen las columnas crudas.
@@ -60,20 +74,95 @@ _TARGETS = {
 }
 
 
-def _cargar_festivos(path: "str | None") -> "set":
+def _es_festivo(rec: dict) -> bool:
+    """Un registro del calendario laboral marca festivo -- tolerante al
+    formato (`is_holiday` bool/str, o `day_type == "festivo"`)."""
+    v = rec.get("is_holiday")
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "1", "si", "sí")
+    if v is not None:
+        return bool(v)
+    return str(rec.get("day_type", "")).strip().lower() == "festivo"
+
+
+def _cargar_festivos(path: "str | Path | None") -> "set":
+    """Fechas festivas de Madrid desde el JSON de
+    `calendario_laboral_madrid` (lista de registros con `date`/`fecha` +
+    `is_holiday`). Solo entran los días efectivamente festivos -- no todo el
+    calendario."""
     if not path:
         return set()
-    import datetime as dt
+    p = Path(path)
+    if not p.exists():
+        logger.warning("fichero de festivos no encontrado: %s -- sin feature de festivo", p)
+        return set()
 
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    data = json.loads(p.read_text(encoding="utf-8"))
+    registros = data if isinstance(data, list) else data.get("dias", data.get("data", []))
     fechas = set()
-    for rec in data if isinstance(data, list) else data.get("dias", []):
-        raw = rec.get("fecha") or rec.get("date") if isinstance(rec, dict) else rec
+    for rec in registros:
+        if not isinstance(rec, dict) or not _es_festivo(rec):
+            continue
+        raw = rec.get("fecha") or rec.get("date")
         try:
             fechas.add(dt.date.fromisoformat(str(raw)[:10]))
-        except ValueError:
+        except (ValueError, TypeError):
             continue
     return fechas
+
+
+_METEO_SQL = """
+    SELECT station_id, date, hour, magnitude, avg_value, lat, lon
+    FROM meteorologia_por_estacion_magnitud_hora
+    WHERE date BETWEEN '{desde}' AND '{hasta}'
+      AND avg_value IS NOT NULL
+      AND magnitude IN ({magnitudes})
+"""
+
+_PREVISION_SQL = """
+    SELECT valid_date, elaborated_at, temperature_max_c, temperature_min_c,
+           precipitation_probability_pct, wind_speed_kmh, humidity_max_pct
+    FROM aemet_prevision
+    WHERE fecha BETWEEN '{desde_ext}' AND '{hasta}'
+"""
+
+
+def _meteo_long(desde: str, hasta: str, *, athena_client=None):
+    """Formato largo de la meteo Gold para la ventana: `station_id`, `ts`,
+    `magnitude`, `avg_value`, `lat`, `lon`."""
+    import pandas as pd
+
+    mags = ", ".join(f"'{m}'" for m in exogenas.MAGNITUDES_METEO)
+    df = query_df(
+        _METEO_SQL.format(desde=desde, hasta=hasta, magnitudes=mags),
+        athena_client=athena_client,
+    )
+    if df.empty:
+        return df
+    df["station_id"] = df["station_id"].astype(str)
+    df["ts"] = pd.to_datetime(df["date"]) + pd.to_timedelta(df["hour"].astype(int), unit="h")
+    df["avg_value"] = pd.to_numeric(df["avg_value"], errors="coerce")
+    return df[["station_id", "ts", "magnitude", "avg_value", "lat", "lon"]]
+
+
+def _prevision_diaria(desde: str, hasta: str, *, athena_client=None):
+    """Panel de previsión AEMET por día (`forecast_panel`). Se pide una
+    semana extra hacia atrás para tener elaboraciones previas al primer día
+    de la ventana."""
+    import pandas as pd
+
+    desde_ext = (dt.date.fromisoformat(desde) - dt.timedelta(days=7)).isoformat()
+    raw = query_df(
+        _PREVISION_SQL.format(desde_ext=desde_ext, hasta=hasta),
+        database=_SILVER_DATABASE,
+        athena_client=athena_client,
+    )
+    if raw.empty:
+        return raw
+    prev = exogenas.forecast_panel(raw)
+    if prev.empty:
+        return prev
+    return prev[(prev["date"] >= desde) & (prev["date"] <= hasta)].reset_index(drop=True)
 
 
 def _neo4j_driver():
@@ -140,8 +229,10 @@ def construir(
     hasta: str,
     *,
     scope: str = "all",
-    festivos_path: "str | None" = None,
+    festivos_path: "str | Path | None" = _DEFAULT_FESTIVOS,
     con_vecinos: bool = False,
+    con_meteo: bool = True,
+    con_prevision: bool = True,
     athena_client=None,
 ):
     import pandas as pd
@@ -181,10 +272,36 @@ def construir(
         vecinos = _vecinos_desde_grafo(spec["graph_tipo"])
         logger.info("vecinos de grafo: %d entidades con al menos un vecino", len(vecinos))
 
+    weather_df = None
+    if con_meteo:
+        entidades_latlon = {
+            eid: (r.lat, r.lon)
+            for eid, r in gold.drop_duplicates("entity_id").set_index("entity_id").iterrows()
+        }
+        meteo = _meteo_long(desde, hasta, athena_client=athena_client)
+        weather_df = exogenas.weather_panel(meteo, entidades_latlon)
+        cols_meteo = [c for c in weather_df.columns if c.startswith("meteo_")]
+        logger.info(
+            "meteo: %d filas, %d entidades con estación cercana, columnas %s",
+            len(weather_df), weather_df["entity_id"].nunique() if not weather_df.empty else 0,
+            cols_meteo,
+        )
+
+    daily_df = None
+    if con_prevision:
+        daily_df = _prevision_diaria(desde, hasta, athena_client=athena_client)
+        logger.info(
+            "previsión AEMET: %d días con previsión previa (%s)",
+            len(daily_df),
+            [c for c in daily_df.columns if c != "date"] if not daily_df.empty else [],
+        )
+
     p = panel.build_panel(
         gold,
         holidays=_cargar_festivos(festivos_path),
         neighbours=vecinos,
+        weather_df=weather_df,
+        daily_df=daily_df,
     )
     return p
 
@@ -200,8 +317,19 @@ def main(argv=None) -> int:
         help="'all' = toda la red (target de congestión de red); 'grafo-lugares' = "
         "solo sensores con PROXIMO_A a un :Lugar (fusión / afluencia). Necesita Neo4j.",
     )
-    ap.add_argument("--festivos", default=None, help="JSON de calendario_laboral_madrid (opcional)")
+    ap.add_argument(
+        "--festivos", default=str(_DEFAULT_FESTIVOS),
+        help="JSON de calendario_laboral_madrid (por defecto: la muestra commiteada)",
+    )
     ap.add_argument("--con-vecinos", action="store_true", help="añade features de vecinos (necesita Neo4j)")
+    ap.add_argument(
+        "--sin-meteo", action="store_true",
+        help="no unir la meteo observada (join espacial a la estación más cercana)",
+    )
+    ap.add_argument(
+        "--sin-prevision", action="store_true",
+        help="no unir la previsión AEMET diaria (feature exógena de futuro conocido)",
+    )
     ap.add_argument("--log-level", default="INFO")
     args = ap.parse_args(argv)
     logging.basicConfig(level=args.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -209,6 +337,7 @@ def main(argv=None) -> int:
     p = construir(
         args.target, args.desde, args.hasta,
         scope=args.scope, festivos_path=args.festivos, con_vecinos=args.con_vecinos,
+        con_meteo=not args.sin_meteo, con_prevision=not args.sin_prevision,
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     p.to_parquet(args.out, index=False)

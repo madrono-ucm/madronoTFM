@@ -2,12 +2,14 @@
 kind: ml
 title: "modelado/ esqueleto + feature store (Athena -> Parquet, panel horario sin fugas)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-28"
 ---
 
 > **Estado 28/8: 🟡 mayoría hecha.** `modelado/` creado con la estructura; `features/{athena,panel,build}.py`; 8 tests (incl. no-fuga). Paneles reales verificados contra Athena: `calidad_aire` 39.942 filas/123 ent (`grafo-lugares` 17.542/54), `trafico` 1.511.995/4.702 (`grafo-lugares` 580.325/1.813). Flag `--scope all|grafo-lugares`. Lectura Athena por CSV de S3 (~22 s vs >15 min). `doc/ML-01`. **Falta**: join real de meteo/previsión AEMET; festivos desde el fichero real; `afluencia` (la Gold de FIL_06 aún sin horas suficientes).
+>
+> **Estado 29/8: ✅ HECHO.** Cerrados los tres huecos en `modelado/features/exogenas.py` (+`test_exogenas.py`/`test_build.py`, 61 tests `modelado/` en verde): (1) **meteo observada** — join espacial (haversine) de `meteorologia_por_estacion_magnitud_hora`, 5 columnas `meteo_*`, `known_at = t`; (2) **previsión AEMET** — de la Silver `aemet_prevision` (la Gold es `overwrite` sin histórico), última elaboración de un día anterior, 6 columnas `prev_*`, `known_at < t` sin fuga; (3) **festivos** — `_cargar_festivos` arreglado (filtraba mal: metía todo el año), por defecto la muestra commiteada. Verificado contra Athena real: `calidad_aire`/`all` y `trafico`/`all` → **30 features** (19+5+6). `--sin-meteo`/`--sin-prevision` para la ablación de §7.3. Ver `doc/ML-01` §"Cierre de huecos". Único resto real: `afluencia` (sigue esperando horas en la Gold de FIL_06).
 
 ## Objetivo
 
