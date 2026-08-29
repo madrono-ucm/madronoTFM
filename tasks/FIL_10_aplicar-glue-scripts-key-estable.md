@@ -2,10 +2,20 @@
 kind: fil
 title: "Aplicar la key estable de los 48 glue_script_* (código de la tarea 107, sin aplicar)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: true
 created_at: "2026-08-29"
 ---
+
+> **✅ RESUELTO 29/8** (sesión interactiva, `apply` aprobado por el usuario).
+> Plan regenerado sobre `main`: `48 add / 48 change / 48 destroy` (no el
+> `48/67/48` del doc — el `67→48` es porque los `apply` del fix de Bluesky,
+> PR #177, ya habían reconciliado las 16 Lambdas + policy + codebuild).
+> `terraform apply` limpio, Kafka excluido, sin destrucciones sueltas.
+> Verificado en vivo: 48/48 `script_location` en `glue-scripts/<nombre>.py`
+> sin hash, 0 huérfanos, `trafico_bronze_to_silver` → `SUCCEEDED` sobre la
+> key nueva. `layer_build_source` sin tocar (descartado a propósito, ver
+> `doc/107`). Detalle en `doc/107-...md` § "Resultado de la ejecución".
 
 > **Contexto**: el código ya está mergeado en `main` (tarea 107, commit
 > `7a97133`, `infra/terraform/glue.tf`) — extiende a los 48

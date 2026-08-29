@@ -378,11 +378,13 @@ pese a estar en orden inverso de creación en este documento.
   y descartado a propósito: sus dos consumidores derivan la key de la
   misma expresión, nunca se congela en el estado de otro recurso, y su
   diseño con hash es deliberado (política de expiración de S3). Plan
-  verificado (`48 add/67 change/48 destroy`, sin destrucciones sueltas) —
-  el `apply` queda pendiente de aprobación humana, no urgente. Empaquetado
-  como ticket [`FIL_10`](tasks/FIL_10_aplicar-glue-scripts-key-estable.md)
-  para revisión (plan fresco en
-  [`doc/FIL-10-terraform-plan-glue-scripts-key-estable.md`](doc/FIL-10-terraform-plan-glue-scripts-key-estable.md)).
+  verificado. **`apply` hecho el 29/8 vía [`FIL_10`](tasks/FIL_10_aplicar-glue-scripts-key-estable.md)**
+  (aprobado por el usuario): plan fresco `48 add / 48 change / 48 destroy`
+  (el `67→48 change` porque los `apply` del fix de Bluesky, PR #177, ya
+  habían reconciliado las 16 Lambdas), Kafka excluido, sin destrucciones
+  sueltas. Verificado: 48/48 `script_location` con key estable sin hash,
+  `trafico_bronze_to_silver` → `SUCCEEDED`. `doc/107` § "Resultado de la
+  ejecución". Ambos follow-ups de `FIL_09` cerrados.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
