@@ -121,3 +121,34 @@ Plan: 48 to add, 67 to change, 48 to destroy.
   mejora preventiva.
 - `layer_build_source` se queda como está, a propósito (ver análisis
   arriba) — no crear un ticket para "arreglarlo", no es un bug.
+
+---
+
+## Resultado de la ejecución (29/8, sesión interactiva — `FIL_10`, apply aprobado)
+
+- **`git pull` + plan regenerado** sobre `main` con el método `-target` de
+  `FIL_09`/`FIL-10` (excluir Kafka). Plan fresco: **`48 to add, 48 to
+  change, 48 to destroy`** — no los `48/67/48` del documento. El delta de
+  `67 → 48 change` es benigno y está explicado: las 16
+  `aws_lambda_function.producer[*]` + `aws_iam_policy.scheduler_invoke_lambda`
+  + `aws_codebuild_project` que el plan original contaba como *change* ya
+  se habían reconciliado en los dos `apply` acotados del fix de auth de
+  Bluesky (PR #177) minutos antes. Quedan solo los 48
+  `aws_glue_job.*` actualizando `script_location` a la key estable.
+- **Verificado**: los 48 *replace* son todos `aws_s3_object.glue_script_*`
+  (`grep 'must be replaced' | grep -v glue_script` → vacío); 0 destrucciones
+  sueltas; `procesamiento_source` ni aparece (sigue estable desde PR #175).
+- **`terraform apply`** → `Apply complete! Resources: 48 added, 48 changed,
+  48 destroyed`, sin errores. (Un intento previo chocó con el *state lock*
+  del demonio en un `plan`; se esperó a que lo soltara y se reintentó el
+  mismo plan guardado — el demonio solo había hecho un `plan`, el estado no
+  se movió.)
+- **Verificación en vivo**:
+  - `aws glue get-jobs`: **48/48** `script_location` bajo
+    `glue-scripts/<nombre>.py`, **0 con hash** en la key. 47 objetos
+    estables en `glue-scripts/`, sin huérfanos (`create_before_destroy`
+    creó cada nuevo antes de borrar el viejo).
+  - `trafico_bronze_to_silver` lanzado a mano tras el apply →
+    **`SUCCEEDED`** (183 s) sobre la key estable nueva.
+- `FIL_10` → resuelto. `layer_build_source` se deja como está, a propósito
+  (ver arriba). Ambos follow-ups de `FIL_09` cerrados.
