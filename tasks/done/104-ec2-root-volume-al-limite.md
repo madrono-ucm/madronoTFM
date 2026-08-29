@@ -3,7 +3,7 @@ id: 104
 slug: ec2-root-volume-al-limite
 title: 'QA: el volumen raíz de esta EC2 está al 95% (375M libres de 6,7G) — ya causó
   un fallo real de pip install'
-status: in_review
+status: done
 force: false
 allow_infra_apply: false
 branch: task/104-ec2-root-volume-al-limite
@@ -13,10 +13,10 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: '2026-08-29T19:20:00+00:00'
-updated_at: '2026-08-29T19:03:56.345798+00:00'
+updated_at: '2026-08-29T19:21:16.977754+00:00'
 started_at: '2026-08-29T18:54:41.682176+00:00'
 submitted_at: '2026-08-29T19:03:56.345775+00:00'
-merged_at: null
+merged_at: '2026-08-29T19:20:39Z'
 ---
 
 ## Hallazgo de QA (verificado en vivo)
