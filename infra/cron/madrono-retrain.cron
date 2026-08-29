@@ -1,0 +1,9 @@
+# Plantilla de /etc/cron.d/madrono-retrain — ML_10 / tarea 105.
+#
+# NO está instalada. Antes de copiarla a /etc/cron.d/, sustituye <REPO> por
+# la ruta real del checkout que se va a usar en producción y crea el venv
+# en <REPO>/.venv con `pip install -r modelado/requirements.txt` (ver
+# infra/cron/instalar_cron.sh, que hace ambas comprobaciones y copia este
+# fichero). No existe ya un "/opt/madrono" ni un venv compartido en la EC2
+# del demonio — ver doc/105-desplegar-cron-reentrenamiento-nocturno.md.
+30 3 * * *  ubuntu  cd <REPO> && AWS_PROFILE=madrono <REPO>/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
