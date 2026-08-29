@@ -337,11 +337,19 @@ pese a estar en orden inverso de creación en este documento.
 
 ### Pista Memoria
 
-Ver el reparto por sección de arriba, y `tasks/VIC_00_README.md` para el
-detalle ticket a ticket (`VIC_01`–`VIC_07`, fuera de la cola del demonio).
-**Estado 29/8: los 7 tickets `VIC_*` están completos.** §1–§7.5 de la
-memoria reflejan ya la arquitectura y los resultados reales, sin
-Kafka/Flink/Delta/Power BI/streaming presentados como entregados en
+Ver el reparto por sección de arriba, y `tasks/VIC_00_README.md` /
+`tasks/VIKT_00_README.md` para el detalle ticket a ticket (fuera de la
+cola del demonio). **Estado 29/8: los 7 tickets `VIC_*` y los 4 `VIKT_*`
+están completos.** `VIKT_*` es una segunda pasada de QA + actualización,
+hecha tras aterrizar `ML_04`–`ML_10` (que `VIC_*` no llegó a ver):
+`VIKT_01` reconcilió toda la memoria contra el repo real (14
+discrepancias, ninguna de dato inventado) y `VIKT_02`–`VIKT_04`
+las cerraron — siete tools del asistente (no seis), MLOps real
+(MLflow/Evidently/ONNX/reentrenamiento nocturno), Tabla 3 con los números
+consolidados de `ML_08`, backtest incremental real en §7.4, y un Anexo C
+de reproducibilidad. §1–§7.5 de la memoria reflejan ya la arquitectura y
+los resultados reales, sin Kafka/Flink/Delta/Power BI/streaming
+presentados como entregados en
 ningún sitio fuera de §5.3 (justificación del descarte) y §7.5 (futuras
 líneas). La memoria ya no necesita una pasada de "poner al día", solo
 revisión editorial humana y las ampliaciones que decida el equipo
@@ -425,6 +433,15 @@ terminados (front-matter desactualizado, corregido) y se encontró que
 escribir `VIC_05`: las ablaciones de §7.3 ("decisión 8" de
 `NEXT_STEPS.md`) se descartan para esta entrega por tiempo — recomendado
 revisar esta decisión con el equipo si aparece margen antes del 17/9.
+Más tarde el mismo día aterrizaron `ML_04`–`ML_10` (PRs #159–#168), así
+que se creó una segunda tanda de tickets (`VIKT_01`–`VIKT_04`) para
+reconciliar la memoria otra vez: `VIKT_01` (QA de solo lectura) encontró
+14 discrepancias, ninguna de dato inventado, y `VIKT_02`–`VIKT_04` las
+cerraron — siete tools del asistente, MLOps real (MLflow/Evidently/ONNX/
+reentrenamiento nocturno vía cron), Tabla 3 con los números consolidados
+de `ML_08`, backtest incremental real en §7.4 y un Anexo C de
+reproducibilidad. Los 11 tickets de memoria (`VIC_*` + `VIKT_*`) quedan
+completos.
 
 **Para la semana que viene**
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
