@@ -2,7 +2,9 @@
 kind: vic
 title: "Memoria §5 Arquitectura — reescribir a la pila real (decisión coste 0)"
 owner: Víctor
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 created_at: "2026-08-28"
 ---
 
@@ -56,3 +58,14 @@ created_at: "2026-08-28"
   asistente / modelado (sin Kafka, sin Flink, sin Power BI).
 - Kafka/Flink/Delta/Power BI aparecen solo en §7.5, con una frase de por qué
   se descartaron (coste 0 / alcance).
+
+## Hecho (29/8)
+
+§5.1–5.5 reescritas directamente en `documents/Memoria_TFM FV.docx`
+(editado con `python-docx`, preservando estilos/numeración de lista). Se
+sustituyó Kafka/Flink/Delta/Power BI por la pila real (Lambda +
+EventBridge Scheduler, Glue, Athena + Partition Projection, Neo4j
+AuraDB), y de paso se corrigió una mención residual a "un despliegue en
+la nube de Azure" en §5.3 (el proyecto real está íntegramente en AWS).
+Kafka/Flink/Delta/Power BI quedan solo en §7.5 (VIC_06), cada uno con su
+motivo de descarte.

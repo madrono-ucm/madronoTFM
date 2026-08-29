@@ -2,7 +2,9 @@
 kind: vic
 title: "Memoria §6.5 Orquestación · §6.6 Almacenamiento y consulta"
 owner: Víctor
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 created_at: "2026-08-28"
 ---
 
@@ -44,3 +46,10 @@ created_at: "2026-08-28"
 
 - §6.5 describe Glue Triggers reales, no un orquestador inexistente.
 - §6.6 no menciona ningún "hot store"; describe Athena + Neo4j.
+
+## Hecho (29/8)
+
+§6.5/§6.6 reescritas en `documents/Memoria_TFM FV.docx`: Glue Triggers
+nativos (`SCHEDULED` + `CONDITIONAL`) en vez de un orquestador sobre ruta
+caliente; Athena + Neo4j como las dos superficies de consulta reales, sin
+ningún "almacén caliente".

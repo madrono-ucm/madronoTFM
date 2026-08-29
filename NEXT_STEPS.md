@@ -156,10 +156,10 @@ de código nuevo).
 |---|---|---|---|
 | 1 | **`modelado/` — fundación (Tier 0)**: feature store, arnés de CV temporal, líneas base, MLflow, Evidently, export ONNX | Sistema | ⬜ sin empezar (tickets de ML sin crear) |
 | 2 | **`FIL_01`** + **`FIL_02`→`FIL_06`** + **`FIL_08`** — fundación de datos | Sistema | ✅ **mayoría cerrada** (PRs #150-155) — `FIL_01`/`02`/`04`/`06`/`08` ✅; `FIL_03`/`FIL_05` Ingesta→Bronze ✅ (Silver/Gold aplazado, el JSON Bronze ya es consumible); `FIL_07` ⬜ (prioridad más baja). Ver `tasks/FIL_00_README.md`. La instancia real de Neo4j tiene aforos + 203 parques + sus `PROXIMO_A`; `afluencia_lugares` ya es una tabla Gold horaria derivada de sensores |
-| 3 | **`VIC_01`–`VIC_04`** — reescritura de §1–§6 a la realidad | Memoria | ⬜ |
+| 3 | **`VIC_01`–`VIC_04`** — reescritura de §5–§6 a la realidad | Memoria | ✅ **hecho (29/8)** — §5, §6.1–6.4, §6.5–6.6, §6.7–6.8 reescritas directamente en el `.docx` (Kafka/Flink/Delta/Power BI/streaming fuera de la descripción del sistema construido, solo en §7.5 con motivo). Ver notas "Hecho" en `tasks/VIC_01`–`VIC_04` |
 | 4 | **Tier 1** — forecasters LightGBM (AQ, congestión, afluencia) + clasificadores de episodio + SHAP | Sistema | ⬜ |
 | 5 | **Tier 2** — GNN espacio-temporal multi-tarea + importancia de aristas | Sistema | ⬜ |
-| 6 | **`VIC_05`–`VIC_06`** — §7 usando 4–5 salidas reales de los modelos | Memoria | ⬜ |
+| 6 | **`VIC_05`–`VIC_06`** — §7 usando 4–5 salidas reales de los modelos | Memoria | 🟡 **`VIC_06` hecho (29/8)** — §7.4 (4→7 limitaciones) y §7.5 (5→10 futuras líneas) reescritas. `VIC_05` (§7.1–7.3) sigue bloqueada por los Tier 1/Tier 2 de ML (ítems 4–5) |
 | 7 | **Tier 4** — tool `*_prevista` (ONNX), reentrenamiento nocturno, backtest incremental | Sistema | ⬜ |
 | 8 | **`FIL_07`** (EMT multi-parada) — aditivo, la prioridad más baja | Sistema | ⬜ |
 

@@ -2,7 +2,9 @@
 kind: vic
 title: "Memoria §7.4 Limitaciones · §7.5 Futuras líneas"
 owner: Víctor
-status: pending
+status: done
+done_by: "Claude (Sonnet 5)"
+done_at: "2026-08-29"
 created_at: "2026-08-28"
 ---
 
@@ -59,3 +61,13 @@ created_at: "2026-08-28"
 - §7.4 no oculta ninguna de las limitaciones de arriba.
 - Cada ítem movido a §7.5 lleva el motivo (coste 0 / alcance / tiempo), no
   se presenta como "no dio tiempo" sin más.
+
+## Hecho (29/8)
+
+§7.4/§7.5 reescritas en `documents/Memoria_TFM FV.docx`. §7.4 pasa de 4 a
+7 limitaciones (todas verificadas: ventana de datos corta, sin ruta
+caliente, cobertura heterogénea, afluencia como aproximación, CI sin
+poder de bloqueo real, OSM limitado a muestra, evaluación del asistente
+no mide acierto subjetivo). §7.5 pasa de 5 a 10 futuras líneas, cada una
+con el motivo del descarte (coste 0 / alcance / tiempo), incorporando
+Kafka/Flink/Delta/Power BI/satélite movidos desde el resto de secciones.
