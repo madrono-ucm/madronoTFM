@@ -498,6 +498,25 @@ de `ML_08`, backtest incremental real en §7.4 y un Anexo C de
 reproducibilidad. Los 11 tickets de memoria (`VIC_*` + `VIKT_*`) quedan
 completos.
 
+**29/8, tarde — evaluación técnica completa del proyecto** (a petición del
+usuario, `doc/PLAN-EVALUACION-TECNICA.md`): 8 tickets `VIC_08`-`VIC_15`,
+uno por módulo (`ingesta/`, `procesamiento/`, `grafo/`, `asistente/`,
+`modelado/`, `infra/terraform/`, herramientas/CI/demonio/disco,
+consistencia final de memoria), todos de solo lectura/test. Resultado:
+todas las suites de test en verde (303+367+100+74+61 tests reales),
+`terraform plan` limpio (0 reemplazos, confirma que el fix de
+`FIL_09`/`FIL_10` es duradero), CI/demonio/disco/coste sanos. Dos
+hallazgos reales nuevos, empaquetados como `FIL_11` (`ruido` y
+`aemet_avisos` con Gold estancado 8-11 días pese a jobs `SUCCEEDED` a
+diario — mismo patrón de escritura vacía silenciosa que ya rompió
+`aparcamientos`/`cartelera`) y `FIL_12` (el incidente de `FIL_09` dejó
+6 datasets con 17-21 horas perdidas el 29/8, nunca rellenadas —
+`FIL_09` solo verificó frescura por fecha, no completitud por hora).
+Un hallazgo de memoria: otra sesión ya cerró el gap de `ML_01`
+(meteo/festivos) que `VIKT_03` había descrito como futura línea —
+`VIKT_05` de seguimiento, con el matiz de confirmar si la Tabla 3 actual
+ya entrena con esas features antes de tocar el `.docx`.
+
 **Para la semana que viene**
 - [x] Resolver el alta de Neo4j (bloqueador crítico) — resuelto 24/8
 - [x] Crear y encolar `079-asistente-tool-calidad-aire` — completada
