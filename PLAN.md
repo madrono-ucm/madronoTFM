@@ -379,7 +379,10 @@ pese a estar en orden inverso de creación en este documento.
   misma expresión, nunca se congela en el estado de otro recurso, y su
   diseño con hash es deliberado (política de expiración de S3). Plan
   verificado (`48 add/67 change/48 destroy`, sin destrucciones sueltas) —
-  el `apply` queda pendiente de aprobación humana, no urgente.
+  el `apply` queda pendiente de aprobación humana, no urgente. Empaquetado
+  como ticket [`FIL_10`](tasks/FIL_10_aplicar-glue-scripts-key-estable.md)
+  para revisión (plan fresco en
+  [`doc/FIL-10-terraform-plan-glue-scripts-key-estable.md`](doc/FIL-10-terraform-plan-glue-scripts-key-estable.md)).
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
