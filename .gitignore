@@ -240,4 +240,8 @@ ingesta/bronze/
 # runs de MLflow y las figuras/CSV de evaluación se regeneran).
 modelado/_data/
 modelado/mlruns/
+modelado/mlflow.db
+modelado/mlartifacts/
 modelado/evaluation/artifacts/
+# mlflow con cwd = raíz del repo crea ./mlruns; se ignora igualmente.
+/mlruns/
