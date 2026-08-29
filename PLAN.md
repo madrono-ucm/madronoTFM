@@ -47,10 +47,15 @@ Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
    borrados). Al menos 28 horas de Bronze→Silver roto para tráfico,
    bicimad, transporte_publico_emt, meteorologia, calidad_aire y
    aparcamientos — 6 de los 16 "productores en producción continua" que
-   describe la memoria. Ver ticket
-   [`106`](tasks/106-glue-jobs-rotos-libreria-compartida-inexistente.md)
-   — necesita un `terraform apply` real revisado y aprobado por un
-   humano antes de ejecutarse (mismo criterio que las tareas 098/100).
+   describe la memoria. **Plan de reconciliación ya generado y verificado
+   como seguro** (sin destrucciones sueltas) — ver
+   [`FIL_09`](tasks/FIL_09_reparar-glue-libreria-compartida.md) y el plan
+   completo en
+   [`doc/FIL-09-terraform-plan-glue-libreria-compartida.md`](doc/FIL-09-terraform-plan-glue-libreria-compartida.md).
+   Movido de la cola numerada (`tasks/done/106-...md`, redirigida) a la
+   pista interactiva porque necesita un `terraform apply` real revisado y
+   aprobado por un humano antes de ejecutarse (mismo criterio que las
+   tareas 098/100) — **solo falta esa aprobación**.
 1. ~~Alta de Neo4j AuraDB Free~~ — **resuelto y grafo cargado el 24/8.**
    Instancia real creada, credenciales en SSM (mismo patrón que
    EMT/AEMET/CAMS). Grafo completo cargado y verificado con Cypher real:
