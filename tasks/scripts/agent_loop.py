@@ -52,6 +52,7 @@ class Config:
     claude_timeout_seconds: int
     gh_bin: str
     gh_merge_method: str
+    gh_checks_timeout_seconds: int
 
     @property
     def tasks_dir(self) -> Path:
@@ -89,6 +90,11 @@ def load_config() -> Config:
         claude_timeout_seconds=int(env("CLAUDE_TIMEOUT_SECONDS", "5400")),
         gh_bin=env("GH_BIN", "gh"),
         gh_merge_method=env("GH_MERGE_METHOD", "squash"),
+        # Tope de espera de la CI antes de auto-fusionar un PR force: true
+        # (jobs `tests`/`terraform` tardan 2-3 min en runs recientes; 900 s
+        # deja margen para cola del runner). Si se supera, el PR no se
+        # fusiona y queda para merge manual.
+        gh_checks_timeout_seconds=int(env("GH_CHECKS_TIMEOUT_SECONDS", "900")),
     )
 
 
