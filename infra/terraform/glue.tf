@@ -96,18 +96,32 @@ resource "aws_s3_object" "procesamiento_source" {
 
 resource "aws_s3_object" "glue_script_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/trafico_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/trafico/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/trafico_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/trafico/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/trafico/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/trafico_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/trafico/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/trafico_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/trafico/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/trafico/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -649,18 +663,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_transporte_publico_emt_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/transporte_publico_emt_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/transporte_publico_emt_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_transporte_publico_emt_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/transporte_publico_emt_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/transporte_publico_emt_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_transporte_publico_emt_assume_role" {
@@ -1079,10 +1107,17 @@ resource "aws_glue_job" "transporte_publico_emt_silver_to_gold" {
 # trigger ni schedule: se lanzan a mano, una vez.
 resource "aws_s3_object" "glue_script_transporte_publico_emt_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/transporte_publico_emt_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/transporte_publico_emt_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "transporte_publico_emt_silver_backfill_dedup" {
@@ -1122,10 +1157,17 @@ resource "aws_glue_job" "transporte_publico_emt_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_transporte_publico_emt_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/transporte_publico_emt_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/transporte_publico_emt_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/transporte_publico_emt/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "transporte_publico_emt_gold_backfill_dedup" {
@@ -1182,18 +1224,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_bicimad_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bicimad_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/bicimad_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_bicimad_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bicimad_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/bicimad_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_bicimad_assume_role" {
@@ -1618,10 +1674,17 @@ resource "aws_glue_job" "bicimad_bronze_to_silver" {
 # trigger ni schedule: se lanza a mano, una vez.
 resource "aws_s3_object" "glue_script_bicimad_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bicimad_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/bicimad_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "bicimad_silver_backfill_dedup" {
@@ -1665,10 +1728,17 @@ resource "aws_glue_job" "bicimad_silver_backfill_dedup" {
 # trigger ni schedule: se lanza a mano, una vez.
 resource "aws_s3_object" "glue_script_bicimad_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bicimad_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/bicimad_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bicimad/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "bicimad_gold_backfill_dedup" {
@@ -1765,18 +1835,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_aparcamientos_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aparcamientos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/aparcamientos_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_aparcamientos_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aparcamientos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/aparcamientos_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_aparcamientos_assume_role" {
@@ -2197,10 +2281,17 @@ resource "aws_glue_job" "aparcamientos_silver_to_gold" {
 # trigger ni schedule: se lanzan a mano, una vez.
 resource "aws_s3_object" "glue_script_aparcamientos_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aparcamientos_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/aparcamientos_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "aparcamientos_silver_backfill_dedup" {
@@ -2240,10 +2331,17 @@ resource "aws_glue_job" "aparcamientos_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_aparcamientos_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aparcamientos_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/aparcamientos_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aparcamientos/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "aparcamientos_gold_backfill_dedup" {
@@ -2302,18 +2400,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_calidad_aire_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/calidad_aire_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/calidad_aire_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_calidad_aire_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/calidad_aire_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/calidad_aire_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_calidad_aire_assume_role" {
@@ -2757,10 +2869,17 @@ resource "aws_glue_job" "calidad_aire_silver_to_gold" {
 # trigger ni schedule: se lanzan a mano, una vez.
 resource "aws_s3_object" "glue_script_calidad_aire_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/calidad_aire_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/calidad_aire_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "calidad_aire_silver_backfill_dedup" {
@@ -2800,10 +2919,17 @@ resource "aws_glue_job" "calidad_aire_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_calidad_aire_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/calidad_aire_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/calidad_aire_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/calidad_aire/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "calidad_aire_gold_backfill_dedup" {
@@ -2862,18 +2988,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_meteorologia_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/meteorologia_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/meteorologia_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_meteorologia_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/meteorologia_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/meteorologia_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_meteorologia_assume_role" {
@@ -3297,10 +3437,17 @@ resource "aws_glue_job" "meteorologia_silver_to_gold" {
 # trigger ni schedule: se lanzan a mano, una vez.
 resource "aws_s3_object" "glue_script_meteorologia_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/meteorologia_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/meteorologia_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "meteorologia_silver_backfill_dedup" {
@@ -3340,10 +3487,17 @@ resource "aws_glue_job" "meteorologia_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_meteorologia_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/meteorologia_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/meteorologia_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/meteorologia/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "meteorologia_gold_backfill_dedup" {
@@ -3404,18 +3558,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_ruido_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/ruido_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/ruido_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/ruido/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_ruido_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/ruido_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/ruido_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/ruido/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_ruido_assume_role" {
@@ -3904,10 +4072,17 @@ resource "aws_glue_job" "ruido_silver_to_gold" {
 # procesamiento/silver_gold/ruido/glue_backfill_dedup*.py.
 resource "aws_s3_object" "glue_script_ruido_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/ruido_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/ruido_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/ruido/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "ruido_silver_backfill_dedup" {
@@ -3945,10 +4120,17 @@ resource "aws_glue_job" "ruido_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_ruido_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/ruido_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/ruido_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/ruido/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/ruido/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "ruido_gold_backfill_dedup" {
@@ -4012,18 +4194,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_aforos_peatones_bicicletas_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aforos_peatones_bicicletas_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/aforos_peatones_bicicletas_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_aforos_peatones_bicicletas_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aforos_peatones_bicicletas_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/aforos_peatones_bicicletas_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_aforos_peatones_bicicletas_assume_role" {
@@ -4482,10 +4678,17 @@ resource "aws_glue_job" "aforos_peatones_bicicletas_silver_to_gold" {
 # procesamiento/silver_gold/aforos_peatones_bicicletas/glue_backfill_dedup*.py.
 resource "aws_s3_object" "glue_script_aforos_peatones_bicicletas_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aforos_peatones_bicicletas_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/aforos_peatones_bicicletas_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "aforos_peatones_bicicletas_silver_backfill_dedup" {
@@ -4523,10 +4726,17 @@ resource "aws_glue_job" "aforos_peatones_bicicletas_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_aforos_peatones_bicicletas_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aforos_peatones_bicicletas_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/aforos_peatones_bicicletas_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aforos_peatones_bicicletas/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "aforos_peatones_bicicletas_gold_backfill_dedup" {
@@ -4591,18 +4801,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_cartelera_cines_estrenos_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/cartelera_cines_estrenos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/cartelera_cines_estrenos_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_cartelera_cines_estrenos_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/cartelera_cines_estrenos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/cartelera_cines_estrenos_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/cartelera_cines_estrenos/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_cartelera_cines_estrenos_assume_role" {
@@ -5091,18 +5315,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_agenda_eventos_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/agenda_eventos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/agenda_eventos_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_agenda_eventos_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/agenda_eventos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/agenda_eventos_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_agenda_eventos_assume_role" {
@@ -5546,10 +5784,17 @@ resource "aws_glue_job" "agenda_eventos_silver_to_gold" {
 # procesamiento/silver_gold/agenda_eventos/glue_backfill_dedup*.py.
 resource "aws_s3_object" "glue_script_agenda_eventos_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/agenda_eventos_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/agenda_eventos_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "agenda_eventos_silver_backfill_dedup" {
@@ -5589,10 +5834,17 @@ resource "aws_glue_job" "agenda_eventos_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_agenda_eventos_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/agenda_eventos_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/agenda_eventos_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/agenda_eventos/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "agenda_eventos_gold_backfill_dedup" {
@@ -5664,18 +5916,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_bluesky_menciones_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bluesky_menciones_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/bluesky_menciones_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_bluesky_menciones_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bluesky_menciones_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/bluesky_menciones_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_bluesky_menciones_assume_role" {
@@ -6118,10 +6384,17 @@ resource "aws_glue_job" "bluesky_menciones_silver_to_gold" {
 # procesamiento/silver_gold/bluesky_menciones/glue_backfill_dedup*.py.
 resource "aws_s3_object" "glue_script_bluesky_menciones_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bluesky_menciones_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/bluesky_menciones_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "bluesky_menciones_silver_backfill_dedup" {
@@ -6159,10 +6432,17 @@ resource "aws_glue_job" "bluesky_menciones_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_bluesky_menciones_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/bluesky_menciones_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/bluesky_menciones_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/bluesky_menciones/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "bluesky_menciones_gold_backfill_dedup" {
@@ -6248,18 +6528,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_aemet_prevision_avisos_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aemet_prevision_avisos_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/aemet_prevision_avisos_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_aemet_prevision_avisos_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/aemet_prevision_avisos_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/aemet_prevision_avisos_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/aemet_prevision_avisos/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_aemet_prevision_avisos_assume_role" {
@@ -6967,18 +7261,32 @@ locals {
 
 resource "aws_s3_object" "glue_script_cams_calidad_aire_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/cams_calidad_aire_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/cams_calidad_aire_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_cams_calidad_aire_silver_to_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/cams_calidad_aire_silver_to_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_silver_to_gold.py")}.py"
+  key     = "glue-scripts/cams_calidad_aire_silver_to_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_silver_to_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_silver_to_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_cams_calidad_aire_assume_role" {
@@ -7402,10 +7710,17 @@ resource "aws_glue_job" "cams_calidad_aire_silver_to_gold" {
 # procesamiento/silver_gold/cams_calidad_aire/glue_backfill_dedup*.py.
 resource "aws_s3_object" "glue_script_cams_calidad_aire_backfill_dedup" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/cams_calidad_aire_backfill_dedup-${filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_backfill_dedup.py")}.py"
+  key     = "glue-scripts/cams_calidad_aire_backfill_dedup.py"
   content = file("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_backfill_dedup.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_backfill_dedup.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "cams_calidad_aire_silver_backfill_dedup" {
@@ -7443,10 +7758,17 @@ resource "aws_glue_job" "cams_calidad_aire_silver_backfill_dedup" {
 
 resource "aws_s3_object" "glue_script_cams_calidad_aire_backfill_dedup_gold" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/cams_calidad_aire_backfill_dedup_gold-${filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_backfill_dedup_gold.py")}.py"
+  key     = "glue-scripts/cams_calidad_aire_backfill_dedup_gold.py"
   content = file("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_backfill_dedup_gold.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/cams_calidad_aire/glue_backfill_dedup_gold.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_glue_job" "cams_calidad_aire_gold_backfill_dedup" {
@@ -7519,10 +7841,17 @@ locals {
 
 resource "aws_s3_object" "glue_script_afluencia_lugares_bronze_to_silver" {
   bucket  = aws_s3_bucket.build_artifacts.id
-  key     = "glue-scripts/afluencia_lugares_bronze_to_silver-${filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_bronze_to_silver.py")}.py"
+  key     = "glue-scripts/afluencia_lugares_bronze_to_silver.py"
   content = file("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_bronze_to_silver.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_bronze_to_silver.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09):
+  # crea el objeto en la key estable antes de borrar el de la key
+  # antigua, para que el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_s3_object" "glue_script_afluencia_lugares_silver_to_gold" {
@@ -7531,10 +7860,17 @@ resource "aws_s3_object" "glue_script_afluencia_lugares_silver_to_gold" {
   # que deriva la señal de sensores vía Neo4j (`glue_estimada.py`). El
   # `glue_bronze_to_silver.py`/`glue_silver_to_gold.py` originales (Google
   # Popular Times) quedan como referencia del esquema retirado.
-  key     = "glue-scripts/afluencia_lugares_estimada-${filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_estimada.py")}.py"
+  key     = "glue-scripts/afluencia_lugares_estimada.py"
   content = file("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_estimada.py")
 
   etag = filemd5("${path.module}/../../procesamiento/silver_gold/afluencia_lugares/glue_estimada.py")
+
+  # Migración one-shot desde la key con hash (tarea 106/FIL_09): crea el
+  # objeto en la key estable antes de borrar el de la key antigua, para que
+  # el job que lo consume nunca vea un hueco.
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "glue_afluencia_lugares_assume_role" {

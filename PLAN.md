@@ -141,7 +141,9 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `107`** (106 consumida el 29/8, **URGENTE** — ver
+**Próximo número libre: `108`** (107 consumida el 29/8: extensión
+preventiva de la key estable a los 48 `glue_script_*`, ver Pista Sistema.
+106 consumida el 29/8, **URGENTE** — ver
 Bloqueadores. 105 consumida el 29/8 por una auditoría
 de QA del reentrenamiento nocturno — ver Pista Sistema. 104 consumida el
 29/8 por una auditoría
@@ -368,6 +370,16 @@ pese a estar en orden inverso de creación en este documento.
   programado) para no sobreclamar; el ticket es para desplegarlo de
   verdad, con aprobación explícita (cron con credenciales AWS recurrente
   y sin supervisión).
+- [x] **[`107-glue-scripts-key-estable`](tasks/done/107-glue-scripts-key-estable.md)**
+  — **completada** (código + plan, sin aplicar). Extiende el fix de
+  `FIL_09` (key estable) a los 48 `aws_s3_object.glue_script_*` —mismo
+  riesgo estructural de huérfanos que `procesamiento_source`, acotado a 1
+  job por incidente en vez de 37—. Investigado también `layer_build_source`
+  y descartado a propósito: sus dos consumidores derivan la key de la
+  misma expresión, nunca se congela en el estado de otro recurso, y su
+  diseño con hash es deliberado (política de expiración de S3). Plan
+  verificado (`48 add/67 change/48 destroy`, sin destrucciones sueltas) —
+  el `apply` queda pendiente de aprobación humana, no urgente.
 - [ ] Revisar la herramienta de coste (`herramientas/costes/`, tarea
   [`078`](doc/078-desglose-costes-estimador-presupuesto.md)) una vez por
   semana durante la sincronización — es la forma más rápida de detectar
