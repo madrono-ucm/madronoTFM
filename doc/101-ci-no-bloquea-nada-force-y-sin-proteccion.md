@@ -206,14 +206,25 @@ sigue con el `merge_pr()` viejo.
 
 ### Recomendación 1 — branch protection en `main`  ✅ aplicada
 
+El comando `-f`/`-F` que había diseñado la tarea autónoma **da 422**: `gh
+api -f` manda todo como string y la API exige un booleano real en
+`strict`. Lo que funcionó fue mandar el cuerpo como JSON por stdin:
+
+```bash
+gh api -X PUT repos/madrono-ucm/madronoTFM/branches/main/protection \
+  -H "Accept: application/vnd.github+json" --input - <<'JSON'
+{
+  "required_status_checks": { "strict": false, "contexts": ["tests", "terraform"] },
+  "enforce_admins": false,
+  "required_pull_request_reviews": null,
+  "restrictions": null
+}
+JSON
 ```
-gh api repos/madrono-ucm/madronoTFM/branches/main/protection --method PUT \
-  -f required_status_checks[strict]=false \
-  -f required_status_checks[contexts][]=tests \
-  -f required_status_checks[contexts][]=terraform \
-  -F enforce_admins=false -F required_pull_request_reviews=null \
-  -F restrictions=null
-```
+
+Estado tras aplicarlo (`GET .../protection`): `contexts=["tests","terraform"]`,
+`strict=false`, `enforce_admins.enabled=false`, sin
+`required_pull_request_reviews`.
 
 `tests` + `terraform` pasan a ser checks requeridos para fusionar en `main`.
 Parámetros según lo recomendado arriba: `strict=false` (menos fricción,
