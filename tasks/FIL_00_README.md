@@ -33,6 +33,7 @@ foundation first. Findings and the full decision-making picture are in
 | `FIL_06` | `afluencia_lugares`: retirar Google Maps, señal derivada como Gold | ✅ **HECHO** — parte 1 (PR #152): Google Popular Times retirado. Parte 2 (aplicada + verificada): job horario `glue_estimada.py` (Neo4j + 4 Gold de sensores → `nivel_estimado` por `:Lugar`), trigger `SCHEDULED cron(20 * * * ? *)`; Athena 534 bajo / 7 medio / 45 sin_datos sobre 586 lugares. `doc/FIL-06` |
 | `FIL_07` | `transporte_publico_emt`: capturar más de una parada | ⬜ **Sin empezar** (prioridad más baja) |
 | `FIL_08` | `cargar_grafo.py` resiliente a cortes de AuraDB Free (`UNWIND` + reintento) | ✅ **HECHO** — `_run_all` por lotes `UNWIND` + reintento/reconexión; recarga real limpia en ~9 min (antes: 4 fallos / 51 min). +4 tests. Cierra `FIL_04` (PR pendiente, `doc/FIL-08`) |
+| `FIL_09` | **URGENTE** — 37/48 jobs de Glue en `LAUNCH ERROR`, librería compartida `procesamiento.zip` inexistente en S3 (>28h roto) | ⬜ **Plan listo, esperando aprobación humana para `apply`** — causa raíz, plan completo (49 add/66 change/49 destroy, sin destrucciones sueltas) y pasos de verificación en `doc/FIL-09-terraform-plan-glue-libreria-compartida.md`. Encontrado en QA (29/8) revisando la factura real de AWS |
 
 ### Seguimiento surgido en la ejecución
 

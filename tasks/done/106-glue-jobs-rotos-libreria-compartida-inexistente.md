@@ -2,7 +2,7 @@
 id: 106
 slug: glue-jobs-rotos-libreria-compartida-inexistente
 title: "URGENTE — QA: 37 de 48 jobs de Glue (77%) fallan en LAUNCH ERROR desde hace >24h, la libreria compartida procesamiento.zip no existe en S3"
-status: pending
+status: done
 force: false
 allow_infra_apply: true
 branch: null
@@ -12,11 +12,21 @@ attempts: 0
 next_retry_at: null
 last_error: null
 created_at: "2026-08-29T19:30:00+00:00"
-updated_at: "2026-08-29T19:30:00+00:00"
+updated_at: "2026-08-29T20:10:00+00:00"
 started_at: null
 submitted_at: null
 merged_at: null
 ---
+
+> **Redirigido (29/8) a [`FIL_09`](FIL_09_reparar-glue-libreria-compartida.md)**:
+> este hallazgo se movió a la pista interactiva `FIL_*` porque necesita un
+> `terraform apply` real revisado y aprobado por un humano antes de ejecutarse
+> — no es apto para la cola autónoma del demonio. El plan completo, la causa
+> raíz y los pasos de verificación ya están en
+> [`doc/FIL-09-terraform-plan-glue-libreria-compartida.md`](../doc/FIL-09-terraform-plan-glue-libreria-compartida.md).
+> Se marca `status: done` aquí (nunca llegó a procesarse, `attempts: 0`) solo
+> para que el demonio no la recoja y duplique el trabajo — el trabajo real
+> sigue abierto en `FIL_09`, no está completado.
 
 ## Hallazgo de QA (verificado en vivo, incidente activo)
 
