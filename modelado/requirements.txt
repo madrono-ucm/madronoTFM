@@ -32,6 +32,11 @@ torch>=2.2,<3
 # cambia mucho entre versiones) — probado con 0.7.x.
 evidently>=0.7,<0.8
 
-# Los tiers posteriores añaden aquí: onnx, onnxruntime, skl2onnx/onnxmltools
-# (ML_07). Se van añadiendo ticket a ticket para no arrastrar dependencias
-# pesadas antes de usarlas.
+# Export ONNX (ML_07): formato de despliegue/portabilidad (memoria §5.2/§5.4).
+# `onnxmltools` convierte LightGBM; `onnxruntime` corre el test de paridad;
+# `onnxscript` lo pide `torch.onnx.export` (ruta dynamo) para el intento
+# best-effort de exportar el STGNN.
+onnx>=1.16,<2
+onnxruntime>=1.18,<2
+onnxmltools>=1.12,<2
+onnxscript>=0.1,<1
