@@ -40,6 +40,17 @@ alinear ambas cosas — ver [Reparto sin conflictos](#reparto-sin-conflictos).
 
 Solo vosotros podéis desbloquear esto — nada de lo demás avanza sin ello:
 
+0. **URGENTE (29/8, activo ahora): 37 de 48 jobs de Glue (77 %) fallan en
+   `LAUNCH ERROR`** — la librería compartida `procesamiento.zip` a la que
+   apuntan no existe en S3 (varias generaciones distintas del fichero,
+   `terraform apply` parciales previos dejaron jobs "anclados" a hashes ya
+   borrados). Al menos 28 horas de Bronze→Silver roto para tráfico,
+   bicimad, transporte_publico_emt, meteorologia, calidad_aire y
+   aparcamientos — 6 de los 16 "productores en producción continua" que
+   describe la memoria. Ver ticket
+   [`106`](tasks/106-glue-jobs-rotos-libreria-compartida-inexistente.md)
+   — necesita un `terraform apply` real revisado y aprobado por un
+   humano antes de ejecutarse (mismo criterio que las tareas 098/100).
 1. ~~Alta de Neo4j AuraDB Free~~ — **resuelto y grafo cargado el 24/8.**
    Instancia real creada, credenciales en SSM (mismo patrón que
    EMT/AEMET/CAMS). Grafo completo cargado y verificado con Cypher real:
@@ -125,7 +136,8 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `106`** (105 consumida el 29/8 por una auditoría
+**Próximo número libre: `107`** (106 consumida el 29/8, **URGENTE** — ver
+Bloqueadores. 105 consumida el 29/8 por una auditoría
 de QA del reentrenamiento nocturno — ver Pista Sistema. 104 consumida el
 29/8 por una auditoría
 de QA del disco de la EC2 — ver Pista Sistema. 103 consumida el 29/8 por
