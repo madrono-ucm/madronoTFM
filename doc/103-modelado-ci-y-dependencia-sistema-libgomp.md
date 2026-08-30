@@ -83,7 +83,8 @@ diagnosticando el mismo error otra vez.
   esta EC2 está al 95 % (`df -h /` → 376 M libres), y `torch`/`mlflow`
   (`ML_04`/`ML_05`) son pesados — instalarlos agotaría el disco compartido
   con el propio pipeline. Los resultados de `ML_02`/`ML_03` en verde ya
-  están verificados y documentados (`doc/ML-02.md`, `doc/ML-03.md`, y la
+  están verificados y documentados (`doc/ML-02-splits-baselines-metricas.md`,
+  `doc/ML-03-tier1-lightgbm-shap.md`, y la
   auditoría del commit `6ac24a5`); no hacía falta re-verificarlos para este
   ticket, que es un cambio de CI/documentación, no de lógica de `modelado/`.
 - No se ha modificado ninguna lógica de `modelado/` — cambio acotado a CI +
