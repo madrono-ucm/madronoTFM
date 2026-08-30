@@ -109,3 +109,50 @@ de que están obsoletos.
   con datos posteriores a sus fechas actuales de estancamiento, verificado
   en Athena real tras el fix.
 - Documentado en un `doc/FIL-11-...md` o similar.
+
+## Verificación (Claude QA, 30/8, re-verificado contra AWS real)
+
+Confirmada la causa raíz y el fix, en dos PRs que ya aterrizaron en `main`:
+
+- **PR #180** (`c048a50`): reescribe ambos jobs a `mode("overwrite")` +
+  `partitionOverwriteMode=dynamic` (`ruido`: reescribe toda la ventana de 7
+  días en vez de filtrar a "hoy"; `aemet_avisos`: lee la raíz completa de
+  Silver-avisos en vez de solo `fecha=hoy`, que casi nunca coincidía porque
+  `Silver-avisos` particiona por `effective_from`, a menudo un día futuro).
+  Confirma exactamente la hipótesis de causa raíz de este ticket para
+  ambos casos.
+- **PR #181** (`1b12dcd`): el primer despliegue de #180 reveló un problema
+  nuevo — la sobrescritura dinámica necesita `s3:DeleteObject` (borra la
+  partición antes de reescribirla), permiso que faltaba en el statement IAM
+  de ambos jobs (`madrono-tfm-dev-aemet-prevision-avisos-silver-to-gold`
+  falló en vivo el 30/8 10:18 con "One or more objects could not be
+  deleted"). #181 añade el permiso a
+  `glue_ruido_data_access`/`glue_aemet_prevision_avisos_data_access`.
+
+**Verificado en vivo tras ambos fixes** (`aws glue get-job-runs`, región
+real `eu-west-1` — nota: `eu-south-2` configurado por defecto en esta EC2
+no tiene ningún job, hay que forzar `--region eu-west-1`):
+
+- `ruido-silver-to-gold`: ejecución `2026-08-30T10:26:30` `SUCCEEDED`, Gold
+  avanzó de `date=2026-08-19` a `date=2026-08-26` (`aws s3 ls`) — se
+  autocura según el retraso real de la Red Fija del SIVCA, exactamente como
+  describe el nuevo docstring del job.
+- `aemet-prevision-avisos-silver-to-gold`: ejecución `2026-08-30T10:26:31`
+  `SUCCEEDED` (tras el `FAILED` de 10:18 tapado por #181). **Corrección
+  importante sobre el hallazgo original de este ticket**: `avisos` sigue
+  mostrando última partición Gold/Silver en `fecha=2026-08-19` — pero esto
+  **no es un bug**, es el estado real: se descargaron y compararon los
+  payloads reales de Bronze de 23/8, 26/8, 29/8 y 30/8, y los cuatro
+  contienen **únicamente avisos de nivel `verde`**. `validate_aviso_record`
+  (`transform.py`) exige `level` dentro del catálogo cerrado oficial de
+  AEMET (`VALID_LEVELS = {"amarillo", "naranja", "rojo"}`) — "verde" no es
+  un aviso real según AEMET, así que se descarta correctamente. No ha
+  habido ningún aviso amarillo/naranja/rojo real para Madrid desde ~19-22/8
+  (plausible: verano tranquilo, sin ola de calor ni tormenta), así que
+  Silver/Gold no tienen nada nuevo que escribir — el job ahora sí procesa
+  cada día (ya no hay lectura silenciosamente vacía), simplemente no hay
+  avisos reales que pasen la validación.
+
+**Conclusión**: causa raíz confirmada y arreglada para ambos datasets, con
+evidencia en vivo de ambos Gold avanzando tras el fix. Se cierra el
+ticket — `status: done`.
