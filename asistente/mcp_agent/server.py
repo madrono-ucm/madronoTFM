@@ -37,12 +37,44 @@ MCP como Claude Desktop lo probarían en desarrollo sin pasar por HTTP.
 from __future__ import annotations
 
 from mcp.server.mcpserver.server import MCPServer
+from mcp.types import ToolAnnotations
 
 from asistente.mcp_agent import tools
+
+# `instructions` es lo que el cliente MCP muestra a su LLM como "cómo/cuándo
+# usar este servidor" (distinto de `description`, que es la ficha del
+# servidor). Aquí van las tres cosas que un modelo necesita saber para no
+# malinterpretar las respuestas.
+_INSTRUCCIONES = (
+    "Datos de movilidad y vida urbana de Madrid a partir de fuentes públicas "
+    "municipales/estatales (tráfico, calidad del aire, ruido, BiciMAD, "
+    "aparcamientos, EMT, eventos) más previsiones de modelos propios.\n"
+    "\n"
+    "Cómo usar las tools:\n"
+    "- «lugar»/«zona» se resuelven por COINCIDENCIA DE TEXTO (no por "
+    "dirección ni coordenadas): sobre el nombre de la estación para "
+    "`calidad_aire`/`disponibilidad_aparcamiento`, sobre el nombre del nodo "
+    "`:Lugar` del grafo urbano para el resto. Usa nombres de sitios "
+    "reconocibles («Retiro», «Sol», «Atocha», «Plaza de España»).\n"
+    "- Ninguna tool lanza excepción por falta de datos: devuelven un objeto "
+    "con `indice_calidad`/`resumen`/`nivel_*` = «sin_datos» (o, en las "
+    "`*_prevista`, `disponible=false` + `motivo`). Trata eso como «no hay "
+    "información», no como un error.\n"
+    "- Las `*_prevista` sirven una cifra desde un modelo ONNX; la ventana de "
+    "entrenamiento es CORTA (semanas), así que son una demostración de "
+    "metodología, no una predicción de rendimiento estacional. `fiabilidad` "
+    "nunca pasa de «media» por eso.\n"
+    "- Los índices/niveles («buena»/«regular»/«fluido»/«denso»…) son "
+    "etiquetas SIMPLIFICADAS, no el ICA oficial ni una métrica normativa.\n"
+    "- La ingesta está CONGELADA desde 2026-08-30: los datos llegan hasta "
+    "~2026-08-29. Si se pide un momento posterior, se usa la última hora con "
+    "lectura real."
+)
 
 mcp = MCPServer(
     name="madrono",
     title="Madroño",
+    instructions=_INSTRUCCIONES,
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
         "(memoria del TFM, apartados 5.2 y 6.7). 9 tools con lógica real: "
@@ -56,18 +88,26 @@ mcp = MCPServer(
     ),
 )
 
-for _tool in (
-    tools.afluencia_estimada,
-    tools.afluencia_prevista,
-    tools.calidad_aire,
-    tools.calidad_aire_prevista,
-    tools.trafico_cercano,
-    tools.trafico_prevista,
-    tools.opciones_movilidad,
-    tools.disponibilidad_aparcamiento,
-    tools.eventos_cercanos,
-):
-    mcp.add_tool(_tool)
+# Las 9 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX):
+# `read_only_hint=True`. `open_world_hint=True` porque consultan datos vivos
+# externos. Son la señal estándar de "es seguro llamar a esto" para el cliente.
+_ANOTACIONES_LECTURA = ToolAnnotations(read_only_hint=True, open_world_hint=True)
+
+# `(función, título legible para el cliente)`.
+_TOOLS = (
+    (tools.afluencia_estimada, "Afluencia estimada ahora"),
+    (tools.afluencia_prevista, "Afluencia prevista"),
+    (tools.calidad_aire, "Calidad del aire ahora"),
+    (tools.calidad_aire_prevista, "Calidad del aire prevista"),
+    (tools.trafico_cercano, "Tráfico cerca de un lugar"),
+    (tools.trafico_prevista, "Tráfico previsto"),
+    (tools.opciones_movilidad, "Opciones de movilidad entre dos puntos"),
+    (tools.disponibilidad_aparcamiento, "Disponibilidad de aparcamiento"),
+    (tools.eventos_cercanos, "Eventos cercanos"),
+)
+
+for _fn, _titulo in _TOOLS:
+    mcp.add_tool(_fn, title=_titulo, annotations=_ANOTACIONES_LECTURA)
 
 
 def main() -> None:
