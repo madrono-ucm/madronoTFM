@@ -133,15 +133,21 @@ formato de lista existente, un párrafo por punto):
    una magnitud validada externamente, y la previsión de afluencia no usa
    un modelo propio (se deriva de la previsión de tráfico y de la
    afluencia actual) por la escasez de histórico de la señal.
-8. El STGNN (Tier 2, grafo espacio-temporal) se evalúa y compara contra
-   LightGBM en la Tabla 3, pero **no se ha integrado como tool del
-   asistente**: su contrato de entrada (ventana de snapshots de grafo
-   `[L,N,F]` + `edge_index`/`edge_weight` + estandarización) es más pesado
-   que el vector de 19 features de los LightGBM, que ya cubren la demo del
-   asistente con dos targets. Ya **no es un bloqueo técnico** (`FIL_20`
-   verificó que sí exporta a ONNX con paridad `max|Δ|≈6e-8`, incluso con
-   un grafo de distinto tamaño al de ejemplo, vía `torch.onnx.export(dynamo=True)`)
-   — es trabajo aditivo pendiente, no una limitación de la librería.
+8. **[Actualizado de nuevo tras `FIL_26`, aterrizado después de escribir
+   la versión anterior de este punto]**: el STGNN (Tier 2) **ya está
+   integrado como 10.ª tool del asistente**
+   (`calidad_aire_prevista_grafo`) — vendorizado como `.onnx` + un
+   `.meta.json` con las estadísticas de estandarización y el grafo
+   precalculado, servido **sin** depender de `torch` en runtime.
+   Verificado en vivo por esta sesión contra Athena real: predicción real
+   para Retiro/O3 con `vecinos_influyentes` (la explicabilidad de grafo
+   que los LightGBM no dan). Honestamente documentado en el propio
+   commit: el STGNN pierde a `calidad_aire_prevista` (LightGBM) en
+   métricas puntuales a 1h (skill -0,51), por eso se sirve con la
+   fiabilidad topada en BAJA y se presenta como complemento explicativo,
+   no como reemplazo del LightGBM. Ya no hay ninguna limitación real que
+   listar aquí sobre el STGNN — mover este punto a §7.2 (ya cubierto) o
+   eliminarlo de la lista de limitaciones.
 9. **La detección de fallos silenciosos (jobs que reportan éxito sin
    escribir datos) se hace hoy con un chequeo de frescura de la capa Gold
    y una alarma de errores de Glue diseñados y verificados contra datos

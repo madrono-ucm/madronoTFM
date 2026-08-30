@@ -13,10 +13,12 @@ revisar, derivados de las ediciones con `python-docx` de `VIKT_02`–`05` y
 de los 7 fixes de redacción menor que `VIKT_09`/`VIKT_07` dejaron
 redactados pero **sin aplicar** (ver más abajo, sección 3):
 
-- [ ] Aplicar los 7 fixes de `VIKT_09` (tool count 9, cron desplegado,
-      parques y jardines ya no pendiente, afluencia_prevista ya no
-      depende de STGNN→ONNX) — texto exacto en
-      `doc/VIKT-09-consistencia-final.md` §1.
+- [ ] Aplicar los 7 fixes de `VIKT_09` (tool count **10**, no 9 — corregido
+      de nuevo tras `FIL_26`; cron desplegado; parques y jardines ya no
+      pendiente; el STGNN ya se sirve como tool real, no solo "ya no
+      bloqueado") — texto exacto en `doc/VIKT-09-consistencia-final.md`
+      §1, **re-verificar el conteo de tools justo antes de aplicar** dado
+      el ritmo de cambios de esta ronda (nota al inicio de ese documento).
 - [ ] Aplicar el reemplazo completo de §7.4 (17 puntos) de `VIKT_07` —
       texto exacto en `doc/VIKT-07-limitaciones-consolidadas.md`.
 - [ ] Decidir y aplicar la corrección de Tabla 3 (`VIKT_05`/`VIKT_09` §2):
@@ -65,9 +67,9 @@ exposición + preguntas:
    espacio-temporal ayuda más cuanto más lejos se mira" es el esperado.
    **Si la Tabla 3 no se refrescó antes de la defensa, decirlo aquí
    explícitamente** en vez de que lo encuentre el tribunal.
-5. **Honestidad sobre los límites** (2 min): ventana de datos corta,
-   pipeline congelado para la entrega, STGNN no servido, EMT una parada —
-   apoyarse en la lista consolidada de `VIKT_07`.
+5. **Honestidad sobre los límites** (2 min): ventana de datos corta y
+   skill volátil día a día, pipeline congelado para la entrega, EMT una
+   parada — apoyarse en la lista consolidada de `VIKT_07`.
 6. **Cierre** (30s): qué se demuestra (ingeniería de datos + ML +
    producto conversacional end-to-end, verificado contra sistemas reales,
    no simulados) y qué queda para una versión de producción real (§7.5).
@@ -89,19 +91,22 @@ defensa — no porque algo se rompiera. Los datos ya ingeridos (14/8–30/8),
 el grafo, y los modelos servidos siguen intactos y consultables; reanudar
 es una variable de Terraform.
 
-**¿Por qué el STGNN no se sirve en producción si está en la Tabla 3?**
-**[Actualizado tras `FIL_20`, aterrizado después de escribir esta primera
-versión — no es ya lo que dice arriba]**: el STGNN **sí se exporta a
-ONNX** con paridad casi perfecta (`max|Δ|≈6e-8`, verificado también de
-forma independiente con grafos de tamaño distinto al de export) usando el
-exportador `dynamo` de `torch.onnx.export` — la limitación de
-`torch.export` con el bucle temporal era real con versiones antiguas de
-`torch`, no con la 2.13 instalada. No se sirve por una decisión de
-alcance, no por un bloqueo técnico: su contrato de entrada (ventana de
-snapshots de grafo + estandarización) es más pesado que el vector de 19
-features de los LightGBM, que ya cubren la demostración "el MCP llama al
-ML" con dos targets distintos. El STGNN sí se evalúa y se compara
-honestamente contra LightGBM en §7.2/Tabla 3.
+**¿El STGNN se sirve en producción, o solo está en la Tabla 3?**
+**[Actualizado dos veces — primero tras `FIL_20`, ahora tras `FIL_26`,
+cada uno aterrizado después de escribir la versión anterior de esta
+respuesta]**: **sí se sirve**, como una 10.ª tool del asistente
+(`calidad_aire_prevista_grafo`, `FIL_26`) — exportado a ONNX con paridad
+casi perfecta (`max|Δ|≈6e-8`, `FIL_20`, verificado también de forma
+independiente con grafos de tamaño distinto al de export) y vendorizado
+sin depender de `torch` en runtime. La limitación de `torch.export` con
+el bucle temporal era real con versiones antiguas de `torch`, no con la
+2.13 instalada. Honestamente documentado: en métricas puntuales a 1h
+pierde frente a `calidad_aire_prevista` (LightGBM, skill -0,51), así que
+se sirve con la fiabilidad topada en BAJA — su valor real es la
+**explicabilidad de grafo** que un modelo de árboles no da (qué estación
+vecina explica la predicción), no sustituir al LightGBM como previsión
+principal. El STGNN se evalúa y se compara honestamente contra LightGBM
+en §7.2/Tabla 3.
 
 **¿Por qué la ventana de datos es tan corta (~2 semanas)?**
 La ingesta en continuo arrancó el 14 de agosto de 2026; el proyecto se
@@ -141,7 +146,7 @@ rigor real, no solo se construye una vez y se abandona.
 | Ingesta | 24 fuentes, 16 en producción continua | ✅ igual, + `parques_jardines`/`ser_calles` ya con Lambda (Bronze-only) | Recarga vehículo eléctrico, plazas PMR, infraestructura ciclista |
 | Procesamiento | Lakehouse medallón + Great Expectations | ✅ igual | Delta Lake, Kafka/Flink (ruta caliente) |
 | Grafo | 5 labels, 4 relaciones | ✅ igual, 9.633 nodos / 72.310 relaciones reales | Enriquecimiento OSM completo (hoy: muestra) |
-| Modelado | LightGBM + STGNN, Tabla 3 | ✅ ambos entrenados y evaluados; **Tabla 3 publicada puede no coincidir con el código actual** (ver checklist §1); STGNN **sí exporta a ONNX** (`FIL_20`, paridad ~6e-8) aunque no esté integrado como tool | Integrar el STGNN como tool del asistente (exportable, decisión de alcance no bloqueo técnico), ablaciones descartadas por tiempo |
+| Modelado | LightGBM + STGNN, Tabla 3 | ✅ ambos entrenados y evaluados; **Tabla 3 publicada puede no coincidir con el código actual, y el skill es volátil día a día** (ver checklist §1); STGNN exportable a ONNX (`FIL_20`) **y ya integrado como 10.ª tool** (`calidad_aire_prevista_grafo`, `FIL_26`) — pierde a LightGBM en métricas puntuales a 1h pero aporta explicabilidad de grafo (vecinos influyentes) | Ablaciones descartadas por tiempo |
 | Asistente | "Siete" tools (memoria sin actualizar) | ✅ **nueve** tools reales (`FIL_13`/`14`) | Auth/rate-limiting, cuadro de mando Power BI |
 | Operación | — | ✅ alertado diseñado (`FIL_16`), secretos en runtime (`FIL_17`), test e2e (`FIL_18`), README raíz (`FIL_19`) — ninguno mencionado aún en la memoria | Rotación de secretos, trazas distribuidas |
 
