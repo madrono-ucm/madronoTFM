@@ -141,7 +141,9 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `108`** (107 consumida el 29/8: extensión
+**Próximo número libre: `108`** · **`FIL_*` → 13** · **`VIKT_*` → 06**
+(plan transversal de revisión del TFM en `doc/PLAN-REVISION-TFM.md`, 30/8).
+(107 consumida el 29/8: extensión
 preventiva de la key estable a los 48 `glue_script_*`, ver Pista Sistema.
 106 consumida el 29/8, **URGENTE** — ver
 Bloqueadores. 105 consumida el 29/8 por una auditoría
