@@ -130,40 +130,43 @@ bloque del dataset más reciente y parecido (`bluesky_menciones`,
 Cron 1×/día en la EC2 del demonio (coste 0, sin Terraform). El script
 (`modelado/training/retrain_nightly.py`) es idempotente y termina solo.
 
-**Estado (29/8, tarea 105): diseñado y verificado a mano, `cron` todavía
-sin instalar de verdad.** `ls /etc/cron.d/` y `crontab -l` en esta misma
-EC2 confirman que no hay ninguna entrada — la línea de abajo nunca llegó a
-copiarse. Además `/opt/madrono` **no existe**: esta EC2 tiene dos checkouts
-manuales del repo (`~/repos/madronoTFM` y `~/repos/madronoTFM-agent`, ver
-`doc/104-ec2-root-volume-al-limite.md`) y ninguno tiene un `.venv` con las
-dependencias de `modelado/requirements.txt` instaladas (`lightgbm`,
-`mlflow`, `torch`, `evidently`, `onnx*`… ~1 GiB). No instalar el cron a
-ciegas contra una ruta y un venv que no existen — usar el instalador de
-abajo, que lo comprueba primero.
+**Estado (30/8): INSTALADO y verificado.** `/etc/cron.d/madrono-retrain`
+activo, `<REPO> = /home/ubuntu/repos/madronoTFM` (el clon manual, no el que
+el demonio hace `git reset --hard`). Ver `doc/105` § "Despliegue real" para
+el paso a paso. Resumen de lo que hubo que resolver:
+
+- **Disco**: EBS raíz redimensionado 8 → 24 GiB (`aws ec2 modify-volume` +
+  `growpart`/`resize2fs`) — ~15 GiB libres.
+- **RAM**: la instancia tiene **3,7 GiB**; el panel de `trafico` (~1,6 M
+  filas) la desborda → **4 GiB de swap** añadidos (`/swapfile`, en
+  `/etc/fstab`). Sin swap, el reentreno de `trafico` muere por OOM.
+- **venv**: `apt install python3.14-venv` + `python3 -m venv
+  <REPO>/.venv` + `pip install --only-binary :all:` de
+  `modelado/requirements.txt` **sin `torch`** (solo lo usa el STGNN, no el
+  reentreno nocturno).
+- **Credenciales**: la EC2 **no** tiene perfil `madrono`; usa el rol de
+  instancia `madrono-terraform-deployerEC2` (ambiente). Por eso la línea
+  del cron lleva `AWS_DEFAULT_REGION=eu-west-1` y **no** `AWS_PROFILE`.
 
 ```cron
-# plantilla en infra/cron/madrono-retrain.cron — <REPO> = checkout real a usar
-30 3 * * *  ubuntu  cd <REPO> && AWS_PROFILE=madrono <REPO>/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
+# infra/cron/madrono-retrain.cron es la fuente de verdad de esta línea
+30 3 * * *  ubuntu  cd /home/ubuntu/repos/madronoTFM && AWS_DEFAULT_REGION=eu-west-1 /home/ubuntu/repos/madronoTFM/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
 ```
 
-Instalación (manual, con aprobación humana explícita — igual criterio que
-un `terraform apply`):
+Para reinstalarlo (otra máquina, o tras recrear el checkout):
 
 ```bash
 python3 -m venv <REPO>/.venv
-<REPO>/.venv/bin/pip install -r <REPO>/modelado/requirements.txt
-REPO=<REPO> infra/cron/instalar_cron.sh   # comprueba disco libre y el venv antes de copiar el cron.d
+<REPO>/.venv/bin/pip install --only-binary :all: -r <REPO>/modelado/requirements.txt   # torch opcional
+REPO=<REPO> infra/cron/instalar_cron.sh   # comprueba disco libre y venv antes de copiar el cron.d
 ```
 
-`instalar_cron.sh` aborta si quedan menos de 3 GiB libres en `/` — con el
-volumen raíz de 8 GiB de esta EC2 y solo ~986 MiB libres a 29/8 (86 % de
-uso, ver la sección siguiente), **hoy no cumple el umbral**: instalar sin
-resolver el disco primero repetiría el `OSError: Disk quota exceeded` de
-la tarea 104, ahora todas las noches. Pendiente de que se libere disco
-(redimensionar el EBS, o migrar el checkout de producción a un volumen con
-más margen) antes de activar el cron de verdad.
+Verificación (30/8): ejecución real forzada → exit 0, 6 modelos
+(`madrono-{calidad_aire,trafico}-h{1,3,6}` v1) en MLflow, 6 filas nuevas en
+`historial.csv`, *guardrail* de promoción ejercido (`calidad_aire` h1 no
+promovido por no mejorar). ~6,5 min con swap.
 
-Una vez instalado, el job regenera el panel (`ML_01`), reentrena LightGBM
+El job regenera el panel (`ML_01`), reentrena LightGBM
 (`ML_03`), evalúa (`ML_02`), loguea en MLflow (experimento `nightly`,
 backend SQLite `modelado/mlflow.db`) y mueve `@champion` solo si el
 reentreno no regresa. Historial en
