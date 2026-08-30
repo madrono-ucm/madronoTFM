@@ -7,9 +7,16 @@ LightGBM/torch.
         --panel modelado/_data/panel_calidad_aire.parquet --nombre calidad_aire_h6
 
 - LightGBM  -> `onnxmltools.convert_lightgbm`.
-- STGNN (torch) -> `torch.onnx.export` con `dynamic_axes` para nº de
-  nodos/aristas (best effort; si un op no está soportado se anota y se
-  sigue, como con Evidently en `ML_06`).
+- STGNN (torch) -> `torch.onnx.export(dynamo=True)` con ejes dinámicos para
+  nº de nodos/aristas. **`FIL_20`: verificado que SÍ exporta** con el
+  exportador dynamo de torch >= ~2.6 (el intento previo con el exportador
+  TorchScript legacy fallaba / daba paridad pobre por el `GRU` + los
+  `scatter`). Paridad float32 exacta (~6e-8), incluida con un nº de nodos y
+  un grafo distintos a los del ejemplo. El STGNN **no** se sirve como tool
+  del asistente todavía: su contrato de entrada (ventana de snapshots de
+  grafo + estandarización aparte) es bastante más pesado que el vector de
+  19 features de `calidad_aire_prevista`/`trafico_prevista`, que ya cubren
+  la demo "el MCP llama al ML". Ver `doc/FIL-20-...md`.
 - Paridad: `max |ŷ_nativo - ŷ_onnx|` sobre el test; falla (exit 1) si supera
   la tolerancia.
 - El contrato de entrada/salida está en `modelado/export/CONTRATO.md` y
@@ -21,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -91,17 +99,29 @@ def exportar_lightgbm(modelo, feature_cols: "list[str]", out_path: Path, *, unid
     return out_path
 
 
-def exportar_stgnn(modelo, ejemplo: "tuple", out_path: Path) -> "Path | None":
-    """`STGNN` -> ONNX vía `torch.onnx.export`. `ejemplo = (x_seq, edge_index,
-    edge_weight)`. `dynamic_axes` sobre nodos (dim 1 de `x_seq`) y aristas.
-    Best effort: devuelve `None` si un op no está soportado."""
+def exportar_stgnn(modelo, ejemplo: "tuple", out_path: Path, *, y_nativo=None) -> dict:
+    """`STGNN` (torch) -> ONNX vía `torch.onnx.export(dynamo=True)`.
+
+    `ejemplo = (x_seq [L, N, F], edge_index [2, E] int64, edge_weight [E])`.
+    Ejes dinámicos: nº de nodos (dim 1 de `x_seq`, dim 0 de `y`) y nº de
+    aristas -- `L` (longitud de ventana) es un hiperparámetro fijo del
+    modelo, no un eje dinámico. El exportador **dynamo** (torch >= ~2.6) es
+    el que funciona: el TorchScript legacy fallaba o daba paridad pobre por
+    el `GRU` + los `scatter` del message passing (`FIL_20`).
+
+    Devuelve `{onnx, onnx_bytes, sidecar_data, paridad?}`. Si se pasa
+    `y_nativo` (salida del modelo torch sobre `ejemplo`), incluye la paridad
+    contra onnxruntime. Lanza si el export falla (ya no es *best effort*).
+    """
     import torch
 
     modelo.eval()
-    try:
-        out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
         torch.onnx.export(
-            modelo, ejemplo, str(out_path),
+            modelo, tuple(ejemplo), str(out_path),
+            dynamo=True, opset_version=18,
             input_names=["x_seq", "edge_index", "edge_weight"],
             output_names=["y"],
             dynamic_axes={
@@ -110,12 +130,35 @@ def exportar_stgnn(modelo, ejemplo: "tuple", out_path: Path) -> "Path | None":
                 "edge_weight": {0: "n_aristas"},
                 "y": {0: "n_nodos"},
             },
-            opset_version=17,
         )
-        return out_path
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("torch.onnx.export del STGNN falló (%s) -- se omite", type(exc).__name__)
-        return None
+    resumen = {
+        "onnx": out_path.as_posix(),
+        "onnx_bytes": out_path.stat().st_size,
+        "sidecar_data": (out_path.parent / f"{out_path.name}.data").exists(),
+    }
+    if y_nativo is not None:
+        resumen["paridad"] = paridad_stgnn(out_path, y_nativo, ejemplo)
+    return resumen
+
+
+def paridad_stgnn(onnx_path: Path, y_nativo, ejemplo: "tuple") -> dict:
+    """`|ŷ_torch - ŷ_onnx|` (max/p99/mean) sobre `ejemplo` para el STGNN.
+    `ejemplo = (x_seq, edge_index, edge_weight)` (tensores torch o arrays)."""
+    import onnxruntime as ort
+
+    sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+    x_seq, ei, ew = (np.asarray(a) for a in ejemplo)
+    valores = (x_seq.astype("float32"), ei.astype("int64"), ew.astype("float32"))
+    feeds = {inp.name: val for inp, val in zip(sess.get_inputs(), valores)}
+    y_onnx = sess.run(None, feeds)[0]
+    d = np.abs(
+        np.asarray(y_nativo, dtype="float64").reshape(-1)
+        - np.asarray(y_onnx, dtype="float64").reshape(-1)
+    )
+    return {
+        "max": float(d.max()), "p99": float(np.percentile(d, 99)),
+        "mean": float(d.mean()), "n": int(d.size), "shape_onnx": list(y_onnx.shape),
+    }
 
 
 def paridad(onnx_path: Path, y_nativo: np.ndarray, X: np.ndarray, *, input_name: str = "input") -> dict:
@@ -229,16 +272,97 @@ def _log_mlflow(nombre, nombre_registrado, experimento, onnx_path, resumen):
     )
 
 
+_TOL_STGNN_ABS = 1e-4  # exportador dynamo -> paridad ~float32 epsilon
+
+
+def exportar_stgnn_desde_registry(
+    nombre_registrado: str,
+    panel_path: Path,
+    *,
+    nombre: str,
+    aristas_json: str | None = None,
+    longitud: int = 12,
+    knn: int = 8,
+) -> dict:
+    """Carga `models:/<nombre_registrado>@champion` (flavor pytorch), arma
+    UNA ventana de test real con `train_stgnn._preparar` (mismo pipeline de
+    snapshots + estandarización que el entrenamiento) y exporta a ONNX con
+    `exportar_stgnn`, midiendo la paridad sobre esa ventana."""
+    from modelado.training import train_stgnn as ts
+
+    modelo, flavor = cargar_champion(nombre_registrado)
+    if flavor != "pytorch":
+        raise SystemExit(f"{nombre_registrado} es '{flavor}'; usa `exportar()` para LightGBM")
+    modelo.eval()
+
+    panel = pd.read_parquet(panel_path)
+    _ni, feats, edge_index, edge_weight, vent, origen_grafo = ts._preparar(
+        panel, longitud=longitud, aristas_json=aristas_json, knn=knn
+    )
+    in_dim = modelo.convs[0].lin_self.in_features
+    if in_dim != len(feats):
+        raise SystemExit(
+            f"mismatch de features: panel {len(feats)} vs modelo {in_dim} "
+            "(¿panel distinto al del entrenamiento?)"
+        )
+    Xseq, ts_obj = vent["Xseq"], vent["ts_objetivo"]
+    tr, _va, te = ts._split_temporal_idx(ts_obj, test_days=3, val_days=2)
+    if not (tr.any() and te.any()):
+        raise SystemExit("ventana de datos demasiado corta para el split 3+2 días")
+    mu, sd, _ = ts._estandarizar(Xseq[tr], eje=(0, 1, 2))
+    Xte = (Xseq[te] - mu) / sd
+
+    import torch
+
+    x_seq = torch.as_tensor(Xte[0], dtype=torch.float32)
+    ei = torch.as_tensor(edge_index, dtype=torch.long)
+    ew = torch.as_tensor(edge_weight, dtype=torch.float32)
+    with torch.no_grad():
+        y_nat = modelo(x_seq, ei, ew).numpy()
+
+    out_path = _ART / f"{nombre}.onnx"
+    resumen = exportar_stgnn(modelo, (x_seq, ei, ew), out_path, y_nativo=y_nat)
+    resumen.update(
+        modelo=nombre_registrado, flavor=flavor, origen_grafo=origen_grafo,
+        n_nodos=len(feats) and x_seq.shape[1], n_features=len(feats),
+        longitud_ventana=longitud, n_aristas=int(ei.shape[1]),
+        paridad_ok=resumen["paridad"]["max"] <= _TOL_STGNN_ABS,
+    )
+    (_ART / f"{nombre}_paridad.json").write_text(
+        json.dumps(resumen, indent=1, ensure_ascii=False), encoding="utf-8"
+    )
+    if not resumen["paridad_ok"]:
+        raise SystemExit(f"PARIDAD FALLA: max={resumen['paridad']['max']:.3e} (tol {_TOL_STGNN_ABS})")
+    return resumen
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--modelo", required=True, help="nombre registrado, p. ej. madrono-calidad_aire-h6")
+    ap.add_argument("--modelo", required=True, help="nombre registrado, p. ej. madrono-calidad_aire-h6 o madrono-stgnn-calidad_aire")
     ap.add_argument("--panel", required=True, type=Path)
     ap.add_argument("--nombre", required=True, help="nombre del fichero .onnx de salida")
     ap.add_argument("--horizonte", type=int, default=None, help="por defecto se lee de '-h<N>' del nombre")
+    ap.add_argument("--stgnn", action="store_true", help="el modelo es un STGNN (torch) -> exportador dynamo (FIL_20)")
+    ap.add_argument("--aristas-json", default=None, help="STGNN: PROXIMO_A exportadas de Neo4j; sin esto, k-NN de coords")
+    ap.add_argument("--longitud", type=int, default=12, help="STGNN: longitud de la ventana temporal")
     ap.add_argument("--mlflow", default=None, help="experimento MLflow para subir el .onnx")
     ap.add_argument("--log-level", default="INFO")
     args = ap.parse_args(argv)
     logging.basicConfig(level=args.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+    if args.stgnn:
+        r = exportar_stgnn_desde_registry(
+            args.modelo, args.panel, nombre=args.nombre,
+            aristas_json=args.aristas_json, longitud=args.longitud,
+        )
+        p = r["paridad"]
+        print(f"\n{args.modelo} (STGNN) -> {r['onnx']}  ({r['onnx_bytes']:,} bytes"
+              f"{' + sidecar .data' if r['sidecar_data'] else ''})")
+        print(f"  features: {r['n_features']}  nodos: {r['n_nodos']}  aristas: {r['n_aristas']}  "
+              f"ventana: {r['longitud_ventana']}  grafo: {r['origen_grafo']}")
+        print(f"  paridad torch<->onnx |delta|: max={p['max']:.3e}  p99={p['p99']:.3e}  mean={p['mean']:.3e}")
+        print(f"  -> {'OK' if r['paridad_ok'] else 'FALLA'}  (tol max {_TOL_STGNN_ABS})")
+        return 0
 
     r = exportar(
         args.modelo, args.panel, nombre=args.nombre, horizonte=args.horizonte,

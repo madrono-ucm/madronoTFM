@@ -85,12 +85,45 @@ así que no es error de `float32`. Se amplifica porque las lecturas de
 calidad del aire son casi siempre enteras y caen sobre los umbrales. En
 conjunto el modelo ONNX es fiel a ~0.1 %.
 
-## Modelo STGNN (`madrono-stgnn-<target>`) — pendiente
+## Modelo STGNN (`madrono-stgnn-<target>`) — exportable a ONNX (`FIL_20`)
 
-`exportar_stgnn()` intenta `torch.onnx.export` con `dynamic_axes` sobre el
-nº de nodos/aristas, pero `torch.export` (única ruta en torch 2.13) no
-traza el `forward` del STGNN: bucle temporal en Python + `index_add` con nº
-de nodos dependiente de los datos. Mientras tanto el STGNN se sirve desde
-su entrada PyTorch del registry (`models:/madrono-stgnn-<target>@champion`).
-Export ONNX del GNN = línea futura (§7.5): refactor a un `forward` de forma
-fija o esperar más cobertura de `torch.export`.
+`FIL_20` verificó que el STGNN **sí** se exporta a ONNX con el exportador
+**dynamo** de `torch.onnx.export(dynamo=True)` (torch ≥ ~2.6). El intento
+previo con el exportador TorchScript legacy fallaba o daba paridad pobre
+(el `GRU` + los `scatter` del message passing). El bucle temporal Python
+sobre `range(x_seq.size(0))` traza a un `L` fijo (que es un hiperparámetro,
+no un eje dinámico), y `index_add` con nº de nodos variable **sí** se
+soporta como `ScatterND` con eje dinámico.
+
+### Entrada / salida
+
+| tensor | tipo | forma | notas |
+|---|---|---|---|
+| `x_seq` | `float32` | `[L, N, F]` | `L` = `longitud_ventana` (fijo, def. 12); `N` = nº de nodos (**eje dinámico** `n_nodos`); `F` = `in_dim` del modelo. Ya **estandarizado** (media/desv. del train, ver `train_stgnn._estandarizar`) |
+| `edge_index` | `int64` | `[2, E]` | `[0]` = origen, `[1]` = destino; `E` = nº de aristas (**eje dinámico** `n_aristas`). Sin self-loops (el término propio es explícito en `ConvGraphSAGE`) |
+| `edge_weight` | `float32` | `[E]` | peso de cada arista |
+| `y` (salida) | `float32` | `[N, n_horizontes, n_targets]` | predicción **estandarizada**: para el valor real, `y · y_sd + y_mu` (stats del train). `n_horizontes = 3` (h1/h3/h6), `n_targets = 1` |
+
+### Paridad
+
+`paridad_stgnn()` compara `STGNN.forward` (torch) con `onnxruntime` sobre
+una ventana de test. Tolerancia `max |Δ| ≤ 1e-4` (el dynamo da ~`6e-8`,
+epsilon de `float32`), verificada también con un grafo y un `N` distintos
+a los del ejemplo de export (`modelado/tests/test_ml07.py::StgnnOnnxExportTests`).
+
+### Por qué no se sirve todavía como tool del asistente
+
+El contrato de entrada es materialmente más pesado que el vector de 19
+features de `calidad_aire_prevista`/`trafico_prevista`: hay que materializar
+una **ventana de snapshots de grafo** (`[L, N, F]`), el grafo
+(`edge_index`/`edge_weight`), y aplicar la **estandarización** con las
+estadísticas del entrenamiento (que habría que vendorizar aparte). Los dos
+modelos LightGBM ya cubren la demo "el MCP llama al ML" (memoria §6.7).
+Servir el STGNN es trabajo aditivo — pero la limitación "STGNN no servible
+por ONNX" de §7.5 ya **no aplica**: es exportable y fiel.
+
+Generar el `.onnx` del champion:
+
+    python -m modelado.export.to_onnx --stgnn --modelo madrono-stgnn-calidad_aire \
+        --panel modelado/_data/panel_calidad_aire_grafo.parquet --nombre stgnn_calidad_aire \
+        [--aristas-json aristas_proximo_a.json]
