@@ -47,7 +47,8 @@ lectura); hallazgos reales → `FIL_*` nuevo (numeración siguiente: **33**).
   tipado dinámico deliberados (bolsas de kwargs, alias de tipo como
   string) o control de flujo que `mypy` no sigue. Un footgun latente real
   (`BronzeWriter.partition_dir()` asume `Path` pero es `str` en modo S3,
-  hoy inalcanzable) → `FIL_33`.
+  hoy inalcanzable) → `FIL_33` (renumerado a **`FIL_40`** el 30/8, ver
+  nota de cierre más abajo).
 - `VIC_29` (checkov): 260 hallazgos, ~230 controles enterprise que no
   encajan con la prioridad de coste 0 del proyecto, 4 sobre `kafka.tf`
   (nunca aplicado), 12 sobre decisiones de coste vs. robustez ya tomadas
@@ -63,3 +64,15 @@ estático (tipos, IaC, secretos históricos) no encontró ningún bug
 funcional ni vulnerabilidad explotable — corrobora, con métodos y
 herramientas completamente distintas, la salud ya verificada por las
 rondas 1-4.
+
+### Nota (30/8, posterior al cierre): colisión de numeración `FIL_32`/`33`
+
+Misma situación documentada en `doc/PLAN-EVALUACION-TECNICA-4.md`: la
+rama sin mergear `feat/fil31-trafico-stgnn-tool` (otra sesión, mapa
+animado/grafo canónico) reutiliza `FIL_32`-`38` para tickets propios sin
+relación con esta ronda. Renumerado proactivamente el `FIL_33` de esta
+ronda a **`FIL_40`**
+(`tasks/FIL_40_bronzewriter-partition-dir-type-inconsistente-en-modo-s3.md`,
+mismo contenido). **Pendiente de recomprobar cuando esa rama se mergee a
+`main`** -- confirmar que `FIL_39`/`FIL_40` no colisionan con lo que
+aterrice.

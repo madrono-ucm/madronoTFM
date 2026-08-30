@@ -40,7 +40,9 @@ oráculo Bleichenbacher en descifrado PKCS7, fix 50.0.0+) y `setuptools`
 de `MANIFEST.in`, fix 78.1.1+/83.0.0+). Verificado con `grep` que ninguna
 de las APIs vulnerables (PKCS7/S-MIME, `PackageIndex.download`,
 construcción de sdist) se usa en código propio — impacto real nulo pero
-bump recomendado por coste ~0 → **`FIL_32`** con versiones exactas de
+bump recomendado por coste ~0 → **`FIL_39`** (renumerado desde `FIL_32`:
+colisión con una rama sin mergear, ver `doc/PLAN-EVALUACION-TECNICA-4.md`)
+con versiones exactas de
 destino. `torch` no auditable (build `+cpu` no indexado), limitación de
 la herramienta, no un hueco de esta auditoría.
 

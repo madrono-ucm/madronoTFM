@@ -47,7 +47,7 @@ cada uno. Un solo hallazgo real: `ingesta/capturas/bronze.py:104`
 (`BronzeWriter.partition_dir()` asume `Path` pero `base_path` es `str` en
 modo S3) — verificado que hoy es inalcanzable (único call site protegido
 por `is_s3`), pero es un footgun latente en un método público sin guarda
-→ **`FIL_33`**.
+→ **`FIL_40`** (renumerado desde `FIL_33`: colisión con `feat/fil31-trafico-stgnn-tool`, sin mergear a `main`, que reutiliza `FIL_32`/`FIL_33` para otro tema -- ver nota en `doc/PLAN-EVALUACION-TECNICA-5.md`).
 
 Detalle completo en
 [`doc/VIC-28-eval-mypy-tipos.md`](../doc/VIC-28-eval-mypy-tipos.md).

@@ -53,13 +53,14 @@ Los 3 CVEs son reales según OSV/PyPI, pero ninguno tiene ruta de
 explotación real en este proyecto dado cómo se usan estos paquetes aquí
 (transitivos, APIs vulnerables nunca invocadas desde código propio). Se
 recomienda igual el bump por ser de coste ~0 (ninguno pineado, parches
-menores) → **`FIL_32`**, con las versiones exactas de destino
-(`cryptography>=50.0.1`, `setuptools>=83.0.0`) y sin recomendar un
-`pip install -U` genérico, siguiendo la lección de `FIL_23` sobre
-verificar la suite completa tras cualquier bump de versión antes de darlo
-por bueno.
+menores) → **`FIL_39`** (renumerado desde `FIL_32` el 30/8 por colisión
+con una rama sin mergear, ver `doc/PLAN-EVALUACION-TECNICA-4.md`), con
+las versiones exactas de destino (`cryptography>=50.0.1`,
+`setuptools>=83.0.0`) y sin recomendar un `pip install -U` genérico,
+siguiendo la lección de `FIL_23` sobre verificar la suite completa tras
+cualquier bump de versión antes de darlo por bueno.
 
 Cierra ronda 4 (`VIC_25`-`27`, 3/3 completados): 2 `FIL_*` nuevos
-(`FIL_31` XML sin `defusedxml`, `FIL_32` CVEs de dependencias
+(`FIL_31` XML sin `defusedxml`, `FIL_39` CVEs de dependencias
 transitivas), ambos severidad baja con impacto real acotado, ningún bug
 funcional encontrado.

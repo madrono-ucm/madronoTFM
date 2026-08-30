@@ -100,12 +100,14 @@ hoy **no es explotable**: el único call site de `partition_dir()` en todo
 el repo está detrás de `if self.is_s3: ... else: self.partition_dir(...)`
 (modo S3 usa el método hermano `partition_key()`). Es un footgun latente
 en un método público sin guarda ni docstring que documente la
-restricción → **`FIL_33`** (endurecimiento preventivo, severidad baja, no
-es un incidente en producción).
+restricción → **`FIL_40`** (renumerado desde `FIL_33` el 30/8 por colisión
+con una rama sin mergear, ver `doc/PLAN-EVALUACION-TECNICA-5.md`;
+endurecimiento preventivo, severidad baja, no es un incidente en
+producción).
 
 ## Conclusión
 
-1 `FIL_*` nuevo (`FIL_33`, latente/preventivo). El resto de los 97 errores
+1 `FIL_*` nuevo (`FIL_40`, latente/preventivo). El resto de los 97 errores
 son enteramente explicables por patrones de tipado dinámico deliberados
 (bolsas de kwargs, alias de tipo como string, diccionarios de
 configuración heterogéneos) o limitaciones conocidas de `mypy` sin
