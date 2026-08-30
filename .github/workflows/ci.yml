@@ -61,7 +61,7 @@ jobs:
           pip install pytest
 
       - name: Ejecutar tests
-        run: python -m pytest ingesta/ procesamiento/ grafo/ asistente/ herramientas/ modelado/ -v
+        run: python -m pytest ingesta/ procesamiento/ grafo/ asistente/ herramientas/ modelado/ tests/ -v
 
   terraform:
     runs-on: ubuntu-latest
