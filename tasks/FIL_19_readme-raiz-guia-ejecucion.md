@@ -2,11 +2,26 @@
 kind: fil
 title: "README raíz + guía 'ejecuta el asistente' + diagrama de arquitectura real"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 depends_on: [FIL_13, FIL_15]
 ---
+
+## Resolución (2026-08-30)
+
+`README.md` raíz (antes: sólo `# madronoTFM`): qué es + enlace a la memoria,
+diagrama Mermaid de la arquitectura **construida** (25 productores → Bronze
+→ Glue → Silver → Glue → Gold → {Athena, Neo4j} → modelado ONNX → asistente
+FastAPI+MCP → cliente MCP) con lo NO construido marcado explícito
+(Kafka/Flink/Delta/Power BI/STGNN-serving/auth = §7.5), estado (pipeline
+congelado, datos hasta ~29/8, enlace a `infra/OPERACION.md`), guía "ejecuta
+el asistente en local" (venv + `pip install` + `NEO4J_*` de SSM + `uvicorn`
+/ `python -m asistente.mcp_agent.server` + bloque `mcpServers`), puntero a
+`modelado/README.md` / `VIKT_08` para la evaluación ML, y tabla de layout
+del repo (una línea por directorio). Enlaza `infra/OPERACION.md` en vez de
+duplicarlo.
 
 ## Contexto
 
