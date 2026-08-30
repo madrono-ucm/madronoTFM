@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 6 — cobertura de tests con pytest-cov"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -33,3 +33,23 @@ para esta auditoría.
 - Los huecos de mayor riesgo real (no solo los de menor %) identificados
   y leídos, con veredicto explícito.
 - Cero cambios de código aplicados aquí.
+
+## Hecho (30/8)
+
+74 % de cobertura total (1005 passed, 1 skipped, sin cambios respecto a
+toda ejecución anterior de la suite). El 26 % sin cubrir se concentra en
+`glue_*.py` (orquestación PySpark, la lógica real está en
+`transform.py`/`aggregate.py` al 93-99 %), `ge_suite.py` (config
+declarativa) y 5 scripts CLI de `modelado/`/`grafo/` que encadenan
+funciones ya testeadas sin lógica propia. Los dos casos que merecían
+lectura completa antes de descartarlos (`grafo/cargar_grafo.py`,
+`modelado/models/shap_explain.py`) se verificaron explícitamente — el
+segundo confirmado con artefactos reales commiteados
+(`shap_*.png`/`tier1_*_shap.json`) de contenido sensato, no degenerado.
+
+**Cero `FIL_*` nuevos.** El hueco de cobertura es una decisión de
+arquitectura ya documentada (verificación en vivo en vez de `pytest` para
+la orquestación), no un descuido. Detalle completo en
+[`doc/VIC-31-eval-cobertura-tests.md`](../doc/VIC-31-eval-cobertura-tests.md).
+
+Cierra ronda 6 (`VIC_31`, 1/1 completado).
