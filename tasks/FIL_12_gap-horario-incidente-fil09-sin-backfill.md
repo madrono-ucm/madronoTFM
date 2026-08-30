@@ -109,3 +109,40 @@ horas que se perdieron mientras tanto) **nunca se rellenó**.
 - Si se decide no rellenar, documentado en `doc/FIL-09-...md` y,si aplica,
   una nota en la memoria (§7.4, vía un ticket `VIKT_*` aparte — no se edita
   aquí).
+
+## Verificación (Claude QA, 30/8) — 5/6 datasets rellenados, `transporte_publico_emt` queda pendiente
+
+Tras la decisión de "limitación documentada" (PR #182), otra sesión revirtió
+el criterio y añadió capacidad real de backfill: PR #183
+(`--backfill_fecha yyyy-MM-dd`, reprocesa la fecha completa con
+`mode("overwrite")` + `partitionOverwriteMode=dynamic`) para **5 de los 6**
+datasets — el propio mensaje del commit los lista explícitamente: `trafico,
+calidad_aire, meteorologia, bicimad, aparcamientos`. **No incluye
+`transporte_publico_emt`.**
+
+Verificado en Athena real (`--region eu-west-1`, contando horas distintas
+con datos en `date='2026-08-29'`):
+
+| Dataset | Horas (de 24) tras PR #183 |
+|---|---|
+| `trafico` | **24/24** ✅ (antes 3) |
+| `calidad_aire` | **24/24** ✅ (antes 4) |
+| `meteorologia` | **24/24** ✅ (antes 4) |
+| `bicimad` | **24/24** ✅ (antes 4) |
+| `aparcamientos` | **24/24** ✅ (antes 4) |
+| `transporte_publico_emt` | **4/24** ⚠️ sigue igual que el hallazgo original (horas 20-23 únicamente) |
+
+`terraform validate` limpio; `terraform plan` (con `-target` excluyendo
+Kafka, mismo criterio que `VIC_13`) → `0 to add, 54 to change, 0 to
+destroy` — sin reemplazos, solo actualizaciones in-place esperadas de
+`aws_s3_object.glue_script_*` (patrón de key estable de `FIL_10`).
+
+**Pendiente**: decidir si `transporte_publico_emt` se backfillea también
+(el propio job de este dataset ya podría soportar el mismo
+`--backfill_fecha` si se replica el patrón de los otros 5 — no verificado
+aquí si el código de `transporte_publico_emt` ya lo tiene) o si se acepta
+como limitación documentada solo para este dataset. `status` se deja en
+`done` porque la decisión original (documentar vs. rellenar) ya se tomó y
+se ejecutó parcialmente con evidencia real — este apartado dinstingue que
+el "rellenar" no cubrió los 6 datasets originales, para que quien lo lea no
+asuma cobertura completa.
