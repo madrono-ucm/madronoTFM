@@ -240,3 +240,29 @@ class TraficoPrevista(RespuestaPrevision):
     punto_id: str | None = None
     unidad: str | None = "avg_service_level"
     fuente_grafo: str | None = None
+
+
+class AfluenciaPrevista(RespuestaPrevision):
+    """Previsión de actividad urbana cerca de un lugar de Madrid (`FIL_14`,
+    previsión = contrapartida de `AfluenciaEstimada` de `FIL_06`).
+
+    **Señal derivada, no un modelo propio.** El único subcomponente con
+    modelo de previsión es el tráfico (`trafico_prevista`, `FIL_13`); ruido y
+    BiciMAD se arrastran a su último nivel observado (persistencia), porque
+    su Gold derivada tiene demasiado poco histórico para entrenar lags de
+    24 h (ver `doc/FIL-14-...md`). `valor_previsto` es la severidad combinada
+    0..2 (misma fusión ponderada que `AfluenciaEstimada.nivel_estimado`, con
+    la contribución del tráfico sustituida por su previsión); `nivel_previsto`
+    la traduce a `bajo`/`medio`/`alto`. `nivel_actual` es el
+    `nivel_estimado` de ahora, para contexto. `modelo` deja constancia de que
+    es derivada. `data_completeness`/`ventana_datos` se heredan de la
+    previsión de tráfico subyacente.
+    """
+
+    lugar: str
+    radio_m: float
+    unidad: str | None = "severidad_0a2"
+    nivel_actual: str | None = None
+    senales_usadas: list[str] = Field(default_factory=list)
+    detalle_trafico_previsto: float | None = None
+    fuente_grafo: str | None = None

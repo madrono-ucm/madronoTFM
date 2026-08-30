@@ -2,11 +2,32 @@
 kind: fil
 title: "afluencia_prevista: decidir vía (modelo propio / derivado / limitación) e implementar"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 depends_on: [FIL_13]
 ---
+
+## Resolución (2026-08-30) — vía (b), señal derivada
+
+(a) descartada: `gold.afluencia_lugares_por_lugar_fecha_hora` tiene ~1–2 días
+útiles y el pipeline está congelado — no crecerá; entrenar lags de 24 h ahí
+daría un modelo sin skill. (c) demasiado conservadora.
+
+**Implementado (b):** `afluencia_prevista(lugar, horizonte_horas, radio_m,
+momento)` → `AfluenciaPrevista` (subclase de `RespuestaPrevision`). Compone
+`_trafico_prevista_impl` (único subcomponente con modelo ONNX) +
+`_afluencia_estimada_impl` (nivel actual + persistencia ruido/BiciMAD), con
+la misma fusión ponderada 0–2 de `afluencia_estimada`. `modelo` deja
+constancia de que es derivada; ruido/BiciMAD van por persistencia
+(explícito en la respuesta). Degrada con `motivo` + `nivel_actual` si no hay
+previsión de tráfico; nunca excepción.
+
+Registro: `server.py` (9 tools) + `GET /afluencia-prevista` + `main.py`.
+Tests: `test_afluencia_prevista.py` (11) + `test_mcp_tools.py` /
+`test_mcp_transport.py` a 9 tools. Suite `asistente/` → 107 passed.
+Doc: `doc/FIL-14-afluencia-prevista-decision.md`.
 
 ## Contexto
 
