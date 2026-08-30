@@ -62,3 +62,43 @@ memoria:
 - La memoria refleja el estado real y verificado (no solo "existe código")
   de las features exógenas de `ML_01`.
 - Estilos/numeración del `.docx` intactos.
+
+## Investigación del punto 1 (Claude QA, 30/8)
+
+Respuesta al matiz del punto 1: **la Tabla 3 actual NO se entrenó con las
+features exógenas nuevas** — verificado comparando fechas reales, no
+supuestas:
+
+- `modelado/_data/panel_trafico.parquet`/`panel_calidad_aire.parquet` (los
+  paneles que consume `modelado/evaluation/estudios/run_all.py` vía
+  `pd.read_parquet`, sin volver a llamar a `build.py` en el propio
+  `run_all.py`) tienen `mtime` real **2026-08-30 03:30 UTC**, y de hecho ya
+  contienen las columnas exógenas nuevas (`meteo_temperature_c`,
+  `meteo_humidity_pct`, `meteo_wind_speed_ms`, `meteo_precipitation_lm2`,
+  `meteo_pressure_mb`, `es_festivo` — confirmado leyendo el parquet con
+  `pandas`, no solo mirando el nombre del fichero).
+- Pero `modelado/evaluation/artifacts/estudios/comparacion_trafico.csv` (la
+  fuente real de la Tabla 3, vía `estudio_comparacion.tabla_comparacion`)
+  tiene `mtime` **2026-08-29 18:01:57 UTC** — **anterior** tanto a la
+  regeneración de esos paneles (30/8 03:30) como al propio commit de
+  `ML_01` (`5a89ef3`, `2026-08-29T19:04:11 UTC`).
+
+Es decir: alguien (probablemente el cron nocturno de `ML_10`, que sí
+reconstruye paneles) regeneró los paneles Tier 1 con las nuevas features
+exógenas **después** de que se generaran los CSV de comparación que
+alimentan la Tabla 3 — pero nadie ha vuelto a ejecutar
+`python -m modelado.evaluation.estudios.run_all` desde entonces. La Tabla 3
+publicada en la memoria sigue siendo la de **antes** de `ML_01`.
+
+**Conclusión para la redacción** (según el punto 2 de este ticket): la
+frase correcta NO es "ya está resuelto" ni tampoco dejar la frase original
+de §7.5 tal cual (que dice "sin implementar", lo cual ya no es cierto para
+el código) — hace falta una redacción intermedia: el join de meteo/festivos
+**ya existe, está testeado y ya forma parte del panel de entrenamiento
+real**, pero **la Tabla 3 publicada todavía no se reentrenó con él**. Antes
+de editar el `.docx`, decidir (fuera de este ticket, con Filippos/Víctor):
+volver a correr `run_all.py` (barato, son paneles ya materializados, no
+hace falta re-ingestar nada) para refrescar la Tabla 3 con las features
+nuevas antes del 17/9, o documentar explícitamente en §7.4/§7.5 que la
+Tabla 3 es anterior a este cierre de gap. No se ha tocado
+`documents/Memoria_TFM FV.docx` en este ticket.
