@@ -35,3 +35,19 @@ sitios.
   actual (no en changelogs/históricos, esos se dejan).
 - Verificado en vivo que son 10, no una suposición de que "ya se corrigió
   antes".
+
+---
+
+## Revisión FIL (2026-08-30)
+
+Aplicado directamente (docs propias, trivial):
+- `README.md`: nodo Mermaid `9 tools` → `10 tools`; fila de layout `las 9 tools` → `las 10 tools`.
+- `doc/VIKT-06-recorrido-e2e.md`: §4.1 `9 tools` → `10 tools`; la línea de "9 tools (FIL_13/FIL_14)" ahora incluye `FIL_26 +calidad_aire_prevista_grafo`; el guion del screencast (`§4.1 ... 9 tools`) → `10 tools`.
+- `asistente/README.md` ya estaba a 10 (FIL_29).
+
+Verificado **en vivo** (`mcp.list_tools()` sobre el servidor real): exactamente **10**
+— `afluencia_estimada, afluencia_prevista, calidad_aire, calidad_aire_prevista,
+calidad_aire_prevista_grafo, disponibilidad_aparcamiento, eventos_cercanos,
+opciones_movilidad, trafico_cercano, trafico_prevista`.
+
+`doc/VIKT-09-consistencia-final.md:108` (`"7 tools"`) se deja: es un changelog de una corrección anterior.

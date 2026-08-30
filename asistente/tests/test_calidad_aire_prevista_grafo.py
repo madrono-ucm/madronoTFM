@@ -101,6 +101,23 @@ class ToolTests(unittest.TestCase):
         self.assertFalse(r.disponible)
         self.assertIn("modelo de grafo", r.motivo)
 
+    def test_meta_corrupto_degrada_sin_excepcion(self):
+        # disponible=True (los ficheros existen) pero cargar el meta revienta
+        with patch("asistente.prevision_grafo.disponible", return_value=True), \
+             patch("asistente.mcp_agent.tools.prevision_grafo.info",
+                   side_effect=ValueError("meta.feature_cols no casa")):
+            r = tools.calidad_aire_prevista_grafo("España", 3, _AHORA)
+        self.assertFalse(r.disponible)
+        self.assertIn("no se pudo cargar el modelo de grafo", r.motivo)
+
+    def test_stgnn_revienta_en_inferencia_degrada(self):
+        with patch("asistente.mcp_agent.tools.run_athena_query", return_value=_gold(_AHORA)), \
+             patch("asistente.mcp_agent.tools.prevision_grafo.predecir",
+                   side_effect=RuntimeError("onnxruntime boom")):
+            r = tools.calidad_aire_prevista_grafo("España", 3, _AHORA)
+        self.assertFalse(r.disponible)
+        self.assertIn("fallo corriendo el STGNN", r.motivo)
+
 
 class RouterTests(unittest.TestCase):
     def setUp(self):
