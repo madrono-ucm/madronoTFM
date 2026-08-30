@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 4 — análisis de seguridad estático con bandit"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -28,3 +28,27 @@ Ningún cambio de código en este ticket.
   se puede resumir).
 - Cada hallazgo con veredicto explícito: falso positivo (con la razón) o
   real (→ ticket `FIL_*`).
+
+## Hecho (30/8)
+
+42 hallazgos (0 High, 32 Medium, 10 Low). Los 32 Medium revisados línea a
+línea:
+
+- `B608` (22, posible SQL injection): **falso positivo en las 22** — 14 en
+  `asistente/mcp_agent/tools.py` pasan por `sql_literal()` (escapado
+  correcto de comillas) antes de interpolar, 7 en `grafo/extract.py` no
+  interpolan ningún valor externo, 1 en `frescura_gold.py` interpola un
+  nombre de tabla que siempre viene de un diccionario interno fijo.
+- `B314`/`B405` (10+8, XML sin `defusedxml`): **real, pero severidad
+  baja** — 4 módulos de `ingesta/capturas/` parsean XML de feeds externos
+  con `xml.etree.ElementTree` en vez de `defusedxml`. Riesgo bajo (CPython
+  ≥3.7.1 ya bloquea XXE por defecto; queda expuesta la expansión de
+  entidades internas, un DoS de memoria, no fuga de datos) pero el fix es
+  barato → **`FIL_31`**.
+
+Los 10 Low (`B110` try/except/pass) ya triados en `VIC_25` como decisiones
+documentadas en el propio código, sin ticket nuevo.
+
+Detalle completo en
+[`doc/VIC-26-eval-bandit-seguridad.md`](../doc/VIC-26-eval-bandit-seguridad.md).
+Cruzado contra `VIC_19`/`FIL_28`: sin solapamiento.
