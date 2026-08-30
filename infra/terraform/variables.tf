@@ -325,3 +325,25 @@ variable "athena_query_trusted_services" {
   type        = list(string)
   default     = []
 }
+
+variable "pipeline_enabled" {
+  description = <<-EOT
+    Interruptor global de la ingesta programada. `true` (por defecto): los 23
+    `aws_scheduler_schedule` de los productores y los ~26 `aws_glue_trigger`
+    (SCHEDULED + CONDITIONAL) están activos -- Bronze->Silver->Gord corre en
+    continuo, como describe la memoria.
+
+    `false`: todos pasan a DISABLED / se hace `StopTrigger`. La
+    infraestructura, las tablas y los datos ya ingeridos NO se tocan (siguen
+    consultables en Athena/Neo4j); solo se deja de **acumular** dato nuevo y
+    de gastar en ejecuciones de Glue/Lambda. Reversible con un `apply`.
+
+    Uso: `terraform apply -var pipeline_enabled=false` (o fijarlo en el
+    `terraform.tfvars` local, que no se commitea). Pensado para congelar el
+    gasto una vez la ventana de datos es suficiente para el TFM y el trabajo
+    restante es solo de ingeniería (asistente/MCP sobre los datos ya
+    presentes).
+  EOT
+  type        = bool
+  default     = true
+}

@@ -585,6 +585,11 @@ resource "aws_scheduler_schedule" "producer" {
 
   name = "${var.project_name}-${var.environment}-${each.key}"
 
+  # Interruptor global de la ingesta (ver `var.pipeline_enabled`): con
+  # `false` el schedule queda DISABLED y la Lambda no se dispara -- sin
+  # borrar nada, reversible con un `apply`.
+  state = var.pipeline_enabled ? "ENABLED" : "DISABLED"
+
   schedule_expression          = each.value.expression
   schedule_expression_timezone = each.value.timezone
 
