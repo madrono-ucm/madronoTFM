@@ -1214,6 +1214,19 @@ def _calidad_aire_prevista_impl(
     else:
         instante = now_madrid()
 
+    fuente = _FUENTE_CALIDAD_AIRE
+
+    def _sin(motivo: str, *, ancla: datetime | None = None, **kw) -> CalidadAirePrevista:
+        """Respuesta degradada (nunca excepción hacia el cliente MCP, `FIL_15`)."""
+        base = dict(
+            zona=zona, horizonte_horas=horizonte_horas,
+            momento=ancla or instante,
+            momento_objetivo=(ancla + timedelta(hours=horizonte_horas)) if ancla else None,
+            fuente_dataset=fuente, motivo=motivo,
+        )
+        base.update(kw)
+        return CalidadAirePrevista(**base)
+
     hoy = instante.date()
     ayer = (instante - timedelta(days=1)).date()
     zona_literal = sql_literal(zona.lower())
@@ -1225,12 +1238,15 @@ def _calidad_aire_prevista_impl(
           AND (lower(station_name) LIKE '%{zona_literal}%'
                OR lower(station_id) LIKE '%{zona_literal}%')
     """
-    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001 - degradación elegante (FIL_15)
+        return _sin(f"no se pudo consultar Gold en Athena: {exc}")
 
-    fuente = _FUENTE_CALIDAD_AIRE
     if not filas:
-        return CalidadAirePrevista(
-            zona=zona, momento=instante, horizonte_horas=horizonte_horas, fuente_dataset=fuente,
+        return _sin(
+            f"ninguna estación de calidad del aire cuyo nombre/identificador contenga «{zona}» "
+            "tiene lecturas en las últimas ~48 h para construir la previsión"
         )
 
     # elige (estación, contaminante): el de mayor ratio vs límite de
@@ -1246,9 +1262,7 @@ def _calidad_aire_prevista_impl(
         if prev is None or clave > (prev["date"], int(prev["hour"])):
             ultima_por_par[par] = f
     if not ultima_por_par:
-        return CalidadAirePrevista(
-            zona=zona, momento=instante, horizonte_horas=horizonte_horas, fuente_dataset=fuente,
-        )
+        return _sin(f"la(s) estación(es) para «{zona}» no tienen ninguna lectura con avg_value no nulo")
 
     def _ratio(f: dict) -> float:
         lim = _LIMITES_REFERENCIA_UGM3.get(f["pollutant"])
@@ -1258,20 +1272,27 @@ def _calidad_aire_prevista_impl(
 
     actual, historial, lat, lon, ancla = _historial_por_hora(filas, station_id, pollutant)
     if actual is None or ancla is None:
-        return CalidadAirePrevista(
-            zona=zona, momento=instante, horizonte_horas=horizonte_horas, fuente_dataset=fuente,
-        )
+        return _sin(f"la estación «{station_id}» no tiene una serie horaria utilizable para anclar la previsión")
     # el forecast se ancla en la última hora con lectura real (Gold va con
     # retraso); `momento` de la respuesta = ese ancla.
     vector, completeness = prevision.construir_features(
         actual, historial, instante=ancla, lat=lat, lon=lon,
     )
+    fechas = sorted({
+        f["date"] for f in filas
+        if f.get("station_id") == station_id and f.get("pollutant") == pollutant
+        and f.get("avg_value") is not None
+    })
+    ventana = f"{fechas[0]}..{fechas[-1]}" if fechas else None
+
     if not prevision.modelo_disponible(horizonte_horas):
-        return CalidadAirePrevista(
-            zona=zona, momento=ancla, horizonte_horas=horizonte_horas,
+        return _sin(
+            f"no está el modelo ONNX calidad_aire_h{horizonte_horas}.onnx en asistente/modelos/ "
+            "(genéralo con `python -m modelado.export.to_onnx`)",
+            ancla=ancla,
             estacion=fila_ref.get("station_name") or station_id, contaminante=pollutant,
             valor_actual=round(actual, 1), unidad=fila_ref.get("unit"),
-            data_completeness=round(completeness, 2), fuente_dataset=fuente,
+            data_completeness=round(completeness, 2), ventana_datos=ventana,
         )
 
     previsto = prevision.predecir(vector, horizonte=horizonte_horas)
@@ -1281,7 +1302,9 @@ def _calidad_aire_prevista_impl(
     return CalidadAirePrevista(
         zona=zona,
         momento=ancla,
+        momento_objetivo=ancla + timedelta(hours=horizonte_horas),
         horizonte_horas=horizonte_horas,
+        disponible=True,
         estacion=fila_ref.get("station_name") or station_id,
         contaminante=pollutant,
         valor_previsto=round(previsto, 1),
@@ -1289,6 +1312,7 @@ def _calidad_aire_prevista_impl(
         unidad=fila_ref.get("unit"),
         nivel_previsto=nivel,
         data_completeness=round(completeness, 2),
+        ventana_datos=ventana,
         modelo=f"calidad_aire_h{horizonte_horas}.onnx (ML_07 / madrono-calidad_aire-h{horizonte_horas})",
         fuente_dataset=fuente,
     )
@@ -1385,19 +1409,29 @@ def _trafico_prevista_impl(
 
     fuente = _FUENTE_TRAFICO
 
-    def _sin(**kw) -> TraficoPrevista:
+    def _sin(motivo: str, *, ancla: datetime | None = None, **kw) -> TraficoPrevista:
+        """Respuesta degradada (nunca excepción hacia el cliente MCP, `FIL_15`)."""
         base = dict(
-            lugar=lugar, momento=instante, horizonte_horas=horizonte_horas,
+            lugar=lugar, horizonte_horas=horizonte_horas,
+            momento=ancla or instante,
+            momento_objetivo=(ancla + timedelta(hours=horizonte_horas)) if ancla else None,
             fuente_dataset=fuente, fuente_grafo=_FUENTE_GRAFO_TRAFICO_PREVISTA,
+            motivo=motivo,
         )
         base.update(kw)
         return TraficoPrevista(**base)
 
     # 1. puntos de tráfico cerca del lugar (grafo)
     query, params = lugares_proximos_a_estaciones_trafico_query(lugar, radio_m)
-    filas_grafo = run_neo4j_query(query, params, driver=neo4j_driver)
+    try:
+        filas_grafo = run_neo4j_query(query, params, driver=neo4j_driver)
+    except Exception as exc:  # noqa: BLE001 - degradación elegante (FIL_15)
+        return _sin(f"no se pudo consultar el grafo en Neo4j: {exc}")
     if not filas_grafo:
-        return _sin()
+        return _sin(
+            f"ningún punto de medida de tráfico a {radio_m:.0f} m de «{lugar}» en el grafo "
+            "(¿lugar mal escrito o sin nodo :Lugar?)"
+        )
     distancia_por_point_id: "dict[str, float]" = {}
     for fila in filas_grafo:
         estacion_id = fila.get("estacion_id") or ""
@@ -1408,7 +1442,7 @@ def _trafico_prevista_impl(
         if d is None or fila["distancia_m"] < d:
             distancia_por_point_id[pid] = fila["distancia_m"]
     if not distancia_por_point_id:
-        return _sin()
+        return _sin(f"el grafo devolvió estaciones para «{lugar}» pero ninguna con point_id de tráfico usable")
 
     # 2. últimas ~2 fechas de Gold para esos puntos (Gold va con retraso; el
     #    forecast se ancla en la última hora real, igual que calidad del aire)
@@ -1422,9 +1456,15 @@ def _trafico_prevista_impl(
           AND point_id IN ({ids_literal})
           AND avg_service_level IS NOT NULL
     """
-    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001 - degradación elegante (FIL_15)
+        return _sin(f"no se pudo consultar Gold en Athena: {exc}")
     if not filas:
-        return _sin()
+        return _sin(
+            f"`gold.trafico_por_punto_hora` no tiene lecturas recientes para los puntos "
+            f"cercanos a «{lugar}» (pipeline congelado / hueco de datos)"
+        )
 
     # 3. punto de referencia: el de mayor avg_service_level en su lectura más
     #    reciente (peor caso, mismo criterio que calidad del aire con el ratio)
@@ -1439,7 +1479,10 @@ def _trafico_prevista_impl(
 
     actual, historial, lat, lon, ancla = _historial_trafico_por_hora(filas, point_id)
     if actual is None or ancla is None:
-        return _sin(punto_id=point_id)
+        return _sin(
+            f"el punto «{point_id}» no tiene una serie horaria utilizable para anclar la previsión",
+            punto_id=point_id,
+        )
 
     vector, completeness = prevision.construir_features(
         actual, historial, instante=ancla, lat=lat, lon=lon,
@@ -1449,7 +1492,9 @@ def _trafico_prevista_impl(
 
     if not prevision.modelo_disponible(horizonte_horas, target="trafico"):
         return _sin(
-            punto_id=point_id, momento=ancla, valor_actual=round(actual, 2),
+            f"no está el modelo ONNX trafico_h{horizonte_horas}.onnx en asistente/modelos/ "
+            "(genéralo con `python -m modelado.export.to_onnx --modelo madrono-trafico-h<H>`)",
+            ancla=ancla, punto_id=point_id, valor_actual=round(actual, 2),
             nivel_previsto=_clasificar_trafico(actual, _UMBRALES_SERVICE_LEVEL),
             data_completeness=round(completeness, 2), ventana_datos=ventana,
         )
@@ -1458,7 +1503,9 @@ def _trafico_prevista_impl(
     return TraficoPrevista(
         lugar=lugar,
         momento=ancla,
+        momento_objetivo=ancla + timedelta(hours=horizonte_horas),
         horizonte_horas=horizonte_horas,
+        disponible=True,
         punto_id=point_id,
         valor_previsto=round(previsto, 2),
         valor_actual=round(actual, 2),

@@ -212,6 +212,36 @@ cada dato individual), `explicacion` (texto libre) y `fuentes` (lista de
 `FuenteConsultada`, cada una con el dataset de origen y un resumen — lo que
 hace la explicación trazable).
 
+### Envoltorio de las tools de previsión — `RespuestaPrevision` (`FIL_15`)
+
+Toda tool `*_prevista` (hoy `calidad_aire_prevista` de `ML_09` y
+`trafico_prevista` de `FIL_13`) devuelve una **subclase** de
+`RespuestaPrevision`, con el mismo contrato de procedencia y de degradación:
+
+| Campo | Significado |
+|---|---|
+| `disponible` | ¿Se pudo producir una cifra? `True` ⇔ `valor_previsto is not None` |
+| `horizonte_horas` | Horas por delante (1, 3 o 6) |
+| `momento` | Instante de **anclaje**: última hora con lectura real en Gold (Gold va con retraso) |
+| `momento_objetivo` | Hora de pared a la que aplica la previsión (`momento + horizonte_horas`); `None` si no hubo anclaje |
+| `valor_previsto` / `valor_actual` / `unidad` | Cifra prevista, última lectura real y unidad (µg/m³ / `avg_service_level`) |
+| `nivel_previsto` | Etiqueta simplificada del dominio (`buena`… / `fluido`… / `sin_datos`) |
+| `motivo` | Por qué no hay cifra (solo si `not disponible`) — texto legible |
+| `modelo` | `<target>_h<H>.onnx` + nombre del modelo del registry (`version_modelo`) |
+| `data_completeness` | Fracción de {actual, lag 1/2/3/24 h} presente (0..1); proxy de confianza |
+| `ventana_datos` | Rango de fechas de los lags usados (`YYYY-MM-DD..YYYY-MM-DD`) |
+| `fuente_dataset` | Tabla Gold de origen |
+| `generado_en` | Momento en que se construyó **esta respuesta** (≠ `momento`) |
+
+`CalidadAirePrevista` añade `zona` / `estacion` / `contaminante`;
+`TraficoPrevista` añade `lugar` / `punto_id` / `fuente_grafo`.
+
+**Degradación elegante:** ninguna ruta lanza excepción hacia el cliente MCP.
+Si falta el `.onnx`, si Gold no tiene lags para `momento`, o si Athena/Neo4j
+fallan, la tool devuelve el objeto con `disponible=False`,
+`valor_previsto=None` y `motivo` explicativo (cubierto por
+`asistente/tests/test_mcp_hardening.py` y `test_mcp_transport.py`).
+
 ## Las 6 `tools` del agente MCP
 
 De la memoria (apartado 6.7), mapeadas a su fuente real o futura vía Gold
@@ -276,6 +306,39 @@ AWS_DEFAULT_REGION=eu-west-1 NEO4J_URI=neo4j+s://... NEO4J_USERNAME=neo4j \
 # Agente MCP en modo stdio (para un cliente MCP como Claude Desktop)
 python -m asistente.mcp_agent.server
 ```
+
+### Conectar un cliente MCP (`stdio`) — `FIL_15`
+
+El servidor se ejecuta en `stdio` (`python -m asistente.mcp_agent.server`,
+`serverInfo.name = "madrono"`) o montado en HTTP bajo `/mcp-server`
+(`uvicorn asistente.main:app`, transporte *streamable HTTP*). Configuración
+de ejemplo para Claude Desktop (`claude_desktop_config.json`) u otro cliente
+MCP que hable `stdio`:
+
+```json
+{
+  "mcpServers": {
+    "madrono": {
+      "command": "python",
+      "args": ["-m", "asistente.mcp_agent.server"],
+      "cwd": "/ruta/al/repo/madrono",
+      "env": {
+        "AWS_DEFAULT_REGION": "eu-west-1",
+        "NEO4J_URI": "neo4j+s://xxxx.databases.neo4j.io",
+        "NEO4J_USERNAME": "neo4j",
+        "NEO4J_PASSWORD": "..."
+      }
+    }
+  }
+}
+```
+
+`AWS_*` habilita las tools que leen Gold vía Athena; `NEO4J_*` las que
+cruzan el grafo. Sin credenciales el `initialize` + `list_tools` siguen
+funcionando (descubrimiento), y cada `call_tool` degrada con `motivo` en vez
+de fallar. El handshake real por `stdio` y el round-trip de `list_tools` /
+`call_tool` están verificados en
+`asistente/tests/test_mcp_transport.py`.
 
 ## Tests
 
