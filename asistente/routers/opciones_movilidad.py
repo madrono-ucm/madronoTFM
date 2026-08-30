@@ -4,10 +4,10 @@ Existe para poder probar la tool sin un cliente MCP (`curl`/`httpx` directos,
 ver `asistente/README.md`) -- el propio agente MCP la expone también, sin
 pasar por HTTP, vía `asistente/mcp_agent/server.py`.
 
-Igual que `eventos_cercanos.py`, `tools.opciones_movilidad` devuelve
-`list[OpcionMovilidad]`, no un único modelo con `momento`/`fuente_dataset`
--- este router construye la `RespuestaAsistente` a partir de la lista
-directamente.
+`tools.opciones_movilidad` devuelve `OpcionesMovilidad` (`FIL_24`: un
+contenedor con `origen`/`destino` + `opciones: list[OpcionMovilidad]`, para
+que el SDK de MCP genere `output_schema`); este router construye la
+`RespuestaAsistente` a partir de `.opciones`.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def consultar_opciones_movilidad(
     ),
 ) -> RespuestaAsistente:
     """Invoca la tool `opciones_movilidad` y construye una `RespuestaAsistente` trazable."""
-    opciones = tools.opciones_movilidad(origen, destino, momento)
+    opciones = tools.opciones_movilidad(origen, destino, momento).opciones
     pregunta = f"¿Cómo voy de «{origen}» a «{destino}»?"
 
     if not opciones:

@@ -2,10 +2,26 @@
 kind: fil
 title: "opciones_movilidad y eventos_cercanos son las únicas 2 de 9 tools sin output_schema MCP (list[Model] no genera schema)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 ---
+
+## Resolución (2026-08-30)
+
+Modelos contenedor en `asistente/models/herramientas.py`: `OpcionesMovilidad`
+(`origen`/`destino`/`opciones: list[OpcionMovilidad]`) y `EventosCercanos`
+(`lugar`/`radio_m`/`eventos: list[EventoCercano]`). Las funciones **públicas**
+`tools.opciones_movilidad`/`tools.eventos_cercanos` devuelven el contenedor;
+los `_*_impl` siguen devolviendo la lista (los ~15 tests que los llaman
+directamente no se tocan). Routers leen `.opciones`/`.eventos`. Envolver un
+`list[...]` en un `BaseModel` es lo que ya hacen las otras 7 tools.
+
+`test_mcp_transport.py::test_list_tools_expone_las_9` ahora exige
+`output_schema` con `properties` para **las 9** tools (servidor MCP real).
+Arrancar el servidor ya no emite ningún `Cannot create schema`. Suite
+`asistente/` + `tests/` → 113 passed. `doc/FIL-24-...md`.
 
 > **Contexto**: encontrado en `VIKT_06` (recorrido end-to-end reproducible
 > para la defensa, `doc/PLAN-REVISION-TFM.md`), levantando el servidor MCP
