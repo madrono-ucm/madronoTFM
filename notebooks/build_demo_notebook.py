@@ -3,14 +3,16 @@ con foco en el elemento *wow* (la STGNN: modelar la ciudad como un grafo y
 aprender qué **conexiones** explican la congestión).
 
 Se guarda el generador (y no solo el `.ipynb`) para que la demo sea
-revisable en diff y regenerable:
+revisable en diff y regenerable. El `.ipynb` del repo lleva **las salidas
+ejecutadas** (para que GitHub muestre las figuras sin correrlo). Para
+refrescarlo:
 
-    python notebooks/build_demo_notebook.py
+    python notebooks/build_demo_notebook.py            # regenera limpio
+    jupyter nbconvert --to notebook --execute --inplace notebooks/demo_madrono.ipynb
 
-El notebook resultante se ejecuta de arriba a abajo **sin credenciales**
-(usa un mini-grafo sintético «mini-Madrid» y mocks del asistente); si hay
-Neo4j / MLflow / paneles reales disponibles, algunas celdas usan datos
-reales y lo indican por pantalla.
+El notebook se ejecuta de arriba a abajo **sin credenciales** (mini-grafo
+sintético «mini-Madrid» + mocks del asistente); con `AWS_PROFILE`/`NEO4J_*`
+reales algunas celdas usan datos vivos y lo indican por pantalla.
 """
 
 from __future__ import annotations
@@ -19,15 +21,23 @@ import json
 from pathlib import Path
 
 NB = Path(__file__).with_name("demo_madrono.ipynb")
+_N = [0]
+
+
+def _id() -> str:
+    _N[0] += 1
+    return f"cell-{_N[0]:02d}"
 
 
 def md(text: str) -> dict:
-    return {"cell_type": "markdown", "metadata": {}, "source": text.strip("\n") + "\n"}
+    return {"cell_type": "markdown", "id": _id(), "metadata": {},
+            "source": text.strip("\n") + "\n"}
 
 
 def code(src: str) -> dict:
     return {
         "cell_type": "code",
+        "id": _id(),
         "metadata": {},
         "execution_count": None,
         "outputs": [],
