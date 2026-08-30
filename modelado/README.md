@@ -40,6 +40,25 @@ La CI (`.github/workflows/ci.yml`) ya instala este paquete antes de
 EC2 nueva de forma interactiva, instálalo a mano antes de correr
 `pytest modelado/` para no perder tiempo diagnosticando este mismo error.
 
+## `torch` es SOLO CPU (`FIL_23`)
+
+`stgnn.py` (`ML_05`) usa `torch` **sin GPU**. `modelado/requirements.txt`
+lleva `--extra-index-url https://download.pytorch.org/whl/cpu`, así que un
+`pip install -r modelado/requirements.txt` normal ya trae el wheel
+`torch==X.Y.Z+cpu` (~760 MB) en vez del build CUDA por defecto de PyPI
+(~4.5 GB de `nvidia-*`/`triton` que no sirven sin GPU y que además fallan al
+importar sin el toolkit CUDA del sistema).
+
+Si tu `pip` es antiguo y aun así instala `nvidia-*`, hazlo en dos pasos:
+
+```bash
+pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.2,<3'
+pip install -r modelado/requirements.txt        # ya encuentra torch satisfecho
+```
+
+Comprobación: `python -c "import torch; print(torch.__version__, torch.cuda.is_available())"`
+→ `...+cpu False`, y `site-packages/` sin carpetas `nvidia/`/`triton/`.
+
 ## Estructura
 
 | Dir | Contenido | Ticket |

@@ -45,7 +45,8 @@ foundation first. Findings and the full decision-making picture are in
 | `FIL_18` | Test de integración end-to-end: productor→`transform`+`aggregate`→grafo test→aserción sobre una tool del asistente | ✅ **HECHO 30/8** — `tests/integracion/test_e2e_bronze_a_asistente.py` (6 casos): Bronze inline → transform → aggregate → dobles Athena/Neo4j → `calidad_aire`/`calidad_aire_prevista`/`trafico_cercano`. Puerta de calidad + guardia de eslabón roto. `tests/` añadido a CI. `doc/FIL-18-...md` |
 | `FIL_19` | README raíz + guía "ejecuta el asistente en local" + diagrama de arquitectura real (Mermaid) | ✅ **HECHO 30/8** — `README.md` raíz: qué es, diagrama Mermaid (lo construido + lo §7.5 marcado), estado (pipeline congelado), guía de ejecución local + `mcpServers`, layout del repo. Enlaza `infra/OPERACION.md`. |
 | `FIL_20`–`FIL_22` | Opcionales / §7.5: serving del STGNN · `ce:GetCostAndUsage` + Billing real · EMT multi-parada (`FIL_07`) | ⬜ sólo si sobra tiempo |
-| `FIL_23` | `modelado/requirements.txt`: `torch>=2.2,<3` sin índice CPU resuelve al build CUDA (~4.5 GB, roto sin GPU) — hallazgo de `VIKT_08` | ⬜ **pendiente** — reproducibilidad, `modelado/` |
+| `FIL_23` | `modelado/requirements.txt`: `torch>=2.2,<3` sin índice CPU resuelve al build CUDA (~4.5 GB, roto sin GPU) — hallazgo de `VIKT_08` | ✅ **HECHO 30/8** — `--extra-index-url .../whl/cpu` en `requirements.txt` (pip prefiere el wheel `+cpu`); `modelado/README.md` con arranque en dos pasos. `doc/FIL-23-...md` |
+| `FIL_25` | README raíz dice "25 productores" — sólo 16 son Lambda continuos, 7 batch puntual, 1 retirado — hallazgo de `VIKT`/QA de `FIL_19` | ⬜ **pendiente** — corrección del README raíz |
 | `FIL_24` | `opciones_movilidad`/`eventos_cercanos` sin `output_schema` MCP (`list[Model]`) — hallazgo de `VIKT_06` | ✅ **HECHO 30/8** — contenedores `OpcionesMovilidad`/`EventosCercanos`; las 9 tools con `output_schema` (test real). `doc/FIL-24-...md` |
 
 ### Seguimiento surgido en la ejecución
