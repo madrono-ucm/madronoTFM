@@ -2,10 +2,22 @@
 kind: fil
 title: "asistente/README.md — sección 'Las 6 tools' con 3 marcadas NotImplementedError que llevan tiempo implementadas"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 ---
+
+## Resolución (2026-08-30)
+
+`asistente/README.md` § "Las 6 `tools`" → "Las 10 `tools`": tabla reescrita
+con las 10 reales (añadidas `disponibilidad_aparcamiento`, `eventos_cercanos`,
+`opciones_movilidad` sin la columna falsa `NotImplementedError`, más las 4
+`*_prevista` que ni aparecían: `calidad_aire_prevista`, `trafico_prevista`,
+`afluencia_prevista`, `calidad_aire_prevista_grafo`). Nota de que ninguna
+lanza excepción por falta de datos. Las menciones históricas a "las 6
+originales" en las secciones de changelog se dejan (dicen explícitamente que
+ya no hay `NotImplementedError`, no inducen a error).
 
 > **Contexto**: encontrado en `VIC_20` (consistencia de documentación
 > cruzada, `doc/PLAN-EVALUACION-TECNICA-2.md`).
