@@ -40,3 +40,26 @@ Instaladas solo en el `.venv` compartido de esta EC2 para esta auditoría.
 
 Sin cambios de código en ningún ticket (las 3 herramientas son de solo
 lectura); hallazgos reales → `FIL_*` nuevo (numeración siguiente: **33**).
+
+## Cierre (30/8) — 3/3 completados
+
+- `VIC_28` (mypy): 97 errores en 28 ficheros, casi todos por patrones de
+  tipado dinámico deliberados (bolsas de kwargs, alias de tipo como
+  string) o control de flujo que `mypy` no sigue. Un footgun latente real
+  (`BronzeWriter.partition_dir()` asume `Path` pero es `str` en modo S3,
+  hoy inalcanzable) → `FIL_33`.
+- `VIC_29` (checkov): 260 hallazgos, ~230 controles enterprise que no
+  encajan con la prioridad de coste 0 del proyecto, 4 sobre `kafka.tf`
+  (nunca aplicado), 12 sobre decisiones de coste vs. robustez ya tomadas
+  a propósito. Ningún `FIL_*`.
+- `VIC_30` (detect-secrets, histórico completo): 18 hallazgos
+  `Secret Keyword` en las 214 707 líneas jamás añadidas al repo, los 18
+  revisados uno a uno — confirma que `FIL_28` sigue siendo el único
+  secreto real. Ningún `FIL_*` nuevo, pero sí un aviso metodológico real
+  sobre un límite silencioso de la herramienta con ficheros grandes.
+
+**1 `FIL_*` nuevo, severidad baja.** Igual que la ronda 4, el análisis
+estático (tipos, IaC, secretos históricos) no encontró ningún bug
+funcional ni vulnerabilidad explotable — corrobora, con métodos y
+herramientas completamente distintas, la salud ya verificada por las
+rondas 1-4.

@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 5 — secretos en todo el histórico de git con detect-secrets"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -38,3 +38,23 @@ local para esta auditoría.
   con la misma urgencia que `FIL_28` si aplica — reportar de inmediato,
   no esperar al resumen final).
 - Cero cambios de código aplicados aquí.
+
+## Hecho (30/8)
+
+Escaneadas 214 707 líneas añadidas alguna vez en todo `git log --all`
+(troceado en 11 partes de 20 000 líneas tras descubrir que
+`detect-secrets` da `{}` en silencio, sin error, sobre un fichero único
+demasiado grande o fuera de un repo git — aviso metodológico documentado
+para quien repita esto). 18 hallazgos `Secret Keyword` (la categoría de
+mayor señal), los 18 revisados uno a uno: 2 son la credencial real ya
+conocida de `FIL_28`, el resto son placeholders/fixtures explícitamente
+ficticios o un valor canario de test que verifica una redacción correcta.
+**Cero `FIL_*` nuevos** — confirmado con una herramienta dedicada e
+independiente que `FIL_28` sigue siendo el único secreto real jamás
+commiteado. Detalle completo, incluido un dato curioso sobre por qué el
+`grep` manual de `VIC_19` seguía teniendo valor pese a un escáner de 25+
+detectores, en
+[`doc/VIC-30-eval-detect-secrets-historico.md`](../doc/VIC-30-eval-detect-secrets-historico.md).
+
+Cierra ronda 5 (`VIC_28`-`30`, 3/3 completados): 1 `FIL_*` nuevo
+(`FIL_33`, footgun latente de tipos, severidad baja).
