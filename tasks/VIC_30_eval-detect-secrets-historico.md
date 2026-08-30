@@ -57,4 +57,6 @@ detectores, en
 [`doc/VIC-30-eval-detect-secrets-historico.md`](../doc/VIC-30-eval-detect-secrets-historico.md).
 
 Cierra ronda 5 (`VIC_28`-`30`, 3/3 completados): 1 `FIL_*` nuevo
-(`FIL_33`, footgun latente de tipos, severidad baja).
+(`FIL_40`, footgun latente de tipos, severidad baja -- renumerado desde
+`FIL_33` por colisión con una rama sin mergear, ver
+`doc/PLAN-EVALUACION-TECNICA-5.md`).

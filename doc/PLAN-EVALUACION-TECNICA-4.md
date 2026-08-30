@@ -36,10 +36,28 @@ solo para esta auditoría — no se añaden a `requirements.txt` sin que un
   → `FIL_31`.
 - `VIC_27` (pip-audit): 3 CVEs reales, todos en dependencias transitivas
   sin ruta de explotación real en este proyecto, bump recomendado por
-  higiene → `FIL_32`.
+  higiene → `FIL_32` (renumerado a **`FIL_39`** el 30/8 tras aterrizar una
+  rama sin mergear, `feat/fil31-trafico-stgnn-tool`, que reutiliza
+  `FIL_32`/`33` para un tema no relacionado -- ver la nota de cierre de
+  esta ronda más abajo).
 
 **2 `FIL_*` nuevos, ambos severidad baja.** El análisis estático (primera
 vez en este proyecto) no encontró ningún bug funcional ni vulnerabilidad
 de severidad media/alta explotable — corrobora, desde un ángulo
 completamente distinto, la salud del código ya verificada en vivo por las
 rondas 1-3.
+
+### Nota (30/8, posterior al cierre): colisión de numeración `FIL_32`/`33`
+
+Una rama sin mergear de otra sesión, `feat/fil31-trafico-stgnn-tool`
+(funcionalidad de mapa animado / grafo canónico, sin relación con esta
+ronda), reutiliza `FIL_32`-`38` para tickets propios. Mientras esa rama
+siga sin mergear, `main` conserva la numeración original de esta ronda sin
+conflicto real -- pero para evitar una colisión en el momento del merge
+(mismo patrón ya visto una vez con `FIL_26`), se renumeró
+proactivamente el `FIL_32` de esta ronda a **`FIL_39`**
+(`tasks/FIL_39_dependencias-con-cve-conocido.md`, mismo contenido, sin
+cambios de fondo). **Pendiente de recomprobar cuando esa rama
+efectivamente se mergee a `main`**: confirmar que `FIL_39`/`FIL_40` (ver
+ronda 5) no colisionan con lo que aterrice, y renumerar de nuevo si hiciera
+falta.
