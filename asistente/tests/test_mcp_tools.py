@@ -21,13 +21,14 @@ TOOL_FUNCTIONS = [
     tools.calidad_aire,
     tools.calidad_aire_prevista,
     tools.trafico_cercano,
+    tools.trafico_prevista,
     tools.opciones_movilidad,
     tools.disponibilidad_aparcamiento,
     tools.eventos_cercanos,
 ]
 
-# Las 7 tools tienen lógica real (`calidad_aire_prevista`, tarea ML_09, es la
-# última) -- no queda ninguna con NotImplementedError.
+# Las 8 tools tienen lógica real (`trafico_prevista`, FIL_13, es la última)
+# -- no queda ninguna con NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS: list = []
 
 

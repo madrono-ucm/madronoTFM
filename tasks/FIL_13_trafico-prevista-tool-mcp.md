@@ -2,11 +2,13 @@
 kind: fil
 title: "trafico_prevista: exponer la previsión de congestión (LightGBM h1/h3/h6) como tool del MCP"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
 depends_on: []
 ---
+
+> **✅ HECHO 30/8.** ONNX `trafico_h{1,3,6}` exportados + vendorizados; `prevision.py` generalizado a `target`; tool `trafico_prevista` + router `GET /trafico-prevista` + registrada en el servidor MCP (8 tools). Verificado en vivo (Retiro/Sol/Atocha, Athena+Neo4j reales). `doc/FIL-13-...md`. Tests en verde.
 
 ## Contexto
 

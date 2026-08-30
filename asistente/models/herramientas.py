@@ -224,4 +224,38 @@ class CalidadAirePrevista(BaseModel):
     nivel_previsto: str = "sin_datos"
     data_completeness: float = 0.0
     modelo: str | None = None
+    ventana_datos: str | None = None
     fuente_dataset: str
+
+
+class TraficoPrevista(BaseModel):
+    """Previsión de congestión de tráfico para un punto de medida y horizonte
+    (`FIL_13`): la sirve `asistente.mcp_agent.tools.trafico_prevista`
+    corriendo el modelo ONNX de `ML_07` (`madrono-trafico-h<H>@champion`,
+    LightGBM de `ML_03`, exportado) sobre el mismo vector de 19 features que
+    `calidad_aire_prevista` (`modelado/features/panel.py` es agnóstico del
+    target), construido de las últimas 24 h de
+    `gold.trafico_por_punto_hora`.
+
+    `valor_previsto` es `avg_service_level` (0=fluido .. 6=cortado, escala de
+    la API de tráfico de Madrid) a `horizonte` horas; `valor_actual` es la
+    última lectura real. `nivel_previsto` reusa las tres bandas de
+    `trafico_cercano` (`fluido`/`denso`/`congestionado`). `data_completeness`
+    y `modelo` igual que `CalidadAirePrevista`. `ventana_datos` es el rango
+    de fechas de los lags usados (trazabilidad, útil con el pipeline
+    congelado).
+    """
+
+    lugar: str
+    momento: datetime
+    horizonte_horas: int
+    punto_id: str | None = None
+    valor_previsto: float | None = None
+    valor_actual: float | None = None
+    unidad: str | None = "avg_service_level"
+    nivel_previsto: str = "sin_datos"
+    data_completeness: float = 0.0
+    modelo: str | None = None
+    ventana_datos: str | None = None
+    fuente_dataset: str
+    fuente_grafo: str | None = None
