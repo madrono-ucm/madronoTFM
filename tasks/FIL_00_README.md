@@ -49,6 +49,7 @@ foundation first. Findings and the full decision-making picture are in
 | `FIL_23` | `modelado/requirements.txt`: `torch>=2.2,<3` sin índice CPU resuelve al build CUDA (~4.5 GB, roto sin GPU) — hallazgo de `VIKT_08` | ✅ **HECHO 30/8** — `--extra-index-url .../whl/cpu` en `requirements.txt` (pip prefiere el wheel `+cpu`); `modelado/README.md` con arranque en dos pasos. `doc/FIL-23-...md` |
 | `FIL_25` | README raíz dice "25 productores" — sólo 16 son Lambda continuos, 7 batch puntual, 1 retirado — hallazgo de `VIKT`/QA de `FIL_19` | ✅ **HECHO 30/8** — `README.md` raíz: diagrama Mermaid con caja aparte para las 7 cargas batch de referencia; fila de layout con "16 continuos + 7 batch + 1 retirado" verificable contra `lambda.tf::local.producers`. |
 | `FIL_24` | `opciones_movilidad`/`eventos_cercanos` sin `output_schema` MCP (`list[Model]`) — hallazgo de `VIKT_06` | ✅ **HECHO 30/8** — contenedores `OpcionesMovilidad`/`EventosCercanos`; las 9 tools con `output_schema` (test real). `doc/FIL-24-...md` |
+| `FIL_26` | Servir el STGNN (`ML_05`) como tool del MCP | ✅ **HECHO 30/8** — `calidad_aire_prevista_grafo` (10.ª tool): STGNN vía ONNX sin torch (`--meta` JSON: features/scalers/grafo/importancia de aristas), `asistente/prevision_grafo.py`, `CalidadAirePrevistaGrafo` con **`vecinos_influyentes`**. Verificado en vivo (Retiro↔Carmen O3, arista más influyente). Honesto: pierde a LightGBM a 1 h, `fiabilidad` BAJA. `doc/FIL-26-...md` |
 
 ### Seguimiento surgido en la ejecución
 

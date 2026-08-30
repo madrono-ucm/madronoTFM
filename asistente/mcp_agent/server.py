@@ -77,13 +77,15 @@ mcp = MCPServer(
     instructions=_INSTRUCCIONES,
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
-        "(memoria del TFM, apartados 5.2 y 6.7). 9 tools con lógica real: "
+        "(memoria del TFM, apartados 5.2 y 6.7). 10 tools con lógica real: "
         "`calidad_aire` / `disponibilidad_aparcamiento` leen Gold vía Athena; "
         "`trafico_cercano` / `afluencia_estimada` / `eventos_cercanos` / "
         "`opciones_movilidad` cruzan el grafo urbano en Neo4j; "
         "`calidad_aire_prevista` (ML_09) y `trafico_prevista` (FIL_13) sirven "
-        "una previsión desde los modelos ONNX de ML_07, y `afluencia_prevista` "
-        "(FIL_14) la deriva de ambas + persistencia. Ver "
+        "una previsión desde los modelos ONNX de ML_07, `afluencia_prevista` "
+        "(FIL_14) la deriva de ambas + persistencia, y "
+        "`calidad_aire_prevista_grafo` (FIL_26) la sirve desde el STGNN de "
+        "grafo (ML_05) con importancia de aristas. Ver "
         "asistente/mcp_agent/tools.py."
     ),
 )
@@ -99,6 +101,7 @@ _TOOLS = (
     (tools.afluencia_prevista, "Afluencia prevista"),
     (tools.calidad_aire, "Calidad del aire ahora"),
     (tools.calidad_aire_prevista, "Calidad del aire prevista"),
+    (tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)"),
     (tools.trafico_cercano, "Tráfico cerca de un lugar"),
     (tools.trafico_prevista, "Tráfico previsto"),
     (tools.opciones_movilidad, "Opciones de movilidad entre dos puntos"),

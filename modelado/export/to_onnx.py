@@ -283,11 +283,19 @@ def exportar_stgnn_desde_registry(
     aristas_json: str | None = None,
     longitud: int = 12,
     knn: int = 8,
+    escribir_meta: bool = False,
 ) -> dict:
     """Carga `models:/<nombre_registrado>@champion` (flavor pytorch), arma
     UNA ventana de test real con `train_stgnn._preparar` (mismo pipeline de
     snapshots + estandarización que el entrenamiento) y exporta a ONNX con
-    `exportar_stgnn`, midiendo la paridad sobre esa ventana."""
+    `exportar_stgnn`, midiendo la paridad sobre esa ventana.
+
+    Con `escribir_meta=True` escribe también `<nombre>.meta.json` con todo lo
+    que un consumidor necesita para servir el `.onnx` sin torch: el orden de
+    las `feature_cols`, las medias/desviaciones de estandarización de entrada
+    y salida, el índice de nodos + sus coordenadas, el grafo (`edge_index` /
+    `edge_weight`) y la importancia de aristas precalculada (`FIL_26`).
+    """
     from modelado.training import train_stgnn as ts
 
     modelo, flavor = cargar_champion(nombre_registrado)
@@ -296,7 +304,7 @@ def exportar_stgnn_desde_registry(
     modelo.eval()
 
     panel = pd.read_parquet(panel_path)
-    _ni, feats, edge_index, edge_weight, vent, origen_grafo = ts._preparar(
+    node_index, feats, edge_index, edge_weight, vent, origen_grafo = ts._preparar(
         panel, longitud=longitud, aristas_json=aristas_json, knn=knn
     )
     in_dim = modelo.convs[0].lin_self.in_features
@@ -305,13 +313,15 @@ def exportar_stgnn_desde_registry(
             f"mismatch de features: panel {len(feats)} vs modelo {in_dim} "
             "(¿panel distinto al del entrenamiento?)"
         )
-    Xseq, ts_obj = vent["Xseq"], vent["ts_objetivo"]
+    Xseq, Y, M, ts_obj = vent["Xseq"], vent["Y"], vent["M"], vent["ts_objetivo"]
     tr, _va, te = ts._split_temporal_idx(ts_obj, test_days=3, val_days=2)
     if not (tr.any() and te.any()):
         raise SystemExit("ventana de datos demasiado corta para el split 3+2 días")
-    mu, sd, _ = ts._estandarizar(Xseq[tr], eje=(0, 1, 2))
-    Xte = (Xseq[te] - mu) / sd
+    x_mu, x_sd, _ = ts._estandarizar(Xseq[tr], eje=(0, 1, 2))
+    y_mu, y_sd, _ = ts._estandarizar(Y[tr], eje=(0, 1))
+    Xte = (Xseq[te] - x_mu) / x_sd
 
+    import numpy as _np
     import torch
 
     x_seq = torch.as_tensor(Xte[0], dtype=torch.float32)
@@ -333,6 +343,39 @@ def exportar_stgnn_desde_registry(
     )
     if not resumen["paridad_ok"]:
         raise SystemExit(f"PARIDAD FALLA: max={resumen['paridad']['max']:.3e} (tol {_TOL_STGNN_ABS})")
+
+    if escribir_meta:
+        Yte_t = torch.as_tensor((Y[te] - y_mu) / y_sd, dtype=torch.float32)
+        Xte_t = torch.as_tensor(Xte, dtype=torch.float32)
+        Mte_t = torch.as_tensor(M[te])
+        imp = ts._importancia_aristas(modelo, Xte_t, Yte_t, Mte_t, ei, ew, node_index)
+        coords = ts.gs.coordenadas_por_nodo(panel, node_index)
+        meta = {
+            "modelo_registro": nombre_registrado,
+            "onnx": f"{nombre}.onnx",
+            "feature_cols": list(feats),
+            "longitud_ventana": int(longitud),
+            "n_horizontes": int(y_mu.shape[-1]),
+            "horizontes": list(ts._HORIZONTES),
+            "origen_grafo": origen_grafo,
+            "x_mu": x_mu.reshape(-1).round(6).tolist(),
+            "x_sd": x_sd.reshape(-1).round(6).tolist(),
+            "y_mu": y_mu.reshape(-1).round(6).tolist(),
+            "y_sd": y_sd.reshape(-1).round(6).tolist(),
+            "node_index": {k: int(v) for k, v in node_index.items()},
+            "node_coords": {
+                k: [round(float(coords[v, 0]), 6), round(float(coords[v, 1]), 6)]
+                for k, v in node_index.items()
+                if _np.isfinite(coords[v]).all()
+            },
+            "edge_index": edge_index.astype(int).tolist(),
+            "edge_weight": _np.asarray(edge_weight, dtype="float64").round(6).tolist(),
+            "importancia_aristas": imp["top_aristas"],
+        }
+        (_ART / f"{nombre}.meta.json").write_text(
+            json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8"
+        )
+        resumen["meta"] = f"{nombre}.meta.json"
     return resumen
 
 
@@ -345,6 +388,7 @@ def main(argv=None) -> int:
     ap.add_argument("--stgnn", action="store_true", help="el modelo es un STGNN (torch) -> exportador dynamo (FIL_20)")
     ap.add_argument("--aristas-json", default=None, help="STGNN: PROXIMO_A exportadas de Neo4j; sin esto, k-NN de coords")
     ap.add_argument("--longitud", type=int, default=12, help="STGNN: longitud de la ventana temporal")
+    ap.add_argument("--meta", action="store_true", help="STGNN: escribe también <nombre>.meta.json para servirlo sin torch (FIL_26)")
     ap.add_argument("--mlflow", default=None, help="experimento MLflow para subir el .onnx")
     ap.add_argument("--log-level", default="INFO")
     args = ap.parse_args(argv)
@@ -354,10 +398,12 @@ def main(argv=None) -> int:
         r = exportar_stgnn_desde_registry(
             args.modelo, args.panel, nombre=args.nombre,
             aristas_json=args.aristas_json, longitud=args.longitud,
+            escribir_meta=args.meta,
         )
         p = r["paridad"]
         print(f"\n{args.modelo} (STGNN) -> {r['onnx']}  ({r['onnx_bytes']:,} bytes"
-              f"{' + sidecar .data' if r['sidecar_data'] else ''})")
+              f"{' + sidecar .data' if r['sidecar_data'] else ''}"
+              f"{' + ' + r['meta'] if r.get('meta') else ''})")
         print(f"  features: {r['n_features']}  nodos: {r['n_nodos']}  aristas: {r['n_aristas']}  "
               f"ventana: {r['longitud_ventana']}  grafo: {r['origen_grafo']}")
         print(f"  paridad torch<->onnx |delta|: max={p['max']:.3e}  p99={p['p99']:.3e}  mean={p['mean']:.3e}")

@@ -242,6 +242,39 @@ class CalidadAirePrevista(RespuestaPrevision):
     contaminante: str | None = None
 
 
+class VecinoGrafo(BaseModel):
+    """Una conexión influyente del grafo del STGNN (`FIL_26`). `nodo` es un
+    par `"<station_id>__<contaminante>"`; `importancia` es
+    `mean |∂pérdida/∂edge_weight|` sobre el test (precalculada al exportar)."""
+
+    nodo: str
+    estacion: str | None = None
+    contaminante: str | None = None
+    importancia: float
+
+
+class CalidadAirePrevistaGrafo(RespuestaPrevision):
+    """Previsión de calidad del aire servida por el **modelo de grafo**
+    (STGNN de `ML_05`), vía ONNX (`FIL_20`/`FIL_26`). Misma forma que
+    `CalidadAirePrevista` más lo propio del grafo.
+
+    **Honestidad (§7.4)**: con la ventana de datos corta del proyecto este
+    STGNN pierde a `calidad_aire_prevista` (LightGBM) en métricas puntuales
+    a 1 h (sí bate a la persistencia a 3/6 h). Su aportación es
+    `vecinos_influyentes`: qué **conexiones entre estaciones** pesan más en
+    la predicción de este nodo -- explicabilidad que un modelo de árboles no
+    da. `nodo` es el `"<station_id>__<contaminante>"` elegido (peor caso).
+    """
+
+    zona: str
+    estacion: str | None = None
+    contaminante: str | None = None
+    nodo: str | None = None
+    n_nodos_grafo: int | None = None
+    grafo: str | None = None
+    vecinos_influyentes: list[VecinoGrafo] = Field(default_factory=list)
+
+
 class TraficoPrevista(RespuestaPrevision):
     """Previsión de congestión de tráfico para un punto de medida y horizonte
     (`FIL_13`): la sirve `asistente.mcp_agent.tools.trafico_prevista`
