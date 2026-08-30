@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 2 — modelado/ (export STGNN real desde registry, Tabla 3)"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -46,3 +46,15 @@ pasada:
 
 - No re-entrenar modelos "a ojo" para forzar una Tabla 3 distinta — si se
   recomienda refrescarla, que sea con `run_all.py` tal cual existe.
+
+## Hecho (30/8)
+
+Ver [`doc/VIC-17-eval-modelado-v2.md`](../doc/VIC-17-eval-modelado-v2.md).
+STGNN exportado desde un `@champion` real del registry (entrenado en esta
+pasada), no solo sintético — paridad `3.58e-07`, confirma `FIL_20` con un
+modelo real. `run_all.py` ejecutado de verdad: calidad del aire hoy rinde
+**peor que la línea base** en 2 de 3 horizontes (coincide con el cron real
+de esta madrugada, que por eso no promocionó el modelo). Recomendación
+para `VIKT_05` actualizada con esta evidencia: no basta con refrescar
+Tabla 3 con un solo día, el skill es volátil — mejor publicar un rango o
+la media del backtest.

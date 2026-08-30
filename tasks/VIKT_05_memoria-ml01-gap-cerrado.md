@@ -63,6 +63,31 @@ memoria:
   de las features exógenas de `ML_01`.
 - Estilos/numeración del `.docx` intactos.
 
+## Actualización importante (Claude QA, `VIC_17`, 30/8) — antes de decidir, leer esto
+
+Se ejecutó de verdad `run_all.py` hoy contra los paneles reales (que sí
+incluyen las features exógenas de `ML_01`) para dar una respuesta con
+evidencia, no solo con fechas de fichero. Resultado: **calidad del aire
+rinde peor que la línea base hoy en 2 de 3 horizontes** (skill h1=-0,16,
+h3=-0,13, h6=0,24 — frente al 0,29/0,58/0,68 publicado). Tráfico reproduce
+razonablemente cerca (0,34/0,58/0,75 frente a 0,37/0,61/0,76).
+
+Esto **cambia la recomendación** respecto a lo que sugería el hallazgo
+original de este ticket ("puede que solo haga falta re-ejecutar
+`run_all.py`"): el skill de calidad del aire es genuinamente **volátil
+día a día** con esta ventana de datos (confirmado también por
+`historial.csv` del cron real de esta madrugada, que rechazó promocionar
+el modelo de hoy por la misma razón). Simplemente sustituir la Tabla 3 por
+los números de hoy la dejaría **peor**, no mejor — cambiaría "el modelo
+bate a la línea base" por "el modelo pierde a 1-3h", que tampoco sería
+representativo, solo sería el número de otro día concreto.
+
+**Recomendación**: en vez de un refresco puntual, considerar publicar el
+skill medio (o un rango) del backtest incremental en vez de un solo día —
+ver [`doc/VIC-17-eval-modelado-v2.md`](../doc/VIC-17-eval-modelado-v2.md)
+para el detalle completo y los números exactos. Esto no cierra la
+decisión de este ticket, la informa con evidencia nueva.
+
 ## Investigación del punto 1 (Claude QA, 30/8)
 
 Respuesta al matiz del punto 1: **la Tabla 3 actual NO se entrenó con las
