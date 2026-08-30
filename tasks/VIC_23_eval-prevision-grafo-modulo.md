@@ -37,3 +37,26 @@ completos de las otras tools). Esta pasada:
 - Al menos una verificación en vivo con datos/lugar distintos a los ya
   usados en el commit original.
 - Cualquier hallazgo → ticket `FIL_*` nuevo.
+
+---
+
+## Revisión FIL (2026-08-30) — sin hallazgos, sin ticket nuevo
+
+- **`asistente/prevision_grafo.py` leído completo.** No duplica lógica de
+  `asistente/prevision.py`: `_features_17` **reutiliza** `prevision.construir_features`
+  y recorta `lat`/`lon` (`_IDX_17`). El caché de sesión ONNX + meta es propio del
+  contrato de grafo (más pesado); un helper compartido no ahorraría nada real.
+  Separación deliberada (vector único LightGBM vs ventana de grafo STGNN).
+- **`CONTRATO.md` § STGNN ↔ `stgnn_calidad_aire.meta.json`**: coinciden exactamente
+  — `feature_cols` (17, = FEATURES sin lat/lon, verificado por `_cargar` con un
+  `assert`), `x_mu/x_sd` (17), `y_mu/y_sd` (3), `longitud_ventana` 12,
+  `node_index`/`node_coords` (54), `edge_index` [2,602] + `edge_weight` (602),
+  `importancia_aristas` (top-15), `origen_grafo` `coords-knn8`.
+- **Tests**: +2 casos de fallo (`test_meta_corrupto_degrada_sin_excepcion`,
+  `test_stgnn_revienta_en_inferencia_degrada`) → 11 en total, a la par con
+  `test_afluencia_prevista.py`.
+- **Verificación en vivo con 5 estaciones distintas a Retiro** (Plaza de España·PM10,
+  Méndez Álvaro·PM10, Villaverde·O3, Ramón y Cajal·NO2, + IDs crudos): todas OK,
+  peor-caso por contaminante sensato, `vecinos_influyentes` poblado sólo cuando el
+  nodo aparece en el top-15 (no fabrica), `data_completeness` refleja huecos reales
+  de Gold, `disponible=False` limpio para estaciones fuera del grafo de 11.
