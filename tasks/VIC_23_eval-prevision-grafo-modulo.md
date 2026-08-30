@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 3 — asistente/prevision_grafo.py + calidad_aire_prevista_grafo"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -60,3 +60,13 @@ completos de las otras tools). Esta pasada:
   peor-caso por contaminante sensato, `vecinos_influyentes` poblado sólo cuando el
   nodo aparece en el top-15 (no fabrica), `data_completeness` refleja huecos reales
   de Gold, `disponible=False` limpio para estaciones fuera del grafo de 11.
+
+**Cross-check independiente (Claude, sesión distinta, mismo día)**: llamadas
+en vivo adicionales a `calidad_aire_prevista_grafo` con "Cuatro Caminos"
+(PM10, disponible, `vecinos_influyentes=[]` — nodo fuera del top-15
+global, confirmado leyendo `meta.json['importancia_aristas']` directamente,
+coincide con el comentario explícito del test en línea 63-64 de
+`test_calidad_aire_prevista_grafo.py`, no es un hallazgo nuevo) y "Plaza
+Elíptica" (fuera del grafo de 54 nodos, `disponible=False` con motivo
+legible). Mismas conclusiones — status pasado a `done` (quedaba `pending`
+en el front-matter pese al trabajo ya hecho y verificado en el commit).
