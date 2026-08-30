@@ -2,10 +2,11 @@
 kind: fil
 title: "Deploy parques_jardines producer + add park :Lugar nodes to the graph"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: true
 depends_on: [FIL_02]
 created_at: "2026-08-28"
+resolved_at: "2026-08-28"
 ---
 
 > **Estado 28/8: ✅ HECHO.** Lambda + schedule semanal → Bronze (203
