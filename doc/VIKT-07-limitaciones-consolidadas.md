@@ -67,11 +67,19 @@ automático de esta sesión bloquea la escritura sobre
    directo, Athena, historial de `aws glue get-job-runs`) y una cifra de
    "20/24" de otra sesión que resultó ser inexacta. No es un hueco
    completamente cerrado.
-6. **Nuevo — STGNN evaluado pero no servido, mover de §7.5 a §7.4**. El
-   ticket lo pide explícitamente. Verificado: sigue siendo así
-   (`torch.export` no soporta el bucle temporal del STGNN); la memoria ya
-   lo dice en §7.2/§7.5 pero no está en la lista formal de limitaciones de
-   §7.4.
+6. **Nuevo — STGNN evaluado pero no integrado como tool, con un matiz
+   importante que cambió a mitad de esta ronda de tickets**. El ticket
+   original pedía mover esto de §7.5 a §7.4 asumiendo un bloqueo técnico
+   de `torch.export`. **`FIL_20` (aterrizado después de escribir este
+   ticket) verificó que el bloqueo ya no existe**: el STGNN sí exporta a
+   ONNX con paridad casi perfecta (`max|Δ|≈6e-8`), incluso con grafos de
+   tamaño distinto al de export — confirmado de forma independiente
+   volviendo a correr el export con grafos de 12/30/50 nodos nunca vistos
+   en el export original. La razón real de no servirlo es una decisión de
+   alcance (contrato de entrada más pesado, los LightGBM ya cubren la
+   demo), no una limitación de la librería — encaja mejor como §7.5
+   (trabajo aditivo) que como §7.4 (limitación real). Punto 8 de la lista
+   de reemplazo de abajo ya actualizado con esta redacción.
 7. **Nuevo — `aemet_avisos` con catálogo casi vacío en la ventana**.
    Verificado extensamente (`FIL_11`, `VIKT_08`-adyacente): AEMET solo ha
    emitido avisos "verde" (no oficialmente un aviso real) desde ~19–22/8;
@@ -126,11 +134,14 @@ formato de lista existente, un párrafo por punto):
    un modelo propio (se deriva de la previsión de tráfico y de la
    afluencia actual) por la escasez de histórico de la señal.
 8. El STGNN (Tier 2, grafo espacio-temporal) se evalúa y compara contra
-   LightGBM en la Tabla 3, pero **no se sirve por el asistente**: su
-   exportación a ONNX está bloqueada por una limitación conocida de
-   `torch.export` con el bucle temporal del modelo. El asistente solo
-   sirve previsión desde los modelos LightGBM (`calidad_aire_prevista`,
-   `trafico_prevista`).
+   LightGBM en la Tabla 3, pero **no se ha integrado como tool del
+   asistente**: su contrato de entrada (ventana de snapshots de grafo
+   `[L,N,F]` + `edge_index`/`edge_weight` + estandarización) es más pesado
+   que el vector de 19 features de los LightGBM, que ya cubren la demo del
+   asistente con dos targets. Ya **no es un bloqueo técnico** (`FIL_20`
+   verificó que sí exporta a ONNX con paridad `max|Δ|≈6e-8`, incluso con
+   un grafo de distinto tamaño al de ejemplo, vía `torch.onnx.export(dynamo=True)`)
+   — es trabajo aditivo pendiente, no una limitación de la librería.
 9. **La detección de fallos silenciosos (jobs que reportan éxito sin
    escribir datos) se hace hoy con un chequeo de frescura de la capa Gold
    y una alarma de errores de Glue diseñados y verificados contra datos
