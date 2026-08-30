@@ -42,16 +42,16 @@ def consultar_calidad_aire_prevista(
     r = tools.calidad_aire_prevista(zona, horizonte_horas, momento)
     pregunta = f"¿Cómo estará la calidad del aire en «{zona}» dentro de {horizonte_horas} h?"
 
-    if r.nivel_previsto == "sin_datos":
+    if not r.disponible and r.valor_actual is None:
         return RespuestaAsistente(
             pregunta=pregunta,
             veredicto=Veredicto.CON_PRECAUCION,
             fiabilidad=NivelFiabilidad.BAJA,
             explicacion=(
-                f"No hay ninguna estación de la red de calidad del aire cuyo nombre o "
-                f"identificador contenga «{zona}» con lecturas recientes para construir la "
-                "previsión. La resolución de «zona» es por texto sobre el nombre de la "
-                "estación (ver asistente/README.md)."
+                f"No hay previsión de calidad del aire para «{zona}». "
+                f"Motivo: {r.motivo or 'sin datos suficientes'}. "
+                "La resolución de «zona» es por texto sobre el nombre de la estación "
+                "(ver asistente/README.md)."
             ),
             fuentes=[FuenteConsultada(dataset=r.fuente_dataset, resumen=f"Sin estaciones para «{zona}»")],
         )
@@ -63,9 +63,8 @@ def consultar_calidad_aire_prevista(
             fiabilidad=NivelFiabilidad.BAJA,
             explicacion=(
                 f"Estación «{r.estacion}»: hay lectura actual de {r.contaminante} "
-                f"({r.valor_actual} {r.unidad or 'µg/m³'}) pero no está disponible el modelo "
-                f"ONNX del horizonte {r.horizonte_horas} h (asistente/modelos/). "
-                "Genéralo con `python -m modelado.export.to_onnx`."
+                f"({r.valor_actual} {r.unidad or 'µg/m³'}) pero no hay previsión. "
+                f"Motivo: {r.motivo or 'modelo no disponible'}."
             ),
             fuentes=[FuenteConsultada(dataset=r.fuente_dataset, resumen=f"{r.estacion}: sin modelo h{r.horizonte_horas}")],
         )

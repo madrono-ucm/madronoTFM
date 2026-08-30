@@ -2,11 +2,35 @@
 kind: fil
 title: "Endurecer el servidor MCP: transporte, envoltorio de respuesta, degradación elegante"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 depends_on: [FIL_13]
 ---
+
+## Resolución (2026-08-30)
+
+- **Envoltorio.** `RespuestaPrevision` en `asistente/models/respuesta.py`;
+  `CalidadAirePrevista` y `TraficoPrevista` **heredan** de él (no rename a
+  esquema envoltorio/detalle — ya compartían de facto los campos, sólo
+  faltaba factorizarlos; se cumple por Liskov). Añade `disponible`,
+  `momento_objetivo` (= anclaje + horizonte), `motivo`, `generado_en`.
+  `version_modelo`=`modelo` ya existente, `confianza`=`data_completeness`.
+  `ventana_datos` ahora también en calidad del aire.
+- **Degradación.** `try/except` alrededor de cada `run_athena_query` /
+  `run_neo4j_query` en los dos `_impl`; helper `_sin(motivo, …)`. Athena/Neo4j
+  caídos, sin coincidencia, Gold sin lags, `.onnx` ausente → objeto con
+  `disponible=False` + `motivo`, nunca excepción. Routers ramifican por
+  `disponible` y vuelcan `motivo`.
+- **Transporte.** `asistente/tests/test_mcp_transport.py`: `ClientSession`
+  real sobre streams en memoria (`initialize`+`list_tools`+`call_tool` ×
+  tools) y **subproceso `stdio`** (`python -m asistente.mcp_agent.server`,
+  handshake por el pipe del SO). `test_mcp_hardening.py` (11) cubre el
+  contrato + cada modo de fallo.
+- **Docs.** `asistente/README.md` (tabla `RespuestaPrevision` + bloque
+  `mcpServers`), `doc/FIL-15-mcp-server-hardening.md`.
+- Suite: `asistente/` + `modelado/tests/test_ml07.py` → 101 passed.
 
 ## Contexto
 
