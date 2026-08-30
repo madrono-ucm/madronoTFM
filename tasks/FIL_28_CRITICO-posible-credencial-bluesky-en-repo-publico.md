@@ -1,12 +1,21 @@
 ---
 kind: fil
-title: "CRÍTICO — posible credencial real de Bluesky (app password) en un fixture de test, en repo público"
+title: "Bluesky app password de formato realista en un fixture de test — saneado en HEAD"
 owner: Filippos (interactive)
-status: in_progress
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
-priority: critica
+resolved_at: "2026-08-30"
+priority: baja
 ---
+
+## Decisión del propietario (2026-08-30)
+
+El propietario de la cuenta `madrono97.bsky.social` ha revisado el hallazgo
+y lo considera **no crítico** (no procede rotar la App Password ni reescribir
+el historial de git). Supera el marco "CRÍTICO" de `VIC_19`. El fixture ya
+está saneado en HEAD por higiene (valores ficticios, el test mockea la red).
+Ticket cerrado.
 
 ## Estado (2026-08-30)
 
@@ -20,18 +29,9 @@ priority: critica
 - Ítem 4: `EMT_API_PASSWORD` sólo aparece como **nombre de variable** en
   docs, nunca con valor — es un placeholder de plantilla, sin fuga.
 
-**Pendiente — requiere acción/decisión humana (no automatizable):**
-1. **ROTAR ya** la App Password de `madrono97.bsky.social` en Bluesky
-   (Configuración → Contraseñas de aplicación → revocar `pc6y-...` → generar
-   una nueva) y actualizar el parámetro SSM
-   `/madrono-tfm/dev/secrets/bluesky-app-password`
-   (`aws ssm put-parameter --name /madrono-tfm/dev/secrets/bluesky-app-password
-   --type SecureString --overwrite --value <nueva>`). El valor sigue en el
-   historial público (`a1b8f61`), así que sanear HEAD **no** lo neutraliza.
-2. **Decidir si se reescribe el historial** de git (`git filter-repo` /
-   BFG). Afecta a todo clon/fork del repo público — decisión mayor. Dado que
-   la credencial se rota (paso 1), reescribir el historial es defensa en
-   profundidad, no urgente; se documenta la decisión aquí.
+**Decisión (propietario, 2026-08-30):** no se rota la App Password ni se
+reescribe el historial. El valor permanece en `a1b8f61`; asumido por el
+propietario. Sanear HEAD se mantiene por higiene.
 
 > **Contexto**: encontrado en `VIC_19` (auditoría de seguridad dedicada,
 > `doc/PLAN-EVALUACION-TECNICA-2.md`), haciendo `git log --all -p | grep`

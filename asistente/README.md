@@ -253,25 +253,28 @@ fallan, la tool devuelve el objeto con `disponible=False`,
 `valor_previsto=None` y `motivo` explicativo (cubierto por
 `asistente/tests/test_mcp_hardening.py` y `test_mcp_transport.py`).
 
-## Las 6 `tools` del agente MCP
+## Las 10 `tools` del agente MCP
 
-De la memoria (apartado 6.7), mapeadas a su fuente real o futura vía Gold
-(`trafico_cercano` no formaba parte del esqueleto original de la tarea 044 --
-es la primera que cruza más de una fuente vía el grafo, en vez de mapear 1:1
-a un dataset de `ingesta/`):
+De la memoria (apartado 6.7). **Todas tienen lógica real** — ninguna
+`NotImplementedError` (`FIL_29` limpió esta tabla, que databa de antes de
+las tareas 090/095/096). Registro y anotaciones: `asistente/mcp_agent/server.py`.
 
-| Tool | Fuente(s) | Estado |
+| Tool | Fuente(s) | Introducida en |
 |---|---|---|
-| `calidad_aire(zona, momento=None)` | `gold.calidad_aire_por_estacion_contaminante_hora` (tarea 006 + Gold, tarea 041+) | **Real (tarea 079)** |
-| `trafico_cercano(lugar, radio_m=300.0, momento=None)` | Grafo Neo4j (`:Lugar`-`PROXIMO_A`-`:EstacionMedida`, tareas 070/080) + `gold.trafico_por_punto_hora` (tarea 041) | **Real (tarea 081)** |
-| `afluencia_estimada(lugar, radio_m=300.0, momento=None)` | Grafo Neo4j (`:Lugar`-`PROXIMO_A`- tráfico/ruido/calidad_aire/BiciMAD) + `gold.trafico_por_punto_hora`/`ruido_por_estacion_periodo_fecha`/`bicimad_por_estacion_hora`/`calidad_aire_por_estacion_contaminante_hora` | **Real (tarea 089)** |
-| `opciones_movilidad(origen, destino, momento=None)` | `trafico_madrid` + `transporte_publico_madrid` (EMT) + `bicimad` | `NotImplementedError` |
-| `disponibilidad_aparcamiento(zona)` | `aparcamientos_madrid` (tarea 005) | `NotImplementedError` |
-| `eventos_cercanos(lugar, radio_m=500.0, momento=None)` | `agenda_eventos_madrid` + `agenda_recintos_madrid` (tarea 017) | `NotImplementedError` |
+| `calidad_aire(zona, momento=None)` | `gold.calidad_aire_por_estacion_contaminante_hora` vía Athena | tarea 079 |
+| `trafico_cercano(lugar, radio_m=300.0, momento=None)` | grafo Neo4j (`:Lugar`-`PROXIMO_A`-`:EstacionMedida`) + `gold.trafico_por_punto_hora` | tarea 081 |
+| `afluencia_estimada(lugar, radio_m=300.0, momento=None)` | grafo Neo4j + Gold de tráfico/ruido/BiciMAD/calidad_aire | tarea 089 |
+| `disponibilidad_aparcamiento(zona, momento=None)` | `gold.aparcamientos_por_parking_hora` vía Athena | tarea 090 |
+| `eventos_cercanos(lugar, radio_m=500.0, momento=None)` | grafo Neo4j (coords de `:Lugar`) + `silver.agenda_eventos` | tarea 095 |
+| `opciones_movilidad(origen, destino, momento=None)` | grafo Neo4j + Gold de tráfico/BiciMAD/EMT (sin *routing* real, ver su docstring) | tarea 096 |
+| `calidad_aire_prevista(zona, horizonte_horas=6, momento=None)` | previsión ONNX (LightGBM `ML_07`) sobre 19 features de Gold | `ML_09` |
+| `trafico_prevista(lugar, horizonte_horas=6, radio_m=300.0, momento=None)` | ídem sobre `avg_service_level` del punto de tráfico resuelto por el grafo | `FIL_13` |
+| `afluencia_prevista(lugar, horizonte_horas=6, radio_m=300.0, momento=None)` | **derivada**: `trafico_prevista` + persistencia de ruido/BiciMAD | `FIL_14` |
+| `calidad_aire_prevista_grafo(zona, horizonte_horas=3, momento=None)` | **STGNN de grafo** (`ML_05`) vía ONNX + importancia de aristas | `FIL_26` |
 
-Las 3 pendientes levantan `NotImplementedError` con un mensaje que apunta a
-esta tabla y a doc/041; son tareas de seguimiento independientes, no
-bloqueadas por esta.
+Ninguna lanza excepción por falta de datos: devuelven un objeto con
+`indice_calidad`/`resumen`/`nivel_*` = `"sin_datos"` (o, en las `*_prevista`,
+`disponible=false` + `motivo`).
 
 `calidad_aire` resuelve `zona` por **coincidencia de texto** (case
 insensitive) sobre `station_name`/`station_id` de la propia tabla Gold —
