@@ -16,7 +16,8 @@ y 6.7). Historial de trabajo: `doc/` (una entrada por tarea), `PLAN.md`,
 ```mermaid
 flowchart LR
     subgraph Ingesta["Ingesta — ruta fría por lotes"]
-        P["25 productores<br/>(ingesta/capturas/*)<br/>Lambda + EventBridge Scheduler"]
+        P["16 productores en continuo<br/>(Lambda + EventBridge Scheduler)"]
+        R["7 cargas batch de referencia<br/>(ejecución puntual → grafo / muestra)"]
     end
 
     subgraph Lake["Lakehouse medallón — S3 (3 buckets)"]
@@ -45,6 +46,7 @@ flowchart LR
     end
 
     P --> B --> G1 --> S --> G2 --> G
+    R --> N
     G --> A
     G --> N
     A --> MF --> OX --> T
@@ -138,7 +140,7 @@ de integración end-to-end (`tests/integracion/`, `doc/FIL-18-...md`).
 
 | Directorio | Qué hay |
 |---|---|
-| `ingesta/` | 25 productores (`capturas/`) que normalizan cada fuente pública → Bronze. Lógica en Python puro; el envoltorio Lambda en `bronze.py`. |
+| `ingesta/` | Captura de fuentes públicas → Bronze. **16 productores en continuo** (Lambda + EventBridge Scheduler, `infra/terraform/lambda.tf::local.producers`) + **7 cargas batch de referencia** (ejecución puntual, alimentan el grafo o dejan una muestra commiteada) + 1 módulo retirado (`afluencia_lugares_madrid`, `FIL_06`). Lógica en Python puro; envoltorio Lambda en `bronze.py`, lectura de secretos en `secretos.py`. |
 | `procesamiento/` | Transformaciones Bronze→Silver→Gold. `silver_gold/<ds>/{transform,aggregate}.py` (Python puro, testeable) + `glue_*.py` (envoltorio PySpark del job de Glue). |
 | `infra/` | Terraform del lakehouse, Glue, Lambda, Athena, IAM, observabilidad. `OPERACION.md` = runbook. `kafka/` = diseño de la ruta caliente (sin aplicar). |
 | `grafo/` | Construcción del grafo urbano en Neo4j (`:Lugar`, `:EstacionMedida`, `PROXIMO_A`) desde Gold + OSM. |

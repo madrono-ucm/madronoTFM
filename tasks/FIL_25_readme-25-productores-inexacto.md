@@ -2,10 +2,26 @@
 kind: fil
 title: "README raíz dice '25 productores... Lambda + EventBridge Scheduler' -- solo 16 lo son de verdad, 8 son carga batch puntual o un módulo retirado"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 ---
+
+## Resolución (2026-08-30)
+
+`README.md` raíz corregido:
+
+- Diagrama Mermaid: la caja "Ingesta" pasa a tener **dos nodos** — "16
+  productores en continuo (Lambda + EventBridge Scheduler)" y "7 cargas
+  batch de referencia (ejecución puntual → grafo / muestra)". Solo el primero
+  entra en la cadena Bronze→Silver→Gold; el segundo va directo a Neo4j.
+- Fila de layout de `ingesta/`: "16 productores en continuo
+  (`lambda.tf::local.producers`) + 7 cargas batch de referencia + 1 módulo
+  retirado (`afluencia_lugares_madrid`, `FIL_06`)".
+
+16 verificado contra `infra/terraform/lambda.tf::local.producers`. La cifra
+"25" no aparecía en ningún otro README.
 
 > **Contexto**: encontrado verificando `FIL_19` (README raíz) en la ronda de
 > QA de `doc/PLAN-REVISION-TFM.md` — contraste directo contra
