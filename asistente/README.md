@@ -215,10 +215,10 @@ hace la explicación trazable).
 ### Envoltorio de las tools de previsión — `RespuestaPrevision` (`FIL_15`)
 
 Toda tool `*_prevista` (`calidad_aire_prevista` de `ML_09`, `trafico_prevista`
-de `FIL_13` y `afluencia_prevista` de `FIL_14` — esta última **derivada**:
-`trafico_prevista` + persistencia de ruido/BiciMAD) devuelve una **subclase**
-de `RespuestaPrevision`, con el mismo contrato de procedencia y de
-degradación:
+de `FIL_13`, `afluencia_prevista` de `FIL_14` — derivada: `trafico_prevista`
++ persistencia — y `calidad_aire_prevista_grafo` de `FIL_26` — servida por el
+STGNN de grafo de `ML_05`) devuelve una **subclase** de `RespuestaPrevision`,
+con el mismo contrato de procedencia y de degradación:
 
 | Campo | Significado |
 |---|---|
@@ -239,7 +239,13 @@ degradación:
 `TraficoPrevista` añade `lugar` / `punto_id` / `fuente_grafo`;
 `AfluenciaPrevista` añade `lugar` / `radio_m` / `nivel_actual` /
 `senales_usadas` / `detalle_trafico_previsto` (y `valor_previsto` es la
-severidad combinada `0..2`, no una unidad física).
+severidad combinada `0..2`, no una unidad física);
+`CalidadAirePrevistaGrafo` (`FIL_26`, la sirve el STGNN de `ML_05` vía ONNX)
+añade `nodo` (`"<station_id>__<contaminante>"`) / `n_nodos_grafo` / `grafo` /
+**`vecinos_influyentes`** — las conexiones del grafo que más pesan en la
+predicción de ese nodo (`∂pérdida/∂edge_weight`). Nota §7.4: este STGNN
+pierde a `calidad_aire_prevista` en métricas puntuales a 1 h; se sirve por la
+explicabilidad de grafo, con `fiabilidad` topada en BAJA.
 
 **Degradación elegante:** ninguna ruta lanza excepción hacia el cliente MCP.
 Si falta el `.onnx`, si Gold no tiene lags para `momento`, o si Athena/Neo4j

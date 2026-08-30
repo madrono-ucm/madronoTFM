@@ -33,6 +33,7 @@ from asistente.models.herramientas import (
     AfluenciaEstimada,
     AfluenciaPrevista,
     CalidadAirePrevista,
+    CalidadAirePrevistaGrafo,
     CalidadAireZona,
     DisponibilidadAparcamiento,
     EstacionCalidadAireCercana,
@@ -45,6 +46,7 @@ from asistente.models.herramientas import (
     ParadaBicimadCercana,
     TraficoCercano,
     TraficoPrevista,
+    VecinoGrafo,
 )
 from asistente.neo4j_client import (
     lugares_proximos_a_estaciones_calidad_aire_query,
@@ -55,7 +57,7 @@ from asistente.neo4j_client import (
     resolver_lugar_query,
     run_neo4j_query,
 )
-from asistente import prevision
+from asistente import prevision, prevision_grafo
 from asistente.timeutils import MADRID_TZ, now_madrid
 
 # Tabla Gold real, ya verificada con datos de producción en las tareas
@@ -1363,6 +1365,186 @@ def calidad_aire_prevista(
             (hora de Madrid).
     """
     return _calidad_aire_prevista_impl(zona, horizonte_horas, momento)
+
+
+# ---------------------------------------------------------------------------
+# calidad_aire_prevista_grafo (FIL_26) -- la misma previsión pero servida por
+# el modelo de GRAFO (STGNN de ML_05, vía ONNX). Aporta `vecinos_influyentes`.
+# ---------------------------------------------------------------------------
+
+_HORIZONTES_STGNN = (1, 3, 6)
+
+
+def _calidad_aire_prevista_grafo_impl(
+    zona: str, horizonte_horas: int, momento: datetime | None, *, athena_client=None
+) -> CalidadAirePrevistaGrafo:
+    if horizonte_horas not in _HORIZONTES_STGNN:
+        raise ValueError(
+            f"horizonte_horas debe ser uno de {_HORIZONTES_STGNN}; recibido {horizonte_horas}"
+        )
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    fuente = _FUENTE_CALIDAD_AIRE
+
+    def _sin(motivo: str, *, ancla: datetime | None = None, **kw) -> CalidadAirePrevistaGrafo:
+        base = dict(
+            zona=zona, horizonte_horas=horizonte_horas,
+            momento=ancla or instante,
+            momento_objetivo=(ancla + timedelta(hours=horizonte_horas)) if ancla else None,
+            fuente_dataset=fuente, motivo=motivo,
+        )
+        base.update(kw)
+        return CalidadAirePrevistaGrafo(**base)
+
+    if not prevision_grafo.disponible():
+        return _sin("no está el modelo de grafo (asistente/modelos/stgnn_calidad_aire.onnx + .meta.json)")
+
+    try:
+        meta = prevision_grafo.info()
+    except Exception as exc:  # noqa: BLE001 - degradación elegante
+        return _sin(f"no se pudo cargar el modelo de grafo: {exc}")
+    node_index = meta["node_index"]
+    estaciones_grafo = sorted({k.split("__", 1)[0] for k in node_index})
+
+    hoy = instante.date()
+    fechas = [(instante - timedelta(days=d)).date().isoformat() for d in (2, 1, 0)]
+    ids_literal = ", ".join(f"'{sql_literal(s)}'" for s in estaciones_grafo)
+    sql = f"""
+        SELECT station_id, station_name, pollutant, unit, date, hour, avg_value
+        FROM {_TABLA_CALIDAD_AIRE}
+        WHERE date IN ({", ".join(f"'{f}'" for f in fechas)})
+          AND station_id IN ({ids_literal})
+          AND avg_value IS NOT NULL
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001
+        return _sin(f"no se pudo consultar Gold en Athena: {exc}")
+    if not filas:
+        return _sin("`gold.calidad_aire_por_estacion_contaminante_hora` no tiene lecturas recientes para el grafo")
+
+    # series por nodo + metadatos de estación/contaminante
+    series: "dict[str, dict[datetime, float]]" = {}
+    nombre_estacion: "dict[str, str]" = {}
+    unidad_contaminante: "dict[str, str]" = {}
+    for f in filas:
+        nodo = f"{f['station_id']}__{f['pollutant']}"
+        if nodo not in node_index:
+            continue
+        dt = datetime.fromisoformat(f["date"]).replace(hour=int(f["hour"]))
+        series.setdefault(nodo, {})[dt] = float(f["avg_value"])
+        if f.get("station_name"):
+            nombre_estacion[f["station_id"]] = f["station_name"]
+        if f.get("unit"):
+            unidad_contaminante[f["pollutant"]] = f["unit"]
+    if not series:
+        return _sin("ninguna lectura de Gold casa con un nodo del grafo del STGNN")
+
+    ancla = max(t for s in series.values() for t in s)
+
+    # resuelve `zona` -> estaciones candidatas (texto sobre nombre/id) -> nodos
+    z = zona.lower()
+    candidatos = [
+        nodo for nodo in series
+        if z in nombre_estacion.get(nodo.split("__", 1)[0], "").lower()
+        or z in nodo.split("__", 1)[0].lower()
+    ]
+    if not candidatos:
+        return _sin(f"ninguna estación del grafo del STGNN coincide con «{zona}»")
+
+    # peor caso: mayor ratio vs límite de referencia en el ancla
+    def _ratio(nodo: str) -> float:
+        pol = nodo.split("__", 1)[1]
+        val = series[nodo].get(ancla)
+        lim = _LIMITES_REFERENCIA_UGM3.get(pol)
+        return (val / lim) if (val is not None and lim) else -1.0
+
+    nodo = max(candidatos, key=_ratio)
+    station_id, pollutant = nodo.split("__", 1)
+
+    try:
+        pred, completeness = prevision_grafo.predecir(series, ancla)
+    except Exception as exc:  # noqa: BLE001
+        return _sin(f"fallo corriendo el STGNN: {exc}", ancla=ancla)
+
+    horizontes = list(meta["horizontes"])
+    yh = pred.get(nodo)
+    if yh is None:
+        return _sin(f"el nodo «{nodo}» no está en la salida del modelo", ancla=ancla)
+    previsto = round(yh[horizontes.index(horizonte_horas)], 1)
+    actual = series[nodo].get(ancla)
+    limite = _LIMITES_REFERENCIA_UGM3.get(pollutant)
+    nivel = _clasificar_indice(previsto / limite) if limite else "sin_clasificar"
+
+    fechas_nodo = sorted({t.date().isoformat() for t in series[nodo]})
+    vecinos = []
+    for v in prevision_grafo.vecinos_influyentes(nodo):
+        vs, vp = v["nodo"].split("__", 1) if "__" in v["nodo"] else (v["nodo"], None)
+        vecinos.append(VecinoGrafo(
+            nodo=v["nodo"], estacion=nombre_estacion.get(vs, vs),
+            contaminante=vp, importancia=v["importancia"],
+        ))
+
+    return CalidadAirePrevistaGrafo(
+        zona=zona,
+        momento=ancla,
+        momento_objetivo=ancla + timedelta(hours=horizonte_horas),
+        horizonte_horas=horizonte_horas,
+        disponible=True,
+        estacion=nombre_estacion.get(station_id, station_id),
+        contaminante=pollutant,
+        nodo=nodo,
+        valor_previsto=previsto,
+        valor_actual=round(actual, 1) if actual is not None else None,
+        unidad=unidad_contaminante.get(pollutant),
+        nivel_previsto=nivel,
+        data_completeness=round(completeness.get(nodo, 0.0), 2),
+        ventana_datos=f"{fechas_nodo[0]}..{fechas_nodo[-1]}" if fechas_nodo else None,
+        modelo=(
+            f"stgnn_calidad_aire.onnx (ML_05 / {meta['modelo_registro']}, "
+            f"grafo {meta['origen_grafo']})"
+        ),
+        n_nodos_grafo=len(node_index),
+        grafo=meta["origen_grafo"],
+        vecinos_influyentes=vecinos,
+        fuente_dataset=fuente,
+    )
+
+
+def calidad_aire_prevista_grafo(
+    zona: str, horizonte_horas: int = 3, momento: datetime | None = None
+) -> CalidadAirePrevistaGrafo:
+    """Previsión de calidad del aire servida por el **modelo de grafo**
+    (STGNN de `ML_05`), vía ONNX sin `torch` en runtime (`FIL_20`/`FIL_26`).
+
+    Alternativa a `calidad_aire_prevista` (LightGBM): resuelve `zona` igual
+    (texto sobre `station_name`/`station_id`), pero la previsión sale de una
+    red neuronal de grafo que hace *message passing* sobre el grafo de
+    estaciones. El STGNN predice **todos** los nodos a la vez; se devuelve el
+    del par (estación, contaminante) de peor caso que coincide con `zona`.
+
+    Devuelve `CalidadAirePrevistaGrafo`: el mismo envoltorio que
+    `CalidadAirePrevista` más `nodo`, `n_nodos_grafo`, `grafo` y sobre todo
+    **`vecinos_influyentes`** — las conexiones del grafo que más pesan en la
+    predicción de ese nodo (`∂pérdida/∂edge_weight` precalculada), la
+    explicabilidad que un modelo de árboles no da.
+
+    Nota (§7.4): con la ventana de datos corta del proyecto este STGNN
+    **pierde a `calidad_aire_prevista` en métricas puntuales a 1 h** (sí bate
+    a la persistencia a 3/6 h). Se sirve como demostración de metodología y
+    por su trazabilidad de grafo, no por ser más preciso. Sin modelo, sin
+    estación coincidente o sin datos → `disponible=false` + `motivo`, nunca
+    excepción.
+
+    Args:
+        zona: Nombre o identificador (parcial) de una estación de la red.
+        horizonte_horas: Horas por delante. Uno de 1, 3 o 6 (por defecto 3).
+        momento: Instante de referencia (ISO 8601). Si es `None`, ahora.
+    """
+    return _calidad_aire_prevista_grafo_impl(zona, horizonte_horas, momento)
 
 
 # ---------------------------------------------------------------------------
