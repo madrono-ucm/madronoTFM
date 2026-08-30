@@ -2,11 +2,34 @@
 kind: fil
 title: "Observabilidad: alertado de fallos de Glue + chequeo de frescura de Gold"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: true
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 depends_on: []
 ---
+
+## Resolución (2026-08-30)
+
+1. **Frescura de Gold** — `herramientas/salud/frescura_gold.py` +
+   `tests/test_frescura_gold.py` (11). Por cada tabla Gold: `max(date)` /
+   `max(processed_at)` vs ahora, umbral por cadencia (horaria 30 h, diaria
+   50 h, ruido 192 h por su retraso de publicación —`FIL_11`—, `aforos`
+   descontinuada). Datasets con partición al futuro (agenda, cartelera,
+   avisos, previsión) usan `processed_at`. Exit 1 en modo producción si algo
+   estancado; `--pipeline-congelado` (auto desde `PIPELINE_ENABLED=false`) →
+   exit 0 salvo anomalía real. **Verificado en vivo contra Athena real**
+   (2026-08-30): 14/15 frescas + ruido fresca + `aforos` descontinuada_ok,
+   0 alertarían en producción (la ingesta se congeló ese día).
+2. **Fallos de Glue** — `infra/terraform/observabilidad.tf`: EventBridge
+   (`Glue Job State Change` FAILED/TIMEOUT/ERROR) → SNS (con
+   `input_transformer` a email legible) → suscripción email opcional
+   (`var.alertas_email`). `terraform validate` + `fmt -check` en verde.
+   **Diseñado, sin `terraform apply`** (pipeline congelado → no dispararía;
+   la suscripción email necesita confirmación manual): patrón de
+   `glue_scheduling.tf`. Pasos de `apply -target` en `doc/FIL-16-...md`.
+3. `doc/FIL-16-...md`, `herramientas/salud/README.md`, nota en
+   `infra/OPERACION.md`.
 
 ## Contexto
 

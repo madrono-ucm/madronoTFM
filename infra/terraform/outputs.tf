@@ -115,3 +115,8 @@ output "athena_query_role_arn" {
   description = "ARN del rol IAM de mínimo privilegio para consultar Silver/Gold vía Athena (tarea 066)."
   value       = aws_iam_role.athena_query.arn
 }
+
+output "alertas_pipeline_topic_arn" {
+  description = "ARN del topic SNS de alertas de fallo de Glue (FIL_16). Diseñado, sin aplicar todavía -- ver observabilidad.tf."
+  value       = aws_sns_topic.alertas_pipeline.arn
+}
