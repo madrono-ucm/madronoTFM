@@ -25,6 +25,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from asistente.models.respuesta import RespuestaPrevision
+
 
 class CalidadAireZona(BaseModel):
     """Calidad del aire medida en una zona y momento concretos (tarea 079,
@@ -197,38 +199,27 @@ class EventoCercano(BaseModel):
     fuente_dataset: str
 
 
-class CalidadAirePrevista(BaseModel):
+class CalidadAirePrevista(RespuestaPrevision):
     """Previsión de calidad del aire para una estación y horizonte (tarea
     `ML_09`): la sirve `asistente.mcp_agent.tools.calidad_aire_prevista`
     corriendo el modelo ONNX de `ML_07` (LightGBM multi-horizonte de `ML_03`,
     exportado a ONNX) sobre las features construidas a partir de las últimas
     24 h de `gold.calidad_aire_por_estacion_contaminante_hora`.
 
-    `valor_previsto` es µg/m³ del `contaminante` a `horizonte` horas vista;
-    `valor_actual` es la última lectura real (para contexto).
+    El envoltorio común (`momento`/`momento_objetivo`/`valor_previsto`/
+    `disponible`/`motivo`/`modelo`/`data_completeness`/… — ver
+    `RespuestaPrevision`) más los campos propios del dominio: `zona`
+    consultada, `estacion` fijada (peor caso) y `contaminante`.
+    `valor_previsto` es µg/m³ del `contaminante` a `horizonte_horas`;
     `nivel_previsto` reusa el índice simplificado de `CalidadAireZona`.
-    `data_completeness` (0..1) es la fracción de features históricas
-    disponibles (valor actual + lags 1/2/3/24 h); baja cuando faltan datos,
-    igual criterio que `AfluenciaEstimada`. `modelo` identifica el `.onnx`
-    que produjo la cifra (trazabilidad).
     """
 
     zona: str
-    momento: datetime
-    horizonte_horas: int
     estacion: str | None = None
     contaminante: str | None = None
-    valor_previsto: float | None = None
-    valor_actual: float | None = None
-    unidad: str | None = None
-    nivel_previsto: str = "sin_datos"
-    data_completeness: float = 0.0
-    modelo: str | None = None
-    ventana_datos: str | None = None
-    fuente_dataset: str
 
 
-class TraficoPrevista(BaseModel):
+class TraficoPrevista(RespuestaPrevision):
     """Previsión de congestión de tráfico para un punto de medida y horizonte
     (`FIL_13`): la sirve `asistente.mcp_agent.tools.trafico_prevista`
     corriendo el modelo ONNX de `ML_07` (`madrono-trafico-h<H>@champion`,
@@ -237,25 +228,15 @@ class TraficoPrevista(BaseModel):
     target), construido de las últimas 24 h de
     `gold.trafico_por_punto_hora`.
 
+    El envoltorio común (ver `RespuestaPrevision`) más los campos del
+    dominio: `lugar` consultado, `punto_id` fijado (peor caso) y
+    `fuente_grafo` (Neo4j resolvió el lugar → puntos de tráfico).
     `valor_previsto` es `avg_service_level` (0=fluido .. 6=cortado, escala de
-    la API de tráfico de Madrid) a `horizonte` horas; `valor_actual` es la
-    última lectura real. `nivel_previsto` reusa las tres bandas de
-    `trafico_cercano` (`fluido`/`denso`/`congestionado`). `data_completeness`
-    y `modelo` igual que `CalidadAirePrevista`. `ventana_datos` es el rango
-    de fechas de los lags usados (trazabilidad, útil con el pipeline
-    congelado).
+    la API de tráfico de Madrid); `nivel_previsto` reusa las tres bandas de
+    `trafico_cercano` (`fluido`/`denso`/`congestionado`).
     """
 
     lugar: str
-    momento: datetime
-    horizonte_horas: int
     punto_id: str | None = None
-    valor_previsto: float | None = None
-    valor_actual: float | None = None
     unidad: str | None = "avg_service_level"
-    nivel_previsto: str = "sin_datos"
-    data_completeness: float = 0.0
-    modelo: str | None = None
-    ventana_datos: str | None = None
-    fuente_dataset: str
     fuente_grafo: str | None = None

@@ -41,16 +41,15 @@ def consultar_trafico_prevista(
     r = tools.trafico_prevista(lugar, horizonte_horas, radio_m, momento)
     pregunta = f"¿Cómo estará el tráfico cerca de «{lugar}» dentro de {horizonte_horas} h?"
 
-    if r.nivel_previsto == "sin_datos":
+    if not r.disponible and r.valor_actual is None:
         return RespuestaAsistente(
             pregunta=pregunta,
             veredicto=Veredicto.CON_PRECAUCION,
             fiabilidad=NivelFiabilidad.BAJA,
             explicacion=(
-                f"No hay ningún punto de medida de tráfico a {radio_m:.0f} m "
-                f"de «{lugar}» en el grafo, o `gold.trafico_por_punto_hora` no tiene lecturas "
-                "recientes para construir la previsión. La resolución de «lugar» es por texto "
-                "sobre el grafo (ver asistente/README.md)."
+                f"No hay previsión de tráfico cerca de «{lugar}». "
+                f"Motivo: {r.motivo or 'sin datos suficientes'}. "
+                "La resolución de «lugar» es por texto sobre el grafo (ver asistente/README.md)."
             ),
             fuentes=[FuenteConsultada(dataset=r.fuente_dataset, resumen=f"Sin puntos de tráfico para «{lugar}»")],
         )
@@ -62,9 +61,8 @@ def consultar_trafico_prevista(
             fiabilidad=NivelFiabilidad.BAJA,
             explicacion=(
                 f"Punto «{r.punto_id}»: hay lectura actual de nivel de servicio "
-                f"({r.valor_actual}) pero no está disponible el modelo ONNX del horizonte "
-                f"{r.horizonte_horas} h (asistente/modelos/). Genéralo con "
-                "`python -m modelado.export.to_onnx --modelo madrono-trafico-h<H>`."
+                f"({r.valor_actual}) pero no hay previsión. "
+                f"Motivo: {r.motivo or 'modelo no disponible'}."
             ),
             fuentes=[FuenteConsultada(dataset=r.fuente_dataset, resumen=f"{r.punto_id}: sin modelo h{r.horizonte_horas}")],
         )
