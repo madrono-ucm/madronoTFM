@@ -243,7 +243,7 @@ server: madrono
  - eventos_cercanos
 ```
 
-9 tools (`FIL_13`: +`trafico_prevista`; `FIL_14`: +`afluencia_prevista`).
+10 tools (`FIL_13` +`trafico_prevista`, `FIL_14` +`afluencia_prevista`, `FIL_26` +`calidad_aire_prevista_grafo`).
 **Nota real encontrada en esta verificación**: 2 de las 9 (`opciones_movilidad`,
 `eventos_cercanos`) no anuncian `output_schema` por una limitación del SDK
 `mcp` con retornos `list[BaseModel]` — documentado y archivado como
@@ -412,7 +412,7 @@ demo.
 
 Orden sugerido (≈8-10 min): §1 (10s, mostrar el JSON crudo) → §2.1 (30s,
 mismo dato transformándose sin Spark) → §2.2 (20s, la Gold real en Athena)
-→ §4.1 (20s, 9 tools reales por MCP) → **§4.3 es el momento central** (1 min,
+→ §4.1 (20s, 10 tools reales por MCP) → **§4.3 es el momento central** (1 min,
 explicar el envoltorio: valor + modelo + ventana + confianza) → §4.4 (20s,
 mostrar que un fallo real no rompe nada) → §5.1-5.2 (30s, el
 registry + la guarda de regresión rechazando un modelo peor) → mencionar
