@@ -60,8 +60,15 @@ previsto está, se devuelve la previsión sólo-tráfico (`senales_usadas =
   severidades, sólo-tráfico sin persistencia, cada modo de degradación,
   router OK / router sin previsión. Registro (9 tools) en
   `test_mcp_tools.py` y transporte en `test_mcp_transport.py`.
-- **En vivo** contra Athena + Neo4j reales (pipeline congelado, Gold y grafo
-  presentes) — ver tabla en la sección de abajo tras el merge.
+- **En vivo por transitividad.** `afluencia_prevista` no añade ninguna
+  interacción nueva con backends: es exactamente `trafico_prevista`
+  (verificada en vivo contra Athena + Neo4j reales en `FIL_13`, ver
+  `doc/FIL-13-...md` — Retiro/Sol/Atocha devolvieron previsiones reales) +
+  `afluencia_estimada` (verificada en vivo en la tarea 089) + una fusión
+  aritmética determinista (11 tests). Una comprobación directa por SSM en la
+  EC2 quedó bloqueada por el clasificador de la sesión; el comando reproducible
+  está en `infra/OPERACION.md` si se quiere repetir a mano
+  (`AWS_DEFAULT_REGION=eu-west-1 NEO4J_* .venv/bin/python -c "from asistente.mcp_agent import tools; print(tools.afluencia_prevista('retiro', 3))"`).
 
 ## Registro
 

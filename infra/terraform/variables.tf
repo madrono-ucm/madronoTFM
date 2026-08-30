@@ -326,6 +326,19 @@ variable "athena_query_trusted_services" {
   default     = []
 }
 
+variable "alertas_email" {
+  description = <<-EOT
+    Dirección de email a la que SNS manda las alertas de fallo de Glue
+    (`observabilidad.tf`, FIL_16). Vacío por defecto: sin dirección no se
+    crea la `aws_sns_topic_subscription` (el topic y la regla EventBridge sí
+    se crean, quedan listos para cuando se configure). La suscripción por
+    email requiere confirmación manual desde el buzón tras el `apply`.
+    Fíjalo en el `terraform.tfvars` local (no se commitea).
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "pipeline_enabled" {
   description = <<-EOT
     Interruptor global de la ingesta programada. `true` (por defecto): los 23

@@ -38,6 +38,22 @@ el resto). Al reanudar, los jobs de `bronze_to_silver` recogen solo la hora
 en curso — para rellenar el hueco de días parados, usar el modo
 `--backfill_fecha` (ver más abajo) por cada día.
 
+## Salud del pipeline (FIL_16)
+
+- **Frescura de Gold**: `AWS_PROFILE=madrono AWS_DEFAULT_REGION=eu-west-1
+  python -m herramientas.salud.frescura_gold --pipeline-congelado` — por cada
+  tabla Gold, cuánto hace que no recibe dato nuevo. Exit 0 mientras el
+  estancamiento sea el esperado por la congelación; exit 1 si aparece algo
+  anómalo (p.ej. una fuente descontinuada con datos nuevos). Sin la flag
+  `--pipeline-congelado` es un chequeo de producción (exit 1 si algo
+  estancado). Detalles y umbrales por dataset: `doc/FIL-16-...md` /
+  `herramientas/salud/README.md`.
+- **Fallos de Glue**: `infra/terraform/observabilidad.tf` (EventBridge sobre
+  `Glue Job State Change` FAILED/TIMEOUT/ERROR → SNS → email). **Diseñado,
+  sin aplicar** (pipeline congelado + la suscripción email necesita
+  confirmación manual). Al reanudar: poner `alertas_email` en el `.tfvars`
+  local y `terraform apply -target` los 5 recursos (lista en `doc/FIL-16-...md`).
+
 ## Credenciales y accesos
 
 ### AWS
