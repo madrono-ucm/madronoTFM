@@ -182,6 +182,11 @@ data "aws_iam_policy_document" "glue_trafico_data_access" {
     actions = [
       "s3:GetObject",
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -211,6 +216,11 @@ data "aws_iam_policy_document" "glue_trafico_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -1292,6 +1302,11 @@ data "aws_iam_policy_document" "glue_bicimad_data_access" {
     actions = [
       "s3:GetObject",
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -1318,6 +1333,11 @@ data "aws_iam_policy_document" "glue_bicimad_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -1903,6 +1923,11 @@ data "aws_iam_policy_document" "glue_aparcamientos_data_access" {
     actions = [
       "s3:GetObject",
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -1929,6 +1954,11 @@ data "aws_iam_policy_document" "glue_aparcamientos_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -2468,6 +2498,11 @@ data "aws_iam_policy_document" "glue_calidad_aire_data_access" {
     actions = [
       "s3:GetObject",
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -2494,6 +2529,11 @@ data "aws_iam_policy_document" "glue_calidad_aire_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -3056,6 +3096,11 @@ data "aws_iam_policy_document" "glue_meteorologia_data_access" {
     actions = [
       "s3:GetObject",
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -3082,6 +3127,11 @@ data "aws_iam_policy_document" "glue_meteorologia_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_12): el modo `--backfill_fecha` de
+      # `glue_{bronze_to_silver,silver_to_gold}.py` reescribe con
+      # `partitionOverwriteMode=dynamic`, que borra los ficheros de cada
+      # particion antes de reescribirla.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
