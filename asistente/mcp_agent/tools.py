@@ -41,6 +41,7 @@ from asistente.models.herramientas import (
     OpcionMovilidad,
     ParadaBicimadCercana,
     TraficoCercano,
+    TraficoPrevista,
 )
 from asistente.neo4j_client import (
     lugares_proximos_a_estaciones_calidad_aire_query,
@@ -1327,3 +1328,178 @@ def calidad_aire_prevista(
             (hora de Madrid).
     """
     return _calidad_aire_prevista_impl(zona, horizonte_horas, momento)
+
+
+# ---------------------------------------------------------------------------
+# trafico_prevista (FIL_13) -- misma mecánica que calidad_aire_prevista pero
+# sobre `avg_service_level` de un punto de tráfico resuelto por el grafo.
+# ---------------------------------------------------------------------------
+
+_FUENTE_GRAFO_TRAFICO_PREVISTA = _FUENTE_GRAFO_TRAFICO_CERCANO
+
+
+def _historial_trafico_por_hora(
+    filas: "list[dict]", point_id: str
+) -> "tuple[float | None, dict[int, float], float | None, float | None, datetime | None]":
+    """De las filas de Gold para `point_id`: `avg_service_level` de la última
+    hora con lectura (ancla), `{horas_atrás: valor}` para 1..24 respecto al
+    ancla, lat/lon y el `datetime` del ancla. Mismo criterio que
+    `_historial_por_hora` de calidad del aire."""
+    puntos: "dict[datetime, float]" = {}
+    lat = lon = None
+    for f in filas:
+        if str(f.get("point_id")) != str(point_id) or f.get("avg_service_level") is None:
+            continue
+        lat = f.get("lat", lat)
+        lon = f.get("lon", lon)
+        dt = datetime.fromisoformat(f["date"]).replace(hour=int(f["hour"]))
+        puntos[dt] = float(f["avg_service_level"])
+    if not puntos:
+        return None, {}, lat, lon, None
+    ancla = max(puntos)
+    historial = {
+        k: puntos[ancla - timedelta(hours=k)]
+        for k in range(1, 25)
+        if (ancla - timedelta(hours=k)) in puntos
+    }
+    return puntos[ancla], historial, lat, lon, ancla
+
+
+def _trafico_prevista_impl(
+    lugar: str,
+    horizonte_horas: int,
+    radio_m: float,
+    momento: datetime | None,
+    *,
+    neo4j_driver=None,
+    athena_client=None,
+) -> TraficoPrevista:
+    if horizonte_horas not in _HORIZONTES_PREVISTA:
+        raise ValueError(
+            f"horizonte_horas debe ser uno de {_HORIZONTES_PREVISTA}; recibido {horizonte_horas}"
+        )
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    fuente = _FUENTE_TRAFICO
+
+    def _sin(**kw) -> TraficoPrevista:
+        base = dict(
+            lugar=lugar, momento=instante, horizonte_horas=horizonte_horas,
+            fuente_dataset=fuente, fuente_grafo=_FUENTE_GRAFO_TRAFICO_PREVISTA,
+        )
+        base.update(kw)
+        return TraficoPrevista(**base)
+
+    # 1. puntos de tráfico cerca del lugar (grafo)
+    query, params = lugares_proximos_a_estaciones_trafico_query(lugar, radio_m)
+    filas_grafo = run_neo4j_query(query, params, driver=neo4j_driver)
+    if not filas_grafo:
+        return _sin()
+    distancia_por_point_id: "dict[str, float]" = {}
+    for fila in filas_grafo:
+        estacion_id = fila.get("estacion_id") or ""
+        pid = estacion_id.split(":", 1)[1] if ":" in estacion_id else None
+        if not pid:
+            continue
+        d = distancia_por_point_id.get(pid)
+        if d is None or fila["distancia_m"] < d:
+            distancia_por_point_id[pid] = fila["distancia_m"]
+    if not distancia_por_point_id:
+        return _sin()
+
+    # 2. últimas ~2 fechas de Gold para esos puntos (Gold va con retraso; el
+    #    forecast se ancla en la última hora real, igual que calidad del aire)
+    hoy = instante.date()
+    ayer = (instante - timedelta(days=1)).date()
+    ids_literal = ", ".join(f"'{sql_literal(pid)}'" for pid in sorted(distancia_por_point_id))
+    sql = f"""
+        SELECT point_id, date, hour, avg_service_level, lat, lon
+        FROM {_TABLA_TRAFICO}
+        WHERE date IN ('{ayer.isoformat()}', '{hoy.isoformat()}')
+          AND point_id IN ({ids_literal})
+          AND avg_service_level IS NOT NULL
+    """
+    filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    if not filas:
+        return _sin()
+
+    # 3. punto de referencia: el de mayor avg_service_level en su lectura más
+    #    reciente (peor caso, mismo criterio que calidad del aire con el ratio)
+    ultima_por_pid: "dict[str, dict]" = {}
+    for f in filas:
+        pid = str(f["point_id"])
+        prev = ultima_por_pid.get(pid)
+        clave = (f["date"], int(f["hour"]))
+        if prev is None or clave > (prev["date"], int(prev["hour"])):
+            ultima_por_pid[pid] = f
+    point_id = max(ultima_por_pid, key=lambda p: ultima_por_pid[p]["avg_service_level"])
+
+    actual, historial, lat, lon, ancla = _historial_trafico_por_hora(filas, point_id)
+    if actual is None or ancla is None:
+        return _sin(punto_id=point_id)
+
+    vector, completeness = prevision.construir_features(
+        actual, historial, instante=ancla, lat=lat, lon=lon,
+    )
+    fechas = sorted({f["date"] for f in filas if str(f["point_id"]) == point_id})
+    ventana = f"{fechas[0]}..{fechas[-1]}" if fechas else None
+
+    if not prevision.modelo_disponible(horizonte_horas, target="trafico"):
+        return _sin(
+            punto_id=point_id, momento=ancla, valor_actual=round(actual, 2),
+            nivel_previsto=_clasificar_trafico(actual, _UMBRALES_SERVICE_LEVEL),
+            data_completeness=round(completeness, 2), ventana_datos=ventana,
+        )
+
+    previsto = prevision.predecir(vector, horizonte=horizonte_horas, target="trafico")
+    return TraficoPrevista(
+        lugar=lugar,
+        momento=ancla,
+        horizonte_horas=horizonte_horas,
+        punto_id=point_id,
+        valor_previsto=round(previsto, 2),
+        valor_actual=round(actual, 2),
+        nivel_previsto=_clasificar_trafico(previsto, _UMBRALES_SERVICE_LEVEL),
+        data_completeness=round(completeness, 2),
+        modelo=f"trafico_h{horizonte_horas}.onnx (ML_07 / madrono-trafico-h{horizonte_horas})",
+        ventana_datos=ventana,
+        fuente_dataset=fuente,
+        fuente_grafo=_FUENTE_GRAFO_TRAFICO_PREVISTA,
+    )
+
+
+def trafico_prevista(
+    lugar: str, horizonte_horas: int = 6, radio_m: float = 300.0, momento: datetime | None = None
+) -> TraficoPrevista:
+    """Previsión de congestión de tráfico cerca de un lugar de Madrid a 1, 3
+    o 6 h vista (`FIL_13`, mismo bucle observación→predicción→asistente que
+    `calidad_aire_prevista`).
+
+    Resuelve los puntos de medida de tráfico a `radio_m` del lugar cruzando
+    el grafo urbano (`:Lugar`-[:PROXIMO_A]-`:EstacionMedida {tipo:'trafico'}`,
+    igual que `trafico_cercano`), fija el punto de peor caso (mayor
+    `avg_service_level` reciente), construye las 19 features de
+    `modelado/export/CONTRATO.md` con sus últimas 24 h de
+    `gold.trafico_por_punto_hora` y corre el modelo **ONNX** de `ML_07`
+    (`madrono-trafico-h<H>@champion`). El `.onnx` está vendido en
+    `asistente/modelos/`.
+
+    Devuelve `TraficoPrevista` con `valor_previsto` (`avg_service_level`,
+    0=fluido..6=cortado), `valor_actual`, `nivel_previsto`
+    (`fluido`/`denso`/`congestionado`, mismas bandas que `trafico_cercano`) y
+    `data_completeness` (0..1). Si no hay ningún punto de tráfico cerca, o
+    Gold no tiene lecturas para construir las features, devuelve
+    `nivel_previsto="sin_datos"` sin lanzar excepción.
+
+    Args:
+        lugar: Nombre (parcial) de un lugar de Madrid (se resuelve por texto
+            en el grafo, igual que `trafico_cercano`).
+        horizonte_horas: Horas por delante a prever. Uno de 1, 3 o 6.
+        radio_m: Radio de búsqueda de puntos de tráfico alrededor del lugar.
+        momento: Instante de referencia (ISO 8601). Si es `None`, ahora
+            (hora de Madrid).
+    """
+    return _trafico_prevista_impl(lugar, horizonte_horas, radio_m, momento)

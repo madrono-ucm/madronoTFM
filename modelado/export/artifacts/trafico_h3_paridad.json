@@ -1,7 +1,7 @@
 {
- "modelo": "madrono-trafico-h6",
+ "modelo": "madrono-trafico-h3",
  "flavor": "lightgbm",
- "horizonte": 6,
+ "horizonte": 3,
  "n_features": 19,
  "features": [
   "value",
@@ -24,18 +24,18 @@
   "dsem_sin",
   "dsem_cos"
  ],
- "onnx": "modelado/export/artifacts/trafico_h6.onnx",
- "onnx_bytes": 1358605,
- "n_test": 264390,
+ "onnx": "modelado/export/artifacts/trafico_h3.onnx",
+ "onnx_bytes": 1370210,
+ "n_test": 277892,
  "paridad": {
-  "max": 0.09840574323542939,
-  "p99": 0.024406413658091822,
-  "mean": 0.0011869265859251387,
-  "n_sobre_1e-3": 26895,
-  "n": 264390,
+  "max": 0.16217025622851522,
+  "p99": 0.056614819482441056,
+  "mean": 0.0020049549918315416,
+  "n_sobre_1e-3": 27039,
+  "n": 277892,
   "escala_target": 1.0,
-  "p99_rel": 0.024406413658091822,
-  "mean_rel": 0.0011869265859251387
+  "p99_rel": 0.056614819482441056,
+  "mean_rel": 0.0020049549918315416
  },
  "tol_mean_rel": 0.005,
  "tol_p99_rel": 0.02,
