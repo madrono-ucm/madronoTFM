@@ -2,9 +2,10 @@
 kind: fil
 title: "Fix aemet_prevision silver→gold Glue job (failing in production)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: true
 created_at: "2026-08-28"
+resolved_at: "2026-08-30"  # frontmatter alineado con FIL_00_README (ya estaba HECHO)
 ---
 
 > **Estado 28/8: ✅ HECHO.** `s3:DeleteObject` añadido a la policy IAM
