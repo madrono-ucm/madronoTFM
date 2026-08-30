@@ -2,10 +2,23 @@
 kind: fil
 title: "modelado/requirements.txt: pip install torch>=2.2,<3 sin índice CPU resuelve al build CUDA (~4.5GB, no importa sin GPU)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 ---
+
+## Resolución (2026-08-30)
+
+`modelado/requirements.txt`: añadido
+`--extra-index-url https://download.pytorch.org/whl/cpu` al principio + reescrito
+el comentario de `torch`. El índice de PyTorch publica `torch==X.Y.Z+cpu`;
+por PEP 440 el segmento local `+cpu` ordena por encima de `X.Y.Z`, así que
+`pip install -r` a secas ya trae el build CPU (~760 MB, sin
+`nvidia-*`/`triton`). `modelado/README.md`: nueva sección "torch es SOLO CPU"
+con el arranque en dos pasos para pips antiguos y la comprobación
+(`torch.cuda.is_available() == False`). CI hereda el `--extra-index-url` sin
+cambios en el workflow. `doc/FIL-23-...md`.
 
 > **Contexto**: encontrado en `VIKT_08` (auditoría de reproducibilidad,
 > `doc/PLAN-REVISION-TFM.md`), haciendo un `git clone` limpio + `venv` nuevo
