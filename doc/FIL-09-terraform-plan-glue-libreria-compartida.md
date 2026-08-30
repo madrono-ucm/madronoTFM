@@ -33818,3 +33818,51 @@ normal previo, no relacionado con el incidente.
 - `aws_s3_object.layer_build_source` (`lambda_layer_build.tf`) → key estable
   (sigue con hash en la key; es el `1 destroy` recurrente de cada plan).
 - `aws_s3_object.glue_script_*` (~44, key con `filemd5`) → key estable.
+
+---
+
+## Completitud por hora del 29/8 — decisión (FIL_12)
+
+`VIC_11` (evaluación técnica de `asistente/`) señaló que la verificación de
+`FIL_09` comprobó **frescura por fecha** (`max(date) = 2026-08-29`) pero no
+**completitud por hora**. Verificado ahora contra Athena: los 6 datasets
+horarios que el incidente tocó tienen solo **3–4 de las 24 horas** del
+2026-08-29 — faltan las **horas 0–19 (Madrid)**, que es exactamente la
+ventana del incidente (28/8 ~15:13 → 29/8 ~21:35 Madrid). Las **19
+ejecuciones horarias consecutivas de `bronze_to_silver` fallaron** con el
+`LAUNCH ERROR` de la librería compartida; el árbol (jobs volviendo a
+`SUCCEEDED`) se arregló, el bosque (esas ~20 h) nunca se rellenó.
+
+**Bronze está completo** para esas horas (los productores Lambda no se
+vieron afectados): `trafico`/`calidad_aire`/`meteorologia`/`bicimad`/
+`aparcamientos` tienen las 24 particiones `hora=` del 29/8 en Bronze
+(`transporte_publico_emt` 20/24, hueco propio). El backfill sería
+mecánicamente posible.
+
+### Decisión: **limitación documentada, no se hace backfill**
+
+- **Coste desproporcionado.** Ningún `bronze_to_silver` acepta una hora
+  objetivo (todos codifican `previous_hour(processed_at)` fijo, verificado).
+  El backfill exigiría: añadir un parámetro `--target-hora` opcional a ~6
+  jobs `bronze_to_silver` + ~6 `silver_to_gold`, un driver, y ~120
+  ejecuciones de Glue, con re-verificación. Para un hueco de ~20 h en **1
+  día** dentro de una ventana de datos de 15 días.
+- **El pipeline de ML ya lo maneja.** `modelado/features/panel.py`
+  (`_reindex_horario_completo`) reindexa cada entidad a un rango horario
+  continuo con NaN en los huecos; lags/rolling usan `min_periods=1` y el
+  warm-up descarta las filas sin ningún lag. Un hueco de 20 h el 29/8 se
+  trata como "sin lecturas", igual que cualquier otro hueco de captura.
+- **Precedente.** La memoria (§7.4) ya documenta la ventana corta de datos
+  y sus huecos como limitación.
+
+### Acciones
+
+1. Esta nota (hecho).
+2. `doc/FIL-09` §"Resultado de la ejecución" y `doc/107` **no** afirman
+   "sin pérdida de datos" — la frescura verificada fue por fecha; este
+   párrafo lo matiza.
+3. **Memoria §7.4** (pista Memoria, vía `VIKT_*`): añadir el hueco horario
+   del 29/8 (6 datasets, ~20 h, causado por el incidente de la librería
+   compartida de Glue, Bronze intacto) a la lista de limitaciones de datos.
+4. **Criterio de frescura a futuro:** para datasets horarios, verificar
+   `count(distinct hour)` del último día, no solo `max(date)`.

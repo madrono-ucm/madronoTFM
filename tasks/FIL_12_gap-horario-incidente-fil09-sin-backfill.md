@@ -2,7 +2,7 @@
 kind: fil
 title: "FIL_09 se declaró resuelto verificando solo frescura por fecha — 6 datasets tienen ~17-21 horas perdidas el 29/8, nunca rellenadas"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-29"
 ---

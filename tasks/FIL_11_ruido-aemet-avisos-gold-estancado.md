@@ -2,7 +2,7 @@
 kind: fil
 title: "Gold de ruido (11 días) y aemet_avisos (8 días) estancado pese a jobs SUCCEEDED a diario — silver_to_gold escribe 0 filas en silencio"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-29"
 ---
