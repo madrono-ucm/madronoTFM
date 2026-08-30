@@ -48,7 +48,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from procesamiento.silver_gold.incremental import date_range, existing_daily_partitions, today
+from procesamiento.silver_gold.incremental import date_range, existing_daily_partitions
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
@@ -69,6 +69,12 @@ def main() -> None:
     # patrón, para que un futuro cambio que añada un `to_timestamp` no
     # reintroduzca el bug en silencio.
     spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
+    # FIL_11: se reescribe TODA la ventana de `ROLLING_WINDOW_DAYS` dias en
+    # cada ejecucion (ver mas abajo), con sobrescritura dinamica de
+    # particiones: `mode("overwrite")` reemplaza solo las particiones `date=`
+    # presentes en el DataFrame, sin tocar las anteriores. Asi el job es
+    # idempotente y se auto-cura cuando la fuente publica datos con retraso.
+    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
@@ -77,16 +83,26 @@ def main() -> None:
     # Lectura incremental (tarea 076) -- excepcion explicita al patron del
     # resto del grupo diario (leer solo la particion de Silver de hoy): la
     # media movil de `ROLLING_WINDOW_DAYS` dias necesita, para calcular
-    # correctamente la fila de HOY, los `ROLLING_WINDOW_DAYS - 1` dias
-    # anteriores como contexto -- leer solo hoy rompería la media (un
+    # correctamente cada fila, los `ROLLING_WINDOW_DAYS - 1` dias anteriores
+    # como contexto -- leer solo hoy rompería la media (un
     # `Window.rangeBetween` sin las filas anteriores en el DataFrame de
     # entrada simplemente no las encuentra, degradando en silencio a una
     # media de menos de 7 dias). Se leen los ultimos `ROLLING_WINDOW_DAYS`
-    # dias (8 con hoy incluido, un dia de margen sobre el minimo estricto de
-    # 7) en vez de todo el historico, y luego se filtra la SALIDA a la fila
-    # de hoy antes de escribir (ver mas abajo) -- así solo se reescribe una
-    # vez cada dia, sin volver a `append`-ear los dias ya calculados en
-    # ejecuciones anteriores dentro de la ventana de lectura.
+    # dias (8 con hoy incluido) en vez de todo el historico.
+    #
+    # FIL_11: antes, tras leer la ventana se filtraba la SALIDA a
+    # `date == today()` y se `append`-eaba solo esa fila. Pero la Red Fija
+    # del SIVCA publica sus medidas con **varios dias de retraso** (la
+    # particion de Silver mas reciente suele ser de hace 3-5 dias), asi que
+    # `date == today()` casi nunca coincidia: el DataFrame a escribir quedaba
+    # vacio, Spark no escribia ninguna particion y `job.commit()` daba
+    # `SUCCEEDED` con 0 filas -- Gold se quedo congelado 11 dias sin ninguna
+    # alerta. Ahora se escribe TODA la ventana con sobrescritura dinamica de
+    # particiones (`partitionOverwriteMode=dynamic`, fijado arriba): cada
+    # ejecucion recalcula y reemplaza las ~8 particiones `date=` de la
+    # ventana, dejando intactas las anteriores. Idempotente y auto-curativo
+    # (cuando los datos con retraso llegan a Silver, la ejecucion siguiente
+    # los recoge). Coincide con `aggregate.py`, que nunca filtro por "hoy".
     fechas_ventana = date_range(processed_at, -ROLLING_WINDOW_DAYS, 0)
     s3_client = boto3.client("s3")
     existing_partitions = existing_daily_partitions(s3_client, args["silver_path"], fechas_ventana)
@@ -142,17 +158,16 @@ def main() -> None:
         .withColumn("processed_at", F.lit(processed_at.isoformat()))
     )
 
-    # Se escribe solo la fila de HOY (no toda la ventana de lectura, ver
-    # comentario de la lectura incremental arriba): los días anteriores de
-    # la ventana ya se escribieron en sus propias ejecuciones -- volver a
-    # escribirlos aquí duplicaría filas en Gold en `mode("append")`.
-    gold_df_today = gold_df.filter(F.col("date") == today(processed_at))
-
     # Gold es órdenes de magnitud más pequeño que Silver (una fila por
     # estación, periodo y día, no varias lecturas): particionar solo por
     # `date` es suficiente para podar particiones sin generar ficheros
     # diminutos.
-    gold_df_today.write.mode("append").partitionBy("date").parquet(args["gold_path"])
+    #
+    # FIL_11: `mode("overwrite")` con `partitionOverwriteMode=dynamic`
+    # (fijado en `main()`): se reescriben exactamente las particiones `date=`
+    # de la ventana leida, sin `append` (que duplicaria filas al reprocesar
+    # un dia) y sin borrar el resto del historico de Gold.
+    gold_df.write.mode("overwrite").partitionBy("date").parquet(args["gold_path"])
 
     job.commit()
 

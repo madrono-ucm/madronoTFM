@@ -44,7 +44,7 @@ from pyspark.context import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-from procesamiento.silver_gold.incremental import daily_partition_uri, partition_has_objects, today
+from procesamiento.silver_gold.incremental import partition_has_objects
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
@@ -68,6 +68,12 @@ def main() -> None:
     # `to_timestamp`/`date_format`/`to_date` de mas abajo calcularian en UTC,
     # desalineado con `today()` (Python, Europe/Madrid).
     spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
+    # FIL_11: sobrescritura dinamica de particiones -- `mode("overwrite")`
+    # reemplaza solo las particiones presentes en el DataFrame, sin borrar
+    # las demas. La usa la rama de avisos (recalculo idempotente por `fecha`);
+    # para prevision (recalculo completo, 1 municipio) el efecto es el mismo
+    # que la sobrescritura estatica.
+    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
@@ -133,15 +139,22 @@ def main() -> None:
 
     # --- Avisos: (zone, fecha, level) ---------------------------------------
     #
-    # A diferencia de previsión, la clave de negocio de avisos SÍ incluye
-    # `fecha` (día de `effective_from`) -- mismo patrón que el resto del
-    # grupo diario (tarea 076): se lee solo la partición de Silver `fecha=hoy`
-    # (el mismo `effective_from` que ya particiona físicamente Silver, ver
-    # glue_bronze_to_silver.py), nunca la raíz completa.
-    fecha_avisos = today(processed_at)
-    silver_avisos_partition_path = daily_partition_uri(args["silver_avisos_path"], fecha_avisos)
-    if partition_has_objects(boto3.client("s3"), silver_avisos_partition_path):
-        silver_avisos_df = spark.read.parquet(silver_avisos_partition_path)
+    # FIL_11: antes se leía solo `Silver/aemet_avisos/fecha=hoy` y se
+    # `append`-eaba. Dos fallos: (1) Silver-avisos se particiona por el día
+    # de `effective_from` (ver `glue_bronze_to_silver.py`), que para un aviso
+    # emitido hoy suele ser un día **futuro** -> `fecha=hoy` casi nunca tenía
+    # objetos y toda la rama se saltaba en silencio (Gold congelado); (2)
+    # `mode("append")` duplicaba filas al reprocesar un día (Gold llegó a
+    # tener 4x la misma `(zone, fecha, level)`). El volumen de avisos es
+    # minúsculo (unos pocos al día, particiones de ~7 KB), así que se lee la
+    # **raíz completa** de Silver-avisos y se reescribe Gold con
+    # sobrescritura dinámica de particiones (`partitionOverwriteMode=dynamic`,
+    # fijado en `main()`): cada ejecución recalcula todas las particiones
+    # `fecha=` y las reemplaza, sin duplicar y recogiendo cualquier aviso
+    # amarillo/naranja/rojo sea cual sea su fecha de vigencia. Coincide con
+    # `aggregate.aggregate_avisos_silver_to_gold`, que nunca filtró por "hoy".
+    if partition_has_objects(boto3.client("s3"), args["silver_avisos_path"]):
+        silver_avisos_df = spark.read.parquet(args["silver_avisos_path"])
 
         avisos_with_fecha = silver_avisos_df.withColumn(
             "fecha", F.date_format(F.to_timestamp("effective_from"), "yyyy-MM-dd")
@@ -160,7 +173,7 @@ def main() -> None:
             .withColumn("processed_at", F.lit(processed_at.isoformat()))
         )
 
-        gold_avisos_df.write.mode("append").partitionBy("fecha").parquet(args["gold_avisos_path"])
+        gold_avisos_df.write.mode("overwrite").partitionBy("fecha").parquet(args["gold_avisos_path"])
 
     job.commit()
 
