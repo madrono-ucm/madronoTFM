@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 2 — auditoría de seguridad dedicada"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -47,3 +47,12 @@ dedicado (de punta a punta, no solo IAM de un recurso concreto):
 
 - Solo lectura/consulta (`aws iam`, `aws s3api get-bucket-policy`, `git
   log`/`git grep`) — nada de cambios de permisos ni de política.
+
+## Hecho (30/8)
+
+Ver [`doc/VIC-19-eval-seguridad.md`](../doc/VIC-19-eval-seguridad.md).
+**Hallazgo crítico real** reportado de inmediato (no al final): posible
+credencial real de Bluesky en un fixture de test, en el repo público →
+[`FIL_28`](FIL_28_CRITICO-posible-credencial-bluesky-en-repo-publico.md).
+Resto de la superficie (buckets S3 privados, IAM sin comodines, MCP sin
+auth honestamente documentado) sin hallazgos.
