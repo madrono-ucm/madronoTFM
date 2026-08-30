@@ -250,6 +250,33 @@ un `pip install` puntual, pero por debajo del 20 % recomendado; el
 redimensionado de EBS de arriba es la vía para un margen holgado y
 duradero de cara al cierre (17/9).
 
+## Rellenar huecos horarios de Silver/Gold (`--backfill_fecha`, FIL_12)
+
+Si un dataset horario (`trafico`, `calidad_aire`, `meteorologia`, `bicimad`,
+`aparcamientos`) pierde horas en Silver/Gold (p. ej. un incidente de Glue
+como el de FIL_09) pero **Bronze sigue completo**, se rellena con el modo
+backfill de los jobs — reprocesa las 24 h de una fecha en una sola
+ejecución, con sobrescritura dinámica de particiones (no duplica lo que ya
+estaba):
+
+```bash
+export AWS_PROFILE=madrono AWS_DEFAULT_REGION=eu-west-1
+F=2026-08-29
+for d in trafico calidad-aire meteorologia bicimad aparcamientos; do
+  aws glue start-job-run --job-name madrono-tfm-dev-$d-bronze-to-silver \
+    --arguments "{\"--backfill_fecha\":\"$F\"}"
+done
+# esperar a que terminen (aws glue get-job-run ...), luego:
+for d in trafico calidad-aire meteorologia bicimad aparcamientos; do
+  aws glue start-job-run --job-name madrono-tfm-dev-$d-silver-to-gold \
+    --arguments "{\"--backfill_fecha\":\"$F\"}"
+done
+```
+
+Verificar: `SELECT count(distinct hour) FROM <tabla_gold> WHERE date='$F'`
+debe dar 24 (o el nº de horas que tenga Bronze). Sin el argumento, los jobs
+funcionan como siempre (hora anterior, `append`).
+
 ## Comandos de verificación útiles
 
 ```bash

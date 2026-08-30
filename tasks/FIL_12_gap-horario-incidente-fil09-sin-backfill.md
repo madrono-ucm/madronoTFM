@@ -7,6 +7,15 @@ allow_infra_apply: false
 created_at: "2026-08-29"
 ---
 
+> **✅ RESUELTO 30/8 — backfill hecho.** Nuevo modo `--backfill_fecha` en los
+> 10 jobs de los 5 datasets horarios (PR #183) + `s3:DeleteObject` IAM.
+> Ejecutado para 2026-08-29: **10/10 `SUCCEEDED`**; `trafico`/`calidad_aire`/
+> `meteorologia`/`bicimad`/`aparcamientos` pasan de 3–4/24 h a **24/24 h**,
+> **0 duplicados** (verificado en Athena). `transporte_publico_emt` queda
+> 20/24 (su Bronze está incompleto — hueco propio del productor, no del
+> incidente). Detalle en `doc/FIL-09` §"Completitud por hora del 29/8";
+> runbook del modo backfill en `infra/OPERACION.md`.
+
 > **Contexto**: encontrado en `VIC_11` (evaluación técnica de `asistente/`),
 > verificando en vivo las tools contra Athena real — varias devolvían
 > `sin_datos` para un `momento` de ayer (29/8) que debería tener datos de
