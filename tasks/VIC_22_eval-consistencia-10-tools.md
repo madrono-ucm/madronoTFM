@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 3 — consistencia final del conteo de tools (10, no 9)"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -36,18 +36,30 @@ sitios.
 - Verificado en vivo que son 10, no una suposición de que "ya se corrigió
   antes".
 
----
+## Hecho (30/8)
 
-## Revisión FIL (2026-08-30)
+**Nota**: este ticket se ejecutó por duplicado en paralelo (esta sesión y
+otra, casi al mismo tiempo) — conflicto de fusión real resuelto
+combinando ambos resultados, que coincidían en lo esencial.
 
-Aplicado directamente (docs propias, trivial):
-- `README.md`: nodo Mermaid `9 tools` → `10 tools`; fila de layout `las 9 tools` → `las 10 tools`.
-- `doc/VIKT-06-recorrido-e2e.md`: §4.1 `9 tools` → `10 tools`; la línea de "9 tools (FIL_13/FIL_14)" ahora incluye `FIL_26 +calidad_aire_prevista_grafo`; el guion del screencast (`§4.1 ... 9 tools`) → `10 tools`.
-- `asistente/README.md` ya estaba a 10 (FIL_29).
-
-Verificado **en vivo** (`mcp.list_tools()` sobre el servidor real): exactamente **10**
-— `afluencia_estimada, afluencia_prevista, calidad_aire, calidad_aire_prevista,
+Verificado en vivo primero (`ClientSession`/`mcp.list_tools()` sobre el
+servidor real): exactamente **10** —
+`afluencia_estimada, afluencia_prevista, calidad_aire, calidad_aire_prevista,
 calidad_aire_prevista_grafo, disponibilidad_aparcamiento, eventos_cercanos,
 opciones_movilidad, trafico_cercano, trafico_prevista`.
 
-`doc/VIKT-09-consistencia-final.md:108` (`"7 tools"`) se deja: es un changelog de una corrección anterior.
+Corregidos los documentos vivos con "9 tools" desactualizado:
+- `README.md` raíz: nodo Mermaid + fila de layout de `asistente/`.
+- `doc/VIKT-06-recorrido-e2e.md`: §4.1, la "salida real" de un comando
+  reproducible (corregida para que quien siga la guía hoy vea lo mismo
+  que describe el documento, con la 10.ª tool en la lista), la nota de
+  `FIL_24` actualizada de "hallazgo abierto" a "resuelto", y el guion del
+  screencast.
+
+Ya estaban correctos: `asistente/README.md` (`FIL_29`),
+`doc/VIKT-07/09/10.md` (correcciones ya aplicadas tras `FIL_20`/`26`).
+Dejados sin tocar a propósito: `doc/VIKT-09-consistencia-final.md:108`
+("7 tools") es un changelog de una corrección anterior, no una afirmación
+de estado actual; `doc/VIC-16-eval-asistente-v2.md` es un registro
+fechado de una evaluación puntual (30/8, antes de `FIL_26`), no un
+documento vivo.

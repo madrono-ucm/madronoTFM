@@ -42,7 +42,7 @@ flowchart LR
     end
 
     subgraph Asis["asistente/ — FastAPI + servidor MCP"]
-        T["10 tools: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista, …"]
+        T["10 tools: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista (incl. STGNN vía grafo), …"]
     end
 
     P --> B --> G1 --> S --> G2 --> G
@@ -153,7 +153,7 @@ de integración end-to-end (`tests/integracion/`, `doc/FIL-18-...md`).
 | `infra/` | Terraform del lakehouse, Glue, Lambda, Athena, IAM, observabilidad. `OPERACION.md` = runbook. `kafka/` = diseño de la ruta caliente (sin aplicar). |
 | `grafo/` | Construcción del grafo urbano en Neo4j (`:Lugar`, `:EstacionMedida`, `PROXIMO_A`) desde Gold + OSM. |
 | `modelado/` | Feature store, entrenamiento LightGBM/STGNN, evaluación, MLflow registry, export a ONNX. |
-| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 10 tools; `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
+| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 10 tools (incl. `calidad_aire_prevista_grafo`, STGNN, `FIL_26`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
 | `herramientas/` | Scripts de operación: `costes/` (estimación de gasto), `salud/` (frescura de Gold, FIL_16). |
 | `tests/` | Test de integración end-to-end (el resto de tests vive junto a su paquete). |
 | `doc/` | Una entrada por tarea (decisiones, verificaciones). `tasks/` = cola de trabajo. |
