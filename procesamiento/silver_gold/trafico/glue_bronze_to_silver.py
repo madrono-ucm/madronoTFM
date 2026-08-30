@@ -59,6 +59,7 @@ from pyspark.sql.types import (
 )
 
 from procesamiento.silver_gold.incremental import (
+    daily_partition_uri,
     hourly_partition_uri,
     partition_has_objects,
     previous_hour,
@@ -161,9 +162,16 @@ def _process_partition(rows, processed_at_iso: str):
 
 
 def main() -> None:
-    args = getResolvedOptions(
-        sys.argv, ["JOB_NAME", "bronze_path", "silver_path", "quality_report_path"]
-    )
+    _base = ["JOB_NAME", "bronze_path", "silver_path", "quality_report_path"]
+    # FIL_12: `--backfill_fecha yyyy-MM-dd` (opcional) reprocesa TODAS las horas
+    # de esa fecha en una sola ejecucion, con sobrescritura dinamica de
+    # particiones -- para rellenar huecos sin correr el job a la hora exacta.
+    # Sin el argumento: comportamiento normal (solo la hora anterior).
+    if "--backfill_fecha" in sys.argv:
+        args = getResolvedOptions(sys.argv, _base + ["backfill_fecha"])
+    else:
+        args = getResolvedOptions(sys.argv, _base)
+        args["backfill_fecha"] = None
 
     sc = SparkContext()
     glue_context = GlueContext(sc)
@@ -176,6 +184,9 @@ def main() -> None:
     # leer de Bronze (tarea 072, bug encontrado al verificar con una
     # ejecución real).
     spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
+    # FIL_12: sobrescritura dinamica -- en modo backfill se reescriben solo
+    # las particiones (fecha,hora) presentes en el DataFrame.
+    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
@@ -185,8 +196,11 @@ def main() -> None:
     # completa anterior a esta ejecución -- nunca la raíz del dataset
     # completo, que crecía sin límite y disparó el coste real de Glue
     # documentado en doc/072-arreglo-lectura-incremental-glue.md.
-    fecha, hora = previous_hour(processed_at)
-    bronze_partition_path = hourly_partition_uri(args["bronze_path"], fecha, hora)
+    if args["backfill_fecha"]:
+        bronze_partition_path = daily_partition_uri(args["bronze_path"], args["backfill_fecha"])
+    else:
+        fecha, hora = previous_hour(processed_at)
+        bronze_partition_path = hourly_partition_uri(args["bronze_path"], fecha, hora)
     if not partition_has_objects(boto3.client("s3"), bronze_partition_path):
         job.commit()
         return
@@ -222,7 +236,8 @@ def main() -> None:
         "fecha", date_format(to_timestamp("measured_at"), "yyyy-MM-dd")
     ).withColumn("hora", date_format(to_timestamp("measured_at"), "HH"))
 
-    silver_partitioned.write.mode("append").partitionBy("fecha", "hora").parquet(
+    _wmode = "overwrite" if args["backfill_fecha"] else "append"
+    silver_partitioned.write.mode(_wmode).partitionBy("fecha", "hora").parquet(
         args["silver_path"]
     )
 
