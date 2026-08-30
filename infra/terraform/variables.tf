@@ -99,17 +99,10 @@ variable "lambda_runtime" {
   default     = "python3.13"
 }
 
-variable "lambda_default_timeout_seconds" {
-  description = "Timeout por defecto (segundos) de cada función Lambda de productor. Se puede sobrescribir por productor en `local.producers` (ver lambda.tf) cuando una fuente concreta lo necesite (p.ej. CAMS, que descarga un NetCDF de Copernicus)."
-  type        = number
-  default     = 60
-}
-
-variable "lambda_default_memory_mb" {
-  description = "Memoria por defecto (MB) de cada función Lambda de productor. Se puede sobrescribir por productor en `local.producers`."
-  type        = number
-  default     = 256
-}
+# FIL_30: no hay `lambda_default_timeout_seconds` / `lambda_default_memory_mb`.
+# Las 16 entradas de `local.producers` (lambda.tf) fijan `timeout` y
+# `memory_mb` explícitos cada una — no existe ningún fallback a una variable,
+# así que declararla sólo inducía a error (VIC_18).
 
 variable "lambda_log_retention_days" {
   description = "Días de retención de los logs de CloudWatch de cada función Lambda de productor. Acotado (no indefinido) por coste mínimo."
