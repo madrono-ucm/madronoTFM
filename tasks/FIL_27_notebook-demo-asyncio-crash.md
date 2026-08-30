@@ -2,10 +2,24 @@
 kind: fil
 title: "notebooks/demo_madrono.ipynb celda 11 revienta en ejecución real (asyncio.new_event_loop dentro del kernel de Jupyter)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 ---
+
+## Resolución (2026-08-30)
+
+`notebooks/build_demo_notebook.py`: la celda del listado de tools MCP pasa de
+`asyncio.new_event_loop().run_until_complete(mcp.list_tools())` a
+`tools_mcp = await mcp.list_tools()` (con comentario explicando por qué NO se
+usa `asyncio.run`/`new_event_loop` en un kernel). Regenerado el `.ipynb`.
+
+**Verificado dos veces**: (1) ejecutando todas las celdas dentro de un
+`asyncio` loop corriendo con `ast.PyCF_ALLOW_TOP_LEVEL_AWAIT` (reproduce la
+condición del kernel de Jupyter) — 13 celdas OK, la celda del MCP imprime las
+10 tools; (2) `jupyter nbconvert --to notebook --execute` real
+(kernel IPython) — **0 error outputs**, la celda imprime las 10 tools.
 
 > **Contexto**: encontrado verificando el PR #200 (notebook de demo) en la
 > ronda de evaluación técnica `doc/PLAN-EVALUACION-TECNICA-2.md`.

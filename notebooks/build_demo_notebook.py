@@ -463,13 +463,15 @@ for v in g.vecinos_influyentes:
 """.strip()))
 
 CELLS.append(code(r"""
-# el servidor MCP real, listado de tools (en proceso)
-import asyncio, logging
+# el servidor MCP real, listado de tools
+import logging
 logging.disable(logging.CRITICAL)
 from asistente.mcp_agent.server import mcp
 
-# `list_tools` es async; un loop nuevo y aislado funciona igual en script o en Jupyter
-tools_mcp = asyncio.new_event_loop().run_until_complete(mcp.list_tools())
+# `list_tools` es async; el kernel de Jupyter ya tiene su event loop, así que
+# se usa `await` de nivel superior (NO `asyncio.run` / `new_event_loop`, que
+# revientan con "Cannot run the event loop while another loop is running").
+tools_mcp = await mcp.list_tools()
 print(f"servidor MCP «madrono» — {len(tools_mcp)} tools, todas read-only:")
 for t in sorted(tools_mcp, key=lambda x: x.name):
     esquema = "in+out schema" if (t.input_schema and t.output_schema) else "solo input schema"
