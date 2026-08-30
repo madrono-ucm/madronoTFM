@@ -2,11 +2,36 @@
 kind: fil
 title: "CRÍTICO — posible credencial real de Bluesky (app password) en un fixture de test, en repo público"
 owner: Filippos (interactive)
-status: pending
+status: in_progress
 allow_infra_apply: false
 created_at: "2026-08-30"
 priority: critica
 ---
+
+## Estado (2026-08-30)
+
+**Hecho (código, en HEAD):**
+- Fixture `ingesta/tests/test_bluesky_menciones_madrid.py` saneado:
+  `identifier="cuenta-test.bsky.social"`, `app_password="aaaa-bbbb-cccc-dddd"`
+  (el test mockea `requests.post` — el valor nunca toca la red). 12 tests en
+  verde.
+- El valor real redactado también en este ticket y en `doc/VIC-19-...md`.
+- Confirmado que `pc6y-...` ya **no aparece en el working tree**.
+- Ítem 4: `EMT_API_PASSWORD` sólo aparece como **nombre de variable** en
+  docs, nunca con valor — es un placeholder de plantilla, sin fuga.
+
+**Pendiente — requiere acción/decisión humana (no automatizable):**
+1. **ROTAR ya** la App Password de `madrono97.bsky.social` en Bluesky
+   (Configuración → Contraseñas de aplicación → revocar `pc6y-...` → generar
+   una nueva) y actualizar el parámetro SSM
+   `/madrono-tfm/dev/secrets/bluesky-app-password`
+   (`aws ssm put-parameter --name /madrono-tfm/dev/secrets/bluesky-app-password
+   --type SecureString --overwrite --value <nueva>`). El valor sigue en el
+   historial público (`a1b8f61`), así que sanear HEAD **no** lo neutraliza.
+2. **Decidir si se reescribe el historial** de git (`git filter-repo` /
+   BFG). Afecta a todo clon/fork del repo público — decisión mayor. Dado que
+   la credencial se rota (paso 1), reescribir el historial es defensa en
+   profundidad, no urgente; se documenta la decisión aquí.
 
 > **Contexto**: encontrado en `VIC_19` (auditoría de seguridad dedicada,
 > `doc/PLAN-EVALUACION-TECNICA-2.md`), haciendo `git log --all -p | grep`
@@ -19,7 +44,7 @@ priority: critica
 
 ```python
 identifier="madrono97.bsky.social",
-app_password="pc6y-6s6c-6dar-jgit",
+app_password="pc6y-••••-••••-•••• (redactado)",
 ```
 
 Dos motivos de alarma:
@@ -27,7 +52,7 @@ Dos motivos de alarma:
 1. **`madrono97.bsky.social` parece ser la cuenta real de Bluesky del
    propio proyecto** (coincide con el naming del proyecto "Madroño"), no
    un identificador claramente ficticio (`user@example.com`, `test123`, etc).
-2. **`pc6y-6s6c-6dar-jgit` tiene exactamente el formato real de un "App
+2. **`pc6y-••••-••••-•••• (redactado)` tiene exactamente el formato real de un "App
    Password" de Bluesky** (4 grupos de 4 caracteres alfanuméricos en
    minúscula separados por guiones — el formato que Bluesky genera de
    verdad para sus App Passwords, distinto de una contraseña de usuario

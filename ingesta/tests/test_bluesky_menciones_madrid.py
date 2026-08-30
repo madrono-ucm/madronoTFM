@@ -134,8 +134,8 @@ def _cfg(**over):
     base = dict(
         api_base_url="https://api.bsky.app",
         auth_base_url="https://bsky.social",
-        identifier="madrono97.bsky.social",
-        app_password="pc6y-6s6c-6dar-jgit",
+        identifier="cuenta-test.bsky.social",
+        app_password="aaaa-bbbb-cccc-dddd",  # ficticio: el test mockea la red
         lang="es",
         limit_per_query=5,
         place_queries=[],
@@ -174,7 +174,7 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(url, "https://bsky.social/xrpc/com.atproto.server.createSession")
         self.assertEqual(
             p.call_args.kwargs["json"],
-            {"identifier": "madrono97.bsky.social", "password": "pc6y-6s6c-6dar-jgit"},
+            {"identifier": "cuenta-test.bsky.social", "password": "aaaa-bbbb-cccc-dddd"},
         )
 
     def test_create_session_without_credentials_raises(self):

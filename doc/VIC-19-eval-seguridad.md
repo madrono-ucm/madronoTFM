@@ -8,7 +8,7 @@ autenticar contra un servicio externo.
 
 `ingesta/tests/test_bluesky_menciones_madrid.py` tiene, en el working
 tree actual, `identifier="madrono97.bsky.social"` +
-`app_password="pc6y-6s6c-6dar-jgit"` — un identificador que parece la
+`app_password="pc6y-••••-••••-•••• (redactado)"` — un identificador que parece la
 cuenta real del proyecto y una contraseña con el formato exacto de un
 Bluesky App Password real. **El repositorio es público** (verificado con
 `gh api repos/madrono-ucm/madronoTFM` → `"private": false`). No se ha
