@@ -228,7 +228,7 @@ anyio.run(main)
 "
 ```
 
-**Salida real**:
+**Salida real** (re-verificada 30/8, tras `FIL_26`):
 
 ```
 server: madrono
@@ -236,6 +236,7 @@ server: madrono
  - afluencia_prevista
  - calidad_aire
  - calidad_aire_prevista
+ - calidad_aire_prevista_grafo
  - trafico_cercano
  - trafico_prevista
  - opciones_movilidad
@@ -243,11 +244,13 @@ server: madrono
  - eventos_cercanos
 ```
 
-10 tools (`FIL_13` +`trafico_prevista`, `FIL_14` +`afluencia_prevista`, `FIL_26` +`calidad_aire_prevista_grafo`).
-**Nota real encontrada en esta verificación**: 2 de las 9 (`opciones_movilidad`,
-`eventos_cercanos`) no anuncian `output_schema` por una limitación del SDK
-`mcp` con retornos `list[BaseModel]` — documentado y archivado como
-`FIL_24`, no bloquea la llamada, solo el contrato de schema anunciado.
+10 tools (`FIL_13`: +`trafico_prevista`; `FIL_14`: +`afluencia_prevista`;
+`FIL_26`: +`calidad_aire_prevista_grafo`, sirve el STGNN vía ONNX sin
+`torch` en runtime, con explicabilidad de vecinos del grafo). **Nota
+histórica ya resuelta**: en una verificación anterior, 2 de las entonces
+9 (`opciones_movilidad`, `eventos_cercanos`) no anunciaban `output_schema`
+por una limitación del SDK `mcp` con retornos `list[BaseModel]` —
+corregido en `FIL_24`; las 10 tools actuales anuncian `output_schema`.
 
 ### 4.2 `calidad_aire` — solo Athena, funciona sin Neo4j
 
