@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 4 — lint estático con ruff"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -27,3 +27,22 @@ Ningún cambio de código en este ticket — `ruff` instalado solo en el
 - Salida completa de `ruff check` revisada, no solo el conteo total.
 - Hallazgos triados por severidad real, no un volcado sin filtrar.
 - Cero cambios de código aplicados aquí.
+
+## Hecho (30/8)
+
+1237 hallazgos, 1135 auto-corregibles — dominados por reglas de
+modernización de tipado (`UP037`/`UP045`, 1022 de los 1237) en un repo sin
+`ruff` configurado nunca. Cada categoría con potencial de bug real
+(`DTZ*`, `RUF012`, `B008`, `F401`/`F841`/`RUF059`, `S110`/`BLE001`,
+`PLR0124`, `PYI034`, `RUF100`) revisada a mano con lectura del código real:
+todas resultaron ser falsos positivos de reglas que no entienden patrones
+del dominio (FastAPI `Query`, idioma `x != x` para NaN,
+`.replace(tzinfo=...)` tras parseo naive), decisiones ya documentadas
+explícitamente en el código (`agenda_eventos` sin timezone, los dos
+`noqa: BLE001` con razón), o código de test sin efecto en producción.
+Detalle completo en
+[`doc/VIC-25-eval-ruff-lint.md`](../doc/VIC-25-eval-ruff-lint.md).
+
+**Cero `FIL_*` nuevos.** El análisis estático corrobora desde un ángulo
+distinto lo que las rondas 1-3 (ejecución en vivo) ya habían verificado:
+no hay bugs funcionales escondidos.
