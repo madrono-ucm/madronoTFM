@@ -1,0 +1,42 @@
+# Plan de evaluación técnica — ronda 5 (análisis estático II: tipos, infra, secretos históricos)
+
+**Fecha:** 2026-08-30 · **Contexto:** la ronda 4 (`VIC_25`-`27`,
+`doc/PLAN-EVALUACION-TECNICA-4.md`) cubrió lint (`ruff`), seguridad de
+aplicación (`bandit`) y CVEs de dependencias (`pip-audit`) — 2 `FIL_*`
+nuevos, ambos de severidad baja. Quedan 3 ángulos de análisis estático
+distintos, con herramientas distintas, todavía sin tocar por ninguna
+ronda anterior:
+
+1. **Comprobación de tipos** (`mypy`) — `ruff` (ronda 4) solo cubre reglas
+   de estilo/patrones sintácticos (familia `pyflakes`), no infiere tipos;
+   un `mypy` real puede encontrar una clase de bug que `ruff` no ve
+   (pasar un `Optional[X]` donde se espera `X`, una firma de función
+   inconsistente entre el llamador y la definición).
+2. **Seguridad de infraestructura como código** (`checkov` sobre
+   `infra/terraform/`) — las rondas 1-3 leyeron `lambda.tf`/`variables.tf`
+   a mano buscando lógica de negocio (productores, IAM, variables
+   muertas); ningún ronda corrió un escáner dedicado de malas prácticas
+   de seguridad en Terraform (buckets públicos, cifrado en reposo
+   ausente, políticas IAM demasiado permisivas).
+3. **Secretos en todo el histórico de git** (`detect-secrets scan`) — el
+   hallazgo crítico de `VIC_19`/`FIL_28` (credencial de Bluesky) se
+   encontró con `git log --all -p | grep`, un método ad-hoc dependiente de
+   los patrones de búsqueda elegidos a mano. Un escáner dedicado con
+   detectores de entropía + reglas por tipo de credencial (AWS keys,
+   tokens JWT, etc.) da más confianza de que no quede ningún otro secreto
+   sin encontrar, sin depender de adivinar el patrón correcto.
+
+Herramientas elegidas por ser instalables vía `pip` (auditable, sin
+descargar binarios de terceros): `mypy`, `checkov`, `detect-secrets`.
+Instaladas solo en el `.venv` compartido de esta EC2 para esta auditoría.
+
+## Tickets
+
+| # | Ticket | Alcance |
+|---|---|---|
+| `VIC_28` | Comprobación de tipos con `mypy` | Bugs reales de tipos (no solo `Optional` sin manejar — inconsistencias de firma, atributos inexistentes) |
+| `VIC_29` | Seguridad de IaC con `checkov` sobre `infra/terraform/` | Malas prácticas reales de seguridad en la infraestructura, no solo el repaso manual de lógica ya hecho en rondas 1-3 |
+| `VIC_30` | Secretos en todo el histórico de git con `detect-secrets` | Confirmar (o ampliar) el hallazgo de `VIC_19`/`FIL_28` con un escáner dedicado, no solo `grep` |
+
+Sin cambios de código en ningún ticket (las 3 herramientas son de solo
+lectura); hallazgos reales → `FIL_*` nuevo (numeración siguiente: **33**).
