@@ -5,8 +5,10 @@ owner: Filippos (interactive)
 status: pending
 allow_infra_apply: false
 created_at: "2026-08-30"
+updated_at: "2026-08-30"
 depends_on: [FIL_31]
 milestone: M1
+target: "2026-09-02"
 ---
 
 ## Objetivo
@@ -19,24 +21,27 @@ grafo nuevo.
 ## Alcance
 
 - `viz/grafo_madrid.json` (o `.parquet` + `.json`):
-  - **nodos**: `node_id`, `lat`, `lon`, `distrito` (join contra
-    `barrios_distritos_madrid`), y atributos de vía cuando existan
-    (`road_class`, `lanes`, `oneway`, `length_m`) — de MTD si se incorpora
-    en `FIL_39`, si no vacíos.
-  - **aristas**: `a`, `b`, `length_m` (haversine si no hay geometría),
-    `edge_weight` (el del `meta.json` del STGNN de tráfico).
-  - **lookup** `sensor_estacion → node_id`: cada estación de calidad del
-    aire y cada sonómetro de ruido a su nodo de tráfico más cercano
-    (haversine), para proyectar sus señales sobre el grafo.
-- Fuente del grafo: `coords-knn8` del `stgnn_trafico.meta.json`
-  (`edge_index`/`edge_weight`/`node_coords`). Alternativa aditiva: las
+  - **nodos**: **1.798** `node_id` (`point_id` de tráfico) con `lat`/`lon`
+    directos de `stgnn_trafico.meta.json::node_coords` (ya están, verificado
+    — no hace falta otra fuente), `distrito` por point-in-polygon
+    (`grafo/geo.py::point_in_geometry`, puro Python), y atributos de vía
+    vacíos por ahora (los rellenaría `FIL_38` desde MTD).
+  - **aristas**: `a`, `b`, `length_m` (haversine sobre `node_coords`),
+    `edge_weight` de `meta.json::edge_weight`.
+  - **lookup** `estación_aire → node_id` (~24) y `distrito → nodos` para
+    proyectar aire (IDW) y ruido (constante por distrito) sobre el grafo.
+    Ruido **no** mapea a nodo — es diario y por distrito (ver `FIL_33`).
+- **Polígonos de distrito**: GeoJSON de Bronze `barrios_distritos` (lo carga
+  hoy `grafo/cargar_grafo.py`) o descarga única de datos.madrid.es →
+  `viz/assets/distritos_madrid.geojson` versionado. Necesario también para
+  el basemap de E6.
+- Fuente del grafo: `coords-knn8` del `meta.json`. Alternativa aditiva: las
   `PROXIMO_A` reales de Neo4j vía `--aristas-json` — dejar el exportador
   preparado para ambas.
-- `viz/build_grafo_madrid.py` — función pura, sin credenciales (lee el
-  `meta.json` vendorizado + un dump de polígonos de distrito ya en repo o
-  descargable una vez).
-- Tests: `viz/tests/test_grafo_madrid.py` — nº de nodos = `len(node_index)`,
-  toda arista referencia nodos válidos, todo sensor mapea a un nodo.
+- `viz/build_grafo_madrid.py` — función pura, sin credenciales.
+- Tests bajo **`tests/`** (el CI recorre `... asistente/ herramientas/
+  modelado/ tests/`, **no `viz/`**): nº de nodos = `len(node_index)` = 1798,
+  toda arista referencia nodos válidos, todo distrito asignado o marcado.
 
 ## Coste
 

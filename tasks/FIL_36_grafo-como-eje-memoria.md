@@ -5,8 +5,10 @@ owner: Filippos (interactive) + coordinación VIKT
 status: pending
 allow_infra_apply: false
 created_at: "2026-08-30"
+updated_at: "2026-08-30"
 depends_on: [FIL_35]
 milestone: M5
+target: "2026-09-13"
 ---
 
 ## Objetivo
@@ -32,6 +34,11 @@ grafo de Madrid", con el mapa animado como artefacto tangible.
   - **open dataset** y **cyclist / movilidad reducida routing** → siguen
     siendo encuadre; se refuerza el texto ("el sustrato de datos ya existe")
     sin comprometer entregable.
+- **Limitaciones a declarar explícitamente** (§7.4, salen de los gaps de
+  `FIL_33`): ventana de datos ~14 días (partition projection deslizante),
+  ruido sólo diario y por distrito (no animado), aire IDW desde ~24
+  estaciones (superficie suave, no calle), importancia de aristas estática,
+  grafo `coords-knn8` y no `PROXIMO_A`.
 - Reestructura ligera del índice de la memoria hacia el eje del grafo
   (construcción → señales → previsión → recomendación → servido → resultados).
 

@@ -5,33 +5,41 @@ owner: Filippos (interactive)
 status: pending
 allow_infra_apply: false
 created_at: "2026-08-30"
+updated_at: "2026-08-30"
 depends_on: [FIL_34]
 milestone: M4
+target: "2026-09-10"
 ---
 
 ## Alcance — capa rica (E2 / E4 / E6) + publicación
 
-- **E2 — modelo vs baseline**: toggle que dibuja la persistencia como capa
-  atenuada; las celdas donde STGNN y persistencia divergen se resaltan.
-  Marcador en una esquina con el skill del fotograma actual.
-- **E4 — panel glass-box de arista**: clic en un nodo/corredor → panel
-  lateral con las curvas de previsión a 24 h (tráfico/aire/ruido) +
-  "explicado por: [corredor aguas arriba] (importancia 0.42)" de la
-  importancia de aristas del STGNN.
+- **E2 — modelo vs baseline**: toggle que dibuja la persistencia
+  (`y_traf_persist`) como capa atenuada; los nodos donde STGNN y persistencia
+  divergen se resaltan. Marcador en una esquina con el skill del fotograma
+  (MAE STGNN vs MAE persistencia sobre los nodos con lectura real esa hora).
+- **E4 — panel glass-box de arista**: clic en un nodo → panel lateral con
+  las curvas de previsión a 24 h (tráfico + aire IDW; ruido = línea plana
+  diaria del distrito) + "explicado por: [nodo del top-15 de
+  `importancia_aristas` que toca este] (importancia bruta N)". La
+  importancia es **estática**; el panel lo dice.
 - **E6 — pulso de distrito**: panel enlazado con los 21 distritos ordenados
-  por índice de salud actual, las barras se reordenan con el reloj; clic →
-  encuadra/filtra a ese distrito.
+  por índice de salud actual, barras que se reordenan con el reloj; clic →
+  encuadra/filtra. El término de ruido del índice es constante en el día
+  (diario por distrito) — el movimiento del ranking lo dan tráfico y aire.
 - Layout: mapa al centro · izquierda controles + timeline · derecha panel de
   contexto con pestañas (arista / distrito) · abajo-izquierda ticker meteo +
   marcador de skill.
-- **Hosting**: publicar `viz/mapa_trafico_madrid.html` en **GitHub Pages**
-  (`docs/` o rama `gh-pages`), enlace en `README.md` raíz + `viz/PROGRESO_MAPA.md`.
-  Esto materializa el ítem de encuadre "**hosted endpoint**" (no una API de
-  producción).
+- **Hosting** — necesita **acción del usuario una vez**: habilitar GitHub
+  Pages en `Settings → Pages` del repo `madrono-ucm/madronoTFM`. El repo usa
+  `doc/` (no `docs/`) para la memoria → servir Pages desde **rama
+  `gh-pages`** (o carpeta `docs/` nueva). `viz/build_mapa_animado.py`
+  escribe el HTML + su JSON de datos + el bundle deck.gl vendorizado a esa
+  ubicación. Enlace en `README.md` raíz + `viz/PROGRESO_MAPA.md`.
+  Materializa el ítem de encuadre "**hosted endpoint**" (no una API).
 
 ## Coste
 
-Cero AWS. GitHub Pages es gratis y sin límite de CSP.
+Cero AWS. GitHub Pages gratis y sin límite de CSP.
 
 ## Entregable / progreso
 

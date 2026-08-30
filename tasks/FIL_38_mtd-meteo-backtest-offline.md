@@ -5,14 +5,27 @@ owner: Filippos (interactive)
 status: pending
 allow_infra_apply: false
 created_at: "2026-08-30"
+updated_at: "2026-08-30"
 depends_on: [FIL_33]
 milestone: opcional
+target: "2026-09-12 (si se elige la vía MTD para la animación)"
 ---
 
-## Objetivo (sólo si sobra tiempo)
+## Objetivo
 
 Una tabla de resultados `§7` más creíble: skill vs persistencia de los STGNN
 sobre **30 meses** (2022-2024) en vez de la ventana corta del proyecto.
+
+## Puede dejar de ser opcional — decisión pendiente del usuario
+
+El gap de `FIL_33` (Gold consultable ~14 días de agosto 2026, sin variedad
+meteo garantizada, ruido sólo 5 días) hace que la animación sobre datos del
+proyecto sea **fina**: 2-3 días laborable-vs-finde, sin lluvia/ozono/evento.
+Si se quiere una animación **rica** (estaciones, días de lluvia, contraste
+real), **MTD es el sustrato de la animación**, no sólo de una tabla — y
+entonces este ticket **adelanta** a `FIL_33` y le cambia el origen de datos.
+Trade-off: MTD son 554 sensores (no 1.798), sin ruido, y hay que escribir el
+adaptador antes. Ver la nota "Fork abierto" en `viz/PROGRESO_MAPA.md`.
 
 ## Alcance
 
