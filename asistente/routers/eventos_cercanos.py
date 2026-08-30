@@ -4,11 +4,10 @@ Existe para poder probar la tool sin un cliente MCP (`curl`/`httpx` directos,
 ver `asistente/README.md`) -- el propio agente MCP la expone también, sin
 pasar por HTTP, vía `asistente/mcp_agent/server.py`.
 
-A diferencia del resto de routers (`calidad_aire.py`, `trafico_cercano.py`,
-`disponibilidad_aparcamiento.py`), `tools.eventos_cercanos` devuelve
-`list[EventoCercano]`, no un único modelo con `momento`/`fuente_dataset` --
-este router construye la `RespuestaAsistente` a partir de la lista
-directamente, sin desempaquetar ningún campo compartido.
+`tools.eventos_cercanos` devuelve `EventosCercanos` (`FIL_24`: un contenedor
+con `lugar`/`radio_m` + `eventos: list[EventoCercano]`, para que el SDK de
+MCP genere `output_schema`); este router construye la `RespuestaAsistente` a
+partir de `.eventos`.
 """
 
 from __future__ import annotations
@@ -38,7 +37,7 @@ def consultar_eventos_cercanos(
     ),
 ) -> RespuestaAsistente:
     """Invoca la tool `eventos_cercanos` y construye una `RespuestaAsistente` trazable."""
-    eventos = tools.eventos_cercanos(lugar, radio_m, momento)
+    eventos = tools.eventos_cercanos(lugar, radio_m, momento).eventos
     pregunta = f"¿Hay algún evento cerca de «{lugar}» próximamente?"
     # A diferencia de `calidad_aire`/`trafico_cercano` (que siempre devuelven
     # una instancia con `fuente_dataset`, incluso sin coincidencias),
