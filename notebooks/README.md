@@ -30,15 +30,18 @@ pip install jupyterlab                                # o abrir el .ipynb en VS 
 jupyter lab notebooks/demo_madrono.ipynb             # → "Run All"
 ```
 
-El `.ipynb` se guarda **sin outputs** (repo limpio); genera las figuras al
-ejecutarlo.
+El `.ipynb` del repo lleva **las salidas ejecutadas** (13 celdas, 5 figuras,
+0 errores) para que GitHub las muestre sin correrlo. Se ejecutó con
+`jupyter nbconvert --execute` sin credenciales (mini-grafo + mocks).
 
-### Regenerar el notebook
+### Regenerar / refrescar el notebook
 
 El contenido vive en `notebooks/build_demo_notebook.py` (revisable en diff):
 
 ```bash
-python notebooks/build_demo_notebook.py
+python notebooks/build_demo_notebook.py                 # regenera limpio
+jupyter nbconvert --to notebook --execute --inplace \
+    --ExecutePreprocessor.timeout=360 notebooks/demo_madrono.ipynb   # vuelve a rellenar salidas
 ```
 
 ### Versión de comandos (datos reales, para la defensa)
