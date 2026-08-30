@@ -10,6 +10,34 @@ obsoleto**: la infra real se aplicó en la tarea 098 (`terraform apply`: 50
 added / 64 changed / 50 destroyed). Lo único deliberadamente sin aplicar es
 Kafka (`kafka.tf`).
 
+## ⏸ Ingesta CONGELADA desde 2026-08-30
+
+`pipeline_enabled = false` (en el `terraform.tfvars` local de esta máquina y
+del checkout de la EC2). Estado:
+
+- **23 `aws_scheduler_schedule` DISABLED** + **27 `aws_glue_trigger`
+  DEACTIVATED** — no se dispara ninguna Lambda de productor ni ningún job de
+  Glue programado. Bronze/Silver/Gold dejan de crecer.
+- **`madrono-agent.service` parado y deshabilitado** en la EC2 (`systemctl
+  disable --now`) — no hay cola autónoma.
+- **`/etc/cron.d/madrono-retrain` → `.disabled`** — sin reentrenamiento
+  nocturno (los datos no cambian).
+- La EC2 sigue *arrancada* (para SSM/acceso). Pararla del todo
+  (`aws ec2 stop-instances --region eu-south-2 --instance-ids
+  i-0aa45f0df26b4b7e6`) ahorra el cargo de cómputo; el volumen EBS de 24 GiB
+  se sigue cobrando (~2 USD/mes).
+
+**Lo que NO se ha tocado:** infra, tablas de Glue, datos ya ingeridos (todo
+consultable en Athena/Neo4j), MLflow + modelos `@champion`, ONNX vendorizado
+en `asistente/`. El trabajo restante (asistente / MCP sobre los datos ya
+presentes) no necesita nada de esto encendido.
+
+**Reanudar la ingesta:** `terraform apply -var pipeline_enabled=true`
+(+ `systemctl enable --now madrono-agent` y renombrar el cron si se quiere
+el resto). Al reanudar, los jobs de `bronze_to_silver` recogen solo la hora
+en curso — para rellenar el hueco de días parados, usar el modo
+`--backfill_fecha` (ver más abajo) por cada día.
+
 ## Credenciales y accesos
 
 ### AWS
