@@ -33,6 +33,11 @@ el chat antes de tocarlo y hacer `git pull` primero.
 | `VIKT_03` | §7.1–7.4: consolidar Tabla 3 y §7.3 con la salida de `ML_08` (`run_all.py`), añadir a §7.4 la **curva de backtest incremental** de `ML_10` como evidencia de la ventana corta + la cota de paridad de `ML_07` + el resultado de deriva de `ML_06`. §7.5: `STGNN`→ONNX y `afluencia_prevista` como líneas futuras | Sí | ✅ **done 29/8 (Claude)** — Tabla 3 tráfico actualizada a los números consolidados de `run_all.py`, con footnote de scope |
 | `VIKT_04` | §8 Anexo — **reproducibilidad**: un comando por tabla/figura (`estudios/run_all.py`, `evaluation/backtest.py`, `export/to_onnx.py`, `training/retrain_nightly.py`, `evaluation/drift.py`), el layout de `modelado/` y `asistente/modelos/`, `mlflow ui`, la línea de `cron` | Sí | ✅ **done 29/8 (Claude)** |
 | `VIKT_05` | §7.5 — el gap de `ML_01` (meteo/festivos) que describe como "sin implementar" ya tiene código y tests reales (`modelado/features/exogenas.py`), encontrado en la ronda de evaluación técnica `VIC_08`-`15` | Sí | ⬜ pendiente — matiz importante antes de editar: confirmar si la Tabla 3 actual ya se entrenó con estas features o no |
+| `VIKT_06` | **Recorrido e2e reproducible para la defensa**: muestra→pipeline→Gold→grafo→asistente + previsión ML. `doc/VIKT-06-...md` + material de screencast | No | ⬜ pendiente — depende de `FIL_13`/`FIL_15` |
+| `VIKT_07` | §7.4 — **lista consolidada de limitaciones** (post-congelación): ventana corta, pipeline congelado 30/8, STGNN sin ONNX servible, sin alertado, EMT 1 parada, avisos verdes, auth de bluesky, afluencia fina, hueco 29/8 ya backfilled | Sí | ⬜ pendiente — depende de `VIKT_09` |
+| `VIKT_08` | **Auditoría de reproducibilidad**: clon limpio → cada tabla/figura de §7 regenerada; arreglar drift; verificar `doc/README.md`. Extiende `VIKT_04` | Sí (anexo) | ⬜ pendiente |
+| `VIKT_09` | **Pasada final memoria↔código** en el commit de entrega (post `FIL_11`–`FIL_19` + congelación). Metodología de `VIKT_01` | Sí | ⬜ pendiente — última antes de `VIKT_10` |
+| `VIKT_10` | **Revisión editorial humana** del `.docx` + **preparación de la defensa** (guion + Q&A: por qué no Kafka / por qué congelado / por qué STGNN no servido) | Sí | ⬜ pendiente — requiere humano |
 
 ## Fuentes técnicas (leer antes de escribir)
 

@@ -37,6 +37,14 @@ foundation first. Findings and the full decision-making picture are in
 | `FIL_10` | Aplicar la key estable de los 48 `glue_script_*` (código de la tarea 107, no urgente) | ✅ **HECHO 29/8** — `terraform apply` aprobado por el usuario, plan fresco `48 add/48 change/48 destroy` (Kafka excluido, sin destrucciones sueltas). 48/48 `script_location` con key estable sin hash, `trafico_bronze_to_silver` → `SUCCEEDED`. `doc/107` § "Resultado de la ejecución". Cierra los dos follow-ups de `FIL_09` |
 | `FIL_11` | `ruido` y `aemet_avisos` con Gold estancado pese a jobs `SUCCEEDED` a diario | ✅ **HECHO 30/8** — causa raíz: `silver_to_gold` filtraba la salida a `date == today()` (`ruido`, fuente con retraso) / leía solo `Silver/aemet_avisos/fecha=hoy` (avisos con `effective_from` futuro). Fix: `mode("overwrite")` + `partitionOverwriteMode=dynamic` + `s3:DeleteObject` (PRs #180/#181). Verificado: `ruido` Gold avanza a 26/8, `aemet_avisos` de-duplicado. `doc/FIL-11-...md` |
 | `FIL_12` | `FIL_09` verificó solo frescura por fecha — 6 datasets con ~20 h perdidas el 29/8 | ✅ **HECHO 30/8 — backfill** — nuevo modo `--backfill_fecha` en los 10 jobs de los 5 datasets horarios (PR #183) + `s3:DeleteObject` IAM. Ejecutado para 29/8: 10/10 `SUCCEEDED`, los 5 datasets a **24/24 h**, 0 duplicados (Athena). `transporte_publico_emt` 20/24 (Bronze incompleto). `doc/FIL-09` §"Completitud por hora"; runbook en `infra/OPERACION.md` |
+| `FIL_13` | `trafico_prevista` como tool MCP (exportar `trafico_h1/h3` ONNX, vendorizar, tool + router espejo de `calidad_aire_prevista`) | ⬜ **pendiente** — cierre funcional del asistente, P1. Ver `doc/PLAN-REVISION-TFM.md` §5 |
+| `FIL_14` | `afluencia_prevista`: decidir vía (modelo propio / derivada de tráfico+aire vía grafo / limitación §7.4) e implementar | ⬜ **pendiente** — P1, depende de `FIL_13` |
+| `FIL_15` | Endurecer el servidor MCP: verificar transporte `stdio`+HTTP con cliente real, envoltorio de respuesta consistente (valor/horizonte/modelo/ventana/confianza), degradación elegante | ⬜ **pendiente** — P1, depende de `FIL_13` |
+| `FIL_16` | Observabilidad: alarma CloudWatch de fallos de Glue + chequeo de frescura de Gold (`herramientas/salud/`) + SNS | ⬜ **pendiente** — P2 nivel empresarial. El hueco que dejó pasar `FIL_09`/`FIL_11` en silencio |
+| `FIL_17` | Secretos en runtime (`ssm:GetParameter` en el handler) en vez de env en claro en las Lambda | ⬜ **pendiente** — P2, higiene de seguridad |
+| `FIL_18` | Test de integración end-to-end: productor→`transform`+`aggregate`→grafo test→aserción sobre una tool del asistente | ⬜ **pendiente** — P2 |
+| `FIL_19` | README raíz + guía "ejecuta el asistente en local" + diagrama de arquitectura real (Mermaid) | ⬜ **pendiente** — P2, depende de `FIL_13`/`FIL_15` |
+| `FIL_20`–`FIL_22` | Opcionales / §7.5: serving del STGNN · `ce:GetCostAndUsage` + Billing real · EMT multi-parada (`FIL_07`) | ⬜ sólo si sobra tiempo |
 
 ### Seguimiento surgido en la ejecución
 
