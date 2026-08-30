@@ -98,6 +98,11 @@ class TransporteEnMemoriaTests(unittest.TestCase):
             with self.subTest(tool=t.name):
                 self.assertTrue((t.description or "").strip(), "sin descripción para el cliente")
                 self.assertIn("properties", t.input_schema)
+                # FIL_24: las 9 tools deben anunciar output_schema (antes,
+                # opciones_movilidad y eventos_cercanos no, por devolver
+                # list[BaseModel] a secas).
+                self.assertIsNotNone(t.output_schema, f"{t.name} sin output_schema")
+                self.assertIn("properties", t.output_schema)
 
     def test_call_tool_prevista_devuelve_estructura(self):
         ahora = datetime(2026, 8, 17, 10)

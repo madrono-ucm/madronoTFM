@@ -168,6 +168,19 @@ class OpcionMovilidad(BaseModel):
     fuente_dataset: str
 
 
+class OpcionesMovilidad(BaseModel):
+    """Contenedor de `opciones_movilidad` (`FIL_24`): la tool devolvía
+    `list[OpcionMovilidad]` a secas, y el SDK de MCP no sabe generar
+    `output_schema` para un `list[BaseModel]` suelto (sí para un `BaseModel`,
+    que es lo que devuelven las otras 8 tools). Envolver la lista en un
+    modelo resuelve el aviso y da al cliente MCP una forma tipada, además de
+    poder eco de `origen`/`destino`."""
+
+    origen: str
+    destino: str
+    opciones: list[OpcionMovilidad] = Field(default_factory=list)
+
+
 class DisponibilidadAparcamiento(BaseModel):
     """Plazas de aparcamiento libres estimadas en una zona y momento
     concretos (tarea 090: implementación real, ver
@@ -197,6 +210,16 @@ class EventoCercano(BaseModel):
     distancia_m: float
     inicio: datetime
     fuente_dataset: str
+
+
+class EventosCercanos(BaseModel):
+    """Contenedor de `eventos_cercanos` (`FIL_24`, mismo motivo que
+    `OpcionesMovilidad`): envuelve `list[EventoCercano]` en un modelo para
+    que el SDK de MCP genere `output_schema`, y eco de `lugar`/`radio_m`."""
+
+    lugar: str
+    radio_m: float
+    eventos: list[EventoCercano] = Field(default_factory=list)
 
 
 class CalidadAirePrevista(RespuestaPrevision):

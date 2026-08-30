@@ -39,7 +39,9 @@ from asistente.models.herramientas import (
     EstacionRuidoCercana,
     EstacionTraficoCercana,
     EventoCercano,
+    EventosCercanos,
     OpcionMovilidad,
+    OpcionesMovilidad,
     ParadaBicimadCercana,
     TraficoCercano,
     TraficoPrevista,
@@ -945,7 +947,7 @@ def _opciones_movilidad_impl(
 
 def opciones_movilidad(
     origen: str, destino: str, momento: datetime | None = None
-) -> "list[OpcionMovilidad]":
+) -> OpcionesMovilidad:
     """Alternativas de desplazamiento entre dos puntos de Madrid (tarea 096:
     implementación real, ver `asistente/README.md`).
 
@@ -984,7 +986,11 @@ def opciones_movilidad(
             Madrid) y se usa la última hora con datos disponibles ese día
             en cada señal.
     """
-    return _opciones_movilidad_impl(origen, destino, momento)
+    return OpcionesMovilidad(
+        origen=origen,
+        destino=destino,
+        opciones=_opciones_movilidad_impl(origen, destino, momento),
+    )
 
 
 def disponibilidad_aparcamiento(zona: str, momento: datetime | None = None) -> DisponibilidadAparcamiento:
@@ -1132,7 +1138,7 @@ def _eventos_cercanos_impl(
 
 def eventos_cercanos(
     lugar: str, radio_m: float = 500.0, momento: datetime | None = None
-) -> "list[EventoCercano]":
+) -> EventosCercanos:
     """Eventos con actividad cerca de un lugar de Madrid, dentro de los
     próximos 30 días (tarea 095: implementación real, ver
     `asistente/README.md`).
@@ -1164,7 +1170,11 @@ def eventos_cercanos(
             `start_datetime` cae entre `momento` y `momento` + 30 días. Si es
             `None`, se asume el instante actual (hora de Madrid).
     """
-    return _eventos_cercanos_impl(lugar, radio_m, momento)
+    return EventosCercanos(
+        lugar=lugar,
+        radio_m=radio_m,
+        eventos=_eventos_cercanos_impl(lugar, radio_m, momento),
+    )
 
 
 # --- calidad_aire_prevista (ML_09) -------------------------------------------

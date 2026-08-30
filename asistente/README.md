@@ -81,8 +81,8 @@ asistente/
     trafico_cercano.py                # GET /trafico-cercano -- ídem, tarea 081
     afluencia_estimada.py               # GET /afluencia-estimada -- ídem, tarea 089
     disponibilidad_aparcamiento.py        # GET /disponibilidad-aparcamiento -- ídem, tarea 090
-    eventos_cercanos.py                     # GET /eventos-cercanos -- ídem, tarea 095 (lista, no un único modelo)
-    opciones_movilidad.py                     # GET /opciones-movilidad -- ídem, tarea 096 (lista, no un único modelo)
+    eventos_cercanos.py                     # GET /eventos-cercanos -- ídem, tarea 095 (EventosCercanos: contenedor de lista, FIL_24)
+    opciones_movilidad.py                     # GET /opciones-movilidad -- ídem, tarea 096 (OpcionesMovilidad: contenedor de lista, FIL_24)
   models/
     respuesta.py                # RespuestaAsistente: veredicto/fiabilidad/explicación/fuentes
     herramientas.py               # Modelos de retorno de cada tool MCP
