@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 2 — asistente/ completo (9 tools, hardening MCP)"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -40,3 +40,13 @@ cubre el estado actual completo:
 - Región AWS: pasar `--region eu-west-1` explícito siempre.
 - Neo4j: si las credenciales SSM siguen bloqueadas por el clasificador de
   esta sesión, documentarlo como limitación explícita, sin rodeos.
+
+## Hecho (30/8)
+
+Ver [`doc/VIC-16-eval-asistente-v2.md`](../doc/VIC-16-eval-asistente-v2.md).
+Nuevo en esta pasada: transporte HTTP real (`uvicorn` + `curl`, nunca
+probado en vivo hasta ahora), revisión de `asistente/models/` (coherencia
+de herencia/contenedores, sin colisiones). Dos hallazgos menores
+observacionales (docstring desactualizado, conteo de tests del commit de
+`FIL_14` impreciso) — ninguno amerita ticket `FIL_*`. Sin hallazgos de
+código que requieran cambio.
