@@ -146,3 +146,36 @@ como limitación documentada solo para este dataset. `status` se deja en
 se ejecutó parcialmente con evidencia real — este apartado dinstingue que
 el "rellenar" no cubrió los 6 datasets originales, para que quien lo lea no
 asuma cobertura completa.
+
+## Corrección (Claude QA, 30/8, tras rebase con PR #184)
+
+`e4aabdd` (PR #184, que aterrizó justo después de escribir la verificación
+de arriba) afirma en su mensaje de commit y en la nota `RESUELTO 30/8` al
+principio de este fichero que `transporte_publico_emt` quedó en **20/24**
+horas ("Bronze incompleto"). **Esa cifra no coincide con el estado real,
+re-verificado ahora mismo con tres fuentes independientes**:
+
+1. `aws s3 ls .../transporte_publico_emt_por_parada_hora/date=2026-08-29/`
+   (`--region eu-west-1`): **4 ficheros**, con timestamps `19:51`, `20:14`,
+   `21:14`, `22:14` — el mismo rastro que ya documentaba el hallazgo
+   original (recuperación del incidente `FIL_09` a partir de las 19:35).
+   Ningún fichero nuevo.
+2. Athena (`COUNT(DISTINCT hour)` sobre esa partición): **4** — horas 20,
+   21, 22, 23 únicamente, igual que el hallazgo original.
+3. `aws glue get-job-runs --job-name
+   madrono-tfm-dev-transporte-publico-emt-bronze-to-silver`: las
+   ejecuciones más recientes son todas del `30/8` con cadencia horaria
+   normal (`03:10`, `04:10`, ... `10:10`) y `Arguments: null` — **ninguna
+   invocación con `--backfill_fecha` para este dataset**, coherente con que
+   el propio commit de PR #183 no lo incluye en su lista de 5 datasets.
+
+**Conclusión**: `transporte_publico_emt` sigue en **4/24** horas para el
+29/8, no 20/24 — el hueco de ~20h documentado en el hallazgo original de
+este ticket **sigue sin rellenar**, sin excepción. La cifra "20/24
+(Bronze incompleto)" de PR #184 parece un error de documentación (posible
+inversión 4↔20, o verificación contra un dataset/fecha distinto) — no se
+edita la nota de PR #184 para no perder su historial, pero cualquier
+lectura futura de este ticket debería confiar en esta sección, no en esa
+cifra. Sigue pendiente la decisión explícita para `transporte_publico_emt`
+(backfillear replicando el patrón de PR #183, o documentar como limitación
+solo para este dataset).
