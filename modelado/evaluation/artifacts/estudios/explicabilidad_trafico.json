@@ -4,103 +4,103 @@
   "h1": [
    {
     "feature": "value",
-    "importancia": 0.1107
+    "importancia": 0.11856
    },
    {
     "feature": "value_roll24h_mean",
-    "importancia": 0.04348
+    "importancia": 0.03859
    },
    {
     "feature": "hora_cos",
-    "importancia": 0.02354
-   },
-   {
-    "feature": "value_lag_24h",
-    "importancia": 0.02156
+    "importancia": 0.0231
    },
    {
     "feature": "value_lag_1h",
-    "importancia": 0.01431
+    "importancia": 0.01899
    },
    {
-    "feature": "hora",
-    "importancia": 0.00463
+    "feature": "value_lag_24h",
+    "importancia": 0.01326
    },
    {
     "feature": "value_roll24h_std",
-    "importancia": 0.00454
+    "importancia": 0.00826
    },
    {
-    "feature": "hora_sin",
-    "importancia": 0.00331
+    "feature": "hora",
+    "importancia": 0.00693
+   },
+   {
+    "feature": "value_roll3h_mean",
+    "importancia": 0.00525
    }
   ],
   "h3": [
    {
     "feature": "value_roll24h_mean",
-    "importancia": 0.10163
+    "importancia": 0.09283
    },
    {
     "feature": "value",
-    "importancia": 0.06345
+    "importancia": 0.07004
    },
    {
     "feature": "hora_cos",
-    "importancia": 0.04483
+    "importancia": 0.04163
    },
    {
     "feature": "hora",
-    "importancia": 0.01433
-   },
-   {
-    "feature": "hora_sin",
-    "importancia": 0.01092
+    "importancia": 0.017
    },
    {
     "feature": "value_roll24h_std",
-    "importancia": 0.0081
+    "importancia": 0.01535
+   },
+   {
+    "feature": "hora_sin",
+    "importancia": 0.01296
+   },
+   {
+    "feature": "prev_forecast_age_h",
+    "importancia": 0.00664
    },
    {
     "feature": "value_roll3h_mean",
-    "importancia": 0.00388
-   },
-   {
-    "feature": "value_lag_24h",
-    "importancia": 0.00369
+    "importancia": 0.00478
    }
   ],
   "h6": [
    {
     "feature": "value_roll24h_mean",
-    "importancia": 0.13796
+    "importancia": 0.12917
    },
    {
     "feature": "hora",
-    "importancia": 0.04673
-   },
-   {
-    "feature": "hora_sin",
-    "importancia": 0.01875
+    "importancia": 0.05031
    },
    {
     "feature": "value_roll24h_std",
-    "importancia": 0.017
+    "importancia": 0.03014
+   },
+   {
+    "feature": "hora_sin",
+    "importancia": 0.0245
    },
    {
     "feature": "value",
-    "importancia": 0.01646
+    "importancia": 0.02044
    },
    {
     "feature": "hora_cos",
-    "importancia": 0.01131
+    "importancia": 0.00996
    },
    {
-    "feature": "dia_semana",
-    "importancia": 0.00329
+    "feature": "prev_temp_max_c",
+    "importancia": 0.00743
    },
    {
-    "feature": "value_roll3h_mean",
-    "importancia": 0.00318
+    "feature": "prev_forecast_age_h",
+    "importancia": 0.00652
    }
   ]
  }
