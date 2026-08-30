@@ -103,6 +103,20 @@ class TransporteEnMemoriaTests(unittest.TestCase):
                 # list[BaseModel] a secas).
                 self.assertIsNotNone(t.output_schema, f"{t.name} sin output_schema")
                 self.assertIn("properties", t.output_schema)
+                # Anotaciones MCP: todas son de sólo lectura sobre datos vivos.
+                self.assertIsNotNone(t.annotations, f"{t.name} sin annotations")
+                self.assertTrue(t.annotations.read_only_hint, f"{t.name} no read_only")
+                self.assertTrue(t.annotations.open_world_hint, f"{t.name} no open_world")
+                self.assertTrue((t.title or "").strip(), f"{t.name} sin title legible")
+
+    def test_initialize_expone_instructions_del_servidor(self):
+        async def escenario(session):
+            return await session.initialize()
+
+        info = anyio.run(_run_client, escenario)
+        self.assertEqual(info.server_info.name, "madrono")
+        self.assertIn("COINCIDENCIA DE TEXTO", info.instructions or "")
+        self.assertIn("CONGELADA", info.instructions or "")
 
     def test_call_tool_prevista_devuelve_estructura(self):
         ahora = datetime(2026, 8, 17, 10)

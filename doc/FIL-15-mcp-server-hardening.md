@@ -80,11 +80,31 @@ Los routers HTTP (`routers/calidad_aire_prevista.py`,
 envoltorio y cada modo de degradación a nivel de tool (más rápido, sin
 transporte).
 
-## 4. Documentación
+## 4. Metadatos de las tools + `instructions` del servidor
 
-`asistente/README.md`: tabla de `RespuestaPrevision`, nota de degradación y
-bloque `mcpServers` de ejemplo (`stdio`, con `env` para AWS/Neo4j) para
-Claude Desktop.
+(Cierra el punto 4 del alcance — "esquemas/tipos que ve el cliente MCP".)
+
+- **`MCPServer(instructions=...)`**: el bloque que el cliente pasa a su LLM
+  como "cómo usar este servidor" — resolución de «lugar»/«zona» por texto,
+  `sin_datos`/`disponible=false` ≠ error, ventana de entrenamiento corta
+  (§7.4), ingesta congelada (datos hasta ~2026-08-29).
+- **`add_tool(..., title=, annotations=ToolAnnotations(read_only_hint=True,
+  open_world_hint=True))`** en las 9: título legible + la señal estándar de
+  "es seguro llamar a esto" (sólo `SELECT`/`MATCH`/inferencia, sobre datos
+  vivos).
+- El aviso silencioso de `output_schema` ausente en `opciones_movilidad` /
+  `eventos_cercanos` (`list[BaseModel]`) se cerró en `FIL_24` con modelos
+  contenedor.
+
+Verificado en `test_mcp_transport.py` (annotations + `instructions` sobre el
+servidor real).
+
+## 5. Documentación
+
+`asistente/README.md`: tabla de `RespuestaPrevision`, nota de degradación,
+sección de metadatos (instructions/annotations/schemas) y bloque
+`mcpServers` de ejemplo (`stdio`, con `env` para AWS/Neo4j) para Claude
+Desktop.
 
 ## Pendiente / relacionado
 

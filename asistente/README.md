@@ -345,6 +345,17 @@ de fallar. El handshake real por `stdio` y el round-trip de `list_tools` /
 `call_tool` están verificados en
 `asistente/tests/test_mcp_transport.py`.
 
+**Metadatos que ve el cliente** (`asistente/mcp_agent/server.py`):
+
+- `initialize` devuelve `instructions` — cómo resolver «lugar»/«zona» (por
+  texto, no por coordenadas), que `sin_datos`/`disponible=false` no es un
+  error, que las `*_prevista` son demostración de metodología con ventana
+  corta, y que la ingesta está congelada (datos hasta ~2026-08-29).
+- Cada tool lleva `title` legible y `annotations` con
+  `readOnlyHint=true` + `openWorldHint=true` (las 9 sólo leen datos vivos:
+  `SELECT` en Athena / `MATCH` en Neo4j / inferencia ONNX).
+- Las 9 anuncian `inputSchema` **y** `outputSchema` (`FIL_24`).
+
 ## Tests
 
 ```bash
