@@ -170,6 +170,7 @@ from typing import Optional
 
 import netCDF4
 
+from . import secretos
 from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
@@ -256,7 +257,7 @@ class CaptureConfig:
     @classmethod
     def from_env(cls) -> "CaptureConfig":
         return cls(
-            api_key=os.environ.get("CAMS_ADS_API_KEY", ""),
+            api_key=secretos.get_secret("CAMS_ADS_API_KEY") or "",
             api_url=os.environ.get("CAMS_ADS_URL", DEFAULT_ADS_URL),
             pollutants=_env_list("CAMS_POLLUTANTS", DEFAULT_POLLUTANTS),
             area=[float(v) for v in os.environ["CAMS_AREA"].split(",")] if os.environ.get("CAMS_AREA") else list(DEFAULT_AREA),

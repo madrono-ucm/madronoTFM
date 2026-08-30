@@ -161,6 +161,7 @@ from typing import Optional
 
 import requests
 
+from . import secretos
 from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
@@ -217,7 +218,7 @@ class CaptureConfig:
     @classmethod
     def from_env(cls) -> "CaptureConfig":
         return cls(
-            api_key=os.environ.get("AEMET_API_KEY", ""),
+            api_key=secretos.get_secret("AEMET_API_KEY") or "",
             municipio_code=os.environ.get("AEMET_MUNICIPIO_CODE", DEFAULT_MUNICIPIO_CODE),
             area_code=os.environ.get("AEMET_AREA_CODE", DEFAULT_AREA_CODE),
             prediccion_url_template=os.environ.get(

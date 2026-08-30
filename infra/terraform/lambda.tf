@@ -48,9 +48,10 @@ locals {
     BLUESKY_APP_PASSWORD = "/${var.project_name}/${var.environment}/secrets/bluesky-app-password"
   }
 
-  # Una entrada por función Lambda. `secret_env` lista los nombres de
-  # `local.secrets` que esta función necesita como variable de entorno
-  # (mismo nombre de variable que ya lee cada módulo vía `os.environ`).
+  # Una entrada por función Lambda. `secret_env` lista los nombres lógicos de
+  # `local.secrets` que esta función necesita. FIL_17: se inyectan como
+  # `<NOMBRE>_SSM_PATH` (el path del parámetro, no el valor); el handler los
+  # lee de SSM en runtime vía `ingesta/capturas/secretos.get_secret(NOMBRE)`.
   producers = {
     trafico = {
       module      = "trafico_madrid"
@@ -425,10 +426,15 @@ data "archive_file" "ingesta_source" {
 
 # ---------------------------------------------------------------------------
 # Secretos: parámetros SSM SecureString con valor placeholder (nunca el
-# secreto real). Cada función referencia directamente `.value` de los
-# parámetros que necesita como variable de entorno (mismo nombre que ya lee
-# `os.environ` en el módulo correspondiente); no hace falta que la función
-# llame a SSM en tiempo de ejecución.
+# secreto real).
+#
+# FIL_17: cada función recibe sólo el PATH del parámetro
+# (`<NOMBRE>_SSM_PATH`, ver el bloque `environment` de
+# `aws_lambda_function.producer`), no el valor. El handler lo resuelve en
+# runtime con `ssm:GetParameter --with-decryption`
+# (`ingesta/capturas/secretos.py`), cacheado por cold start. Así ningún
+# secreto aparece en claro en `get-function-configuration`. El permiso IAM
+# está en `aws_iam_policy.ingestion_lambda_secrets`.
 #
 # `ignore_changes = [value]`: tras el primer `apply`, alguien fija el valor
 # real a mano (`aws ssm put-parameter --overwrite`, fuera de Terraform y
@@ -491,6 +497,32 @@ resource "aws_iam_role_policy_attachment" "ingestion_lambda_logs" {
   policy_arn = aws_iam_policy.ingestion_lambda_logs.arn
 }
 
+# FIL_17: permiso para que los handlers lean sus credenciales de SSM en
+# runtime (`ssm:GetParameter --with-decryption`), acotado a los ARNs
+# concretos de `local.secrets` -- mínimo privilegio, nada de `ssm:*` ni de
+# comodines de path. `kms:Decrypt` no hace falta explícito: los parámetros
+# usan la clave gestionada por AWS `alias/aws/ssm`, que autoriza el
+# descifrado a través del propio servicio SSM en la misma cuenta.
+data "aws_iam_policy_document" "ingestion_lambda_secrets" {
+  statement {
+    sid       = "ReadProducerSecretsFromSsm"
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter"]
+    resources = [for s in aws_ssm_parameter.secrets : s.arn]
+  }
+}
+
+resource "aws_iam_policy" "ingestion_lambda_secrets" {
+  name        = "${var.project_name}-${var.environment}-ingestion-lambda-secrets"
+  description = "Permite a las Lambda de productores leer sus credenciales de SSM Parameter Store en runtime (FIL_17), acotado a los parámetros de local.secrets."
+  policy      = data.aws_iam_policy_document.ingestion_lambda_secrets.json
+}
+
+resource "aws_iam_role_policy_attachment" "ingestion_lambda_secrets" {
+  role       = aws_iam_role.ingestion.name
+  policy_arn = aws_iam_policy.ingestion_lambda_secrets.arn
+}
+
 # ---------------------------------------------------------------------------
 # Funciones Lambda de los productores
 # ---------------------------------------------------------------------------
@@ -518,13 +550,19 @@ resource "aws_lambda_function" "producer" {
       {
         BRONZE_BASE_PATH = "s3://${aws_s3_bucket.lakehouse["bronze"].bucket}/"
       },
-      { for name in each.value.secret_env : name => aws_ssm_parameter.secrets[name].value },
+      # FIL_17: se inyecta sólo el PATH del parámetro SSM (`<NOMBRE>_SSM_PATH`),
+      # nunca el valor. El handler lo resuelve con `ssm:GetParameter
+      # --with-decryption` una vez por cold start
+      # (`ingesta/capturas/secretos.py`). Así `get-function-configuration` no
+      # expone ningún secreto en claro.
+      { for name in each.value.secret_env : "${name}_SSM_PATH" => aws_ssm_parameter.secrets[name].name },
     )
   }
 
   depends_on = [
     aws_cloudwatch_log_group.producer,
     aws_iam_role_policy_attachment.ingestion_lambda_logs,
+    aws_iam_role_policy_attachment.ingestion_lambda_secrets,
   ]
 }
 

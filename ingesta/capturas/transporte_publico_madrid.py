@@ -57,6 +57,7 @@ from typing import Iterator, Optional
 
 import requests
 
+from . import secretos
 from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
@@ -99,8 +100,8 @@ class CaptureConfig:
         return cls(
             base_url=os.environ.get("EMT_API_BASE_URL", DEFAULT_BASE_URL),
             stop_id=stop_id or os.environ.get("EMT_STOP_ID", DEFAULT_STOP_ID),
-            client_id=os.environ.get("EMT_CLIENT_ID"),
-            pass_key=os.environ.get("EMT_PASS_KEY"),
+            client_id=secretos.get_secret("EMT_CLIENT_ID"),
+            pass_key=secretos.get_secret("EMT_PASS_KEY"),
             timeout_seconds=_env_float("HTTP_TIMEOUT_SECONDS", 15.0),
             max_retries=_env_int("HTTP_MAX_RETRIES", 3),
             retry_backoff_seconds=_env_float("HTTP_RETRY_BACKOFF_SECONDS", 2.0),
