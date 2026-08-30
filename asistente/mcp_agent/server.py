@@ -45,18 +45,20 @@ mcp = MCPServer(
     title="Madroño",
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
-        "(memoria del TFM, apartados 5.2 y 6.7). 8 tools con lógica real: "
+        "(memoria del TFM, apartados 5.2 y 6.7). 9 tools con lógica real: "
         "`calidad_aire` / `disponibilidad_aparcamiento` leen Gold vía Athena; "
         "`trafico_cercano` / `afluencia_estimada` / `eventos_cercanos` / "
         "`opciones_movilidad` cruzan el grafo urbano en Neo4j; "
         "`calidad_aire_prevista` (ML_09) y `trafico_prevista` (FIL_13) sirven "
-        "una previsión desde los modelos ONNX de ML_07. Ver "
+        "una previsión desde los modelos ONNX de ML_07, y `afluencia_prevista` "
+        "(FIL_14) la deriva de ambas + persistencia. Ver "
         "asistente/mcp_agent/tools.py."
     ),
 )
 
 for _tool in (
     tools.afluencia_estimada,
+    tools.afluencia_prevista,
     tools.calidad_aire,
     tools.calidad_aire_prevista,
     tools.trafico_cercano,

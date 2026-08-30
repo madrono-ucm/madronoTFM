@@ -29,9 +29,9 @@ from asistente.mcp_agent import tools
 from asistente.mcp_agent.server import mcp
 
 _ESPERADAS = {
-    "afluencia_estimada", "calidad_aire", "calidad_aire_prevista",
-    "trafico_cercano", "trafico_prevista", "opciones_movilidad",
-    "disponibilidad_aparcamiento", "eventos_cercanos",
+    "afluencia_estimada", "afluencia_prevista", "calidad_aire",
+    "calidad_aire_prevista", "trafico_cercano", "trafico_prevista",
+    "opciones_movilidad", "disponibilidad_aparcamiento", "eventos_cercanos",
 }
 
 
@@ -88,7 +88,7 @@ async def _run_client(escenario):
 
 
 class TransporteEnMemoriaTests(unittest.TestCase):
-    def test_list_tools_expone_las_8(self):
+    def test_list_tools_expone_las_9(self):
         async def escenario(session):
             return await session.list_tools()
 

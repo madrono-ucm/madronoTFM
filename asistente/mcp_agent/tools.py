@@ -31,6 +31,7 @@ from datetime import datetime, timedelta
 from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, sql_literal
 from asistente.models.herramientas import (
     AfluenciaEstimada,
+    AfluenciaPrevista,
     CalidadAirePrevista,
     CalidadAireZona,
     DisponibilidadAparcamiento,
@@ -1550,3 +1551,151 @@ def trafico_prevista(
             (hora de Madrid).
     """
     return _trafico_prevista_impl(lugar, horizonte_horas, radio_m, momento)
+
+
+# ---------------------------------------------------------------------------
+# afluencia_prevista (FIL_14) -- señal DERIVADA: fusiona la previsión de
+# tráfico (trafico_prevista, único subcomponente con modelo) con el nivel
+# actual de ruido/BiciMAD (persistencia), con la misma fórmula ponderada de
+# afluencia_estimada. No entrena nada nuevo.
+# ---------------------------------------------------------------------------
+
+_FUENTE_AFLUENCIA_PREVISTA = "derivada: trafico_prevista (ML_07) + afluencia_estimada (persistencia ruido/BiciMAD)"
+
+
+def _severidades_persistencia(est: AfluenciaEstimada) -> "list[tuple[str, int]]":
+    """Severidad 0-2 de las señales SIN modelo de previsión (ruido, BiciMAD),
+    a su último nivel observado. Mismas bandas/fórmula que
+    `_afluencia_estimada_impl`."""
+    out: "list[tuple[str, int]]" = []
+    r = [e.avg_laeq_db for e in est.ruido if e.avg_laeq_db is not None]
+    if r:
+        out.append(("ruido(persistencia)",
+                    _SEVERIDAD_POR_ETIQUETA[_clasificar_severidad(sum(r) / len(r), _UMBRALES_RUIDO_DB)]))
+    b = [e.avg_occupancy_ratio for e in est.bicimad if e.avg_occupancy_ratio is not None]
+    if b:
+        out.append(("bicimad(persistencia)",
+                    _SEVERIDAD_POR_ETIQUETA[_clasificar_severidad(sum(b) / len(b), _UMBRALES_BICIMAD_OCUPACION)]))
+    return out
+
+
+def _afluencia_prevista_impl(
+    lugar: str,
+    horizonte_horas: int,
+    radio_m: float,
+    momento: datetime | None,
+    *,
+    neo4j_driver=None,
+    athena_client=None,
+) -> AfluenciaPrevista:
+    if horizonte_horas not in _HORIZONTES_PREVISTA:
+        raise ValueError(
+            f"horizonte_horas debe ser uno de {_HORIZONTES_PREVISTA}; recibido {horizonte_horas}"
+        )
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    def _base(**kw) -> dict:
+        d = dict(
+            lugar=lugar, radio_m=radio_m, horizonte_horas=horizonte_horas,
+            momento=instante, fuente_dataset=_FUENTE_AFLUENCIA_PREVISTA,
+            fuente_grafo=_FUENTE_GRAFO_AFLUENCIA,
+        )
+        d.update(kw)
+        return d
+
+    # nivel actual multi-señal (contexto + persistencia de ruido/BiciMAD)
+    try:
+        est = _afluencia_estimada_impl(
+            lugar, radio_m, momento, neo4j_driver=neo4j_driver, athena_client=athena_client
+        )
+    except Exception as exc:  # noqa: BLE001 - degradación elegante (FIL_15)
+        est = None
+        est_error = str(exc)
+    else:
+        est_error = None
+    nivel_actual = est.nivel_estimado if est is not None else None
+
+    # previsión de tráfico: el único subcomponente con modelo
+    try:
+        tp = _trafico_prevista_impl(
+            lugar, horizonte_horas, radio_m, momento,
+            neo4j_driver=neo4j_driver, athena_client=athena_client,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return AfluenciaPrevista(**_base(
+            nivel_actual=nivel_actual,
+            motivo=f"no se pudo obtener la previsión de tráfico subyacente: {exc}",
+        ))
+
+    if not tp.disponible or tp.valor_previsto is None:
+        motivo = (
+            f"sin previsión de tráfico ({tp.motivo or 'no disponible'}); "
+            "afluencia_prevista se apoya en trafico_prevista como único componente con modelo, "
+            "así que sin él no hay previsión (el nivel actual sí está en `nivel_actual`)"
+        )
+        if est_error:
+            motivo += f". Además, afluencia_estimada falló: {est_error}"
+        return AfluenciaPrevista(**_base(
+            momento=tp.momento, momento_objetivo=tp.momento_objetivo,
+            nivel_actual=nivel_actual, motivo=motivo,
+        ))
+
+    # fusión: severidad del tráfico PREVISTO + persistencia de ruido/BiciMAD
+    sev_trafico = _SEVERIDAD_POR_ETIQUETA[_clasificar_trafico(tp.valor_previsto, _UMBRALES_SERVICE_LEVEL)]
+    contribuciones: "list[tuple[str, int]]" = [("trafico(previsto)", sev_trafico)]
+    if est is not None:
+        contribuciones += _severidades_persistencia(est)
+
+    blend = sum(s for _, s in contribuciones) / len(contribuciones)
+    nivel_previsto = _clasificar_severidad(blend, _SEVERIDAD_A_NIVEL)
+
+    return AfluenciaPrevista(**_base(
+        momento=tp.momento,
+        momento_objetivo=tp.momento_objetivo,
+        disponible=True,
+        valor_previsto=round(blend, 2),
+        nivel_previsto=nivel_previsto,
+        nivel_actual=nivel_actual,
+        data_completeness=tp.data_completeness,
+        ventana_datos=tp.ventana_datos,
+        detalle_trafico_previsto=tp.valor_previsto,
+        senales_usadas=[nombre for nombre, _ in contribuciones],
+        modelo=f"derivada (FIL_14): {tp.modelo} + persistencia ruido/BiciMAD",
+    ))
+
+
+def afluencia_prevista(
+    lugar: str, horizonte_horas: int = 6, radio_m: float = 300.0, momento: datetime | None = None
+) -> AfluenciaPrevista:
+    """Previsión de actividad urbana ("¿merecerá la pena ir?") cerca de un
+    lugar de Madrid a 1, 3 o 6 h vista (`FIL_14`) -- la contrapartida
+    *previsión* de `afluencia_estimada` (`FIL_06`).
+
+    **Señal derivada, no un modelo propio.** El único subcomponente con
+    modelo de previsión entrenado es el tráfico: internamente llama a
+    `trafico_prevista` (`FIL_13`) y a `afluencia_estimada` para el nivel
+    actual, y combina la **severidad del tráfico previsto** con el nivel
+    **actual** de ruido y ocupación de BiciMAD (persistencia -- su Gold
+    derivada tiene demasiado poco histórico para lags de 24 h, ver
+    `doc/FIL-14-...md`), con la misma fusión ponderada 0..2 de
+    `afluencia_estimada`.
+
+    Devuelve `AfluenciaPrevista` (subclase de `RespuestaPrevision`) con
+    `valor_previsto` (severidad combinada 0..2), `nivel_previsto`
+    (`bajo`/`medio`/`alto`), `nivel_actual` (contexto), `senales_usadas` y
+    `modelo` (deja constancia de que es derivada). Si no hay previsión de
+    tráfico disponible (sin puntos cerca, Gold sin lags, `.onnx` ausente,
+    backend caído) devuelve `disponible=False` + `motivo`, nunca excepción.
+
+    Args:
+        lugar: Nombre (parcial) de un lugar de Madrid (se resuelve por texto
+            en el grafo, igual que `afluencia_estimada`).
+        horizonte_horas: Horas por delante a prever. Uno de 1, 3 o 6.
+        radio_m: Radio de búsqueda de sensores alrededor del lugar.
+        momento: Instante de referencia (ISO 8601). Si es `None`, ahora
+            (hora de Madrid).
+    """
+    return _afluencia_prevista_impl(lugar, horizonte_horas, radio_m, momento)

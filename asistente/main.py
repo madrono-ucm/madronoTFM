@@ -31,6 +31,7 @@ from fastapi import FastAPI
 from asistente.mcp_agent.server import mcp
 from asistente.routers import (
     afluencia_estimada,
+    afluencia_prevista,
     calidad_aire,
     calidad_aire_prevista,
     disponibilidad_aparcamiento,
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(trafico_cercano.router)
     app.include_router(trafico_prevista.router)
     app.include_router(afluencia_estimada.router)
+    app.include_router(afluencia_prevista.router)
     app.include_router(disponibilidad_aparcamiento.router)
     app.include_router(eventos_cercanos.router)
     app.include_router(opciones_movilidad.router)

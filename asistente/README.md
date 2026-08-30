@@ -214,9 +214,11 @@ hace la explicación trazable).
 
 ### Envoltorio de las tools de previsión — `RespuestaPrevision` (`FIL_15`)
 
-Toda tool `*_prevista` (hoy `calidad_aire_prevista` de `ML_09` y
-`trafico_prevista` de `FIL_13`) devuelve una **subclase** de
-`RespuestaPrevision`, con el mismo contrato de procedencia y de degradación:
+Toda tool `*_prevista` (`calidad_aire_prevista` de `ML_09`, `trafico_prevista`
+de `FIL_13` y `afluencia_prevista` de `FIL_14` — esta última **derivada**:
+`trafico_prevista` + persistencia de ruido/BiciMAD) devuelve una **subclase**
+de `RespuestaPrevision`, con el mismo contrato de procedencia y de
+degradación:
 
 | Campo | Significado |
 |---|---|
@@ -234,7 +236,10 @@ Toda tool `*_prevista` (hoy `calidad_aire_prevista` de `ML_09` y
 | `generado_en` | Momento en que se construyó **esta respuesta** (≠ `momento`) |
 
 `CalidadAirePrevista` añade `zona` / `estacion` / `contaminante`;
-`TraficoPrevista` añade `lugar` / `punto_id` / `fuente_grafo`.
+`TraficoPrevista` añade `lugar` / `punto_id` / `fuente_grafo`;
+`AfluenciaPrevista` añade `lugar` / `radio_m` / `nivel_actual` /
+`senales_usadas` / `detalle_trafico_previsto` (y `valor_previsto` es la
+severidad combinada `0..2`, no una unidad física).
 
 **Degradación elegante:** ninguna ruta lanza excepción hacia el cliente MCP.
 Si falta el `.onnx`, si Gold no tiene lags para `momento`, o si Athena/Neo4j
