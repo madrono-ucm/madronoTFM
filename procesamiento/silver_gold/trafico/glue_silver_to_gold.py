@@ -43,6 +43,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 from procesamiento.silver_gold.incremental import (
+    daily_partition_uri,
     hourly_partition_uri,
     partition_has_objects,
     previous_hour,
@@ -52,7 +53,15 @@ MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 
 def main() -> None:
-    args = getResolvedOptions(sys.argv, ["JOB_NAME", "silver_path", "gold_path"])
+    _base = ["JOB_NAME", "silver_path", "gold_path"]
+    # FIL_12: `--backfill_fecha yyyy-MM-dd` (opcional) reagrega TODAS las horas
+    # de esa fecha en una sola ejecucion y sobrescribe la particion `date=`
+    # entera -- para rellenar huecos. Sin el argumento: solo la hora anterior.
+    if "--backfill_fecha" in sys.argv:
+        args = getResolvedOptions(sys.argv, _base + ["backfill_fecha"])
+    else:
+        args = getResolvedOptions(sys.argv, _base)
+        args["backfill_fecha"] = None
 
     sc = SparkContext()
     glue_context = GlueContext(sc)
@@ -62,13 +71,19 @@ def main() -> None:
     # Spark (UTC por defecto en Glue), desalineada con `previous_hour()`
     # (Europe/Madrid) y con la partición de Silver que este job intenta leer.
     spark.conf.set("spark.sql.session.timeZone", "Europe/Madrid")
+    # FIL_12: en modo backfill la particion `date=` se reescribe entera
+    # (recalculo de las 24 horas), sin duplicar las que ya estaban.
+    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
     job = Job(glue_context)
     job.init(args["JOB_NAME"], args)
 
     processed_at = datetime.now(MADRID_TZ)
 
-    fecha, hora = previous_hour(processed_at)
-    silver_partition_path = hourly_partition_uri(args["silver_path"], fecha, hora)
+    if args["backfill_fecha"]:
+        silver_partition_path = daily_partition_uri(args["silver_path"], args["backfill_fecha"])
+    else:
+        fecha, hora = previous_hour(processed_at)
+        silver_partition_path = hourly_partition_uri(args["silver_path"], fecha, hora)
     if not partition_has_objects(boto3.client("s3"), silver_partition_path):
         job.commit()
         return
@@ -116,7 +131,8 @@ def main() -> None:
     # `date` es suficiente para podar particiones en consultas típicas
     # ("dame el tráfico de tal día") sin generar ficheros diminutos por
     # cada hora, a diferencia de Silver.
-    gold_df.write.mode("append").partitionBy("date").parquet(args["gold_path"])
+    _wmode = "overwrite" if args["backfill_fecha"] else "append"
+    gold_df.write.mode(_wmode).partitionBy("date").parquet(args["gold_path"])
 
     job.commit()
 
