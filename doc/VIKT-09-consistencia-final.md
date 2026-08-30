@@ -16,6 +16,15 @@ en un fichero de script aparte. No se ha intentado ningún rodeo. Quien
 tenga permiso para editar el `.docx` en esta sesión (o lo haga desde otra)
 puede aplicar los 7 cambios de la sección 1 tal cual están escritos abajo.
 
+**Aviso (30/8, actualización posterior)**: las filas 92/99/130 de la
+tabla de abajo ya se corrigieron una vez porque `FIL_20` y `FIL_26`
+aterrizaron **después** de escribir la versión original de este
+documento (primero invalidando "el STGNN no exporta a ONNX", luego
+invalidando "el STGNN no se sirve como tool"). Dado el ritmo de cambios
+de esta ronda, **re-verificar el conteo de tools y el estado del STGNN
+justo antes de aplicar estos fixes al `.docx`**, no asumir que este
+documento sigue siendo la última palabra.
+
 ## 1. Discrepancias con fix ya redactado (redacción menor, listo para aplicar)
 
 Todas verificadas: párrafo exacto localizado por índice en
@@ -27,10 +36,10 @@ Todas verificadas: párrafo exacto localizado por índice en
 | 5.4/5.5 | 73 | "su programación periódica en producción es el último paso de despliegue pendiente" | "...ya está desplegada mediante una tarea `cron` nocturna en la instancia, verificada con ejecuciones reales" | El cron de reentrenamiento (tarea 105) está desplegado y corriendo desde hace días — `/etc/cron.d/madrono-retrain` real, `historial.csv` con filas reales de 29–30/8 |
 | 6.1 | 76 | "dos de las dieciséis [...] tienen por ahora solo la ingesta a Bronze" | "tres de las dieciséis [...] y parques y jardines, tienen por ahora solo..." | `parques_jardines` está en `local.producers` (Lambda + `EventBridge Scheduler` real, `madrono-tfm-dev-parques_jardines`) desde `FIL_04` (28/8) — Bronze-only, sin Silver/Gold, mismo caso que EMT/SER |
 | 6.1 | 79 | "...pendiente de despliegue, parques y jardines." | (frase eliminada — ya cubierto por el matiz de 76) | Mismo motivo — `parques_jardines` ya está desplegado, solo le falta Silver/Gold |
-| 6.7 | 92 | "...con **siete** herramientas reales —calidad del aire, tráfico cercano, afluencia estimada, disponibilidad de aparcamiento, eventos cercanos, opciones de movilidad y previsión de calidad del aire—... la séptima, `calidad_aire_prevista`..." | "...con **nueve** herramientas reales [...] previsión de calidad del aire, previsión de tráfico y afluencia prevista—... `calidad_aire_prevista` y `trafico_prevista` corren sendos modelos [...]; `afluencia_prevista` deriva su previsión de `trafico_prevista`..." | `FIL_13` (`trafico_prevista`) y `FIL_14` (`afluencia_prevista`) añadieron 2 tools reales — verificado en vivo (9 tools registradas, `server.py`) en `VIKT_06` |
-| 6.7 | 99 | "verificada de extremo a extremo para las **7** tools reales" | "...para las **9** tools reales" | Mismo motivo que 92 |
+| 6.7 | 92 | "...con **siete** herramientas reales —calidad del aire, tráfico cercano, afluencia estimada, disponibilidad de aparcamiento, eventos cercanos, opciones de movilidad y previsión de calidad del aire—... la séptima, `calidad_aire_prevista`..." | "...con **diez** herramientas reales [...] previsión de calidad del aire, previsión de tráfico, afluencia prevista y previsión de calidad del aire vía grafo—... `calidad_aire_prevista` y `trafico_prevista` corren sendos modelos LightGBM [...]; `calidad_aire_prevista_grafo` corre el STGNN sobre el grafo urbano, con menor precisión puntual pero explicabilidad de vecinos; `afluencia_prevista` deriva su previsión de `trafico_prevista`..." | `FIL_13`/`14`/`26` añadieron 3 tools reales — verificado en vivo (10 tools registradas, `server.py`) el 30/8, **posterior** a cuando se redactó la versión anterior de esta fila (que decía "nueve") — texto de arriba ya corregido a "diez", pero conviene re-verificar el conteo una vez más justo antes de aplicar, dado el ritmo de cambios de esta ronda |
+| 6.7 | 99 | "verificada de extremo a extremo para las **7** tools reales" | "...para las **10** tools reales" | Mismo motivo que 92 |
 | 7.4 | 116 | "...todavía no está desplegada — es el último paso pendiente..." | "...ya está desplegada, verificada con ejecuciones reales en producción (incluida al menos una promoción y un rechazo reales el mismo día por la guarda de regresión)..." | Mismo motivo que 73 — evidencia real: `historial.csv` 30/8 muestra `trafico` h6 promovido (`0,746>0,734`) y `calidad_aire` h1/h3 rechazados (`skill_nuevo` negativo) el mismo día |
-| 7.5 | 130 | "...una vez resuelto, habilitaría una tool `afluencia_prevista` servida igual que `calidad_aire_prevista`." | "...permitiría servir el STGNN de tráfico como previsión [...] (`afluencia_prevista` ya existe como tool real, derivada de `trafico_prevista` [...], sin depender de este export)." | `afluencia_prevista` ya existe (`FIL_14`, opción "vía derivada", **no** vía STGNN→ONNX) — la memoria la presenta como bloqueada por una limitación que en realidad ya se rodeó por otro camino |
+| 7.5 | 130 | "...una vez resuelto, habilitaría una tool `afluencia_prevista` servida igual que `calidad_aire_prevista`." | "...el STGNN ya se sirve como tool real (`calidad_aire_prevista_grafo`, `FIL_26`), vendorizado sin `torch` en runtime; pierde a `calidad_aire_prevista` (LightGBM) en métricas puntuales a 1h pero aporta explicabilidad de vecinos del grafo que los LightGBM no dan. `afluencia_prevista` existe aparte, derivada de `trafico_prevista`, sin depender del STGNN." | Doblemente desactualizado: `afluencia_prevista` ya existía por la vía derivada (`FIL_14`) cuando se escribió la fila anterior, y ahora además el STGNN **sí** se sirve de verdad (`FIL_26`, aterrizado después de esa fila) — este punto de §7.5 ya no es una línea futura, es un resultado conseguido |
 
 ## 2. Discrepancia grande — Tabla 3 no reproduce con el código actual (routing: `VIKT_05`, ya abierto)
 
