@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 2 — consistencia cruzada de documentación"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -40,3 +40,10 @@ por separado durante `FIL_13`–`25`. Esta pasada busca contradicciones
 - No se edita `documents/Memoria_TFM FV.docx` en este ticket (eso es la
   pista `VIKT_*`, y además esta sesión tiene el `.docx` bloqueado por el
   clasificador de modo automático — ver `VIKT_09`/`VIKT_07`).
+
+## Hecho (30/8)
+
+Ver [`doc/VIC-20-eval-documentacion-consistencia.md`](../doc/VIC-20-eval-documentacion-consistencia.md).
+Sin contradicciones entre documentos de nivel superior tras `FIL_19`/`25`.
+Un hallazgo no trivial (tabla de tools de `asistente/README.md`
+gravemente desactualizada) → [`FIL_29`](FIL_29_asistente-readme-tabla-6-tools-obsoleta.md).
