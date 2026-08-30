@@ -3661,6 +3661,12 @@ data "aws_iam_policy_document" "glue_ruido_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_11): `glue_silver_to_gold.py` de ruido pasó de
+      # `mode("append")` (filtrando la salida a "hoy") a `mode("overwrite")`
+      # con `partitionOverwriteMode=dynamic` -- reescribe las particiones
+      # `date=` de la ventana de 7 días en cada ejecución, lo que borra los
+      # ficheros previos de esas particiones antes de reescribirlas.
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
@@ -6679,6 +6685,14 @@ data "aws_iam_policy_document" "glue_aemet_prevision_avisos_data_access" {
 
     actions = [
       "s3:PutObject",
+      # `s3:DeleteObject` (FIL_11): la rama de avisos de `glue_silver_to_gold.py`
+      # pasó de `mode("append")` (leyendo solo `fecha=hoy`) a leer la raíz
+      # completa de Silver-avisos + `mode("overwrite")` con
+      # `partitionOverwriteMode=dynamic` -- reescribe cada partición `fecha=`
+      # en cada ejecución (para de-duplicar y recoger avisos con vigencia
+      # futura), lo que borra los ficheros previos antes de reescribir. Mismo
+      # motivo que el statement de `prevision` de arriba (FIL_01).
+      "s3:DeleteObject",
       "s3:AbortMultipartUpload",
       "s3:ListMultipartUploadParts",
     ]
