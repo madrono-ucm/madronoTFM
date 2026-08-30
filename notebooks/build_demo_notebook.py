@@ -371,7 +371,7 @@ CELLS.append(md(r"""
 ## 4 · Cerrando el bucle — el asistente MCP
 
 `observación → predicción → asistente`. Las tools `*_prevista` construyen 19 features de las últimas 24 h
-de *Gold*, corren un modelo **ONNX** (aquí LightGBM; el STGNN de §3 es exportable pero no servido aún) y
+de *Gold*, corren un modelo **ONNX** (LightGBM; y el STGNN de §3 vía `calidad_aire_prevista_grafo`) y
 devuelven una respuesta con **procedencia trazable**: valor, modelo exacto, ventana de datos, confianza.
 
 Aquí se mockea Athena/Neo4j para que corra sin credenciales — con `AWS_PROFILE`/`NEO4J_*` reales
@@ -416,6 +416,50 @@ print("\ncalidad_aire_prevista(«Carmen», +3 h):")
 print(json.dumps({k: getattr(cap, k) for k in
                   ("contaminante", "valor_actual", "valor_previsto", "unidad", "nivel_previsto",
                    "modelo", "ventana_datos", "data_completeness")}, indent=1, ensure_ascii=False))
+""".strip()))
+
+CELLS.append(md(r"""
+### El STGNN, servido por MCP (`FIL_26`)
+
+`calidad_aire_prevista_grafo` corre el **modelo de grafo** de §3 (el `@champion` real, vía ONNX
+sin `torch`) y devuelve, además de la cifra, **`vecinos_influyentes`**: qué conexiones del grafo
+pesan más en la predicción de esa estación. Es la explicabilidad de §3.5, ahora dentro del asistente.
+
+> Honesto (§7.4): este STGNN pierde a `calidad_aire_prevista` (LightGBM) en métricas puntuales a
+> 1 h; se sirve por la trazabilidad de grafo, con `fiabilidad` topada en BAJA.
+""".strip()))
+
+CELLS.append(code(r"""
+import json as _json
+from pathlib import Path as _Path
+from asistente import prevision_grafo
+
+_META = _json.loads((_Path(prevision_grafo.__file__).parent / "modelos" / "stgnn_calidad_aire.meta.json")
+                    .read_text(encoding="utf-8"))
+_NODOS = list(_META["node_index"])
+_NOMS = {"28079049": "Parque del Retiro", "28079035": "Plaza del Carmen"}
+
+def _gold_grafo(inst, n=40):
+    base = inst.replace(minute=0, second=0, microsecond=0)
+    out = []
+    for nodo in _NODOS:
+        sid, pol = nodo.split("__", 1)
+        for k in range(n):
+            t = base - timedelta(hours=k)
+            out.append({"station_id": sid, "station_name": _NOMS.get(sid, sid), "pollutant": pol,
+                        "unit": "µg/m³", "date": t.date().isoformat(), "hour": t.hour,
+                        "avg_value": 60.0 + (hash(nodo) % 30) + (k % 6) * 3.0})
+    return out
+
+with patch("asistente.mcp_agent.tools.run_athena_query", return_value=_gold_grafo(MOMENTO)):
+    g = tools.calidad_aire_prevista_grafo("Retiro", horizonte_horas=3, momento=MOMENTO)
+
+print(f"calidad_aire_prevista_grafo(«Retiro», +3 h) — nodo {g.nodo}")
+print(f"  actual {g.valor_actual} → previsto {g.valor_previsto} {g.unidad}  ({g.nivel_previsto})")
+print(f"  {g.modelo}  ·  {g.n_nodos_grafo} nodos")
+print("  vecinos influyentes (∂pérdida/∂edge_weight):")
+for v in g.vecinos_influyentes:
+    print(f"    {v.estacion} · {v.contaminante}   {v.importancia:.4f}")
 """.strip()))
 
 CELLS.append(code(r"""
