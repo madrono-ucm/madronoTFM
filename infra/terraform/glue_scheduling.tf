@@ -182,6 +182,9 @@ resource "aws_glue_trigger" "afluencia_lugares_estimada" {
   type              = "SCHEDULED"
   schedule          = "cron(20 * * * ? *)"
   start_on_creation = true
+  # Interruptor global de la ingesta (ver `var.pipeline_enabled`):
+  # `false` -> Terraform hace StopTrigger; `true` -> StartTrigger.
+  enabled = var.pipeline_enabled
 
   actions {
     job_name = aws_glue_job.afluencia_lugares_silver_to_gold.name
@@ -204,6 +207,9 @@ resource "aws_glue_trigger" "scheduled_bronze_to_silver_hourly" {
   type              = "SCHEDULED"
   schedule          = local.glue_trigger_hourly_schedule
   start_on_creation = true
+  # Interruptor global de la ingesta (ver `var.pipeline_enabled`):
+  # `false` -> Terraform hace StopTrigger; `true` -> StartTrigger.
+  enabled = var.pipeline_enabled
 
   actions {
     job_name = local.glue_bronze_to_silver_jobs[each.value].name
@@ -226,6 +232,9 @@ resource "aws_glue_trigger" "conditional_silver_to_gold_hourly" {
   description       = "Lanza Silver->Gold de ${each.value} cuando su Bronze->Silver horario termina con éxito (tarea 064)."
   type              = "CONDITIONAL"
   start_on_creation = true
+  # Interruptor global de la ingesta (ver `var.pipeline_enabled`):
+  # `false` -> Terraform hace StopTrigger; `true` -> StartTrigger.
+  enabled = var.pipeline_enabled
 
   actions {
     job_name = local.glue_silver_to_gold_jobs[each.value].name
@@ -255,6 +264,9 @@ resource "aws_glue_trigger" "scheduled_bronze_to_silver_daily" {
   type              = "SCHEDULED"
   schedule          = each.value.schedule
   start_on_creation = true
+  # Interruptor global de la ingesta (ver `var.pipeline_enabled`):
+  # `false` -> Terraform hace StopTrigger; `true` -> StartTrigger.
+  enabled = var.pipeline_enabled
 
   actions {
     job_name = local.glue_bronze_to_silver_jobs[each.key].name
@@ -272,6 +284,9 @@ resource "aws_glue_trigger" "conditional_silver_to_gold_daily" {
   description       = "Lanza Silver->Gold de ${each.key} cuando su Bronze->Silver diario termina con éxito (tarea 064)."
   type              = "CONDITIONAL"
   start_on_creation = true
+  # Interruptor global de la ingesta (ver `var.pipeline_enabled`):
+  # `false` -> Terraform hace StopTrigger; `true` -> StartTrigger.
+  enabled = var.pipeline_enabled
 
   actions {
     job_name = local.glue_silver_to_gold_jobs[each.key].name
