@@ -1,15 +1,21 @@
-"""Previsión de calidad del aire desde el modelo ONNX de `ML_07` (tool
-`calidad_aire_prevista`, `ML_09`).
+"""Previsión desde los modelos ONNX de `ML_07` (tools `calidad_aire_prevista`
+y `trafico_prevista`).
 
 Cierra el bucle de la memoria §6.7 / §4.1: observación → predicción →
-asistente. El `.onnx` lo produce `modelado.export.to_onnx` a partir del
-`madrono-calidad_aire-h<H>@champion` del registry (`ML_04`); aquí se sirve
-una copia vendida en `asistente/modelos/`.
+asistente. Los `.onnx` los produce `modelado.export.to_onnx` a partir de
+`madrono-<target>-h<H>@champion` del registry (`ML_04`); aquí se sirven
+copias vendidas en `asistente/modelos/` (`<target>_h<H>.onnx`).
+
+`target` ∈ {`calidad_aire`, `trafico`}. El **vector de features es idéntico**
+para ambos (`modelado/features/panel.py` es agnóstico del target): lags y
+rolling del propio target + calendario. Sólo cambia qué señal es `value`
+(`avg_value` del contaminante vs `avg_service_level` del punto) y las
+unidades de la salida.
 
 Contrato de entrada = `modelado/export/CONTRATO.md`: tensor `input` float32
 `[N, 19]` con las 19 features en orden fijo; **NaN no admitido → se imputa a
 0.0** (igual que en el test de paridad de `ML_07`). Salida `[N, 1]`: valor
-previsto del contaminante `H` horas por delante, en µg/m³.
+previsto del target `H` horas por delante.
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ from pathlib import Path
 
 _MODELOS_DIR = Path(__file__).resolve().parent / "modelos"
 _HORIZONTES = (1, 3, 6)
+TARGETS = ("calidad_aire", "trafico")
 
 # Orden EXACTO de CONTRATO.md. No reordenar.
 FEATURES = (
@@ -107,17 +114,21 @@ def _sesion(path: Path):
     return _sesiones[path]
 
 
-def modelo_disponible(horizonte: int, *, model_dir: Path = _MODELOS_DIR) -> bool:
-    return (model_dir / f"calidad_aire_h{horizonte}.onnx").exists()
+def modelo_disponible(
+    horizonte: int, *, target: str = "calidad_aire", model_dir: Path = _MODELOS_DIR
+) -> bool:
+    return (model_dir / f"{target}_h{horizonte}.onnx").exists()
 
 
 def predecir(
-    vector: "list[float]", *, horizonte: int, model_dir: Path = _MODELOS_DIR
+    vector: "list[float]", *, horizonte: int, target: str = "calidad_aire", model_dir: Path = _MODELOS_DIR
 ) -> float:
-    """Corre el `.onnx` del horizonte pedido sobre un vector de 19 features."""
+    """Corre el `.onnx` de `<target>_h<horizonte>` sobre un vector de 19 features."""
     if horizonte not in _HORIZONTES:
         raise ValueError(f"horizonte {horizonte} no soportado; usa uno de {_HORIZONTES}")
-    path = model_dir / f"calidad_aire_h{horizonte}.onnx"
+    if target not in TARGETS:
+        raise ValueError(f"target {target!r} no soportado; usa uno de {TARGETS}")
+    path = model_dir / f"{target}_h{horizonte}.onnx"
     if not path.exists():
         raise FileNotFoundError(f"no está el modelo ONNX {path} (genéralo con modelado.export.to_onnx)")
     import numpy as np
