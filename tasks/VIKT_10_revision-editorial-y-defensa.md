@@ -49,3 +49,19 @@ preparación de la defensa. No es una tarea de código.
   checklist, el `doc/VIKT-10-defensa.md` y aplicar erratas concretas, no
   sustituir la lectura.
 - Última tarea de la pista. `git pull` + aviso antes de tocar el `.docx`.
+
+## Hecho parcialmente (30/8, Claude) — sigue `status: pending`
+
+La parte que este ticket asigna explícitamente a Claude está lista en
+[`doc/VIKT-10-defensa.md`](../doc/VIKT-10-defensa.md): checklist editorial
+(sin marcar — requiere lectura humana), guion de defensa completo apoyado
+en `VIKT_06`, las 7 preguntas anticipadas con respuesta, y la tabla
+"memoria vs. construido vs. futuro". **No se marca `status: done`**: los
+criterios de aceptación reales (`.docx` pasa la checklist, erratas
+aplicadas) requieren la lectura editorial humana que este mismo ticket
+dice explícitamente que Claude no debe sustituir — y, además, los fixes de
+`VIKT_07`/`VIKT_09` que alimentarían esas erratas están redactados pero
+sin aplicar al `.docx` (bloqueo del clasificador de modo automático de
+esta sesión, documentado en ambos tickets). Queda para Víctor/Filippos:
+leer, aplicar los 3 documentos de fixes (`VIKT-07`, `VIKT-09`, y la
+decisión de Tabla 3 de `VIKT-05`), y cerrar este ticket.
