@@ -2,11 +2,38 @@
 kind: fil
 title: "Seguridad: leer secretos de SSM en runtime, no inyectarlos como env en claro"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: true
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 depends_on: []
 ---
+
+## Resolución (2026-08-30) — código aplicado, `terraform apply` pendiente
+
+1. `ingesta/capturas/secretos.py` — `get_secret(name)`: si
+   `<name>_SSM_PATH` está en el entorno → `ssm:GetParameter --with-decryption`
+   cacheado por cold start; si no, fallback a `os.environ[name]` (tests /
+   CLI local intactos); si ninguno, `None`. Error de SSM con path presente
+   se propaga.
+2. `lambda.tf`: el `merge` del `environment` inyecta ahora
+   `"${name}_SSM_PATH" => aws_ssm_parameter.secrets[name].name` (el path),
+   nunca `.value`.
+3. IAM: `aws_iam_policy.ingestion_lambda_secrets` — `ssm:GetParameter`
+   acotado a los 6 ARNs de `local.secrets` (sin comodines). Añadido al
+   `depends_on` de `aws_lambda_function.producer`. `kms:Decrypt` no hace
+   falta (clave `alias/aws/ssm` gestionada por AWS).
+4. 4 módulos adaptados (`transporte_publico_madrid`, `bluesky_menciones_madrid`,
+   `aemet_prevision_avisos`, `cams_calidad_aire_madrid`):
+   `os.environ.get("X")` → `secretos.get_secret("X")` sólo para los 5
+   secretos.
+5. `ingesta/tests/test_secretos.py` (6) + suite `ingesta/` (309) en verde;
+   `terraform validate` + `fmt -check` OK.
+
+**`terraform apply` pendiente** (pipeline congelado, mismo criterio que
+`FIL_16`): pasos de `apply -target` + verificación
+(`get-function-configuration` sin secretos en claro + `lambda invoke`) en
+`doc/FIL-17-...md`. Los valores reales ya están en los parámetros SSM.
 
 ## Contexto
 
