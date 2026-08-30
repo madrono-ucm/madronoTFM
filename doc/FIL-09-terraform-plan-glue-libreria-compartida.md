@@ -33836,33 +33836,40 @@ ejecuciones horarias consecutivas de `bronze_to_silver` fallaron** con el
 **Bronze está completo** para esas horas (los productores Lambda no se
 vieron afectados): `trafico`/`calidad_aire`/`meteorologia`/`bicimad`/
 `aparcamientos` tienen las 24 particiones `hora=` del 29/8 en Bronze
-(`transporte_publico_emt` 20/24, hueco propio). El backfill sería
+(`transporte_publico_emt` 20/24, hueco propio del productor). El backfill es
 mecánicamente posible.
 
-### Decisión: **limitación documentada, no se hace backfill**
+### Resolución: **backfill hecho (30/8)**
 
-- **Coste desproporcionado.** Ningún `bronze_to_silver` acepta una hora
-  objetivo (todos codifican `previous_hour(processed_at)` fijo, verificado).
-  El backfill exigiría: añadir un parámetro `--target-hora` opcional a ~6
-  jobs `bronze_to_silver` + ~6 `silver_to_gold`, un driver, y ~120
-  ejecuciones de Glue, con re-verificación. Para un hueco de ~20 h en **1
-  día** dentro de una ventana de datos de 15 días.
-- **El pipeline de ML ya lo maneja.** `modelado/features/panel.py`
-  (`_reindex_horario_completo`) reindexa cada entidad a un rango horario
-  continuo con NaN en los huecos; lags/rolling usan `min_periods=1` y el
-  warm-up descarta las filas sin ningún lag. Un hueco de 20 h el 29/8 se
-  trata como "sin lecturas", igual que cualquier otro hueco de captura.
-- **Precedente.** La memoria (§7.4) ya documenta la ventana corta de datos
-  y sus huecos como limitación.
+Se añadió un modo `--backfill_fecha yyyy-MM-dd` a los 10 jobs
+(`bronze_to_silver` + `silver_to_gold` de los 5 datasets horarios, PR
+**#183**): lee toda la fecha (`daily_partition_uri`, las 24 particiones
+`hora=`) en una sola ejecución y escribe con `mode("overwrite")` +
+`partitionOverwriteMode=dynamic` — reemplaza exactamente las particiones
+recalculadas, sin duplicar las horas que ya estaban. `s3:DeleteObject`
+añadido a los 10 statements IAM de escritura de Silver/Gold (la
+sobrescritura dinámica borra antes de reescribir).
 
-### Acciones
+Ejecutado para `2026-08-29`: 5 `bronze_to_silver` + 5 `silver_to_gold`,
+**10/10 `SUCCEEDED`**. Verificado en Athena:
 
-1. Esta nota (hecho).
-2. `doc/FIL-09` §"Resultado de la ejecución" y `doc/107` **no** afirman
-   "sin pérdida de datos" — la frescura verificada fue por fecha; este
-   párrafo lo matiza.
-3. **Memoria §7.4** (pista Memoria, vía `VIKT_*`): añadir el hueco horario
-   del 29/8 (6 datasets, ~20 h, causado por el incidente de la librería
-   compartida de Glue, Bronze intacto) a la lista de limitaciones de datos.
-4. **Criterio de frescura a futuro:** para datasets horarios, verificar
-   `count(distinct hour)` del último día, no solo `max(date)`.
+| Dataset | Antes | Después |
+|---|---|---|
+| `trafico` | 3/24 h | **24/24 h**, 109 674 filas, 0 duplicados |
+| `calidad_aire` | 4/24 h | **24/24 h**, 2 938 filas, 0 dup |
+| `meteorologia` | 4/24 h | **24/24 h**, 2 002 filas, 0 dup |
+| `bicimad` | 4/24 h | **24/24 h**, 16 186 filas, 0 dup |
+| `aparcamientos` | 4/24 h | **24/24 h**, 598 filas, 0 dup |
+| `transporte_publico_emt` | 4/24 h | sin cambio — su Bronze solo tiene 20/24 h (hueco del productor, no del incidente) |
+
+Coste real: 10 ejecuciones de Glue (~1–5 min cada una), del orden de **1–2
+USD**.
+
+### Acciones de seguimiento
+
+- **`transporte_publico_emt`**: 4 horas del 29/8 no recuperables (Bronze
+  incompleto). Hueco menor; documentar como tal si `VIC_15` lo toca.
+- **Criterio de frescura a futuro:** para datasets horarios, verificar
+  `count(distinct hour)` del último día, no solo `max(date)`.
+- El modo `--backfill_fecha` queda como herramienta operativa para
+  incidentes futuros (ver `infra/OPERACION.md`).
