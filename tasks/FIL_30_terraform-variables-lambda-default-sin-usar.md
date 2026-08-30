@@ -2,10 +2,23 @@
 kind: fil
 title: "variables.tf: lambda_default_timeout_seconds/lambda_default_memory_mb declaradas pero sin ninguna referencia real"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
+resolved_at: "2026-08-30"
 ---
+
+> Renumerado de `FIL_26` a `FIL_30` (colisión con `FIL_26` = STGNN-as-tool,
+> mergeado primero en PR #201).
+
+## Resolución (2026-08-30)
+
+Eliminadas las dos `variable` de `infra/terraform/variables.tf` — no las
+referenciaba nada (`grep` sólo encontraba la declaración) y su descripción
+prometía un fallback por productor que no existe: las 16 entradas de
+`local.producers` fijan `timeout`/`memory_mb` explícitos. Se deja un
+comentario en su lugar. `terraform fmt` + `validate` OK; `plan` sin cambios
+(las variables no son recursos).
 
 > **Contexto**: encontrado en `VIC_18` (evaluación técnica ronda 2,
 > `doc/PLAN-EVALUACION-TECNICA-2.md`), haciendo un `terraform plan`
