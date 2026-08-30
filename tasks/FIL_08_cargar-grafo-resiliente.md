@@ -2,9 +2,10 @@
 kind: fil
 title: "cargar_grafo.py resiliente a cortes de conexión de AuraDB Free (UNWIND + reintento)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-28"
+resolved_at: "2026-08-30"  # frontmatter alineado con FIL_00_README (ya estaba HECHO)
 ---
 
 > **Estado 28/8: ✅ HECHO.** `_run_all` reescrito con `UNWIND` por lotes de

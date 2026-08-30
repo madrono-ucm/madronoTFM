@@ -2,9 +2,10 @@
 kind: fil
 title: "Add lambda_handler + BronzeWriter to the 3 task-090 capture modules"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-28"
+resolved_at: "2026-08-30"  # frontmatter alineado con FIL_00_README (ya estaba HECHO)
 ---
 
 > **Estado 28/8: ✅ HECHO.** `capture_all()` + `lambda_handler()` +
