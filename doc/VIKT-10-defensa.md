@@ -90,12 +90,18 @@ el grafo, y los modelos servidos siguen intactos y consultables; reanudar
 es una variable de Terraform.
 
 **¿Por qué el STGNN no se sirve en producción si está en la Tabla 3?**
-`torch.export` (la ruta oficial de PyTorch para exportar a ONNX) no
-soporta hoy el bucle temporal recurrente del STGNN — una limitación
-conocida de la librería, no del diseño del modelo. El STGNN sí se evalúa
-y se compara honestamente contra LightGBM en §7.2/Tabla 3; solo los
-LightGBM (que sí exportan sin problema) se sirven en vivo por el
-asistente.
+**[Actualizado tras `FIL_20`, aterrizado después de escribir esta primera
+versión — no es ya lo que dice arriba]**: el STGNN **sí se exporta a
+ONNX** con paridad casi perfecta (`max|Δ|≈6e-8`, verificado también de
+forma independiente con grafos de tamaño distinto al de export) usando el
+exportador `dynamo` de `torch.onnx.export` — la limitación de
+`torch.export` con el bucle temporal era real con versiones antiguas de
+`torch`, no con la 2.13 instalada. No se sirve por una decisión de
+alcance, no por un bloqueo técnico: su contrato de entrada (ventana de
+snapshots de grafo + estandarización) es más pesado que el vector de 19
+features de los LightGBM, que ya cubren la demostración "el MCP llama al
+ML" con dos targets distintos. El STGNN sí se evalúa y se compara
+honestamente contra LightGBM en §7.2/Tabla 3.
 
 **¿Por qué la ventana de datos es tan corta (~2 semanas)?**
 La ingesta en continuo arrancó el 14 de agosto de 2026; el proyecto se
@@ -135,7 +141,7 @@ rigor real, no solo se construye una vez y se abandona.
 | Ingesta | 24 fuentes, 16 en producción continua | ✅ igual, + `parques_jardines`/`ser_calles` ya con Lambda (Bronze-only) | Recarga vehículo eléctrico, plazas PMR, infraestructura ciclista |
 | Procesamiento | Lakehouse medallón + Great Expectations | ✅ igual | Delta Lake, Kafka/Flink (ruta caliente) |
 | Grafo | 5 labels, 4 relaciones | ✅ igual, 9.633 nodos / 72.310 relaciones reales | Enriquecimiento OSM completo (hoy: muestra) |
-| Modelado | LightGBM + STGNN, Tabla 3 | ✅ ambos entrenados y evaluados; **Tabla 3 publicada puede no coincidir con el código actual** (ver checklist §1) | STGNN servible por ONNX, ablaciones descartadas por tiempo |
+| Modelado | LightGBM + STGNN, Tabla 3 | ✅ ambos entrenados y evaluados; **Tabla 3 publicada puede no coincidir con el código actual** (ver checklist §1); STGNN **sí exporta a ONNX** (`FIL_20`, paridad ~6e-8) aunque no esté integrado como tool | Integrar el STGNN como tool del asistente (exportable, decisión de alcance no bloqueo técnico), ablaciones descartadas por tiempo |
 | Asistente | "Siete" tools (memoria sin actualizar) | ✅ **nueve** tools reales (`FIL_13`/`14`) | Auth/rate-limiting, cuadro de mando Power BI |
 | Operación | — | ✅ alertado diseñado (`FIL_16`), secretos en runtime (`FIL_17`), test e2e (`FIL_18`), README raíz (`FIL_19`) — ninguno mencionado aún en la memoria | Rotación de secretos, trazas distribuidas |
 
