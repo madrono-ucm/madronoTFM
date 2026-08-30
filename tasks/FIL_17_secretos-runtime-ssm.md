@@ -79,3 +79,18 @@ un revisor técnico mirará.
 
 - Sin rotación automática (queda para §7.5).
 - `terraform apply` tras revisión humana.
+
+## Nota de prioridad (Claude QA, `VIC_18`, 30/8)
+
+Verificado con `terraform plan` agregado (no solo el `-target` acotado del
+PR original): el `apply` de este ticket **sigue pendiente** —
+`aws_iam_policy.ingestion_lambda_secrets` aparece como "to add" y las 16
+`aws_lambda_function.producer` como "to change" en un plan fresco de hoy.
+A diferencia de `FIL_16` (seguro de dejar sin aplicar mientras la ingesta
+está congelada — no hay nada que alertar), **este es un fix de
+seguridad**: mientras no se aplique, las 16 Lambda en la cuenta real de
+AWS siguen exponiendo sus credenciales en claro vía
+`aws lambda get-function-configuration`, independientemente de que la
+ingesta esté parada. Recomendado aplicar esto **antes** de reanudar la
+ingesta, no como parte del mismo paso — son dos decisiones independientes.
+Detalle completo en [`doc/VIC-18-eval-terraform-v2.md`](../doc/VIC-18-eval-terraform-v2.md).

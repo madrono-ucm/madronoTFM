@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 2 — Terraform, plan completo (no por PR)"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -40,3 +40,22 @@ todos esos cambios juntos:
 ## Restricciones
 
 - Solo `plan`, nunca `apply`, en este ticket.
+
+## Hecho (30/8)
+
+Ver [`doc/VIC-18-eval-terraform-v2.md`](../doc/VIC-18-eval-terraform-v2.md).
+`validate`/`fmt` limpios, plan agregado (335 recursos, Kafka excluido)
+→ `2 to add, 54 to change, 0 to destroy`, sin errores. Sin
+`Resource: "*"` en ninguna política IAM.
+
+**Hallazgo de prioridad alta**: `FIL_17` (secretos SSM) sigue sin
+`apply` real — a diferencia de `FIL_16`, esto es un fix de seguridad
+activo (las 16 Lambda de producción siguen exponiendo credenciales en
+claro ahora mismo). Nota añadida directamente al ticket `FIL_17`
+existente, no se duplica.
+
+**Hallazgo menor, ticket nuevo**: `lambda_default_timeout_seconds`/
+`lambda_default_memory_mb` en `variables.tf` están completamente sin usar
+— `local.producers` hardcodea cada timeout/memoria por productor, nunca
+referencia estas variables pese a que su descripción dice lo contrario.
+→ [`FIL_26`](FIL_26_terraform-variables-lambda-default-sin-usar.md).
