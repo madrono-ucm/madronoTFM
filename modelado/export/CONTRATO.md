@@ -111,26 +111,29 @@ una ventana de test. Tolerancia `max |Δ| ≤ 1e-4` (el dynamo da ~`6e-8`,
 epsilon de `float32`), verificada también con un grafo y un `N` distintos
 a los del ejemplo de export (`modelado/tests/test_ml07.py::StgnnOnnxExportTests`).
 
-### Servido en el asistente (`FIL_26`) — tool `calidad_aire_prevista_grafo`
+### Servido en el asistente — tools `*_prevista_grafo` (`FIL_26` / `FIL_31`)
 
-El STGNN de `calidad_aire` se sirve por ONNX **sin `torch` en runtime**.
-`--meta` añade un `<nombre>.meta.json` con lo que hace falta para armar la
-entrada: `feature_cols` (17 = las 19 de `asistente/prevision.py::FEATURES`
-sin `lat`/`lon`), `x_mu/x_sd`, `y_mu/y_sd` (el `.onnx` predice en z-score),
-`longitud_ventana`, `node_index` (54 nodos `"<station_id>__<contaminante>"`),
-`node_coords`, `edge_index`/`edge_weight` e `importancia_aristas`
-(precalculada). Se vendoriza en
-`asistente/modelos/stgnn_calidad_aire.{onnx,onnx.data,meta.json}` y lo lee
-`asistente/prevision_grafo.py`. Ver `doc/FIL-26-...md`.
+Los STGNN de `calidad_aire` (`FIL_26`) y `trafico` (`FIL_31`) se sirven por
+ONNX **sin `torch` en runtime**. `--meta` añade un `<nombre>.meta.json` con
+lo que hace falta para armar la entrada: `feature_cols` (17 = las 19 de
+`asistente/prevision.py::FEATURES` sin `lat`/`lon`), `x_mu/x_sd`,
+`y_mu/y_sd` (el `.onnx` predice en z-score), `longitud_ventana`,
+`node_index` (nodos: `"<station_id>__<contaminante>"` para calidad del aire,
+`point_id` para tráfico), `node_coords`, `edge_index`/`edge_weight` e
+`importancia_aristas` (precalculada). Se vendorizan en
+`asistente/modelos/stgnn_<target>.{onnx,onnx.data,meta.json}` y los lee
+`asistente/prevision_grafo.py` (parametrizado por `target`). Ver
+`doc/FIL-26-...md` / `doc/FIL-31-...md`.
 
-**Honestidad (§7.4)**: este STGNN `@champion` pierde a
-`calidad_aire_prevista` (LightGBM) en métricas puntuales a 1 h; a 3/6 h bate
-a la persistencia. Se sirve por la explicabilidad de grafo
+**Honestidad (§7.4)**: estos STGNN `@champion` son una demostración de
+metodología — en métricas puntuales los superan `calidad_aire_prevista` /
+`trafico_prevista` (LightGBM). Se sirven por la explicabilidad de grafo
 (`vecinos_influyentes`), no por precisión — la tool y el router lo dicen y
 topan `fiabilidad` en BAJA.
 
-Generar el `.onnx` + meta del champion:
+Generar el `.onnx` + meta de un champion:
 
     python -m modelado.export.to_onnx --stgnn --meta --modelo madrono-stgnn-calidad_aire \
-        --panel modelado/_data/panel_calidad_aire_grafo.parquet --nombre stgnn_calidad_aire \
-        [--aristas-json aristas_proximo_a.json]
+        --panel modelado/_data/panel_calidad_aire_grafo.parquet --nombre stgnn_calidad_aire
+    python -m modelado.export.to_onnx --stgnn --meta --modelo madrono-stgnn-trafico \
+        --panel modelado/_data/panel_trafico_grafo.parquet --nombre stgnn_trafico

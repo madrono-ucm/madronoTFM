@@ -46,6 +46,7 @@ from asistente.models.herramientas import (
     ParadaBicimadCercana,
     TraficoCercano,
     TraficoPrevista,
+    TraficoPrevistaGrafo,
     VecinoGrafo,
 )
 from asistente.neo4j_client import (
@@ -1743,6 +1744,176 @@ def trafico_prevista(
             (hora de Madrid).
     """
     return _trafico_prevista_impl(lugar, horizonte_horas, radio_m, momento)
+
+
+# ---------------------------------------------------------------------------
+# trafico_prevista_grafo (FIL_31) -- la misma previsión de congestión pero
+# servida por el STGNN de grafo de tráfico (ML_05, vía ONNX). Gemela de
+# calidad_aire_prevista_grafo.
+# ---------------------------------------------------------------------------
+
+
+def _trafico_prevista_grafo_impl(
+    lugar: str,
+    horizonte_horas: int,
+    radio_m: float,
+    momento: datetime | None,
+    *,
+    neo4j_driver=None,
+    athena_client=None,
+) -> TraficoPrevistaGrafo:
+    if horizonte_horas not in _HORIZONTES_STGNN:
+        raise ValueError(
+            f"horizonte_horas debe ser uno de {_HORIZONTES_STGNN}; recibido {horizonte_horas}"
+        )
+    if momento is not None:
+        instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
+    else:
+        instante = now_madrid()
+
+    fuente = _FUENTE_TRAFICO
+
+    def _sin(motivo: str, *, ancla: datetime | None = None, **kw) -> TraficoPrevistaGrafo:
+        base = dict(
+            lugar=lugar, horizonte_horas=horizonte_horas,
+            momento=ancla or instante,
+            momento_objetivo=(ancla + timedelta(hours=horizonte_horas)) if ancla else None,
+            fuente_dataset=fuente, fuente_grafo=_FUENTE_GRAFO_TRAFICO_PREVISTA, motivo=motivo,
+        )
+        base.update(kw)
+        return TraficoPrevistaGrafo(**base)
+
+    if not prevision_grafo.disponible(target="trafico"):
+        return _sin("no está el modelo de grafo de tráfico (asistente/modelos/stgnn_trafico.onnx + .meta.json)")
+    try:
+        meta = prevision_grafo.info(target="trafico")
+    except Exception as exc:  # noqa: BLE001 - degradación elegante
+        return _sin(f"no se pudo cargar el modelo de grafo de tráfico: {exc}")
+    node_index = meta["node_index"]
+
+    # 1. puntos de tráfico cerca del lugar (grafo urbano Neo4j) que además
+    #    estén en el grafo del STGNN
+    query, params = lugares_proximos_a_estaciones_trafico_query(lugar, radio_m)
+    try:
+        filas_grafo = run_neo4j_query(query, params, driver=neo4j_driver)
+    except Exception as exc:  # noqa: BLE001
+        return _sin(f"no se pudo consultar el grafo en Neo4j: {exc}")
+    candidatos = []
+    for fila in filas_grafo:
+        estacion_id = fila.get("estacion_id") or ""
+        pid = estacion_id.split(":", 1)[1] if ":" in estacion_id else None
+        if pid and pid in node_index and pid not in candidatos:
+            candidatos.append(pid)
+    if not candidatos:
+        return _sin(
+            f"ningún punto de tráfico a {radio_m:.0f} m de «{lugar}» está en el grafo del STGNN "
+            f"({len(node_index)} puntos)"
+        )
+
+    # 2. Gold de TODOS los puntos del grafo del STGNN (ventana ~3 días)
+    fechas = [(instante - timedelta(days=d)).date().isoformat() for d in (2, 1, 0)]
+    ids_literal = ", ".join(f"'{sql_literal(p)}'" for p in node_index)
+    sql = f"""
+        SELECT point_id, date, hour, avg_service_level
+        FROM {_TABLA_TRAFICO}
+        WHERE date IN ({", ".join(f"'{f}'" for f in fechas)})
+          AND point_id IN ({ids_literal})
+          AND avg_service_level IS NOT NULL
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001
+        return _sin(f"no se pudo consultar Gold en Athena: {exc}")
+    if not filas:
+        return _sin("`gold.trafico_por_punto_hora` no tiene lecturas recientes para el grafo del STGNN")
+
+    series: "dict[str, dict[datetime, float]]" = {}
+    for f in filas:
+        pid = str(f["point_id"])
+        if pid not in node_index:
+            continue
+        dt = datetime.fromisoformat(f["date"]).replace(hour=int(f["hour"]))
+        series.setdefault(pid, {})[dt] = float(f["avg_service_level"])
+    if not series:
+        return _sin("ninguna lectura de Gold casa con un nodo del grafo del STGNN de tráfico")
+
+    ancla = max(t for s in series.values() for t in s)
+
+    # 3. peor caso entre los candidatos con serie: mayor avg_service_level en el ancla
+    con_serie = [p for p in candidatos if p in series]
+    if not con_serie:
+        return _sin(f"los puntos cerca de «{lugar}» no tienen lecturas recientes en Gold", ancla=ancla)
+    punto_id = max(con_serie, key=lambda p: series[p].get(ancla, -1.0))
+
+    try:
+        pred, completeness = prevision_grafo.predecir(series, ancla, target="trafico")
+    except Exception as exc:  # noqa: BLE001
+        return _sin(f"fallo corriendo el STGNN de tráfico: {exc}", ancla=ancla)
+
+    horizontes = list(meta["horizontes"])
+    yh = pred.get(punto_id)
+    if yh is None:
+        return _sin(f"el punto «{punto_id}» no está en la salida del modelo", ancla=ancla)
+    previsto = round(yh[horizontes.index(horizonte_horas)], 2)
+    actual = series[punto_id].get(ancla)
+    fechas_pid = sorted({t.date().isoformat() for t in series[punto_id]})
+    vecinos = [
+        VecinoGrafo(nodo=v["nodo"], importancia=v["importancia"])
+        for v in prevision_grafo.vecinos_influyentes(punto_id, target="trafico")
+    ]
+
+    return TraficoPrevistaGrafo(
+        lugar=lugar,
+        momento=ancla,
+        momento_objetivo=ancla + timedelta(hours=horizonte_horas),
+        horizonte_horas=horizonte_horas,
+        disponible=True,
+        punto_id=punto_id,
+        valor_previsto=previsto,
+        valor_actual=round(actual, 2) if actual is not None else None,
+        nivel_previsto=_clasificar_trafico(previsto, _UMBRALES_SERVICE_LEVEL),
+        data_completeness=round(completeness.get(punto_id, 0.0), 2),
+        ventana_datos=f"{fechas_pid[0]}..{fechas_pid[-1]}" if fechas_pid else None,
+        modelo=(
+            f"stgnn_trafico.onnx (ML_05 / {meta['modelo_registro']}, grafo {meta['origen_grafo']})"
+        ),
+        n_nodos_grafo=len(node_index),
+        grafo=meta["origen_grafo"],
+        fuente_grafo=_FUENTE_GRAFO_TRAFICO_PREVISTA,
+        vecinos_influyentes=vecinos,
+        fuente_dataset=fuente,
+    )
+
+
+def trafico_prevista_grafo(
+    lugar: str, horizonte_horas: int = 3, radio_m: float = 300.0, momento: datetime | None = None
+) -> TraficoPrevistaGrafo:
+    """Previsión de congestión servida por el **modelo de grafo** (STGNN de
+    `ML_05`), vía ONNX sin `torch` en runtime (`FIL_31`, gemela de
+    `calidad_aire_prevista_grafo`).
+
+    Resuelve `lugar` cruzando el grafo urbano (igual que `trafico_prevista`),
+    se queda con los puntos de tráfico que además están en el grafo del
+    STGNN, corre el STGNN sobre **todos** sus nodos a la vez y devuelve el
+    del punto de peor caso. Además de la cifra (`avg_service_level` a
+    `horizonte_horas`), devuelve **`vecinos_influyentes`**: qué conexiones
+    entre puntos de tráfico pesan más en la predicción de ese nodo.
+
+    §7.4: demostración de metodología — `fiabilidad` topada en BAJA. Sin
+    modelo, sin punto en el grafo o sin datos → `disponible=false` +
+    `motivo`, nunca excepción.
+
+    **Más lenta que `trafico_prevista`**: consulta Gold de los ~1.800 puntos
+    del grafo del STGNN (no de uno solo) para armar la ventana completa
+    ~20-40 s por llamada.
+
+    Args:
+        lugar: Nombre (parcial) de un lugar de Madrid (texto sobre el grafo).
+        horizonte_horas: Horas por delante. Uno de 1, 3 o 6 (por defecto 3).
+        radio_m: Radio de búsqueda de puntos de tráfico alrededor del lugar.
+        momento: Instante de referencia (ISO 8601). Si es `None`, ahora.
+    """
+    return _trafico_prevista_grafo_impl(lugar, horizonte_horas, radio_m, momento)
 
 
 # ---------------------------------------------------------------------------

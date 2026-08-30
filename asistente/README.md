@@ -216,8 +216,9 @@ hace la explicación trazable).
 
 Toda tool `*_prevista` (`calidad_aire_prevista` de `ML_09`, `trafico_prevista`
 de `FIL_13`, `afluencia_prevista` de `FIL_14` — derivada: `trafico_prevista`
-+ persistencia — y `calidad_aire_prevista_grafo` de `FIL_26` — servida por el
-STGNN de grafo de `ML_05`) devuelve una **subclase** de `RespuestaPrevision`,
++ persistencia — y `calidad_aire_prevista_grafo` de `FIL_26` / `trafico_prevista_grafo`
+de `FIL_31` — servidas por los STGNN de grafo de `ML_05`) devuelve una
+**subclase** de `RespuestaPrevision`,
 con el mismo contrato de procedencia y de degradación:
 
 | Campo | Significado |
@@ -253,7 +254,7 @@ fallan, la tool devuelve el objeto con `disponible=False`,
 `valor_previsto=None` y `motivo` explicativo (cubierto por
 `asistente/tests/test_mcp_hardening.py` y `test_mcp_transport.py`).
 
-## Las 10 `tools` del agente MCP
+## Las 11 `tools` del agente MCP
 
 De la memoria (apartado 6.7). **Todas tienen lógica real** — ninguna
 `NotImplementedError` (`FIL_29` limpió esta tabla, que databa de antes de
@@ -271,6 +272,7 @@ las tareas 090/095/096). Registro y anotaciones: `asistente/mcp_agent/server.py`
 | `trafico_prevista(lugar, horizonte_horas=6, radio_m=300.0, momento=None)` | ídem sobre `avg_service_level` del punto de tráfico resuelto por el grafo | `FIL_13` |
 | `afluencia_prevista(lugar, horizonte_horas=6, radio_m=300.0, momento=None)` | **derivada**: `trafico_prevista` + persistencia de ruido/BiciMAD | `FIL_14` |
 | `calidad_aire_prevista_grafo(zona, horizonte_horas=3, momento=None)` | **STGNN de grafo** (`ML_05`) vía ONNX + importancia de aristas | `FIL_26` |
+| `trafico_prevista_grafo(lugar, horizonte_horas=3, radio_m=300.0, momento=None)` | **STGNN de grafo** de tráfico (`ML_05`, 1.798 puntos) vía ONNX + `vecinos_influyentes` | `FIL_31` |
 
 Ninguna lanza excepción por falta de datos: devuelven un objeto con
 `indice_calidad`/`resumen`/`nivel_*` = `"sin_datos"` (o, en las `*_prevista`,
