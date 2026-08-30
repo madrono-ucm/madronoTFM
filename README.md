@@ -121,6 +121,14 @@ Sin credenciales, `initialize` + `list_tools` funcionan igual (descubrimiento)
 y cada `call_tool` degrada con un `motivo` legible en vez de fallar. Detalle
 del contrato de respuesta y de las tools: [`asistente/README.md`](asistente/README.md).
 
+## Demo end-to-end
+
+[`notebooks/demo_madrono.ipynb`](notebooks/demo_madrono.ipynb) recorre el
+sistema completo (XML → Gold → grafo → **STGNN con importancia de aristas** →
+asistente MCP) en ~4 min y **corre sin credenciales** (mini-grafo sintético +
+mocks). Con `AWS_PROFILE`/`NEO4J_*` reales usa datos vivos. Versión de
+comandos con datos completos: `doc/VIKT-06-recorrido-e2e.md`.
+
 ## Ejecutar la evaluación de ML
 
 Cuadernos de evaluación, métricas, comparación de modelos y explicabilidad:
