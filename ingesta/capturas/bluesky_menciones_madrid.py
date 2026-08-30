@@ -126,6 +126,7 @@ from typing import Iterable, Optional
 
 import requests
 
+from . import secretos
 from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 
 logger = logging.getLogger(__name__)
@@ -244,8 +245,8 @@ class CaptureConfig:
         return cls(
             api_base_url=os.environ.get("BLUESKY_API_BASE_URL", DEFAULT_API_BASE_URL),
             auth_base_url=os.environ.get("BLUESKY_AUTH_BASE_URL", DEFAULT_AUTH_BASE_URL),
-            identifier=os.environ.get("BLUESKY_IDENTIFIER") or None,
-            app_password=os.environ.get("BLUESKY_APP_PASSWORD") or None,
+            identifier=secretos.get_secret("BLUESKY_IDENTIFIER") or None,
+            app_password=secretos.get_secret("BLUESKY_APP_PASSWORD") or None,
             lang=os.environ.get("BLUESKY_LANG", "es"),
             limit_per_query=_env_int("BLUESKY_LIMIT_PER_QUERY", 5),
             place_queries=_env_list("BLUESKY_SAMPLE_PLACES", DEFAULT_PLACE_QUERIES),
