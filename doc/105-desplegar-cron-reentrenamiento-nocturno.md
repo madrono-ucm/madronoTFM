@@ -84,3 +84,81 @@ correcta y no hay nada que corregir todavía.
    `modelado/evaluation/artifacts/nightly/historial.csv`, y **entonces sí**
    actualizar `documents/Memoria_TFM FV.docx` §5.5/§7.4 quitando "pendiente
    de desplegar".
+
+---
+
+## Despliegue real (2026-08-30, sesión interactiva — aprobado)
+
+Los tres bloqueos anteriores resueltos vía **SSM Run Command** contra la EC2
+del demonio (`i-0aa45f0df26b4b7e6`, `eu-south-2`, SSM-gestionada, comandos
+como `root`):
+
+1. **Disco** — `aws ec2 modify-volume` `vol-045f46fb5c526a771` **8 → 24 GiB**
+   + `growpart /dev/nvme0n1 1` + `resize2fs`. `/` pasó de 985 MiB libres
+   (86 %) a ~15 GiB libres. Limpieza extra: revisiones `snap` deshabilitadas
+   (ssm-agent 13009, core22 2411, snapd 27591), `apt-get clean`.
+2. **venv** — `apt install python3.14-venv` (esta EC2 es Ubuntu con Python
+   3.14 nativo), `python3 -m venv /home/ubuntu/repos/madronoTFM/.venv`,
+   `pip install --only-binary :all:` de `modelado/requirements.txt`
+   **sin `torch`** (verificado: `retrain_nightly.py` solo importa
+   `pandas` + `datasets.splits`/`evaluation.metrics`/`models.{baselines,gbt}`;
+   `torch` es exclusivo del STGNN/`train_stgnn.py`/`export/to_onnx.py`, que
+   no entran en el reentreno nocturno). Descarga de `torch` fallaba además
+   por red intermitente en la EC2 — otro motivo para dejarlo fuera.
+3. **Credenciales** — no hay perfil `AWS_PROFILE=madrono` en la EC2; el rol
+   de instancia `madrono-terraform-deployerEC2` llega a Athena de forma
+   ambiente. La plantilla del cron se corrigió: `AWS_PROFILE=madrono` →
+   `AWS_DEFAULT_REGION=eu-west-1` (la EC2 está en `eu-south-2`, los datos en
+   `eu-west-1`).
+4. **Memoria RAM** — la instancia tiene **3,7 GiB de RAM**. El primer
+   reentreno completo murió por **OOM** al construir el panel de `trafico`
+   (~1,6 M filas + join de meteo). Se añadió **4 GiB de swap**
+   (`/swapfile`, persistente en `/etc/fstab`). Con swap el reentreno
+   completo termina en **~6,5 min** (pico ~1,6 GiB de swap usados).
+
+### Instalado
+
+`/etc/cron.d/madrono-retrain` (644, `ubunto`):
+
+```
+30 3 * * *  ubuntu  cd /home/ubuntu/repos/madronoTFM && AWS_DEFAULT_REGION=eu-west-1 /home/ubuntu/repos/madronoTFM/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
+```
+
+Checkout de producción: `/home/ubuntu/repos/madronoTFM` (clon manual,
+independiente del `~/repos/madronoTFM-agent` que el demonio hace
+`git reset --hard` cada ciclo). Todas las salidas del reentreno
+(`modelado/mlflow.db`, `modelado/evaluation/artifacts/`, `modelado/_data/`)
+están en `.gitignore`, así que un `git pull` futuro sobre ese checkout no
+las pisa.
+
+### Verificación (ejecución real forzada tras instalar)
+
+`retrain_nightly --rebuild-panel` completo, exit 0:
+
+- Paneles reconstruidos desde Athena con el rol de instancia:
+  `calidad_aire` 43 243 filas / 30 features, `trafico` 1 635 505 filas / 30
+  features (meteo + previsión AEMET + festivos — el cierre de `ML_01`
+  corriendo en producción).
+- 6 modelos entrenados y registrados en MLflow
+  (`madrono-{calidad_aire,trafico}-h{1,3,6}` v1, backend SQLite
+  `modelado/mlflow.db`).
+- `historial.csv` con 6 filas nuevas; el *guardrail* de promoción funciona:
+  `calidad_aire` h1 con `skill_nuevo` -0,0031 < vigente → `promovido=False`;
+  el resto promovidos.
+
+### Daemon reiniciado
+
+`systemctl restart madrono-agent.service` (cola vacía en ese momento):
+PID 719351 → 722608, `active (running)`, watchdog OK. Con esto el demonio
+recoge el `merge_pr()` de la tarea 101 (espera a la CI en verde antes de
+auto-fusionar un PR `force: true`).
+
+### Pendiente
+
+- `documents/Memoria_TFM FV.docx` §5.5/§7.4: **ahora sí** se puede quitar
+  "pendiente de desplegar" — el cron está instalado y verificado (pista
+  Memoria).
+- Vigilar `/var/log/madrono-retrain.log` los primeros días; si el checkout
+  de producción se queda atrás respecto a `main` en algo relevante para el
+  reentreno, refrescarlo a mano (`git -C /home/ubuntu/repos/madronoTFM pull
+  --ff-only`).

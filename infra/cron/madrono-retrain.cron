@@ -1,9 +1,20 @@
 # Plantilla de /etc/cron.d/madrono-retrain — ML_10 / tarea 105.
 #
-# NO está instalada. Antes de copiarla a /etc/cron.d/, sustituye <REPO> por
-# la ruta real del checkout que se va a usar en producción y crea el venv
-# en <REPO>/.venv con `pip install -r modelado/requirements.txt` (ver
-# infra/cron/instalar_cron.sh, que hace ambas comprobaciones y copia este
-# fichero). No existe ya un "/opt/madrono" ni un venv compartido en la EC2
-# del demonio — ver doc/105-desplegar-cron-reentrenamiento-nocturno.md.
-30 3 * * *  ubuntu  cd <REPO> && AWS_PROFILE=madrono <REPO>/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
+# INSTALADA y verificada el 2026-08-30 en la EC2 del demonio con
+# <REPO> = /home/ubuntu/repos/madronoTFM (ver doc/105 § "Despliegue real").
+# Esta plantilla es la fuente de verdad; para (re)instalarla, sustituye
+# <REPO> y crea el venv en <REPO>/.venv (`pip install -r
+# modelado/requirements.txt` — se puede omitir `torch`, que solo lo usa el
+# STGNN, no el reentreno nocturno). `infra/cron/instalar_cron.sh` hace las
+# comprobaciones y la copia.
+#
+# Credenciales: la EC2 del demonio NO tiene un perfil `madrono` en
+# `~/.aws`; usa el rol de instancia `madrono-terraform-deployerEC2`
+# (ambiente, sin perfil). `AWS_DEFAULT_REGION` es explícito porque la EC2
+# vive en eu-south-2 y los datos/Athena/Glue están en eu-west-1.
+#
+# Requisito de memoria: el panel de `trafico` (~1,6 M filas) no cabe en los
+# 3,7 GiB de RAM de esta instancia — hace falta swap (4 GiB añadidos el
+# 30/8, persistentes en /etc/fstab). Sin swap el reentreno de `trafico`
+# muere por OOM (el de `calidad_aire` sí cabe).
+30 3 * * *  ubuntu  cd <REPO> && AWS_DEFAULT_REGION=eu-west-1 <REPO>/.venv/bin/python -m modelado.training.retrain_nightly --rebuild-panel >> /var/log/madrono-retrain.log 2>&1
