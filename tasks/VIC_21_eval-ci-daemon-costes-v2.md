@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 2 — refresco de CI/daemon/costes (VIC_14)"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-08-30"
 depends_on: []
 ---
@@ -32,3 +32,9 @@ Ningún cambio de código en este ticket.
 - Estado real de CI, daemon, coste y disco documentado con comandos y
   salida reales.
 - Cualquier hallazgo → ticket `FIL_*` nuevo.
+
+## Hecho (30/8)
+
+Ver [`doc/VIC-21-eval-ci-daemon-costes-v2.md`](../doc/VIC-21-eval-ci-daemon-costes-v2.md).
+CI 100% verde, daemon parado limpiamente, coste 129,64 USD (subida
+moderada y explicable), disco sin restos de esta sesión. Sin hallazgos.
