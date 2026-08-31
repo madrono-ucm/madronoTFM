@@ -35,15 +35,12 @@ servir las particiones de agosto 2026. Mismo origen y licencia que las filas
 "Ayuntamiento de Madrid" de arriba. `viz/data/gold_slices/MANIFEST.json`
 tiene el detalle (rango de fechas, nº de filas).
 
-## Datasets externos — encuadre / trabajo futuro (`FIL_38`)
+## Datasets externos
 
-No integrados; citados por si se hace el backtest largo o como comparación.
-Ambos **CC BY 4.0**:
-
-| Dataset | Autoría | DOI / URL |
-|---|---|---|
-| *Enriched Traffic Datasets for Madrid* (MTD) v4 | Iván Gómez, Sergio Ilarri (Univ. de Zaragoza) | `10.17632/697ht4f65b.4` (Mendeley Data) |
-| Red de Calidad del Aire — datos meteorológicos horarios históricos (desde 2020) | Comunidad de Madrid | `datos.comunidad.madrid` (catálogo `calidad_aire_datos_meteo_historico`) |
+| Dataset | Autoría | Licencia | DOI / URL | Uso |
+|---|---|---|---|---|
+| *Enriched Traffic Datasets for Madrid* (MTD) v4 | Iván Gómez, Sergio Ilarri (Univ. de Zaragoza) | **CC BY 4.0** | `10.17632/697ht4f65b.4` (Mendeley Data) | `FIL_38` — backtest del STGNN sobre ~29 meses / 300 sensores (`modelado/training/backtest_stgnn_mtd.py`, `doc/FIL-38-...md`). Ficheros en `modelado/_data/mtd/` (no versionados). |
+| Red de Calidad del Aire — datos meteorológicos horarios históricos (desde 2020) | Comunidad de Madrid | **CC BY 4.0** | `datos.comunidad.madrid` (catálogo `calidad_aire_datos_meteo_historico`) | encuadre — sólo haría falta si el backtest se reconstruyera desde el CSV crudo de MTD (MTD ya trae meteo alineada). |
 
 ## Modelos vendorizados
 

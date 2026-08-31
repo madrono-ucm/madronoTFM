@@ -1,20 +1,48 @@
 ---
 kind: fil
-title: "Backtest offline más largo con MTD + meteo histórica (OPCIONAL)"
+title: "Backtest offline más largo con MTD (~29 meses)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
-updated_at: "2026-08-30"
+updated_at: "2026-08-31"
+resolved_at: "2026-08-31"
 depends_on: [FIL_33]
 milestone: opcional
-target: "2026-09-12 (si se elige la vía MTD para la animación)"
+target: "2026-09-12"
 ---
+
+## Estado (2026-08-31) — hecho
+
+`modelado/training/backtest_stgnn_mtd.py` + `doc/FIL-38-...md` +
+`modelado/evaluation/artifacts/backtest_mtd.{csv,json}`. Ficheros MTD v4
+subconjunto (300 sensores) en `modelado/_data/mtd/` (~18 MB, `.gitignore`).
+
+**Resultado**: el STGNN del proyecto bate a la persistencia en h1/h3/h6
+(skill **+0,37 / +0,70 / +0,85**) sobre ~29 meses de MTD — margen que crece
+con el horizonte. Confirma el `tier2_trafico` del proyecto sobre un dataset
+abierto independiente y una ventana larga. Tabla completa en `doc/FIL-38`.
 
 ## Objetivo
 
-Una tabla de resultados `§7` más creíble: skill vs persistencia de los STGNN
-sobre **30 meses** (2022-2024) en vez de la ventana corta del proyecto.
+Una tabla de resultados `§7` más creíble: skill vs persistencia del STGNN
+sobre **~29 meses** (2022-06 .. 2024-10) en vez de la ventana corta del
+proyecto.
+
+## Resolución (2026-08-31)
+
+- Se consume el **subconjunto de 300 sensores** de MTD v4
+  (`10.17632/697ht4f65b.4`, CC BY 4.0) vía los **tensores ya preparados**
+  que publica el dataset (`his_MTD_*.npz`, `idx_*.npy`, `MTD_adj_matrix.npy`),
+  no el CSV crudo de 10 GB.
+- `backtest_stgnn_mtd.py`: adaptador (`_cargar_mtd` / `_edges_desde_adj` /
+  `_ventanas`) + entrena `STGNN(in_dim=3, n_horizontes=3)` (misma
+  arquitectura del proyecto) + skill vs persistencia a h1/h3/h6 →
+  `modelado/evaluation/artifacts/backtest_mtd.{csv,json}`.
+- **Meteo histórica de la Comunidad de Madrid: no hace falta** — MTD ya trae
+  wind/temperature/precipitation alineados. Sólo sería necesaria si se
+  reconstruyera el panel desde el CSV crudo.
+- No toca los ONNX vendorizados ni las tools (**results-only**).
 
 ## Puede dejar de ser opcional — decisión pendiente del usuario
 
