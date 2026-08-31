@@ -61,6 +61,7 @@ siguiendo la lección de `FIL_23` sobre verificar la suite completa tras
 cualquier bump de versión antes de darlo por bueno.
 
 Cierra ronda 4 (`VIC_25`-`27`, 3/3 completados): 2 `FIL_*` nuevos
-(`FIL_31` XML sin `defusedxml`, `FIL_39` CVEs de dependencias
+(`FIL_41` XML sin `defusedxml` -- renumerado desde `FIL_31`, ver
+`doc/PLAN-EVALUACION-TECNICA-4.md` -- `FIL_39` CVEs de dependencias
 transitivas), ambos severidad baja con impacto real acotado, ningún bug
 funcional encontrado.
