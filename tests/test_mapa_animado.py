@@ -52,8 +52,9 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertIn("<title>", self.html)
 
     def test_capas_ricas_presentes(self):
-        # E2 ghost, E4 panel glass-box de nodo, E6 pulso de distrito
-        for marca in ("id=\"ghost\"", "pane-a", "id=\"pulse\"", "edgePane", "ArcLayer", "traf_h1_act"):
+        # E2 ghost, E4 panel glass-box de nodo, E6 pulso de distrito, E3 ruta
+        for marca in ("id=\"ghost\"", "pane-a", "id=\"pulse\"", "edgePane", "ArcLayer",
+                      "traf_h1_act", "routeLayers", "PathLayer", 'fetch("./rutas.json")'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML")
 
     def test_meta_lookups_para_paneles(self):

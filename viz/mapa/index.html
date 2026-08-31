@@ -49,6 +49,8 @@
   <div class="row">
     <button id="ghost">modelo vs persistencia (E2)</button>
   </div>
+  <div class="row" id="routes"></div>
+  <div class="muted" id="routeinfo" style="margin:-2px 0 4px"></div>
   <div class="row">
     <button id="play">▶︎</button>
     <input type="range" id="hour" min="0" max="23" value="8">
@@ -84,9 +86,9 @@
 <div class="panel" id="ticker"><span id="wx">meteo —</span></div>
 
 <script>
-const {DeckGL, ScatterplotLayer, LineLayer, ArcLayer, GeoJsonLayer} = deck;
-let META, DATA, WX, dgl, selNode = null;
-let state = {day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d"};
+const {DeckGL, ScatterplotLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer} = deck;
+let META, DATA, WX, RUTAS, dgl, selNode = null;
+let state = {day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1};
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
 const scale = (v, lo, hi) => clamp01((v-lo)/(hi-lo));
@@ -136,6 +138,18 @@ function layers(){
       getFillColor:nodeColor,
       updateTriggers:{getFillColor:[state.day,state.hour,state.metric,state.hz,state.ghost,selNode]},
       onClick:info=>{ selNode = info.object; state.tab="a"; syncTabs(); render(); }}),
+    ...routeLayers(),
+  ];
+}
+function routeLayers(){
+  if(state.route<0 || !RUTAS) return [];
+  const r = RUTAS.rutas[state.route].por_hora[state.hour];
+  return [
+    new PathLayer({id:"r-fast", data:[r.rapida], getPath:d=>d, widthMinPixels:3,
+      getColor:[150,160,170,200], getWidth:4}),
+    new PathLayer({id:"r-safe", data:[r.sana], getPath:d=>d, widthMinPixels:4,
+      getColor:[40,200,120,235], getWidth:6,
+      updateTriggers:{data:[state.route,state.hour]}}),
   ];
 }
 const arcCol = a => a>0 ? ramp(1-scale(a/100,0,2.5)).concat(235) : [120,140,255,120];
@@ -224,7 +238,17 @@ function render(){
     : "meteo —";
   const s = skill();
   document.getElementById("ctx-skill").textContent = isNaN(s) ? "—" : s.toFixed(2);
+  routeInfo();
   if(state.tab==="d") pulse(); else edgePane();
+}
+function routeInfo(){
+  const el = document.getElementById("routeinfo");
+  if(state.route<0 || !RUTAS){ el.textContent = ""; return; }
+  const R = RUTAS.rutas[state.route], r = R.por_hora[state.hour];
+  const red = r.reduccion_exposicion_pct;
+  el.innerHTML = `E3 · <b>${R.origen}→${R.destino}</b> [${R.perfil}] · verde = saludable, gris = rápida<br>`
+    + `+${r.delta_dist_pct}% distancia · exposición −: tráf ${red.traf}% / NO₂ ${red.no2}% / O₃ ${red.o3}% / ruido ${red.noise}%`
+    + ` · mejor hora salida: ${R.mejor_hora}:00`;
 }
 
 function mkButtons(){
@@ -249,7 +273,17 @@ function mkButtons(){
   pl.onclick=()=>{ state.playing=!state.playing; pl.textContent=state.playing?"❚❚":"▶︎"; if(state.playing) tick(); };
   document.getElementById("tab-d").onclick=()=>{ state.tab="d"; syncTabs(); render(); };
   document.getElementById("tab-a").onclick=()=>{ state.tab="a"; syncTabs(); render(); };
+  const rr = document.getElementById("routes");
+  if(RUTAS && RUTAS.rutas.length){
+    const off = document.createElement("button"); off.textContent="sin ruta"; off.className="rt on";
+    off.onclick=()=>selRoute(-1, off); rr.appendChild(off);
+    RUTAS.rutas.forEach((R,k)=>{ const b=document.createElement("button");
+      b.textContent = R.origen.slice(0,4)+"→"+R.destino.slice(0,4)+" ·"+R.perfil.slice(0,4);
+      b.className="rt"; b.onclick=()=>selRoute(k,b); rr.appendChild(b); });
+  }
 }
+function selRoute(k, btn){ state.route=k;
+  document.querySelectorAll(".rt").forEach(x=>x.classList.remove("on")); btn.classList.add("on"); render(); }
 function tick(){ if(!state.playing) return;
   state.hour=(state.hour+1)%24; document.getElementById("hour").value=state.hour; render();
   setTimeout(tick, 650); }
@@ -258,8 +292,9 @@ Promise.all([
   fetch("./meta.json").then(r=>r.json()),
   fetch("./data.json").then(r=>r.json()),
   fetch("./weather.json").then(r=>r.json()),
-]).then(([m,d,w])=>{
-  META=m; DATA=d; WX=w; state.day=m.dias[0];
+  fetch("./rutas.json").then(r=>r.ok?r.json():null).catch(()=>null),
+]).then(([m,d,w,ru])=>{
+  META=m; DATA=d; WX=w; RUTAS=ru; state.day=m.dias[0];
   dgl = new DeckGL({container:"map",
     initialViewState:{longitude:-3.69, latitude:40.43, zoom:10.4, pitch:35, bearing:-8},
     controller:true, layers:[]});
