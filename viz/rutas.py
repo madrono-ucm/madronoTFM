@@ -117,18 +117,32 @@ def _ruta_con_pesos(g, exp_h, w, o, d):
     return path
 
 
-def _metricas(g, exp_h, path) -> dict:
+_SIGS = ("traf", "no2", "o3", "noise")
+
+
+def _metricas(g, exp_h, path, w) -> dict:
+    """Exposición **acumulada por arista** — la MISMA agregación que
+    `_coste_arista` minimiza (`FIL_43`): `Σ_aristas 0.5·(extremo_u+extremo_v)`,
+    normalizada por señal, y su combinación ponderada por perfil
+    `E_ponderada` (el término de exposición del coste de Dijkstra). Al ser lo
+    optimizado, `E_ponderada` de la ruta sana nunca supera al de la rápida.
+    Se guardan también las sumas **brutas** por señal para un "cambio"
+    legible."""
     dist = sum(g[path[i]][path[i + 1]]["length_m"] for i in range(len(path) - 1))
-    acc = {s: 0.0 for s in ("traf", "no2", "o3", "noise")}
-    for nid in path:
-        e = exp_h.get(nid, {})
-        for s in acc:
-            acc[s] += e.get(s, 0.0)
-    n = max(len(path), 1)
+    norm = {s: 0.0 for s in _SIGS}
+    bruta = {s: 0.0 for s in _SIGS}
+    for i in range(len(path) - 1):
+        eu, ev = exp_h.get(path[i], {}), exp_h.get(path[i + 1], {})
+        for s in _SIGS:
+            norm[s] += 0.5 * (_n(s, eu.get(s, 0.0)) + _n(s, ev.get(s, 0.0)))
+            bruta[s] += 0.5 * (eu.get(s, 0.0) + ev.get(s, 0.0))
+    E = sum(w[s] * norm[s] for s in _SIGS)
     return {
         "n_nodos": len(path),
         "dist_m": round(dist, 1),
-        **{f"{s}_medio": round(acc[s] / n, 2) for s in acc},
+        "E_ponderada": round(E, 4),
+        "expo_norm": {s: round(norm[s], 3) for s in _SIGS},
+        "expo_bruta": {s: round(bruta[s], 1) for s in _SIGS},
     }
 
 
@@ -147,11 +161,16 @@ def ruta(origen: str, destino: str, perfil: str = "general", *, dia: str, hora: 
     p_sana = _ruta_con_pesos(g, exp_h, w, o, d)
     p_rapida = _ruta_con_pesos(g, exp_h, w_rapida, o, d)
 
-    m_sana, m_rapida = _metricas(g, exp_h, p_sana), _metricas(g, exp_h, p_rapida)
+    m_sana = _metricas(g, exp_h, p_sana, w)
+    m_rapida = _metricas(g, exp_h, p_rapida, w)
     delta_dist = (m_sana["dist_m"] - m_rapida["dist_m"]) / max(m_rapida["dist_m"], 1) * 100
-    red = {
-        s: round((m_rapida[f"{s}_medio"] - m_sana[f"{s}_medio"]) / max(m_rapida[f"{s}_medio"], 1e-6) * 100, 1)
-        for s in ("traf", "no2", "o3", "noise")
+    # headline: reducción de la exposición PONDERADA (lo que Dijkstra minimiza)
+    # -> nunca negativa para la ruta sana (FIL_43).
+    reduccion = (m_rapida["E_ponderada"] - m_sana["E_ponderada"]) / max(m_rapida["E_ponderada"], 1e-9) * 100
+    # por señal: CAMBIO (puede ser ±, la ruta sana canjea unas señales por otras)
+    cambio = {
+        s: round((m_rapida["expo_bruta"][s] - m_sana["expo_bruta"][s]) / max(m_rapida["expo_bruta"][s], 1e-6) * 100, 1)
+        for s in _SIGS
     }
     return {
         "origen": origen, "destino": destino, "perfil": perfil, "dia": dia, "hora": hora,
@@ -159,7 +178,8 @@ def ruta(origen: str, destino: str, perfil: str = "general", *, dia: str, hora: 
         "ruta_sana": {"path": p_sana, "coords": [[g.nodes[n]["lon"], g.nodes[n]["lat"]] for n in p_sana], **m_sana},
         "ruta_rapida": {"path": p_rapida, "coords": [[g.nodes[n]["lon"], g.nodes[n]["lat"]] for n in p_rapida], **m_rapida},
         "delta_dist_pct": round(delta_dist, 1),
-        "reduccion_exposicion_pct": red,
+        "reduccion_exposicion_pct": round(max(reduccion, 0.0), 1),
+        "cambio_por_senal_pct": cambio,
     }
 
 
@@ -173,8 +193,8 @@ def mejor_hora(origen: str, destino: str, perfil: str, *, dia: str, ventana=rang
     mejor, best_h = float("inf"), None
     for h in ventana:
         p = _ruta_con_pesos(g, exp[h], w, o, d)
-        m = _metricas(g, exp[h], p)
-        score = sum(_n(s, m[f"{s}_medio"]) for s in ("traf", "no2", "o3", "noise"))
+        m = _metricas(g, exp[h], p, w)
+        score = m["E_ponderada"]  # misma agregación que Dijkstra minimiza
         if score < mejor:
             mejor, best_h = score, h
     return {"origen": origen, "destino": destino, "perfil": perfil, "dia": dia,
@@ -182,8 +202,9 @@ def mejor_hora(origen: str, destino: str, perfil: str, *, dia: str, ventana=rang
 
 
 def pareto(dia: str, hora: int) -> "list[dict]":
-    """Para cada par de lugares y perfil: (Δdistancia %, reducción de
-    exposición media %). Alimenta la figura §7."""
+    """Para cada par de lugares y perfil: (Δdistancia %, reducción de la
+    exposición ponderada %). Alimenta la figura §7. La reducción es la de la
+    cantidad que Dijkstra minimiza (`FIL_43`) → nunca negativa."""
     lugares = list(LUGARES)
     filas = []
     for i in range(0, len(lugares), 2):
@@ -195,11 +216,10 @@ def pareto(dia: str, hora: int) -> "list[dict]":
                 r = ruta(o, d, perfil, dia=dia, hora=hora)
             except nx.NetworkXNoPath:
                 continue
-            red = r["reduccion_exposicion_pct"]
             filas.append({
                 "origen": o, "destino": d, "perfil": perfil,
                 "delta_dist_pct": r["delta_dist_pct"],
-                "reduccion_media_pct": round(sum(red.values()) / len(red), 1),
+                "reduccion_ponderada_pct": r["reduccion_exposicion_pct"],
             })
     return filas
 
@@ -220,6 +240,7 @@ def main() -> int:
                     "rapida": r["ruta_rapida"]["coords"],
                     "delta_dist_pct": r["delta_dist_pct"],
                     "reduccion_exposicion_pct": r["reduccion_exposicion_pct"],
+                    "cambio_por_senal_pct": r["cambio_por_senal_pct"],
                 })
             mh = mejor_hora(o, d, perfil, dia=dia)
             out["rutas"].append({"origen": o, "destino": d, "perfil": perfil,

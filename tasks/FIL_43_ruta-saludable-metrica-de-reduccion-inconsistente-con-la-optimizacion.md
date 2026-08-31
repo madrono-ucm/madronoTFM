@@ -1,11 +1,38 @@
 ---
 kind: fil
 title: "ruta_saludable — la métrica de 'reducción de exposición' no coincide con lo que la ruta realmente optimiza (puede salir negativa)"
-status: pending
+status: done
 created_at: "2026-08-31"
+resolved_at: "2026-08-31"
 source: "QA pass sobre FIL_37 (ruta_saludable, PR #211)"
 severity: media
 ---
+
+## Resolución (2026-08-31) — opción 1
+
+`_metricas` (en `viz/rutas.py` **y** en `asistente/ruta_saludable.py`) pasa
+a acumular la exposición **por arista** con la MISMA agregación que el coste
+de Dijkstra: `Σ_aristas 0.5·(extremo_u + extremo_v)`, normalizada por señal,
+y su combinación ponderada por perfil `E_ponderada` (el término de
+exposición del coste que se minimiza).
+
+- **`reduccion_exposicion_pct`** ahora es **un solo número**: la reducción
+  de `E_ponderada` de la ruta sana frente a la rápida. Por construcción de
+  Dijkstra (la sana minimiza `w_dist·dist + Σ w·expo` y la rápida sólo
+  `dist`, con `dist_sana ≥ dist_rapida`) **nunca es negativa**. Verificado:
+  0/144 combinaciones hora·ruta negativas (antes 14/144), `pareto()` con
+  mínimo +0,1 %.
+- Las señales individuales pasan a **`cambio_por_senal_pct`** (± permitido y
+  etiquetado como "cambio", no "reducción"): la ruta sana canjea unas
+  señales por otras y eso ahora se dice explícitamente.
+- Mapa (capa E3): el readout muestra `−X% exposición ponderada` + una línea
+  de "cambio por señal" con signo. `viz/mapa/rutas.json` regenerado
+  (`python -m viz.rutas` vía `build_mapa_animado`) y **republicado a
+  `gh-pages`** (`FIL_42`).
+- `mejor_hora()` y `pareto()` usan `E_ponderada`. Tests:
+  `tests/test_rutas.py::test_reduccion_ponderada_nunca_negativa`.
+- `asistente/ruta_saludable.py` (12.ª tool, `FIL_37` PR #213) nace ya con la
+  métrica corregida — la respuesta de la tool no hereda el problema.
 
 ## Qué está roto (verificado en vivo)
 

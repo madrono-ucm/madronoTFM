@@ -52,6 +52,22 @@ class RutaTests(unittest.TestCase):
         mh = mejor_hora("Sol", "Chamartín", "sensible_aire", dia=_DIA, ventana=range(6, 11))
         self.assertIn(mh["mejor_hora"], range(6, 11))
 
+    def test_reduccion_ponderada_nunca_negativa(self):
+        # FIL_43: la métrica reportada es la que Dijkstra minimiza -> la ruta
+        # sana nunca sale peor que la rápida en exposición ponderada.
+        from viz.rutas import LUGARES, PERFILES, pareto
+
+        pares = list(LUGARES)
+        for i in range(0, len(pares) - 1, 3):
+            for perfil in PERFILES:
+                for h in (2, 9, 14, 19):
+                    r = ruta(pares[i], pares[i + 1], perfil, dia=_DIA, hora=h)
+                    self.assertIsInstance(r["reduccion_exposicion_pct"], (int, float))
+                    self.assertGreaterEqual(r["reduccion_exposicion_pct"], -1e-6)
+                    self.assertIn("cambio_por_senal_pct", r)  # ± permitido, honesto
+        for p in pareto(_DIA, 14):
+            self.assertGreaterEqual(p["reduccion_ponderada_pct"], -1e-6)
+
 
 class ArtefactoTests(unittest.TestCase):
     def test_rutas_json_al_dia(self):

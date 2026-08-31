@@ -245,10 +245,12 @@ function routeInfo(){
   const el = document.getElementById("routeinfo");
   if(state.route<0 || !RUTAS){ el.textContent = ""; return; }
   const R = RUTAS.rutas[state.route], r = R.por_hora[state.hour];
-  const red = r.reduccion_exposicion_pct;
+  const c = r.cambio_por_senal_pct || {};
+  const sig = k => (c[k] >= 0 ? "−" : "+") + Math.abs(c[k]) + "%";  // +cambio => más exposición
   el.innerHTML = `E3 · <b>${R.origen}→${R.destino}</b> [${R.perfil}] · verde = saludable, gris = rápida<br>`
-    + `+${r.delta_dist_pct}% distancia · exposición −: tráf ${red.traf}% / NO₂ ${red.no2}% / O₃ ${red.o3}% / ruido ${red.noise}%`
-    + ` · mejor hora salida: ${R.mejor_hora}:00`;
+    + `+${r.delta_dist_pct}% distancia · <b>−${r.reduccion_exposicion_pct}%</b> exposición ponderada`
+    + ` · por señal: tráf ${sig("traf")} / NO₂ ${sig("no2")} / O₃ ${sig("o3")} / ruido ${sig("noise")}`
+    + ` · mejor salida: ${R.mejor_hora}:00`;
 }
 
 function mkButtons(){
