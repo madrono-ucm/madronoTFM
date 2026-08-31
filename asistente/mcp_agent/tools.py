@@ -2078,7 +2078,10 @@ def afluencia_prevista(
 # asistente/modelos/grafo_ruta.json.
 # ---------------------------------------------------------------------------
 
-_PERFILES_RUTA = ("general", "ciclista", "sensible_aire", "sensible_ruido")
+_PERFILES_RUTA = (
+    "general", "ciclista", "sensible_aire", "sensible_ruido",
+    "asma_epoc", "mayor", "infancia", "movilidad_reducida", "trabajo_exterior",
+)
 
 
 def _dia_hora_para(momento: "datetime | None"):
