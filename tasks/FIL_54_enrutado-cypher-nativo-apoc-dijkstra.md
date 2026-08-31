@@ -5,8 +5,17 @@ owner: propuesto por Claude (QA), sin asignar
 status: framing
 allow_infra_apply: false
 created_at: "2026-08-31"
-depends_on: [FIL_37, FIL_43]
+depends_on: [FIL_37, FIL_43, FIL_51]
 ---
+
+## Nota de renumeración
+
+Era `FIL_49` → renumerado a `FIL_51` por el agente de QA (colisión con
+`FIL_49` mapa) → **renumerado de nuevo a `FIL_54`**: `FIL_51` ya estaba
+ocupado por "reconstruir el grafo urbano offline" (PR #223, mergeado), del
+que este ticket ahora depende (el artefacto `grafo_urbano.json.gz` da la
+lista real de aristas `PROXIMO_A` que la materialización de coste
+necesitaría).
 
 ## Qué es
 
