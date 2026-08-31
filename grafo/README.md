@@ -49,6 +49,7 @@ carga" más abajo.
 | `relaciones.py` | No | `PERTENECE_A` (Barrio→Distrito, tarea 067); `UBICADO_EN` y `PROXIMO_A` (tarea 070, usan `geo.py`); `CONECTADO_CON` (tarea 071, adyacencia real de red de transporte a partir de rutas CRTM). |
 | `cypher.py` | Solo `Neo4jLoader`, de forma perezosa | Traduce esos `dict` a sentencias `MERGE` parametrizadas (funciones `*_query()`, Python puro) y las ejecuta contra una instancia real (`Neo4jLoader`, que hace `from neo4j import GraphDatabase` dentro de `__init__`, no a nivel de módulo). |
 | `cargar_grafo.py` | Solo al importar `Neo4jLoader` (perezoso hasta instanciarlo) | Entry point que encadena `extract.py` → `nodos.py`/`relaciones.py` → `cypher.py`. Ejecutado varias veces contra la instancia real (tareas 080/087/094), ver "Cómo se carga" más abajo. |
+| `exportar_grafo.py` | **No** | `FIL_51` — mismo flujo que `cargar_grafo` pero serializa a `_data/grafo_urbano.json.gz` en vez de cargar en Neo4j. Reconstrucción **offline** del grafo real (5 labels, 4 relaciones) para analítica (`FIL_52`) y una tool multi-salto (`FIL_53`) sin depender de la instancia Aura. `cargar()` lo lee. |
 | `requirements.txt` | — | `neo4j` (solo para `Neo4jLoader`, no instalado en esta EC2) y `boto3` (para `extract.py`, ya instalado). |
 | `tests/` | No | `unittest`, sin conexión real ni el driver instalado (ver más abajo). |
 
