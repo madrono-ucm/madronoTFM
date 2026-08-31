@@ -2,13 +2,51 @@
 kind: fil
 title: "Mapa animado — legibilidad: cámara 2D/3D, etiquetas de distrito, hitos, ejes principales, parques"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-08-31"
+resolved_at: "2026-08-31"
 depends_on: [FIL_34, FIL_35]
 milestone: "M4c"
 target: "2026-09-12"
 ---
+
+## Resolución (2026-08-31)
+
+`viz/build_mapa_animado.py` (`_meta` + `_TEMPLATE`) reescrito:
+
+- **Layout**: barra de título con subtítulo (día · hora · nº nodos);
+  panel de control en **4 grupos `<details>` colapsables** — ⏱ Tiempo
+  (día/play/slider/horizonte), 🎨 Capa de color (métricas + **leyenda
+  pegada** + ghost E2 + nota de arcos), 🧭 Vista, 🚶 Ruta (E3).
+- **Cámara**: botones **2D / 3D** (pitch 0 / 40) + **"encajar a Madrid"**
+  (`WebMercatorViewport.fitBounds` sobre `meta.bbox`, aplicado también al
+  cargar). `viewState` controlado con `onViewStateChange`.
+- **Etiquetas** (capas conmutables en 🧭 Vista): `TextLayer` de nombre de
+  distrito en el centroide del polígono (`meta.distrito_centroide`, 21);
+  marcadores + etiqueta de los **14 hitos** de `viz/rutas.py::LUGARES`
+  (incl. **Plaza Elíptica**); todos con `characterSet:"auto"` +
+  `fontSettings:{sdf:true}` (acentos/ñ).
+- **Ejes estructurantes**: `viz/assets/ejes_madrid.geojson` (M-30,
+  Castellana, Gran Vía, A-2, A-3 — trazados **aproximados a mano**, solo
+  contexto, capa off por defecto). No entran en el grafo — G9 declarado.
+- **Parques**: `viz/assets/parques_madrid.geojson` (16 parques grandes,
+  subconjunto curado de `parques_jardines_madrid` en Bronce) como
+  puntos+etiqueta, capa off por defecto. Habilita el scoring "mejor zona
+  verde" de `FIL_45` (no implementado aquí).
+- **Tooltip** por nodo (`getTooltip`): id, distrito, salud/NO₂/O₃ de la
+  hora; también en etiquetas de distrito, hitos y parques.
+- **Ruta E3** → **dos desplegables** (origen·destino × perfil) en vez de 6
+  botones + etiquetas de origen/destino sobre los extremos del trazado.
+- **Accesibilidad**: `<html lang="es">`, todo el texto en español,
+  `outline` de foco visible (`:focus-visible`), controles con `aria-label`,
+  timeline y selectores navegables por teclado.
+
+`viz/assets/ejes_madrid.geojson` + `viz/assets/parques_madrid.geojson`
+versionados. `tests/test_mapa_animado.py` +2 (`test_meta_legibilidad`,
+`test_html_legibilidad`) → `tests/` 35 en verde. JS validado con
+`node --check`. `viz/mapa/` regenerado y **republicado a `gh-pages`**
+(`FIL_42`).
 
 ## Objetivo
 
