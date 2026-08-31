@@ -160,29 +160,42 @@ def _frame_strip_png(df: pd.DataFrame, dia: str) -> Path:
     import matplotlib.pyplot as plt
     from matplotlib.collections import PolyCollection
 
-    horas = [3, 7, 10, 14, 18, 21]
+    horas = [4, 8, 13, 18, 22]
     g = df[df["day"] == dia]
-    fig, axes = plt.subplots(1, 6, figsize=(19, 3.4), constrained_layout=True)
+    _BG = "#0a0e14"
+    fig, axes = plt.subplots(1, len(horas), figsize=(3.3 * len(horas), 3.5), constrained_layout=True)
+    fig.patch.set_facecolor(_BG)
     polys = [
         [(x, y) for x, y in feat["geometry"]["coordinates"][0]]
         for feat in _GEOJSON["features"]
     ]
+    lon0, lon1 = g["lon"].min(), g["lon"].max()
+    lat0, lat1 = g["lat"].min(), g["lat"].max()
     for ax, h in zip(axes, horas):
-        gh = g[g["hour"] == h]
-        ax.add_collection(PolyCollection(polys, facecolors="none", edgecolors="#ccc", linewidths=0.4))
+        gh = g[g["hour"] == h].sort_values("health_index", ascending=False)
+        ax.set_facecolor(_BG)
+        ax.add_collection(PolyCollection(polys, facecolors="none", edgecolors="#2a3442", linewidths=0.6))
         sc = ax.scatter(
             gh["lon"], gh["lat"], c=gh["health_index"], cmap="RdYlGn",
-            vmin=55, vmax=96, s=3, linewidths=0,
+            vmin=58, vmax=94, s=11, linewidths=0, alpha=0.92,
         )
-        ax.set_title(f"{h:02d}:00", fontsize=10)
-        ax.set_xticks([])
-        ax.set_yticks([])
+        ax.set_title(f"{h:02d}:00", fontsize=11, color="#c8d2dc", pad=6)
+        ax.set_xlim(lon0 - 0.01, lon1 + 0.01)
+        ax.set_ylim(lat0 - 0.01, lat1 + 0.01)
+        ax.set_xticks([]); ax.set_yticks([])
         ax.set_aspect("equal")
-        ax.autoscale_view()
-    fig.colorbar(sc, ax=axes, shrink=0.7, label="índice de salud")
-    fig.suptitle(f"Madrid — índice de salud sobre el grafo, {dia} ({pd.Timestamp(dia).day_name()})", fontsize=12)
+        for s in ax.spines.values():
+            s.set_visible(False)
+    cb = fig.colorbar(sc, ax=axes, shrink=0.62, aspect=28, pad=0.012)
+    cb.set_label("índice de salud  (100 = mejor)", color="#c8d2dc", fontsize=10)
+    cb.ax.tick_params(colors="#8a97a5", labelsize=9)
+    cb.outline.set_visible(False)
+    fig.suptitle(
+        f"Madrid · índice de salud sobre el grafo · {dia} ({pd.Timestamp(dia).day_name()})",
+        fontsize=12.5, color="#e8edf2",
+    )
     out = _VIZ / "mapa_frames.png"
-    fig.savefig(out, dpi=110)
+    fig.savefig(out, dpi=130, facecolor=_BG)
     plt.close(fig)
     return out
 
@@ -232,7 +245,8 @@ _TEMPLATE = r"""<!doctype html>
 <style>
   :root { color-scheme: light dark; }
   html,body { margin:0; height:100%; font-family:system-ui,Segoe UI,Roboto,sans-serif; }
-  #map { position:absolute; inset:0; background:#0b0f14; }
+  #map { position:absolute; inset:0;
+    background:radial-gradient(ellipse 120% 90% at 50% 38%, #0e141c 0%, #070a0e 70%); }
   .panel { position:absolute; background:rgba(20,24,30,.86); color:#e8edf2;
     backdrop-filter:blur(4px); border-radius:10px; padding:10px 12px; font-size:13px; }
   #titulo { left:50%; top:10px; transform:translateX(-50%); padding:6px 16px; font-weight:650;
@@ -307,12 +321,13 @@ _TEMPLATE = r"""<!doctype html>
     <div class="row">
       <button id="v2d">2D</button><button id="v3d" class="on">3D</button>
       <button id="fit">encajar a Madrid</button>
+      <button id="clean">vista limpia</button>
     </div>
     <label class="chk"><input type="checkbox" id="l-distr" checked> nombres de distrito</label>
     <label class="chk"><input type="checkbox" id="l-hitos" checked> hitos (Sol, Atocha…)</label>
     <label class="chk"><input type="checkbox" id="l-ejes"> ejes (M-30, Castellana… · contexto)</label>
     <label class="chk"><input type="checkbox" id="l-parques"> parques grandes</label>
-    <label class="chk"><input type="checkbox" id="l-tex" checked> textura del grafo</label>
+    <label class="chk"><input type="checkbox" id="l-tex"> textura del grafo (aristas)</label>
   </details>
 
   <details>
@@ -354,7 +369,8 @@ let META, DATA, WX, RUTAS, dgl, selNode = null;
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:40, bearing:-8},
-  layers:{distr:true, hitos:true, ejes:false, parques:false, tex:true},
+  layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false},
+  clean:false,
 };
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
@@ -376,39 +392,50 @@ function nodeColor(i){
   if(state.ghost){
     const f = DATA[state.day]["traf_h1"][state.hour][i];
     const p = DATA[state.day]["traf_now"][state.hour][i];
-    if(f<0||p<0) return [90,100,110,90];
-    return divg(0.5 + (f-p)/200).concat(220);
+    if(f<0||p<0) return [70,80,95,28];
+    return divg(0.5 + (f-p)/200).concat(235);
   }
   const vals = metricArr(), v = vals[i];
-  if(v<0) return [90,100,110,110];
+  if(v<0) return [70,80,95,28];   // sin dato -> casi invisible, no ensucia
   const [lo,hi] = META.metricas[state.metric].rango;
   let t = scale(state.metric==="trafico" ? v/100 : v, lo, hi);
   if(META.metricas[state.metric].peor>0) t = 1-t;
-  return ramp(t).concat(selNode===i ? 255 : 205);
+  return ramp(t).concat(240);
 }
-const arcCol = a => a>0 ? ramp(1-scale(a/100,0,2.5)).concat(235) : [120,140,255,120];
+const arcCol = a => a>0 ? ramp(1-scale(a/100,0,2.5)).concat(220) : [110,130,235,90];
+// radio de nodo dependiente del zoom: puntos nítidos de lejos, no una mancha
+function nodeRmin(){ const z = state.view.zoom;
+  return z < 10.6 ? 1.6 : z < 11.6 ? 2.4 : z < 12.6 ? 3.2 : 4.2; }
 
 function layers(){
   const idxs = META.coords.map((_,i)=>i);
   const trafNow = trafArr(state.hz);
   const L = [
     new GeoJsonLayer({id:"distr", data:META.distritos_geojson, stroked:true, filled:true,
-      getFillColor:[255,255,255,6], getLineColor:[255,255,255,42], lineWidthMinPixels:1}),
+      getFillColor:[255,255,255,3], getLineColor:[150,170,195,34], lineWidthMinPixels:0.7}),
   ];
   if(state.layers.ejes)
     L.push(new GeoJsonLayer({id:"ejes", data:META.ejes_geojson, stroked:true, filled:false,
-      getLineColor:[255,214,140,70], lineWidthMinPixels:2, getLineWidth:3}));
-  if(state.layers.tex)
+      getLineColor:[255,214,140,55], lineWidthMinPixels:1.5, getLineWidth:2}));
+  if(state.layers.tex && !state.clean)
     L.push(new LineLayer({id:"tex", data:META.tex, getSourcePosition:d=>META.coords[d[0]],
-      getTargetPosition:d=>META.coords[d[1]], getColor:[255,255,255,13], getWidth:1}));
-  L.push(new ArcLayer({id:"imp", data:META.arcs,
-    getSourcePosition:d=>META.coords[d.s], getTargetPosition:d=>META.coords[d.t],
-    getSourceColor:d=>arcCol(trafNow[d.s]), getTargetColor:d=>arcCol(trafNow[d.t]),
-    getWidth:d=>1+6*d.w, getHeight:0.4, updateTriggers:{getSourceColor:[state.day,state.hour,state.hz]}}));
+      getTargetPosition:d=>META.coords[d[1]], getColor:[150,170,200,10], getWidth:1}));
+  if(!state.clean)
+    L.push(new ArcLayer({id:"imp", data:META.arcs,
+      getSourcePosition:d=>META.coords[d.s], getTargetPosition:d=>META.coords[d.t],
+      getSourceColor:d=>arcCol(trafNow[d.s]), getTargetColor:d=>arcCol(trafNow[d.t]),
+      getWidth:d=>0.8+3*d.w, getHeight:0.16, updateTriggers:{getSourceColor:[state.day,state.hour,state.hz]}}));
   L.push(new ScatterplotLayer({id:"nodes", data:idxs, pickable:true,
-    radiusMinPixels:1.6, radiusMaxPixels:6, getPosition:i=>META.coords[i], getRadius:60,
+    radiusMinPixels:nodeRmin(), radiusMaxPixels:8, getPosition:i=>META.coords[i], getRadius:70,
+    stroked:true, getLineColor:[8,11,16,110], lineWidthMinPixels:0.4,
     getFillColor:nodeColor,
-    updateTriggers:{getFillColor:[state.day,state.hour,state.metric,state.hz,state.ghost,selNode]}}));
+    updateTriggers:{getFillColor:[state.day,state.hour,state.metric,state.hz,state.ghost],
+                    radiusMinPixels:[state.view.zoom]},
+    onClick:info=>{ if(info.index!=null){ selNode=info.index; state.tab="a"; syncTabs(); render(); } }}));
+  if(selNode!=null)
+    L.push(new ScatterplotLayer({id:"sel", data:[selNode], getPosition:i=>META.coords[i],
+      getRadius:nodeRmin()*3, radiusUnits:"pixels", stroked:true, filled:false,
+      getLineColor:[255,255,255,235], lineWidthMinPixels:2}));
   if(state.layers.parques){
     L.push(new ScatterplotLayer({id:"pq-dot", data:META.parques_geojson.features,
       getPosition:f=>f.geometry.coordinates, getRadius:5, radiusMinPixels:4, radiusMaxPixels:9,
@@ -419,12 +446,14 @@ function layers(){
       fontFamily:"system-ui", characterSet:"auto", fontSettings:{sdf:true}, outlineWidth:3, outlineColor:[0,0,0,220],
       getTextAnchor:"middle", getAlignmentBaseline:"bottom"}));
   }
-  if(state.layers.distr)
+  if(state.layers.distr && !state.clean)
     L.push(new TextLayer({id:"d-tx", data:META.distrito_centroide,
-      getPosition:d=>d.pos, getText:d=>d.nombre, getSize:12,
-      getColor:[220,228,236,150], fontFamily:"system-ui", fontWeight:700, characterSet:"auto", fontSettings:{sdf:true},
-      outlineWidth:3, outlineColor:[8,11,16,220], getTextAnchor:"middle"}));
-  if(state.layers.hitos){
+      getPosition:d=>d.pos, getText:d=>d.nombre.toUpperCase(), getSize:10,
+      getColor:[200,212,226, state.view.zoom < 10.8 ? 55 : 100],
+      fontFamily:"system-ui", fontWeight:600, characterSet:"auto", fontSettings:{sdf:true},
+      outlineWidth:2.5, outlineColor:[8,11,16,210], getTextAnchor:"middle",
+      updateTriggers:{getColor:[state.view.zoom]}}));
+  if(state.layers.hitos && !state.clean){
     L.push(new ScatterplotLayer({id:"h-dot", data:META.hitos, getPosition:d=>d.pos,
       getRadius:4, radiusMinPixels:3, radiusMaxPixels:7, getFillColor:[255,255,255,235],
       stroked:true, getLineColor:[40,50,60,220], lineWidthMinPixels:1}));
@@ -604,6 +633,13 @@ function mkControls(){
   document.getElementById("v2d").onclick=()=>setPitch(0);
   document.getElementById("v3d").onclick=()=>setPitch(40);
   document.getElementById("fit").onclick=fitBounds;
+  document.getElementById("clean").onclick=e=>{
+    state.clean=!state.clean;
+    e.target.classList.toggle("on", state.clean);
+    document.getElementById("controls").style.opacity = state.clean ? ".22" : "1";
+    document.getElementById("context").style.display = state.clean ? "none" : "";
+    render();
+  };
   const setChk = (id,key)=>{ const el=document.getElementById(id);
     el.onchange=()=>{ state.layers[key]=el.checked; render(); }; };
   setChk("l-distr","distr"); setChk("l-hitos","hitos"); setChk("l-ejes","ejes");
