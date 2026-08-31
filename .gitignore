@@ -252,3 +252,6 @@ modelado/export/artifacts/
 
 # UNLOAD deja shards sin extension en subcarpetas; solo se versiona el <tabla>.parquet consolidado
 viz/data/gold_slices/*/
+
+# grafo urbano reconstruido (FIL_51): se versiona solo el .gz
+grafo/_data/*.json
