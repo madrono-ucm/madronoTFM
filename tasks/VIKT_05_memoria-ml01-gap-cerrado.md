@@ -127,3 +127,70 @@ hace falta re-ingestar nada) para refrescar la Tabla 3 con las features
 nuevas antes del 17/9, o documentar explícitamente en §7.4/§7.5 que la
 Tabla 3 es anterior a este cierre de gap. No se ha tocado
 `documents/Memoria_TFM FV.docx` en este ticket.
+
+## Decisión final (31/8, aprobada por el usuario) y redacción exacta lista para aplicar
+
+**Decisión tomada**: publicar el skill **medio + rango** del backtest
+incremental en la Tabla 3, en vez de sustituirla por el número de un solo
+día (opción descartada porque calidad del aire es genuinamente volátil
+día a día, ver arriba) o dejarla con una nota de "está desactualizada" sin
+más (opción descartada por dejar un número obsoleto en la tabla de
+resultados principal).
+
+**Números reales, calculados hoy** (`python -m modelado.evaluation.backtest
+--panel modelado/_data/panel_{calidad_aire,trafico}.parquet --target ...`,
+contra los paneles reales que ya incluyen las features exógenas de
+`ML_01` — 9 cortes diarios de backtest incremental, 22–30 ago. 2026):
+
+| Fuente | h | Tabla 3 actual (memoria) | Skill medio (rango), backtest 9 días |
+|---|---|---|---|
+| Calidad del aire | 1 | 0,29 | **0,07 (−0,31 a 0,36)** |
+| Calidad del aire | 3 | 0,58 | **0,41 (−0,17 a 0,79)** |
+| Calidad del aire | 6 | 0,68 | **0,56 (0,25 a 0,81)** |
+| Tráfico | 1 | 0,37 | **0,32 (0,24 a 0,37)** |
+| Tráfico | 3 | 0,61 | **0,53 (0,44 a 0,59)** |
+| Tráfico | 6 | 0,76 | **0,67 (0,55 a 0,75)** |
+
+Fuente de los números:
+`modelado/evaluation/artifacts/backtest/backtest_{calidad_aire,trafico}.csv`
+(regenerados hoy, `31/8`). `backtest_calidad_aire.csv` ya estaba trackeado
+en git y se actualiza con este commit; `backtest_trafico.csv` es nuevo y
+queda fuera del repo por el `.gitignore` existente de
+`modelado/evaluation/artifacts/` (convención ya establecida del proyecto,
+no cambiada aquí) — los números están transcritos completos en la tabla
+de arriba, no hace falta el CSV para aplicar la redacción.
+
+### Redacción exacta propuesta para `documents/Memoria_TFM FV.docx`
+
+**1. Tabla 3 (§7.2)** — sustituir los 6 valores de skill por los de la
+columna "Skill medio (rango)" de arriba, y añadir una nota al pie de
+tabla (texto nuevo, no reemplaza nada):
+
+> *Skill medio (LightGBM vs. mejor línea base) de un backtest incremental
+> de 9 cortes diarios (22–30 de agosto de 2026), no de una única corrida
+> puntual — el rango entre paréntesis refleja la varianza real día a día,
+> especialmente marcada en calidad del aire a 1-3h (ver §7.4).*
+
+**2. §7.5 (futuras líneas)** — el párrafo que motivó este ticket:
+
+- **Dice hoy**: "Cerrar el hueco del feature store (`modelado/`):
+  incorporar el join real con la previsión meteorológica de AEMET y los
+  festivos reales del calendario laboral de Madrid, hoy sin implementar
+  en el panel de entrenamiento."
+- **Debería decir**: "El join real con la previsión meteorológica de
+  AEMET y los festivos reales del calendario laboral de Madrid
+  (`modelado/features/exogenas.py`, `modelado/features/build.py`) ya está
+  implementado, testeado y forma parte del panel de entrenamiento real
+  que produce la Tabla 3 (§7.2)."
+- **Por qué**: el código y los tests ya existían (`VIC_12`); esta
+  actualización confirma además que los paneles reales que alimentan la
+  Tabla 3 publicada ya usan estas features (backtest de arriba, `mtime`
+  real de los parquet). Frase movida de "limitación futura" a "resultado
+  conseguido" — mismo patrón ya aplicado a otros puntos de §7.4/§7.5 en
+  `doc/VIKT-09-consistencia-final.md`.
+
+**Pendiente (fuera del alcance de Claude, bloqueo de `.docx` de esta
+sesión)**: aplicar estos dos cambios al `.docx` real. El resto de este
+ticket (investigación, verificación de datos) está completo — `status`
+se deja en `pending` porque el criterio de aceptación real ("la memoria
+refleja el estado real") requiere la edición humana del documento.
