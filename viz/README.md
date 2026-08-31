@@ -40,10 +40,15 @@ Necesita red al abrir (bundle de deck.gl por CDN). La tira
   con la leyenda pegada; *modelo vs persistencia (E2)* (colorea por la
   divergencia STGNN(h1) − persistencia; el marcador de *skill* compara
   ambos contra el valor real).
-- **🧭 Vista**: cámara **2D / 3D**, **"encajar a Madrid"**, y capas
-  conmutables — nombres de distrito, hitos (Sol, Atocha…), ejes
-  estructurantes (M-30, Castellana… *contexto*), parques grandes, textura
-  del grafo.
+- **🧭 Vista**: cámara **2D / 3D**, **"encajar a Madrid"**, **"vista
+  limpia"** (oculta todo el chrome para una captura); representación de los
+  nodos **auto / puntos / barras (3D)** — en *barras* la columna sube donde
+  las condiciones son **peores** (skyline de problema); y capas conmutables
+  — nombres de distrito, hitos, ejes estructurantes (M-30, Castellana…
+  *contexto*), parques grandes, textura del grafo (las 8.758 aristas).
+- **Panel inferior (resumen)**: media de la ciudad de la métrica actual a
+  lo largo de las 24 h (con la hora marcada), barras por distrito ahora, y
+  meteo + skill del modelo.
 - **🚶 Ruta saludable (E3)**: dos desplegables (origen·destino × perfil);
   traza la ruta sana (verde) vs rápida (gris) recalculada cada hora.
 - **Tooltip** al pasar el ratón por un nodo (id, distrito, salud/NO₂/O₃).
