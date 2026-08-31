@@ -129,6 +129,21 @@ asistente MCP) en ~4 min y **corre sin credenciales** (mini-grafo sintético +
 mocks). Con `AWS_PROFILE`/`NEO4J_*` reales usa datos vivos. Versión de
 comandos con datos completos: `doc/VIKT-06-recorrido-e2e.md`.
 
+## Mapa animado del grafo
+
+[`viz/`](viz/README.md) — el grafo de 1.798 nodos de tráfico sobre Madrid,
+animado hora a hora con la previsión de los STGNN de grafo (`trafico` +
+`calidad_aire`), importancia de aristas, índice de salud por nodo, pulso de
+distrito y toggle modelo-vs-persistencia. Se genera **offline** desde los
+ONNX vendorizados y un snapshot congelado de Gold (`viz/data/gold_slices/`).
+
+```bash
+pip install -r viz/requirements.txt && python -m http.server -d viz/mapa
+```
+
+Figura sin red para la memoria: `viz/mapa_frames.png`. Limitaciones (§7.4) y
+seguimiento: [`viz/README.md`](viz/README.md), `viz/PROGRESO_MAPA.md`.
+
 ## Ejecutar la evaluación de ML
 
 Cuadernos de evaluación, métricas, comparación de modelos y explicabilidad:
@@ -153,7 +168,8 @@ de integración end-to-end (`tests/integracion/`, `doc/FIL-18-...md`).
 | `infra/` | Terraform del lakehouse, Glue, Lambda, Athena, IAM, observabilidad. `OPERACION.md` = runbook. `kafka/` = diseño de la ruta caliente (sin aplicar). |
 | `grafo/` | Construcción del grafo urbano en Neo4j (`:Lugar`, `:EstacionMedida`, `PROXIMO_A`) desde Gold + OSM. |
 | `modelado/` | Feature store, entrenamiento LightGBM/STGNN, evaluación, MLflow registry, export a ONNX. |
-| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 10 tools (incl. `calidad_aire_prevista_grafo`, STGNN, `FIL_26`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
+| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 11 tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo`, STGNN de grafo, `FIL_26`/`FIL_31`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
 | `herramientas/` | Scripts de operación: `costes/` (estimación de gasto), `salud/` (frescura de Gold, FIL_16). |
+| `viz/` | Mapa animado del grafo (`FIL_32`–`FIL_36`): scripts de build offline, `mapa/` (HTML deck.gl + JSON), `data/gold_slices/` (snapshot Gold congelado), `PROGRESO_MAPA.md`. |
 | `tests/` | Test de integración end-to-end (el resto de tests vive junto a su paquete). |
 | `doc/` | Una entrada por tarea (decisiones, verificaciones). `tasks/` = cola de trabajo. |

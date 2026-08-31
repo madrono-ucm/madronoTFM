@@ -12,7 +12,7 @@ vendorizados (`asistente/prevision_grafo.py`, sin `torch`). Cero red.
 La ventana consultable son ~16 días de agosto 2026. Sin lluvia/ozono/evento
 garantizados → se eligen por contraste real de congestión:
 
-- `2026-08-19` — martes "normal", primera semana completa.
+- `2026-08-19` — miércoles "normal" de la primera semana completa.
 - `2026-08-23` — **domingo tranquilo** (mean service level más bajo con día completo).
 - `2026-08-26` — **miércoles cargado** (mean service level más alto).
 
