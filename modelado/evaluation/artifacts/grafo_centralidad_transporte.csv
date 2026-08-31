@@ -1,0 +1,3054 @@
+parada,modo,grado,intermediacion,cercania
+Canillejas,emt,6,0.31427,0.0682
+Metro O Donnell,emt,8,0.29107,0.0697
+Aeropuerto T1 - Salidas,emt,4,0.25856,0.0687
+O'Donnell,emt,9,0.21332,0.0689
+Hospital Ramón Y Cajal - Consultas,emt,6,0.21071,0.063
+Avenida De Logroño - Canillejas,emt,6,0.20172,0.0655
+Prado - Atocha,emt,6,0.19364,0.0667
+Sainz De Baranda,emt,6,0.17452,0.0672
+Conde Casal,emt,5,0.16698,0.0659
+Museo Reina Sofía,emt,6,0.16609,0.0643
+Puente De Los Capuchinos,emt,4,0.14494,0.0618
+Alcalá - Puerta De Alcalá,emt,8,0.13336,0.0682
+Pacífico,emt,4,0.12788,0.0647
+Cuatro Caminos,emt,5,0.12474,0.0615
+Intercambiador Plaza Elíptica,emt,8,0.12223,0.0598
+Avenida De Daroca - Casalarreina,emt,5,0.12018,0.0686
+Avenida América,emt,5,0.11562,0.0669
+Begoña - San Modesto,emt,3,0.11303,0.0558
+Hospital Ramón Y Cajal,emt,2,0.10727,0.0602
+Antonio Robles - Hospital Ramón Y Cajal,emt,2,0.10681,0.0578
+Alcalá - San Mariano,emt,5,0.10324,0.0644
+Nuevos Ministerios,emt,6,0.10135,0.0636
+República Argentina,emt,4,0.10132,0.065
+Cruz Roja,emt,5,0.10028,0.0599
+Fernández Villaverde - Ponzano,emt,5,0.09728,0.0623
+Cibeles,emt,2,0.09434,0.067
+Begoñahospital La Paz,emt,8,0.09186,0.0543
+Manuel Becerra,emt,7,0.09086,0.0676
+Puente De Vallecas,emt,6,0.08721,0.0614
+Glorieta De Cádiz,emt,5,0.08496,0.0535
+Méndez Álvaro,emt,3,0.08246,0.0615
+Escuelas Aguirre - Casa Árabe,emt,6,0.08144,0.0681
+Plaza Elíptica,emt,5,0.07951,0.0559
+Planetario,emt,4,0.07781,0.0589
+Plaza Elíptica,emt,5,0.07658,0.0575
+Cardenal Cisneros,emt,7,0.07538,0.0483
+Niceto Alcalá Zamora - Isabel De Valois,emt,3,0.07518,0.0596
+Nudo Sur,emt,4,0.07294,0.057
+Moncloa,emt,6,0.0729,0.0501
+Legazpi,emt,3,0.07278,0.0542
+Plaza De Italia,emt,3,0.07221,0.0553
+Almendrales,emt,2,0.07158,0.0511
+Avenida De Córdoba,emt,2,0.071,0.0489
+Hospital 12 De Octubre,emt,3,0.07043,0.0469
+Príncipe Pío,emt,6,0.06914,0.055
+Estación De Atocha,emt,5,0.06862,0.0636
+Puente De Cea,emt,6,0.06737,0.0658
+Laguna,emt,7,0.06443,0.0514
+Felipe Ii,emt,3,0.06413,0.0676
+Oporto,emt,5,0.0634,0.0532
+Santo Domingo,emt,9,0.06259,0.0573
+Avenida De América,emt,4,0.05944,0.0646
+Basílica De Atocha,emt,4,0.05839,0.0659
+Museo Reina Sofía,emt,3,0.05833,0.0661
+O Donnell - Sainz De Baranda,emt,3,0.05804,0.0683
+Rubio Y Galí - Almansa,emt,5,0.05783,0.0574
+San Fermín - Orcasur,emt,3,0.05764,0.045
+Opañel,emt,4,0.05756,0.0544
+Avenida De Andalucía - Avenida Los Rosales,emt,4,0.05731,0.0433
+María De Molina,emt,3,0.05589,0.0658
+Puerta Del Ángel,emt,5,0.05577,0.0531
+Cibeles,emt,2,0.0557,0.067
+Estación De Atocha,emt,2,0.05552,0.066
+Francisco Silvela - Juan Bravo,emt,5,0.0543,0.0667
+Carpetana,emt,2,0.05399,0.0521
+Monte Igueldo,emt,3,0.0531,0.0581
+Martínez De La Riva,emt,3,0.0526,0.0552
+Monforte De Lemos - Parque Bomberos,emt,3,0.05257,0.0484
+Monforte De Lemos - Polideportivo,emt,3,0.05255,0.052
+Vicente Aleixandre,emt,4,0.05235,0.0569
+Ciudad De Barcelona - Seco,emt,6,0.05188,0.0634
+Monforte De Lemos - Puentecesures,emt,2,0.05182,0.05
+Avenida De Canillejas - Néctar,emt,5,0.05133,0.0609
+El Bosco - Maruja García Romero,emt,3,0.05108,0.063
+Atocha,emt,2,0.05081,0.0656
+Metro La Peseta,emt,4,0.05039,0.0567
+O Donnell - Narváez,emt,2,0.04957,0.0679
+Alvarado,emt,7,0.04882,0.0589
+Guzmán El Bueno,emt,6,0.04878,0.0581
+Argüelles,emt,5,0.04755,0.0546
+Ibáñez Ibero,emt,3,0.04721,0.0548
+Cristo Rey - San Francisco De Sales,emt,5,0.04715,0.0511
+Guzmán El Bueno - San Francisco De Sales,emt,3,0.04674,0.0526
+Club De Campo,emt,4,0.04651,0.0435
+Alto De Extremadura,emt,4,0.04613,0.0516
+Ciudad Universitaria,emt,2,0.04539,0.0557
+Moncloa,emt,2,0.04522,0.0549
+Isaac Peral - Fernández De Los Ríos,emt,4,0.04482,0.0503
+Niceto Alcalá Zamora - Ana De Austria,emt,4,0.04468,0.0565
+Gran Vía - Montera,emt,4,0.04343,0.06
+Martínez De La Riva - Sierra Carbonera,emt,4,0.0433,0.0527
+O Donnell - Maiquez,emt,2,0.04311,0.0676
+Juan Herrera,emt,4,0.04307,0.0465
+O Donnell - Retiro,emt,3,0.04301,0.0669
+O Donnell - Narváez,emt,2,0.04297,0.0667
+Estrecho,emt,5,0.04296,0.0567
+Neptuno,emt,8,0.04205,0.0627
+Pacífico,emt,4,0.04107,0.0623
+Metro Menéndez Pelayo,emt,4,0.04088,0.0614
+Avenida De Canillejas - Albaida,emt,4,0.04064,0.0576
+Gran Vía - Plaza De España,emt,4,0.04044,0.0566
+Puente De Los Franceses,emt,2,0.04034,0.0449
+Ventura Rodríguez,emt,4,0.04032,0.0514
+Mediterráneo - Pablo Neruda,emt,4,0.04017,0.0524
+Museo Del Prado - Jardín Botánico,emt,2,0.03979,0.0642
+Gran Vía - Callao,emt,2,0.03944,0.0581
+Junta Municipal Usera,emt,5,0.03899,0.0512
+Gran Vía - Plaza De España,emt,2,0.03895,0.0548
+Mediterráneo - Democracia,emt,4,0.03889,0.0499
+Plaza De España,emt,2,0.03852,0.0529
+Marcelo Usera - Rafaela Ybarra,emt,2,0.03839,0.0534
+Plaza De Cataluña,emt,5,0.03753,0.0554
+Alcalá - Avenida Canillejas,emt,5,0.03694,0.0609
+Ana De Austria - Princesa De Éboli,emt,4,0.03683,0.0538
+Ginzo De Limia - La Vaguada,emt,5,0.03653,0.047
+Veterinaria,emt,5,0.03644,0.0432
+República Argentina,emt,5,0.03643,0.0627
+Arturo Soria - M11,emt,4,0.03549,0.0596
+Cibeles,emt,4,0.03518,0.0653
+Diego De León,emt,3,0.03503,0.0665
+Alcalá - Parque Bomberos,emt,6,0.03501,0.0629
+Lucero,emt,4,0.03498,0.0507
+Antonio De Leyva - Arroyo Opañel,emt,2,0.03498,0.0591
+Escuela Agronómica,emt,2,0.03486,0.0464
+Vía De Las Dos Castillas,emt,4,0.03435,0.0418
+Palacio De La Moncloa,emt,3,0.03433,0.0448
+Embajadores,emt,3,0.03386,0.0619
+Santa Gema,emt,4,0.0337,0.0573
+Casalarreina - Gallo,emt,3,0.03364,0.0645
+Argüelles,emt,3,0.03339,0.0502
+Altamirano,emt,3,0.03335,0.0498
+El Bosco - Pérez De Ayala,emt,3,0.03305,0.0596
+Josefa Valcárcel,emt,5,0.03267,0.0622
+Jardines De Sabatini,emt,7,0.0319,0.0554
+El Rastro,emt,6,0.03157,0.0582
+Rafaela Ybarra - Pradolongo,emt,3,0.03155,0.0489
+Hospital Ramón Y Cajal - Consultas,emt,2,0.03138,0.053
+Carretera De Colmenar - Badalona,emt,3,0.03122,0.0505
+Av. Mediterráneo - Conde De Casal,emt,5,0.03109,0.0612
+Polideportivo Orcasitas,emt,3,0.03096,0.0469
+Rafaela Ybarra - Cestona,emt,6,0.0302,0.0451
+Embajadores - Ronda De Toledo,emt,4,0.03,0.0598
+Sauceda - Abetal,emt,3,0.02986,0.0564
+Alcalá - 25 De Septiembre,emt,4,0.02959,0.0548
+Mediterráneo - Puentelarra,emt,3,0.0294,0.0477
+Bravo Murillo - María Zayas,emt,4,0.02932,0.0546
+Doctor Arce,emt,2,0.02926,0.0595
+Gran Vía - Alcalá,emt,4,0.02926,0.0628
+Junta Municipal Tetuán,emt,3,0.02916,0.0514
+Alcalá - Cronos,emt,2,0.02901,0.0577
+Plaza Castilla,emt,5,0.02884,0.05
+Teatro Circo Price,emt,4,0.02856,0.0635
+Plaza De La Remonta,emt,3,0.02849,0.0527
+La Peseta - Pinar De San José,emt,2,0.02744,0.054
+Torrespaña,emt,5,0.02724,0.0668
+Gran Vía - Pedro Zerolo,emt,5,0.02717,0.0611
+Sepúlveda - Concejal Francisco Jiménez,emt,5,0.02696,0.0472
+La Peseta - Valle Del Boi,emt,2,0.02685,0.0515
+Mediterráneo - Pérez De Ayala,emt,2,0.02668,0.0579
+Castrillo De Aza,emt,2,0.02657,0.0456
+La Peseta - La Fortuna,emt,2,0.02628,0.0493
+Mediterráneo - Pío Felipe,emt,2,0.02608,0.055
+Indalecio Prieto - Camino Viejo Vicálvaro,emt,2,0.02602,0.0607
+Avenida Santa Eugenia - Castrillo De Aza,emt,2,0.02597,0.0438
+La Fortuna - Joaquín Turina,emt,2,0.02574,0.0474
+Indalecio Prieto - Los Juglares,emt,3,0.02561,0.0574
+Avenida Santa Eugenia - Virgen Las Viñas,emt,3,0.02547,0.0421
+Ginzo De Limia - Sangenjo,emt,6,0.02546,0.0451
+Castellana - José Vasconcelos,emt,10,0.02542,0.0506
+Colonia Aviación,emt,3,0.02535,0.0456
+Biblioteca Nacional,emt,6,0.02525,0.0618
+Niceto Alcalá Zamora - Ana De Austria,emt,4,0.02521,0.0512
+Santa María De La Cabeza,emt,5,0.02515,0.0585
+Josefa Valcárcel - General Aranaz,emt,2,0.02493,0.0588
+Cibeles,emt,6,0.02486,0.0616
+Orovilla - Generosidad,emt,4,0.02486,0.0416
+Fuente Carrantona - Avenida De Daroca,emt,3,0.02479,0.0654
+Hernández De Tejada,emt,4,0.02473,0.0532
+Avenida Santa Eugenia - Fuentespina,emt,3,0.02467,0.0406
+Pinar De Chamartín,emt,2,0.02458,0.0566
+Arroyo Pozuelo - Anís,emt,4,0.0245,0.0402
+Arturo Soria - Josefa Valcárcel,emt,2,0.02434,0.0558
+Arturo Soria - Cultura,emt,3,0.02425,0.054
+Ingeniero Herrera - Príncipe Carlos,emt,3,0.02354,0.0488
+Pi Y Margall - Príncipe Carlos,emt,3,0.02344,0.0448
+San Luis - Arturo Soria,emt,4,0.02325,0.0518
+Metro Vicálvaro,emt,4,0.02312,0.0644
+Álvarez De Villaamil,emt,2,0.02292,0.0467
+Arroyo Pozuelo - Húmera,emt,4,0.02262,0.0387
+Legazpi,emt,7,0.02257,0.0527
+Verbena De La Paloma - La Chulapona,emt,3,0.02255,0.0416
+Martínez De La Riva - Puerto Bonaigua,emt,3,0.02252,0.0502
+Palos De La Frontera,emt,2,0.0224,0.0611
+Plaza Ensidesa,emt,2,0.02223,0.0521
+Nuevos Ministerios - Castellana,emt,4,0.02217,0.0584
+Ventas,emt,3,0.02214,0.0595
+Millán Astray,emt,3,0.02194,0.0441
+Príncipe De Vergara - Serrano,emt,4,0.02192,0.0531
+Carabanchel Alto - La Peseta,emt,5,0.02179,0.0538
+Plaza De Las Olivas,emt,2,0.02162,0.0497
+Bohemios - La Del Manojo De Rosas,emt,4,0.02136,0.0401
+Colombia,emt,5,0.02135,0.0513
+Castellana - Ravel,emt,3,0.02132,0.0513
+Concejal Francisco Jiménez - Carboneras,emt,2,0.02123,0.0492
+Arcentales - Avenida De Canillejas,emt,3,0.02114,0.0546
+Veinticinco Septiembre - Ricardo Velázquez Bosco,emt,2,0.02101,0.0475
+María De Molina - Serrano,emt,6,0.021,0.0609
+Pi Y Margall - Alcalá Zamora,emt,3,0.02097,0.043
+Hospital Universitario Vithas,emt,2,0.02095,0.0508
+Estación De Aravaca - Río Arlanzón,emt,5,0.02089,0.0373
+Cuatro Torres,emt,3,0.0207,0.0526
+Alto Del Arenal,emt,3,0.02066,0.0474
+Velázquez - María De Molina,emt,3,0.02062,0.0635
+Arturo Soria - Conservatorio,emt,4,0.02052,0.0487
+Glorieta Del Yucatán,emt,2,0.02041,0.0455
+Avenida De La Albufera - Pablo Neruda,emt,3,0.02022,0.0455
+Avenida De Los Andes - Machupichu,emt,3,0.01998,0.0421
+Avenida De Los Andes - Abelias,emt,2,0.01983,0.0438
+Fuerzas Armadas - Pi Y Margall,emt,2,0.01973,0.0414
+Prado - Atocha,emt,3,0.01971,0.0614
+La Vaguada,emt,2,0.01967,0.0466
+Blas Cabrera - Rafael Finat,emt,5,0.01965,0.0417
+Josefa Valcárcel - Gutiérrez Canales,emt,4,0.01948,0.0642
+Higueras,emt,4,0.01945,0.05
+Basílica De Atocha,emt,8,0.01943,0.0608
+Marqués De Corbera - Ricardo Ortiz,emt,3,0.01939,0.0629
+Glorieta Salvador Maella,emt,4,0.01938,0.0429
+Puente De San Fernando,emt,2,0.01934,0.0415
+Plaza Castilla,emt,3,0.01933,0.0503
+Cibeles,emt,5,0.0193,0.0606
+Junta Municipal Puente De Vallecas,emt,3,0.01929,0.0581
+Fuente Carrantona - José Bergamín,emt,2,0.01922,0.0646
+Junta Municipal Fuencarral,emt,2,0.01919,0.045
+Fuerzas Armadas - Parque Valdebebas,emt,2,0.01913,0.0399
+Virgen De Los Desamparados - Totanes,emt,3,0.01912,0.0376
+Embajadores - Santa María De La Cabeza,emt,4,0.0191,0.0597
+San Cipriano,emt,3,0.01899,0.0606
+Santa María De La Cabeza,emt,4,0.01897,0.0578
+Metro Herrera Oria,emt,2,0.01894,0.0432
+El Carmen,emt,3,0.01892,0.0566
+La Del Manojo De Rosas - Anoeta,emt,3,0.0189,0.0387
+La Peseta - Maravedí,emt,5,0.01886,0.0513
+Nueva Numancia,emt,3,0.01885,0.0553
+Monforte De Lemos - Ganapanes,emt,2,0.01877,0.0438
+Padre Huidobro - Carretera De Castilla,emt,2,0.01871,0.0399
+Herrera Oria - Roda De Bará,emt,3,0.01866,0.0415
+Parque Deportivo Puerta De Hierro,emt,3,0.01865,0.042
+Alcalá - Hermosilla,emt,4,0.01865,0.0645
+Mercado Las Águilas,emt,2,0.01864,0.0428
+Juzgados Plaza Castilla,emt,5,0.0186,0.049
+Fuente Carrantona - García Tapia,emt,2,0.01859,0.0609
+Fuerzas Armadas - Maragatería,emt,2,0.01855,0.0385
+San Francisco El Grande,emt,5,0.01841,0.0559
+Junta Municipal San Blas - Canillejas,emt,3,0.01836,0.052
+López De Hoyos - Arturo Soria,emt,5,0.01829,0.0441
+Instituto Llorente,emt,2,0.01825,0.0409
+Consejería Economía Hacienda Y Empleo,emt,4,0.01824,0.0541
+Benavente,emt,5,0.01822,0.0603
+Escuela Escp,emt,3,0.01818,0.0402
+Fuerzas Armadas - Francisco Umbral,emt,3,0.01817,0.0361
+Vía Lusitana - Faro,emt,4,0.01813,0.0567
+Blanca De Castilla - Camino De La Zarzuela,emt,2,0.01809,0.0385
+Arturo Soria - Bueso Pineda,emt,4,0.01805,0.0469
+Fuente Carrantona - Luis De Hoyos,emt,2,0.01799,0.0576
+Palacio Real,emt,4,0.01799,0.0551
+Fuerzas Armadas - Maestra Dolores Marco,emt,2,0.01798,0.0373
+Parque De La Vaguada,emt,5,0.01796,0.0433
+Plaza Castilla,emt,8,0.01789,0.0472
+Aeropuerto T2 - Salidas,emt,5,0.01787,0.0644
+Gran Vía - Pedro Zerolo,emt,4,0.01776,0.0594
+Pavones,emt,4,0.0177,0.0547
+Glorieta De San Vicente,emt,5,0.0177,0.0545
+Húmera - Pueblo,emt,3,0.01756,0.0423
+Cebreros - Higueras,emt,3,0.01754,0.0479
+Cementerio De Aravaca,emt,2,0.01746,0.0371
+Hellín - Albaida,emt,3,0.01744,0.0547
+Pérez De Ayala - El Bosco,emt,3,0.01737,0.0566
+Antón Martín,emt,2,0.01726,0.0629
+Camino De La Zarzuela - Valdemarín,emt,4,0.01722,0.0358
+Reina Cristina,emt,4,0.01715,0.0598
+Empalme,emt,4,0.01713,0.0402
+Alcalá - Manuel Becerra,emt,3,0.01712,0.063
+Marqués De Corbera - Montejurra,emt,2,0.01688,0.0593
+Herrera Oria - Camino Fuencarral,emt,4,0.01683,0.04
+Pío Felipe - Jadraque,emt,2,0.01679,0.0539
+Indalecio Prieto - Los Juglares,emt,3,0.01676,0.0545
+Herrera Oria - Gómez De La Serna,emt,4,0.01675,0.0388
+Buenos Aires,emt,5,0.01669,0.0484
+Intercambiador De Aluche,emt,4,0.01665,0.0395
+Travesía Costa Brava,emt,2,0.01665,0.0482
+Colonia Jardín,emt,2,0.01659,0.0411
+Pío Felipe - Benjamín Palencia,emt,4,0.01654,0.0515
+Marqués De Corbera - Gerardo Cordón,emt,5,0.01653,0.0563
+Metro Méndez Álvaro,emt,3,0.01653,0.0563
+Nuevos Ministerios - Joaquín Costa,emt,3,0.01651,0.0605
+Beata,emt,3,0.01642,0.0531
+Costa Brava - La Masó,emt,4,0.01641,0.0443
+Puerta De Toledo,emt,5,0.01641,0.0565
+Herrera Oria - Isla De Arosa,emt,2,0.01634,0.04
+Metro Palas Del Rey,emt,3,0.01618,0.0535
+Centro Universitario Villanueva,emt,2,0.01604,0.0461
+Ctra. De El Pardo - Alberca,emt,3,0.01601,0.0396
+Monforte De Lemos - La Vaguada,emt,6,0.01596,0.0451
+Puerta De Toledo,emt,3,0.01593,0.0562
+Castellana - San Germán,emt,5,0.01585,0.0514
+Quintana,emt,3,0.01582,0.0522
+Miguel Hernández,emt,3,0.01578,0.0437
+Doctor Pérez Domínguez,emt,4,0.01572,0.0351
+Portazgo,emt,3,0.01572,0.0505
+Legazpi - Matadero,emt,5,0.0157,0.0523
+Mariano De Cavia,emt,4,0.01569,0.0602
+Alberto Palacios - Aladierna,emt,3,0.01568,0.0329
+Parque De Berlín,emt,4,0.01556,0.0528
+Avenida De La Albufera - Sierra Del Cadi,emt,2,0.01554,0.0528
+Puente De Vallecas - Peña Prieta,emt,3,0.01551,0.0581
+Felipe Ii,emt,4,0.01544,0.0654
+Ronda De Segovia - Imperial,emt,4,0.01543,0.0551
+Indalecio Prieto - Los Pinillas,emt,3,0.01538,0.0519
+Alcalá - Mateo García,emt,2,0.01537,0.054
+Manuel Becerra,emt,3,0.0153,0.0648
+Nuevos Ministerios - Centro Comercial,emt,3,0.01525,0.0559
+El Bosco - Pío Felipe,emt,3,0.01525,0.0566
+Alcalá - Arcones Gil,emt,4,0.01519,0.0495
+Embajadores - Batalla Del Salado,emt,2,0.01518,0.0552
+Avenida De Los Poblados - Guareña,emt,2,0.01515,0.0398
+Estación Sur,emt,3,0.01509,0.0537
+Alberto Palacios - Juan Peñalver,emt,3,0.01505,0.0319
+Avenida De Los Poblados - Aluche,emt,2,0.01504,0.0395
+Fuente Carrantona - José Bergamín,emt,2,0.01501,0.0616
+José María Soler,emt,5,0.015,0.0467
+La Gavia - Villamayor De Santiago,emt,2,0.01498,0.0391
+Los Cármenes,emt,4,0.01479,0.049
+El Bosco - Humanes,emt,2,0.0147,0.0537
+Pueblo Nuevo,emt,2,0.01469,0.0506
+Bravo Murillo - Lope De Haro,emt,3,0.01464,0.0541
+Metro Las Tablas,emt,2,0.01456,0.0509
+Miguel Ángel,emt,5,0.01456,0.0561
+Fuente Carrantona - García Tapia,emt,3,0.01455,0.0553
+Metro Francos Rodríguez,emt,4,0.01443,0.0493
+Fuente Carrantona - García Tapia,emt,2,0.0144,0.0582
+La Gavia - Las Suertes,emt,2,0.01434,0.0376
+Azca,emt,2,0.01428,0.054
+Lima - Santiago Bernabéu,emt,3,0.01425,0.0523
+Las Tablas,emt,4,0.01422,0.0487
+Parque De Atenas,emt,4,0.01422,0.0544
+Martínez De La Riva - Puerto Bonaigua,emt,3,0.01415,0.0479
+La Gavia,emt,3,0.01413,0.0353
+Chile,emt,3,0.01408,0.0495
+Federico Mompou - Isabel Colbrand,emt,4,0.01405,0.0482
+Junta Municipal Fuencarral,emt,2,0.01399,0.044
+Palos De La Frontera,emt,2,0.01392,0.0554
+Avenida De Los Andes - Centro Comercial,emt,2,0.01387,0.0405
+La Gavia - Ensanche De Vallecas,emt,2,0.01374,0.0364
+Carretera San Blas A Coslada Frente Metropolitano,emt,2,0.01371,0.0494
+Carlos Martín Álvarez - Javier De Miguel,emt,4,0.0137,0.0503
+Unidad,emt,2,0.01367,0.0433
+Velázquez - Goya,emt,4,0.01362,0.0625
+Calderilla - Centro Comercial,emt,5,0.01361,0.0491
+Martínez De La Riva - Candilejas,emt,3,0.01359,0.0459
+Centro Dotacional Arganzuela,emt,3,0.01352,0.0505
+Avenida De Daroca - Calahorra,emt,4,0.01347,0.0644
+Indalecio Prieto - José Prat,emt,2,0.01346,0.0495
+Méndez Álvaro - Estación Sur,emt,4,0.01346,0.0514
+La Latina,emt,7,0.01341,0.0567
+Avenida De Logroño - Ariadna,emt,4,0.01341,0.0606
+Metro Palos De La Frontera,emt,3,0.01336,0.0527
+Orovilla - Dulzura,emt,3,0.01336,0.0401
+Gutiérrez Canales,emt,3,0.01335,0.0614
+Consejo De Europa - Juan De Borbón,emt,3,0.01332,0.039
+Duque De Pastrana,emt,5,0.01321,0.046
+Puente De Segovia - Paseo De Extremadura,emt,6,0.01319,0.0514
+Cabellera Berenice - Valle Toranzo,emt,4,0.01313,0.0346
+Metro Arturo Soria,emt,2,0.01311,0.045
+Samaniego - Campezo,emt,4,0.0131,0.0472
+Rafaela Ybarra - Alzola,emt,2,0.01308,0.0417
+Sauceda - Azul,emt,3,0.01305,0.0535
+Emilio Castelar,emt,3,0.01301,0.0582
+Francos Rodríguez - Numancia,emt,3,0.01299,0.0502
+San Cipriano - Minerva,emt,5,0.01295,0.0573
+Juan Bravo - Francisco Silvela,emt,5,0.01293,0.0642
+Oca - Matilde Hernández,emt,4,0.0129,0.0476
+La Vía - Plaza Elíptica,emt,2,0.01289,0.0545
+Buenos Aires,emt,2,0.01288,0.0494
+José Prat - Democracia,emt,2,0.01287,0.0474
+Glorieta De Málaga,emt,3,0.01284,0.0449
+Herrera Oria - Gómez De La Serna,emt,2,0.01278,0.0416
+Sepúlveda - Los Yébenes,emt,4,0.01271,0.0452
+Instituto Tirso De Molina,emt,3,0.01261,0.0486
+Puente Alcocer,emt,4,0.01261,0.0357
+Rafaela Ybarra - Centro Comercial,emt,3,0.01259,0.0402
+Metro San Blas,emt,5,0.01258,0.0521
+Costa Rica,emt,3,0.01252,0.0478
+Pirámides,emt,7,0.01243,0.0562
+Valmojado - Maqueda,emt,3,0.01243,0.0401
+Herrera Oria - Islas Marquesas,emt,2,0.0124,0.0406
+Batalla Del Salado - Delicias,emt,3,0.01238,0.0481
+Glorieta De La Medusa,emt,2,0.01238,0.058
+Alcocer - Paseo Talleres,emt,3,0.01235,0.0366
+Opañel,emt,2,0.01232,0.0519
+Mediterráneo - Democracia,emt,2,0.01229,0.0455
+Ensanche De Vallecas - Peñaranda,emt,3,0.01228,0.0341
+Avenida De Los Poblados - Vía Lusitana,emt,3,0.01226,0.0518
+Astros,emt,4,0.01224,0.0601
+Centro De Salud Pavones,emt,4,0.01223,0.0521
+Avenida Poblados - Eduardo Barreiros,emt,2,0.01222,0.0431
+Peña Prieta,emt,3,0.01208,0.0551
+Avenida De Asturias - Pinos Baja,emt,5,0.01202,0.0447
+Valmojado - Seseña,emt,2,0.01198,0.0454
+Camino Viejo Leganés - Valle De Oro,emt,3,0.01195,0.0503
+Alonso Martínez,emt,3,0.01193,0.0569
+Ciudad Lineal,emt,4,0.01184,0.0478
+Alberto Palacios - Ferroviarios,emt,2,0.01181,0.0309
+Medina De Pomar,emt,3,0.01177,0.0639
+Glorieta De Cádiz,emt,4,0.01177,0.0508
+Eduardo Barreiros - Salvador Martínez,emt,3,0.01176,0.0401
+Conde De Las Posadas,emt,2,0.01175,0.0549
+Democracia - Arboleda,emt,2,0.01174,0.0438
+Eduardo Barreiros - Avenida De Los Rosales,emt,2,0.01162,0.0414
+Golondrina - Brújula,emt,6,0.01162,0.036
+Fuente Carrantona - Luis De Hoyos,emt,4,0.01162,0.0525
+Sierra Guadalupe,emt,5,0.01159,0.0423
+Avenida De Entrevías - Méndez Álvaro,emt,2,0.01145,0.049
+Valmojado - Camarena,emt,2,0.01145,0.0438
+Santa Engracia - Bretón De Los Herreros,emt,4,0.01143,0.0565
+Duquesa De Parcent,emt,2,0.0114,0.0468
+Martínez Izquierdo,emt,5,0.01128,0.0579
+Montes De Barbanza - Sierra Del Eje,emt,4,0.01128,0.0369
+Illescas - Valmojado,emt,3,0.01126,0.0424
+Metro Francos Rodríguez,emt,3,0.0112,0.0483
+Samaria,emt,3,0.0112,0.0632
+Herrera Oria - Arroyofresno,emt,2,0.01118,0.0395
+Valcarlos - Puente La Reina,emt,2,0.01117,0.051
+Francos Rodríguez - Villaamil,emt,2,0.01116,0.0517
+Domingo Párraga - Astillero,emt,2,0.01116,0.03
+Herrera Oria - Instituto De Estudios Fiscales,emt,2,0.01113,0.0394
+Prunos - Sándalo,emt,2,0.01113,0.0522
+Alcalde Moreno Torres,emt,4,0.01111,0.0487
+Alfonso Xii - Estación De Atocha,emt,2,0.01108,0.0459
+Cebreros - Sepúlveda,emt,2,0.01108,0.0457
+Metro Colón,emt,2,0.011,0.0589
+Pablo Neruda - Santos Inocentes,emt,3,0.011,0.0442
+Rubio Y Galí - Jerónima Llorente,emt,4,0.01099,0.0546
+Junta Municipal De Hortaleza,emt,4,0.01093,0.0424
+Duquesa De Parcent - Cuart De Poblet,emt,3,0.01093,0.0449
+Villaverde Alto,emt,3,0.01091,0.034
+Avenida De Entrevías - Convenio,emt,2,0.01084,0.0469
+Tierno Galván - Planetario,emt,4,0.01084,0.0575
+Marcelo Usera - Gabriel Usera,emt,3,0.01083,0.0524
+Avenida De Asturias - Plaza De Castilla,emt,2,0.01082,0.0491
+Metro Ríos Rosas,emt,3,0.01082,0.0587
+Camino De Santiago - Atapuerca,emt,4,0.01078,0.0471
+Casa Del Reloj,emt,3,0.01076,0.052
+Mar Caspio,emt,4,0.01073,0.0377
+Ofelia Nieto,emt,3,0.01068,0.0464
+Ingenieros Navales,emt,3,0.01066,0.0498
+Camino De Santiago - Valcarlos,emt,2,0.01061,0.0489
+Avenida De Asturias - Cañaveral,emt,3,0.01059,0.0471
+Piedrafita Del Cebrero,emt,4,0.01056,0.0432
+Camino De Santiago - San Juan De Ortega,emt,5,0.01055,0.0457
+Villaverde Alto,emt,2,0.01052,0.0292
+Valdebebas Cercanías,emt,4,0.01052,0.0351
+Velázquez - Villanueva,emt,2,0.01052,0.065
+Prunos - Petunias,emt,2,0.01051,0.0498
+Francisco Pi Y Margall - Príncipe Carlos,emt,2,0.01043,0.0465
+Arcaute,emt,3,0.01043,0.0451
+Príncipe De Viana - Arenas Navarro,emt,2,0.01043,0.0335
+Cuesta De Moyano,emt,2,0.01043,0.0439
+Villamanín,emt,2,0.01043,0.0437
+Guabairo,emt,5,0.01041,0.0427
+Alcalá - Bocángel,emt,3,0.0104,0.0594
+Guabairo 6,emt,4,0.01038,0.0442
+Glorieta San Martín De La Vega,emt,3,0.01038,0.0375
+Avenida De La Albufera - Miguel Hernández,emt,4,0.01037,0.042
+Antonio López - Avenida De Córdoba,emt,4,0.01035,0.0502
+Metro Francos Rodríguez,emt,3,0.01034,0.0508
+Bronce,emt,4,0.01032,0.0499
+Pablo Neruda - Buenos Aires,emt,5,0.0103,0.0413
+Emilio Castelar,emt,4,0.01026,0.0596
+Carretera De Vallecas - Sáhara,emt,5,0.01026,0.0374
+Pi Y Margall - Alcalá Zamora,emt,3,0.01023,0.0447
+Avenida De Entrevías - Mejorana,emt,2,0.01023,0.0449
+Rafaela Ybarra - Centro De Mayores,emt,2,0.01015,0.0388
+Intercambiador De Príncipe Pío,emt,5,0.01014,0.0522
+Vista Alegre,emt,2,0.01009,0.0457
+Estrella,emt,2,0.01,0.0568
+Domingo Párraga - Astillero,emt,4,0.00992,0.0284
+Arroyo Del Santo,emt,2,0.0099,0.0476
+Caidos División Azul,emt,4,0.00988,0.0472
+Cartagena,emt,4,0.00988,0.0581
+Paco De Lucía,emt,6,0.00986,0.0425
+Castellana - Rubén Darío,emt,3,0.00986,0.0588
+Usera,emt,2,0.00983,0.0503
+Villafuerte,emt,2,0.0098,0.0387
+Metro Menéndez Pelayo,emt,4,0.00979,0.0605
+López De Hoyos - Gran Vía De Hortaleza,emt,3,0.00979,0.0409
+Batán,emt,3,0.00979,0.0419
+Príncipe De Viana - Miravalles,emt,2,0.00978,0.0324
+Alfonso Xii - Jardín Botánico,emt,2,0.00978,0.0421
+Marcelo Usera - Olvido,emt,3,0.00978,0.0493
+Alcalá - Arcones Gil,emt,2,0.00978,0.0457
+Yécora - Invierno,emt,3,0.00978,0.0431
+Príncipe De Vergara - Francisco Silvela,emt,4,0.00968,0.0596
+Cardeñosa - Avenida De Entrevías,emt,2,0.00964,0.0432
+Oporto,emt,2,0.00959,0.0485
+Rafaela Ybarra Acceso Peugeot,emt,2,0.00957,0.0375
+Betanzos - Fernández Almagro,emt,4,0.00951,0.0428
+Avenida De Los Rosales - Silvina,emt,2,0.00948,0.0362
+Cuzco,emt,3,0.00944,0.0497
+Vinateros - Centro Comercial,emt,4,0.00939,0.0539
+Ramón Y Cajal - Víctor De La Serna,emt,2,0.00937,0.0504
+Calahorra,emt,3,0.00936,0.0607
+Vicente Aleixandre,emt,2,0.00935,0.0539
+Machupichu - Papa Negro,emt,2,0.00931,0.0456
+Avenida De La Paz,emt,4,0.00928,0.0448
+Amposta - Pobladura Del Valle,emt,5,0.00928,0.0497
+Fermín Caballero - Betanzos,emt,4,0.00927,0.0405
+López De Hoyos - Ángel Luis Herrán,emt,2,0.00925,0.0396
+Méndez Álvaro - Repsol,emt,4,0.00922,0.0558
+Metro La Ventilla,emt,2,0.0092,0.0456
+Cartagena,emt,2,0.00916,0.0609
+Casón Del Buen Retiro,emt,2,0.00914,0.0404
+Príncipe De Viana - Proción,emt,2,0.00914,0.0314
+Pueblo Nuevo,emt,2,0.00914,0.0437
+Alsacia,emt,3,0.00912,0.0615
+Cardeñosa - Lagartera,emt,3,0.00909,0.0416
+Avenida De La Hispanidad - Dique Sur,emt,2,0.00909,0.0643
+Villaamil - San Restituto,emt,2,0.00905,0.045
+Martínez Izquierdo - Francisco Silvela,emt,2,0.00905,0.0608
+Jaime El Conquistador - Embajadores,emt,3,0.00905,0.0562
+Velázquez - Ortega Y Gasset,emt,4,0.00902,0.0614
+Carretera De Villaverde - Centro Escolar,emt,2,0.00902,0.0364
+Pablo Neruda - Cenicienta,emt,2,0.00901,0.0427
+Euro - Maravedí,emt,2,0.0089,0.0488
+Julio Palacios,emt,4,0.00888,0.0516
+Valdebernardo - Hacienda De Pavones,emt,3,0.00888,0.0496
+Betanzos - Avenida De La Ilustración,emt,2,0.00887,0.0418
+Avenida De Los Rosales - Rutilo,emt,2,0.00883,0.035
+Embajadores - Ronda De Valencia,emt,3,0.00881,0.0603
+Santos De La Humosa,emt,2,0.0088,0.0385
+Ramón Y Cajal - Gabriel Y Galán,emt,2,0.00879,0.0482
+Gregorio Del Amo,emt,2,0.00878,0.0516
+Machupichu - Florencio Castillo,emt,2,0.00873,0.0438
+Castellana - Rosario Pino,emt,2,0.00872,0.0486
+Camino Del Chorrillo,emt,2,0.0087,0.0439
+Arroyo Del Olivar - Monte Perdido,emt,2,0.0087,0.0523
+Colón,emt,2,0.00868,0.0595
+Sagasta,emt,3,0.00864,0.0528
+Amanecer En Méndez Álvaro,emt,2,0.00858,0.0576
+Alcocer - Virgen Desamparados,emt,3,0.00857,0.0364
+Real De Arganda - Ensanche De Vallecas,emt,2,0.00855,0.0392
+Avenida De Andalucía - Centro Comercial,emt,2,0.00855,0.0415
+Jaime El Conquistador,emt,2,0.00853,0.0538
+Castellana - Ministerio Interior,emt,2,0.00853,0.0586
+Clarisas,emt,3,0.00853,0.0507
+Carretera De Villaverde - Puebla Sanabria,emt,2,0.00852,0.0354
+Puente De Segovia,emt,5,0.00851,0.0521
+Avenida Complutense - Jardín Botánico,emt,4,0.00851,0.0477
+Centro De Carga Aérea,emt,4,0.0085,0.0605
+Yécora - Fuentelviejo,emt,3,0.00849,0.0414
+Zumaya - Amorebieta,emt,2,0.00849,0.0304
+Puerta De Alcalá,emt,2,0.00849,0.0388
+Nudo Sur,emt,3,0.00849,0.0476
+Valmojado - Parque Aluche,emt,2,0.00849,0.0411
+Gutierre De Cetina - Alcalá,emt,2,0.00849,0.0419
+Eduardo Barreiros - Salvador Martínez,emt,3,0.00848,0.039
+Mar De Cristal,emt,4,0.00847,0.0375
+Monforte De Lemos - Parque Norte,emt,2,0.00847,0.0517
+Cañada Real De Merinas,emt,3,0.00845,0.0601
+Afueras A Valverde - Bella Altisidora,emt,2,0.00841,0.0461
+Antonio López - Vado,emt,2,0.00836,0.0478
+Avenida De Canillejas - Aquitania,emt,4,0.0083,0.0498
+Mediterráneo - Virgen De Las Viñas,emt,3,0.00829,0.0476
+Marqués De Corbera - Avenida De Daroca,emt,5,0.00828,0.0536
+Euro - Duro,emt,2,0.00827,0.0466
+Los Rosales - Tanatorio,emt,3,0.00827,0.0338
+Cuesta De La Vega,emt,3,0.00826,0.0532
+Ciencias Biológicas Y Geológicas,emt,2,0.00825,0.0495
+Marqués De Vadillo,emt,4,0.00825,0.057
+Alfonso Xiii - Ramón Y Cajal,emt,2,0.00823,0.0463
+Puente Alcocer,emt,2,0.00822,0.0347
+Orovilla - Centro Comercial,emt,2,0.0082,0.04
+Machupichu - Manuel Rodrigo,emt,2,0.00818,0.0423
+Casa Campo,emt,2,0.00817,0.0432
+Puerta Arganda,emt,2,0.00817,0.0542
+Plaza De La Vicalvarada,emt,4,0.00816,0.0575
+José Banús,emt,3,0.00812,0.049
+Avenida De Los Poblados - Secoya,emt,4,0.00811,0.0403
+Avenida Donostiarra,emt,3,0.00811,0.0512
+Braganza - Vía Lusitana,emt,2,0.0081,0.0564
+Glorieta De La Medusa,emt,4,0.00809,0.062
+Arroyo Del Olivar - Carlos Martín Álvarez,emt,2,0.00807,0.0498
+Hormigueras - Camino Del Pozo,emt,3,0.00803,0.035
+Real De Arganda,emt,2,0.00801,0.038
+Ventas,emt,3,0.008,0.0564
+Sepúlveda - Castroserna,emt,5,0.008,0.0466
+Velázquez - Diego De León,emt,3,0.00798,0.0618
+Alonso Martínez,emt,4,0.00797,0.0557
+Avenida De Andalucía - Felicidad,emt,2,0.00794,0.04
+Alfonso Xiii - Peña Prieta,emt,2,0.00792,0.0523
+Monforte De Lemos - Puentecesures,emt,2,0.0079,0.0494
+Thaler - Centro Comercial,emt,2,0.0079,0.0469
+Congosto - Puerto Porzuna,emt,2,0.0079,0.0356
+García Tapia - Laponia,emt,6,0.0079,0.0545
+Afueras A Valverde,emt,4,0.00788,0.0441
+Avenida De La Albufera - Cocherón Villa,emt,4,0.00786,0.0403
+Vital Aza - Ezequiel Solana,emt,2,0.00784,0.0402
+Isidro González Velázquez,emt,2,0.00784,0.0349
+Tren De Arganda,emt,2,0.00784,0.0543
+Fuentelviejo,emt,2,0.00784,0.0397
+Padre Claret - Ramón Y Cajal,emt,2,0.00784,0.045
+Pontones - Imperial,emt,4,0.00784,0.0542
+Mártires De Alcalá,emt,2,0.00784,0.0489
+Museo Arqueológico,emt,2,0.00784,0.0374
+Fuerzas Armadas - Pi Y Margall,emt,2,0.00784,0.0428
+Deusto,emt,2,0.00784,0.0295
+San Luis - Mesena,emt,2,0.00783,0.0493
+Avenida América,emt,3,0.00783,0.0615
+Hernani,emt,3,0.00783,0.0587
+San Antonio De La Florida,emt,5,0.0078,0.0499
+Miguel Delibes - Alto Del Esparragal,emt,3,0.00778,0.0516
+Carretera De Castilla - Colegio Rosales,emt,2,0.00778,0.0402
+Metro Colón,emt,3,0.00777,0.0567
+Vía Lusitana - Halconero Del Rey,emt,2,0.00772,0.0515
+Villaverde Cruce,emt,3,0.00772,0.0361
+Antonio López - Socuéllamos,emt,2,0.00772,0.0457
+Doctor Esquerdo - Goya,emt,4,0.00768,0.0675
+Machupichu - Silvano,emt,2,0.00766,0.0409
+Carrera De San Jerónimo - Cedaceros,emt,6,0.00765,0.0626
+Pobladura Del Valle - Arcos De Jalón,emt,5,0.00765,0.0476
+Euro - Peso Hispano,emt,2,0.00764,0.0446
+Melancólicos - Imperial,emt,2,0.00761,0.0506
+Avenida De Los Poblados - Rafaela Ybarra,emt,3,0.00761,0.0433
+Orovilla - Silvina,emt,2,0.00759,0.0384
+Gómez De La Serna - Colonia El Pino,emt,2,0.00758,0.0376
+Campamento,emt,3,0.00756,0.0415
+Arturo Soria - Añastro,emt,3,0.00753,0.0476
+Gregorio Marañón,emt,3,0.00752,0.0574
+San Jaime - Sierra Gador,emt,2,0.00752,0.0409
+Carretera De Vallecas - Avenida Rosales,emt,2,0.0075,0.0327
+Abrantes - Oporto,emt,2,0.00749,0.0535
+Abrantes Portalegre,emt,3,0.00747,0.0515
+Arroyo Del Olivar - Muñoz Díaz,emt,2,0.00746,0.0476
+Rafael Finat - Osa De La Vega,emt,2,0.00744,0.04
+Villalobos,emt,4,0.00744,0.0387
+Plaza Del Perú,emt,4,0.00743,0.0496
+Ensanche De Vallecas - Gutiérrez Maroto,emt,3,0.00742,0.033
+Nunciatura,emt,2,0.00739,0.0464
+Monforte De Lemos - Parque Bomberos,emt,2,0.00738,0.0476
+Bohemios - Sáhara,emt,2,0.00736,0.0386
+Velázquez - Juan Bravo,emt,2,0.00735,0.0611
+Santa Marta - Alfonso Xiii,emt,3,0.00735,0.0499
+Puerto De La Bonaigua - San Diego,emt,4,0.00735,0.0479
+Iglesia,emt,3,0.00734,0.0553
+Manuel Becerra,emt,2,0.00734,0.0637
+Metro Barrio Del Pilar,emt,3,0.00732,0.0448
+Bilbao,emt,4,0.0073,0.0528
+Javier De Miguel - Payaso Fofó,emt,4,0.00728,0.0482
+Cementerio Carabanchel,emt,3,0.00727,0.0449
+Polideportivo Guillén Prim,emt,3,0.00726,0.0344
+Barrio De La Ciencia,emt,2,0.00725,0.0569
+Achicoria,emt,3,0.00725,0.0497
+Plaza Chamberí,emt,3,0.00725,0.0548
+Avenida De Andalucía - Anoeta,emt,4,0.00725,0.0374
+Puente San Isidro - Pontones,emt,4,0.00724,0.0525
+Alonso Martínez,emt,2,0.00724,0.0545
+Isla De Arosa,emt,4,0.00723,0.038
+Emigrantes - Carretera De Canillas,emt,3,0.00722,0.0386
+Estación De Aravaca,emt,3,0.00721,0.036
+Emilio Rubín,emt,2,0.0072,0.0448
+San Luis - Almanzora,emt,2,0.0072,0.0471
+Argüelles,emt,2,0.00718,0.0467
+Fermina Sevillano - Octubre,emt,2,0.00718,0.0382
+Motrico,emt,2,0.00718,0.0287
+Virgen De Lluc - José Banús,emt,2,0.00718,0.0468
+Fuerzas Armadas - Parque Valdebebas,emt,2,0.00718,0.041
+Gómez De La Serna - Julio Calvo,emt,2,0.00718,0.0373
+Ctra. De El Pardo - Tiro Pichón,emt,2,0.00718,0.0381
+Camino De Campamento - Villagarcía,emt,2,0.00718,0.0403
+Francisco Villaespesa - Ezequiel Solana,emt,2,0.00718,0.0387
+Francisco Umbral - Cambados,emt,2,0.00718,0.0337
+Cordel De Pavones - Juglares,emt,2,0.00718,0.0515
+Metro Serrano,emt,2,0.00718,0.0361
+López De Hoyos - Clínica San Juan De Dios,emt,4,0.00716,0.0436
+Machupichu - Mota Del Cuervo,emt,2,0.00716,0.0397
+Valdemarín - Argentona,emt,2,0.00713,0.0386
+González Feito,emt,3,0.00712,0.0439
+Avenida De Logroño - Algemesí,emt,6,0.00712,0.0571
+Avenida De Los Poblados - Abrantes,emt,2,0.0071,0.0495
+Plaza De Cronos,emt,3,0.00709,0.0575
+Gómez De La Serna - Alejandro Casona,emt,2,0.00708,0.0365
+Biarritz,emt,4,0.00706,0.0551
+Melancólicos,emt,3,0.00704,0.0482
+María Droc - San Dalmacio,emt,3,0.00703,0.0349
+Euro - Aguacate,emt,2,0.00702,0.0428
+San Jaime - Puerto Pozazal,emt,2,0.00702,0.0397
+Parque Juan Carlos I,emt,3,0.00698,0.0376
+Monforte De Lemos - Finisterre,emt,2,0.00697,0.0462
+Metro Barrio Del Pilar,emt,2,0.00697,0.0456
+Palacio De Los Deportes,emt,2,0.0069,0.0654
+Avenida De Los Rosales - Uranio,emt,2,0.00688,0.0317
+Plaza Del Mar,emt,2,0.00688,0.0568
+Arturo Soria - Julio Dánvila,emt,3,0.00687,0.0484
+Parque De Azorín,emt,2,0.00687,0.0457
+Intercambiador De Aluche,emt,4,0.00687,0.0387
+Sinfonía - Danza,emt,2,0.00681,0.0385
+Sierra Elvira - Sierra Toledana,emt,3,0.0068,0.0469
+Plaza Elíptica,emt,2,0.00676,0.0568
+Hacienda De Pavones 204,emt,3,0.00676,0.0504
+Ramiro De Maeztu - Bernardo Torre Rojas,emt,2,0.00675,0.0541
+Rosalía De Castro - Gómez De La Serna,emt,4,0.00674,0.0356
+San Luis - Arturo Soria,emt,3,0.00672,0.048
+Concejal Francisco Jiménez - Alhambra,emt,3,0.00672,0.0474
+Legazpi,emt,2,0.0067,0.0515
+Príncipe De Vergara - Goya,emt,3,0.00668,0.0641
+Aquitania - Toscana,emt,4,0.00667,0.0547
+Metro Blasco Ibáñez,emt,2,0.00667,0.0535
+Plaza Alosno,emt,2,0.00667,0.0607
+Centro Cultural Los Rosales,emt,3,0.00662,0.0308
+Montearagón,emt,2,0.0066,0.043
+Paraninfo - Matemáticas,emt,2,0.0066,0.0458
+San Luis - Añastro,emt,2,0.00659,0.0451
+Puente Calero,emt,2,0.00658,0.0535
+Metro San Francisco,emt,2,0.00655,0.0476
+Fermín Caballero - Isla De Arosa,emt,3,0.00655,0.0391
+Fermina Sevillano - Diciembre,emt,3,0.00654,0.0368
+Aconcagua - Nevado Cumbal,emt,3,0.00654,0.0326
+Ctra. De El Pardo - Puente De Renfe,emt,2,0.00653,0.0367
+Virgen De Lluc - José Del Hierro,emt,2,0.00653,0.0447
+San Jaime - Sierra Vieja,emt,2,0.00653,0.0385
+Domingo Párraga - Ferroviarios,emt,2,0.00653,0.0276
+Cordel De Pavones - Pinillas,emt,2,0.00653,0.049
+Metro Lacoma,emt,2,0.00653,0.036
+Blasco De Garay - Centro Mayores,emt,2,0.00653,0.0446
+Fuerzas Armadas - Maragatería,emt,2,0.00653,0.0394
+Metro San Francisco,emt,2,0.00653,0.0387
+Pico Ocejón - Osa Mayor,emt,2,0.00653,0.0348
+Camino De Campamento - Colonia Lourdes,emt,2,0.00653,0.0387
+Lasarte - Zumarraga,emt,2,0.00653,0.0279
+Serrano - Ortega Y Gasset,emt,2,0.00653,0.0348
+Ezequiel Solana - Gonzalo De Berceo,emt,2,0.00653,0.0372
+Cuzco,emt,3,0.00652,0.0492
+Óbolo,emt,2,0.00648,0.0413
+Ciudad Lineal,emt,3,0.00648,0.0477
+Darío Aparicio - Cabo Cañaveral,emt,2,0.00648,0.0372
+Bruselas,emt,3,0.00648,0.0525
+Velázquez - López De Hoyos,emt,5,0.00647,0.0584
+Camarena - Centro De Salud,emt,2,0.00647,0.0433
+Camino De Santiago - San Millán Cogolla,emt,4,0.00647,0.0437
+Teruel,emt,3,0.00645,0.0562
+Ciudad Lineal,emt,3,0.00645,0.0468
+Carabanchel Alto,emt,3,0.00645,0.0469
+Alcalá - Esfinge,emt,3,0.00643,0.0606
+Castellana - Marqués Torrelaguna,emt,2,0.00639,0.0484
+Avenida De Daroca - Campus Universitario,emt,4,0.00639,0.0606
+Alcocer - Escoriaza,emt,3,0.00639,0.0353
+Buenos Aires - Palomeras,emt,3,0.00639,0.044
+Castellana - Manuel Caldeiro,emt,3,0.00638,0.0464
+San Luis - Mesena,emt,3,0.00636,0.046
+Sainz De Baranda - Maiquez,emt,4,0.00634,0.0649
+Sierra Guadalupe - San Jaime,emt,4,0.00633,0.0389
+San Luis - Estación Hortaleza,emt,3,0.0063,0.0433
+Francisco Pi Y Margall - Vicente Blasco Ibañez,emt,2,0.00629,0.0511
+Instituto La Paloma,emt,2,0.00628,0.047
+Avenida De La Aviación - Sinfonía,emt,2,0.00625,0.0373
+Plaza Del Navío,emt,2,0.00624,0.0538
+Narváez - O Donnell,emt,5,0.00622,0.0621
+Marcelo Usera - Rafaela Ybarra,emt,2,0.00622,0.0543
+Galeón - Carabela,emt,4,0.00622,0.0572
+Plaza De España,emt,7,0.0062,0.0552
+Facultad De Educación - Cunef Universidad,emt,2,0.00618,0.0516
+Mercado Doña Carlota,emt,2,0.00614,0.0478
+Unidad,emt,2,0.00613,0.0432
+Príncipe De Vergara - Ayala,emt,2,0.00613,0.0608
+Glorieta Charala,emt,5,0.00611,0.0356
+Rafael Alberti - San Claudio,emt,4,0.0061,0.0421
+Avenida De Burgos,emt,4,0.00609,0.0464
+Sierra Molina - Centro De Salud,emt,2,0.00605,0.0501
+Hormigueras - Correos,emt,2,0.00605,0.0375
+García Tapia - M40,emt,2,0.00605,0.0574
+Santa Felicidad - Iglesia,emt,2,0.00604,0.0533
+Príncipe Carlos - Ingeniero Herrera,emt,3,0.00604,0.0509
+Paraninfo - Telecomunicaciones,emt,2,0.00603,0.044
+Gran Vía - Plaza De España,emt,3,0.00603,0.0541
+Avenida De Los Poblados - Secoya,emt,2,0.00602,0.0458
+Juan Ignacio Luca De Tena - Alegría Oria,emt,4,0.00601,0.0587
+Luis Rosales,emt,2,0.00601,0.0414
+Plaza Del Ágata,emt,2,0.00601,0.0339
+Cartagena - Francisco Silvela,emt,5,0.00599,0.058
+Illescas - Valmojado,emt,3,0.00598,0.0405
+Avenida De La Aviación - Mirabel,emt,3,0.00598,0.0363
+Estación El Pozo,emt,4,0.00598,0.0347
+Toledo - Colegiata San Isidro,emt,2,0.00596,0.0581
+Monte Del Gozo,emt,3,0.00596,0.0466
+Plaza Mayor,emt,2,0.00596,0.0581
+Puente San Isidro - Melancólicos,emt,3,0.00595,0.046
+Camarena - Illescas,emt,2,0.00594,0.0418
+Castellana - Nudo Norte,emt,3,0.00594,0.0468
+Plaza Del Parterre,emt,3,0.00593,0.0406
+Camino De Perales - San Mario,emt,3,0.00592,0.0422
+Arroyofresno - Herrera Oria,emt,3,0.0059,0.0385
+Miguel Delibes - Mario Moreno Cantinflas,emt,3,0.00589,0.0491
+Guecho - Gobelas,emt,2,0.00588,0.0272
+Cordel De Pavones - José Prat,emt,2,0.00588,0.0468
+Peña Del Águila,emt,2,0.00588,0.0348
+Ctra. De El Pardo - Acuartelamiento Marva,emt,2,0.00588,0.0354
+Fuerzas Armadas - Maestra Dolores Marco,emt,2,0.00588,0.0379
+Ezequiel Solana - Arriaga,emt,2,0.00588,0.0359
+Galileo,emt,2,0.00588,0.0427
+Camino De Campamento - San Roberto,emt,2,0.00588,0.0373
+Camino Barrial - Ana Teresa,emt,2,0.00588,0.0336
+Viveros Raga,emt,2,0.00588,0.0454
+Valle De Tobalina - Ciudad De Frías,emt,2,0.00588,0.0268
+Avenida De Los Poblados - Abrantes,emt,2,0.00588,0.0373
+Serrano - Juan Bravo,emt,2,0.00588,0.0337
+Virgen De Lluc - Argentina,emt,2,0.00588,0.0428
+Avenida De Oporto - Camino Viejo Leganés,emt,2,0.00584,0.0506
+Estrecho,emt,3,0.00583,0.0532
+Darío Aparicio - Tapia De Casariego,emt,2,0.00583,0.0359
+Buenos Aires - Mogambo,emt,4,0.00582,0.0397
+Hacienda De Pavones - Corregidor Conde Maceda,emt,3,0.00582,0.0481
+La Chopera - Puente Praga,emt,4,0.00581,0.0501
+La Masó - Marbella,emt,3,0.00581,0.0428
+Real - Centro Comercial,emt,2,0.0058,0.0448
+Plaza Castilla,emt,2,0.00579,0.048
+Marqués De Salamanca,emt,2,0.00578,0.059
+Pablo Neruda - Villalobos,emt,3,0.00576,0.0374
+Centro De Especialidades De Moratalaz,emt,6,0.00575,0.0473
+Metro Menéndez Pelayo,emt,4,0.00573,0.063
+Plaza De Las Regiones,emt,4,0.00573,0.0394
+Sánchez Arcas - Bernardo Torre Rojas,emt,2,0.0057,0.0497
+Arturo Soria - López De Hoyos,emt,3,0.00568,0.0452
+Francos Rodríguez - Antonio Machado,emt,2,0.00566,0.045
+Menéndez Pelayo - Menorca,emt,4,0.00566,0.0623
+Sánchez Arcas - Rubio Y Galí,emt,2,0.00565,0.0495
+Príncipe De Vergara - Diego De León,emt,3,0.00565,0.0583
+Príncipe De Vergara - López De Hoyos,emt,2,0.00564,0.0567
+Blas Cabrera - Avenida De Las Águilas,emt,3,0.00562,0.0398
+Pedro Rico - Julio Palacios,emt,2,0.00562,0.0491
+Machupichu - Papa Negro,emt,2,0.00562,0.0406
+Avenida De Cantabria - Centro De Salud,emt,2,0.0056,0.0511
+Carretera De Vallecas - Sáhara,emt,2,0.0056,0.0343
+Hormigueras - González Dávila,emt,2,0.0056,0.0365
+Corazón De María - Padre Xifré,emt,2,0.00559,0.0551
+Vicente Aleixandre,emt,4,0.00558,0.0559
+Gran Avenida - Camino Viejo Villaverde,emt,3,0.00557,0.0415
+Abrantes - Pelicano,emt,3,0.00556,0.0502
+Ulises - Arturo Soria,emt,3,0.00555,0.0454
+Carlos Martín Álvarez - Martínez Riva,emt,2,0.00554,0.048
+Antonia Rodríguez Sacristán,emt,2,0.00554,0.0443
+Bambú,emt,4,0.00551,0.046
+Portomarín - Isabel Colbrand,emt,2,0.00549,0.0465
+Feria De Madrid,emt,2,0.00548,0.0363
+Paraninfo - Ciemat,emt,2,0.00547,0.0424
+Pedro Laborde - Palomeras,emt,3,0.00547,0.0423
+Alcocer - Paseo Talleres,emt,2,0.00544,0.0354
+San Francisco El Grande - Plaza De Los Carros,emt,2,0.00543,0.0554
+Gran Vía De Hortaleza - Haro,emt,2,0.00543,0.04
+Sierra Molina - San Diego,emt,2,0.00542,0.0478
+Santa Felicidad,emt,2,0.0054,0.0507
+Círculo De Bellas Artes,emt,6,0.0054,0.0622
+Aguacate - Secoya,emt,3,0.0054,0.0431
+Avenida De Los Poblados - Cocheras Emt,emt,2,0.00539,0.0495
+Camino Del Pozo - Carretera De Villaverde,emt,2,0.00534,0.034
+San Mario,emt,2,0.00534,0.0407
+Sagasta,emt,2,0.0053,0.0538
+Junta Municipal Chamartín,emt,2,0.00525,0.055
+Estación De Aravaca - Río Arlanzón,emt,2,0.00525,0.0348
+Suanzes,emt,2,0.00524,0.0522
+Pi Y Margall - Isabel De Valois,emt,2,0.00524,0.0514
+Hormigueras - Miravete,emt,2,0.00524,0.0357
+Fuerzas Armadas - Francisco Umbral,emt,2,0.00523,0.0366
+Riscos De Polanco,emt,2,0.00523,0.0336
+Corregidor Alonso Aguilar,emt,3,0.00523,0.047
+José Del Hierro - Polideportivo,emt,2,0.00523,0.041
+Lázaro Carreter - Vizcaíno Casas,emt,2,0.00523,0.0325
+Serrano - Maldonado,emt,2,0.00523,0.0326
+Fuencarral - Bilbao,emt,2,0.00523,0.0502
+Avenida De Los Poblados - Vía Lusitana,emt,2,0.00523,0.036
+Vallehermoso - Donoso Cortés,emt,2,0.00523,0.041
+Juan De Borbón - Ribera Del Sena,emt,2,0.00523,0.0375
+Casa De Campo,emt,3,0.00523,0.0359
+Fin De Semana,emt,3,0.00523,0.0355
+Ciudad De Frías - Bascuñuelos,emt,2,0.00523,0.0261
+Berrocal - Bario,emt,2,0.00523,0.0299
+Parque Lineal Del Manzanares,emt,2,0.00523,0.0435
+Av. Del Palacio - Regimiento Transmisiones,emt,2,0.00523,0.0342
+José Prat - Democracia,emt,2,0.00523,0.0447
+Puerta Del Ángel,emt,2,0.00523,0.0489
+Museo Sorolla,emt,2,0.00523,0.0531
+Samaranch - Pérez Pita,emt,4,0.00523,0.0339
+Fernando Gabriel,emt,2,0.00523,0.0347
+Avenida De Casaquemada,emt,2,0.00523,0.0264
+Metro Eugenia De Montijo,emt,3,0.00522,0.0412
+Hermanos García Noblejas - Centro De Salud,emt,4,0.0052,0.0457
+Camino Viejo Leganés - Pelícano,emt,2,0.0052,0.0482
+Blas Cabrera - Oliva De Plasencia,emt,2,0.0052,0.0406
+Javier De Miguel - San Anselmo,emt,3,0.00519,0.0461
+Besolla,emt,3,0.00518,0.0429
+Herrera Oria - Ventisquero De La Condesa,emt,4,0.00518,0.0368
+Darío Aparicio 35,emt,2,0.00518,0.0346
+La Peseta - Vía Lusitana,emt,2,0.00516,0.0429
+Auditorio Nacional,emt,2,0.00516,0.0545
+Camino Del Pozo - Luis I,emt,2,0.00515,0.0347
+Rafaela Ybarra - Marcelo Usera,emt,2,0.00514,0.0507
+Pi Y Margall - Ana De Austria,emt,3,0.00513,0.0495
+Embajadores - Acacias,emt,3,0.00513,0.058
+San Luis - Almanzora,emt,2,0.00512,0.0441
+Junta Municipal De Hortaleza,emt,3,0.00512,0.0423
+Artilleros - Campus Universitario,emt,2,0.00512,0.0573
+Antonia Rodríguez Sacristán - Centro Salud,emt,2,0.00511,0.043
+Plaza De España,emt,4,0.00511,0.0547
+Velázquez - Rodríguez Marín,emt,3,0.00511,0.0563
+Antonia Rodríguez Sacristán,emt,4,0.00509,0.0402
+Burjasot,emt,2,0.00508,0.0337
+Rubio Y Galí - Pablo Iglesias,emt,2,0.00508,0.0521
+Antonio Machado - Martín Alzaga,emt,2,0.00506,0.0433
+Tirso De Molina,emt,5,0.00506,0.0569
+Machupichu - Florencio Castillo,emt,2,0.00506,0.0393
+Carretera De Vallecas - Villafuerte,emt,2,0.00505,0.0333
+López De Hoyos - Príncipe De Vergara,emt,4,0.00504,0.0576
+Pedro Rico - Arzobispo Morcillo,emt,2,0.00503,0.047
+Pío Xii - Comandante Franco,emt,3,0.00503,0.0473
+Emigrantes - Tribaldos,emt,3,0.00501,0.0379
+Luchana,emt,3,0.00501,0.0521
+Doctor Arce,emt,2,0.00501,0.0558
+Puente Alcocer,emt,2,0.00501,0.0346
+Silvano - Haendel,emt,4,0.00501,0.0351
+Hormigueras - Torre Don Miguel,emt,2,0.005,0.0353
+Plaza Mayor,emt,2,0.00499,0.054
+Corazón De María - Cardenal Siliceo,emt,2,0.00499,0.0525
+Rafael Finat - José De Cadalso,emt,3,0.00498,0.0405
+Corbeta - La Rioja,emt,2,0.00497,0.0487
+Betanzos - La Bañeza,emt,4,0.00497,0.0421
+Gran Vía - Pedro Zerolo,emt,2,0.00495,0.0595
+Carretera De Alcobendas - Bercianos,emt,4,0.00494,0.0445
+Avenida De Miraflores - Dehesa De La Villa,emt,2,0.00494,0.041
+Camino De Santiago - Palas De Rey,emt,4,0.00494,0.0449
+Avenida De Burgos - Pi Y Margall,emt,3,0.00492,0.0484
+Joaquín Lorenzo - Doctor Castroviejo,emt,4,0.00492,0.0382
+Alto Del Arenal,emt,2,0.00491,0.0435
+Carlos Martín Álvarez - San Diego,emt,2,0.00491,0.0459
+Pinar Del Rey,emt,2,0.0049,0.0387
+San Cipriano - Forges,emt,4,0.00489,0.0573
+Pío Xii,emt,2,0.00489,0.0481
+Arturo Soria - José Del Hierro,emt,2,0.00488,0.045
+Laguna,emt,3,0.00488,0.0454
+O Donnell - Retiro,emt,3,0.00487,0.0644
+Villa Vallecas,emt,3,0.00487,0.0375
+Junta Municipal Tetuán,emt,3,0.00486,0.0468
+Blas De Otero - Teresa Saenz Heredia,emt,2,0.00485,0.0626
+Carretera De Vallecas - C. T. M.,emt,2,0.00483,0.0331
+Hospital Clínico,emt,4,0.00483,0.0547
+Aguacate - Centro De Salud,emt,2,0.00482,0.0414
+Fuente De La Mora,emt,2,0.00482,0.0563
+Tanatorio Sur,emt,2,0.00481,0.0474
+Las Rosas,emt,3,0.0048,0.0477
+Avenida De Los Poblados - Pradolongo,emt,2,0.00479,0.0416
+Pintor Sorolla,emt,2,0.00479,0.0457
+Hospital Gregorio Marañón,emt,3,0.00478,0.0658
+Herrera Oria - Isla De Arosa,emt,3,0.00478,0.0383
+Santa Hortensia,emt,3,0.00477,0.0502
+Blas De Otero - Santa Genoveva,emt,2,0.00477,0.0483
+Rubio Y Galí - Pablo Iglesias,emt,2,0.00477,0.0521
+Puerta Cerrada,emt,4,0.00476,0.0521
+Colón,emt,3,0.00476,0.0584
+Estafeta - Carabelos,emt,3,0.00476,0.0392
+Avenida De Los Poblados - Carabanchel Bajo,emt,2,0.00475,0.0421
+Parque De Palomeras,emt,4,0.00472,0.0363
+Nuestra Señora De La Luz,emt,2,0.00472,0.04
+Polideportivo La Mina,emt,2,0.00471,0.041
+Basílica,emt,2,0.00469,0.0557
+Villablanca - Lago Van,emt,5,0.00468,0.052
+Polideportivo Las Cruces,emt,2,0.00468,0.04
+Javier De Miguel - Puerto Velate,emt,3,0.00468,0.0442
+Rubén Darío,emt,2,0.00467,0.0537
+Plaza De Las Regiones,emt,2,0.00467,0.0402
+Prado - Atocha,emt,4,0.00467,0.0594
+Valencia De Don Juan - Ginzo De Limia,emt,3,0.00467,0.0433
+Mar Caspio - Mar Negro,emt,3,0.00467,0.0365
+Oporto,emt,3,0.00466,0.0484
+Metro Begoña,emt,3,0.00465,0.0491
+Bilbao,emt,2,0.00465,0.0511
+Alcalá - Alfonso Gómez,emt,2,0.00465,0.0499
+Narcís Monturiol,emt,3,0.00464,0.0452
+Herrera Oria - Instituto De Estudios Fiscales,emt,2,0.00464,0.0387
+Narváez - Ibiza,emt,4,0.00463,0.0617
+Cristo Rey,emt,3,0.00462,0.0496
+Avenida De Canillejas - Toscana,emt,3,0.00461,0.0521
+Olmos,emt,4,0.0046,0.0564
+Golondrina - Arroyo Pozuelo,emt,2,0.0046,0.0336
+Hospital Universitario Vithas,emt,3,0.0046,0.0411
+Atocha,emt,2,0.00459,0.0626
+Senda Del Infante - Cerro Minguete,emt,2,0.00458,0.0325
+Rafael Botí - Avenida Navacerrada,emt,2,0.00458,0.0315
+Ctra. De El Pardo - Av. De La Guardia,emt,2,0.00458,0.0331
+Costa Brava - Marbella,emt,2,0.00458,0.0408
+Valdebebas Cercanías,emt,2,0.00458,0.0353
+Vallehermoso - Cea Bermúdez,emt,2,0.00458,0.0394
+Virgen Del Sagrario - Virgen Del Castañar,emt,2,0.00458,0.0394
+Gandhi - San Telesforo,emt,2,0.00458,0.0335
+Ciudad De Frías - Resina,emt,2,0.00458,0.0255
+Consejo De Europa,emt,2,0.00458,0.0362
+Martínez Campos,emt,2,0.00458,0.0505
+Centro De Transfusiones,emt,2,0.00458,0.0428
+Avenida De Portugal - Fruela,emt,2,0.00458,0.0466
+Serrano - Diego De León,emt,2,0.00458,0.0315
+Caja Mágica,emt,2,0.00458,0.0417
+Mar De Las Antillas - Mar Negro,emt,3,0.00458,0.0364
+Berrocal - Canchal,emt,2,0.00458,0.0291
+Paradores - Avenida De Casaquemada,emt,2,0.00458,0.0258
+Avenida De Los Poblados - Cocheras Emt,emt,2,0.00458,0.0347
+Leiza - Rafaela Ybarra,emt,2,0.00458,0.0432
+Fuencarral - Alburquerque,emt,2,0.00458,0.0478
+Aldonza Lorenzo,emt,2,0.00458,0.0422
+Avenida De Oporto - Camino Viejo Leganés,emt,3,0.00457,0.0517
+Camino Viejo Leganés - Falcinelo,emt,3,0.00456,0.046
+San Luis - Añastro,emt,2,0.00454,0.0425
+Darío Aparicio - Viñas De El Pardo,emt,2,0.00453,0.0335
+Velázquez - María De Molina,emt,3,0.00453,0.0589
+Machupichu - Manuel Rodrigo,emt,2,0.00453,0.0381
+La Peseta - Maravedí,emt,2,0.00452,0.0412
+Plaza De La Vicalvarada,emt,2,0.00452,0.0545
+Carretera De Vallecas - Coalición,emt,2,0.00452,0.0325
+Tampico,emt,2,0.00451,0.0556
+Colonia Pinar Del Rey,emt,2,0.00451,0.0417
+Mediterráneo - Puentelarra,emt,2,0.0045,0.0455
+Avenida De Los Poblados - Comisaría,emt,2,0.0045,0.0396
+Santo Ángel De La Guarda - General Cadenas,emt,2,0.00449,0.047
+Carretera De Canillas - Carril Del Conde,emt,2,0.00448,0.0406
+Isla De Oza - Aurora,emt,2,0.00448,0.0417
+César Manrique - Chantada,emt,4,0.00447,0.0417
+Canillejas,emt,2,0.00447,0.0571
+Gran Vía - Montera,emt,2,0.00446,0.057
+Vinateros - Media Legua,emt,3,0.00445,0.0513
+San Cristóbal,emt,2,0.00444,0.0327
+Nuevos Ministerios - Centro Comercial,emt,2,0.00444,0.0552
+Sandro Pertini,emt,2,0.00444,0.0377
+Navalperal - Madrigal,emt,2,0.00444,0.0397
+Jazmín - Golfo De Salónica,emt,2,0.00444,0.0563
+Avenida De Los Poblados - Eugenia Montijo,emt,2,0.00444,0.0412
+Pablo Neruda - Malgrat De Mar,emt,4,0.00443,0.0417
+Orcasur - Pza Del Pueblo,emt,4,0.00443,0.0375
+Ocaña - Diamante,emt,3,0.00442,0.0381
+Hacienda De Pavones - Cañada,emt,4,0.00442,0.0462
+Herrera Oria - Islas Marquesas,emt,3,0.00441,0.0371
+Recoletos,emt,2,0.00441,0.0581
+Centro Transportes Madrid,emt,2,0.0044,0.0325
+Serrano Galvache,emt,2,0.00439,0.0496
+Avenida Del Planetario - Estación Sur,emt,2,0.00438,0.0584
+Pablo Neruda - Avenida De Palomeras,emt,3,0.00438,0.0409
+Carcastillo,emt,3,0.00437,0.0412
+Puerta Bonita,emt,3,0.00437,0.0478
+Arturo Soria - Marqués De Pico Velasco,emt,2,0.00436,0.0435
+Ibiza - Maiquez,emt,2,0.00436,0.0632
+Eduardo Dato,emt,2,0.00435,0.0523
+Machupichu - Silvano,emt,3,0.00435,0.037
+Paseo De Extremadura - Avenida Poblados,emt,2,0.00434,0.0399
+Manuel Aguilar - Avenida De Logroño,emt,2,0.00434,0.0465
+Conde De Peñalver - Ayala,emt,3,0.00434,0.0627
+Plaza Del Navío,emt,5,0.00433,0.0541
+Cardenal Cisneros,emt,4,0.00433,0.0468
+Gregorio Marañón,emt,2,0.00433,0.0578
+Puerto De La Morcuera,emt,2,0.0043,0.044
+Fuente Carrantona - Hacienda De Pavones,emt,2,0.00429,0.052
+Martínez Seco - Villaverde Cruce,emt,3,0.00428,0.0361
+Ministerio De Agricultura,emt,3,0.00427,0.0603
+Avenida De Los Poblados - Carretera Toledo,emt,2,0.00427,0.0455
+Fuente Carrantona - Hacienda De Pavones,emt,2,0.00426,0.05
+Rubio Y Galí - Francisco De Diego,emt,2,0.00426,0.05
+Plaza Chamberí,emt,2,0.00426,0.052
+Avenida De Badajoz,emt,3,0.00425,0.0494
+Ingeniero Herrera - Fuente De La Mora,emt,3,0.00425,0.0534
+Ocaña,emt,2,0.00425,0.0389
+Moreja,emt,2,0.00425,0.038
+Arequipa,emt,2,0.00424,0.0371
+Alcalá - Santa Leonor,emt,2,0.00423,0.0478
+Moncloa,emt,4,0.00422,0.0537
+Alcalá - General Aranaz,emt,3,0.00422,0.0484
+Camino Viejo De Burgos,emt,3,0.00422,0.0335
+Edgar Neville,emt,3,0.0042,0.0533
+Herrera Oria - Arroyofresno,emt,2,0.0042,0.0375
+Félix Rodríguez De La Fuente,emt,2,0.0042,0.059
+Extremeños,emt,3,0.00419,0.0396
+Metro Abrantes,emt,2,0.00419,0.0479
+Herrera Oria - Gómez De La Serna,emt,2,0.00419,0.0375
+Mejorana,emt,2,0.00418,0.0438
+Santo Domingo,emt,3,0.00417,0.0543
+Blas De Otero - Santa Irene,emt,2,0.00416,0.0462
+Avenida De Los Poblados - Expropiación,emt,2,0.00415,0.0399
+Islas Aleutianas - Joaquín Lorenzo,emt,3,0.00415,0.0388
+Fundación Jiménez Diaz,emt,2,0.00415,0.0479
+Oporto,emt,3,0.00414,0.0493
+Fernández Clausells - Mártires Maristas,emt,3,0.00413,0.0387
+Isidro González Velázquez,emt,2,0.00412,0.0342
+Serena - Campiña,emt,2,0.00411,0.0389
+Avenida De Logroño - San Severo,emt,2,0.00411,0.0572
+Gran Vía - Callao,emt,2,0.00409,0.0553
+Mercamadrid - Naves Auxiliares,emt,2,0.00409,0.032
+Codorniz,emt,2,0.00408,0.0394
+San Modesto - Marcos Orueta,emt,3,0.00407,0.0469
+Fresnedillas,emt,2,0.00407,0.0371
+San Bernardo - Estrella,emt,2,0.00406,0.0544
+Hellín - Alberique,emt,3,0.00405,0.0518
+Carretera De Vallecas - Unanimidad,emt,2,0.00404,0.0317
+Ulises - Asura,emt,2,0.00404,0.0435
+Nicolás Salmerón - Alsacia,emt,2,0.00402,0.058
+Ayacucho,emt,3,0.00402,0.0362
+Metro San Bernardo,emt,2,0.004,0.0486
+Las Rosas - Metro Las Musas,emt,3,0.004,0.0496
+Lista,emt,3,0.00399,0.0623
+Barrio De La Paz,emt,2,0.00399,0.0435
+Herrera Oria - Gascones,emt,2,0.00398,0.0371
+Metro Arturo Soria,emt,2,0.00398,0.0435
+Aquitania - Capri,emt,4,0.00398,0.0582
+Base Aérea Cuatro Vientos,emt,3,0.00397,0.0355
+Nueva Zelanda - Ruperto Andrés,emt,2,0.00396,0.0403
+San Luis - Estación Hortaleza,emt,2,0.00396,0.0409
+Condado De Treviño,emt,2,0.00395,0.048
+Golondrina - Virgen De Los Rosales,emt,2,0.00395,0.0325
+Barros - Villuercas,emt,4,0.00394,0.0377
+Gandhi - Luis Ruiz,emt,2,0.00393,0.0324
+Palacio Real De El Pardo,emt,2,0.00393,0.032
+Illescas - Tembleque,emt,2,0.00393,0.039
+El Barrial,emt,2,0.00393,0.0306
+Paradores - Venta Vieja,emt,2,0.00393,0.0251
+Mario Moreno Cantinflas - Victoria Kent,emt,2,0.00393,0.0468
+Iglesia,emt,2,0.00393,0.048
+Berrocal - Silvinita,emt,2,0.00393,0.0282
+Serrano - María De Molina,emt,2,0.00393,0.0306
+Pradera De Corralillos,emt,2,0.00393,0.0315
+Sor Ángela De La Cruz - Cuzco,emt,2,0.00393,0.0469
+Plaza Tres Olivos,emt,2,0.00393,0.0405
+Álvarez De Castro - José Abascal,emt,2,0.00393,0.0535
+Avenida De Portugal - Avenida Principal,emt,2,0.00393,0.0445
+Juan Pérez De Zúñiga - Torrelaguna,emt,2,0.00393,0.0379
+San Ezequiel - Real De Pinto,emt,2,0.00393,0.0248
+Vallehermoso - Islas Filipinas,emt,2,0.00393,0.0379
+Tanatorio Sur,emt,2,0.00393,0.0336
+Carretera De Boadilla - Villaviciosa,emt,2,0.00393,0.0347
+Faunia,emt,2,0.00393,0.041
+Quevedo,emt,2,0.00393,0.0456
+Guetaria - Leiza,emt,2,0.00393,0.0414
+Costa Brava - Moralzarzal,emt,2,0.00393,0.0392
+Legazpi - Paseo Del Molino,emt,3,0.00393,0.0502
+Samaranch - Josefina Aldecoa,emt,4,0.00393,0.0328
+Glorieta De Antoñete,emt,2,0.00393,0.0341
+Plaza De España,emt,2,0.00393,0.0513
+Eduardo Barreiros - Avenida De Los Rosales,emt,2,0.00393,0.0375
+Santa Catalina,emt,2,0.00393,0.04
+Ribera Del Loira - Sanitas,emt,2,0.00393,0.0349
+Herrera Oria - Camino Fuencarral,emt,2,0.00392,0.037
+San Martín De Porres - Guisando,emt,5,0.00392,0.0375
+Manuel Becerra,emt,2,0.00392,0.0596
+Juan De Olías,emt,2,0.00391,0.0507
+Arturo Soria - Juan Pérez De Zúñiga,emt,2,0.00391,0.0421
+Santo Ángel De La Guarda - Arciniega,emt,2,0.00391,0.0452
+San Luis - Solsona,emt,2,0.00391,0.0402
+López De Aranda - Tampico,emt,2,0.0039,0.0529
+Cronos - San Romualdo,emt,3,0.0039,0.0544
+Mercamadrid - Pescados,emt,2,0.00389,0.0317
+La Peseta - Corona,emt,2,0.00388,0.0396
+Santa Eugenia,emt,2,0.00388,0.0436
+Valdemarín - Lavadero,emt,2,0.00388,0.0324
+Glorieta De Cádiz,emt,4,0.00387,0.0488
+Santa Irene - Trece Rosas,emt,3,0.00386,0.043
+Carretera De Canillas - Benita Ávila,emt,2,0.00384,0.0391
+Avenida De Los Poblados - Guetaria,emt,2,0.00384,0.0443
+Media Legua,emt,2,0.00384,0.0489
+Cuesta De La Vega,emt,3,0.00384,0.0503
+Rubio Y Galí - Francos Rodríguez,emt,2,0.00383,0.0484
+Valverde,emt,2,0.00383,0.0566
+Avenida De Logroño - Ariadna,emt,2,0.00383,0.0593
+Alcalá - Avenida Séptima,emt,2,0.00383,0.0541
+Carretera De Vallecas - Avenida Rosales,emt,2,0.00383,0.0315
+San Nazario,emt,3,0.00381,0.0464
+Rocafort - Moncada,emt,2,0.0038,0.0316
+Roquetas De Mar,emt,2,0.0038,0.0534
+Paseo De La Habana - Hermanos Pinzón,emt,2,0.0038,0.0523
+Avenida De Burgos - Avenida De Manoteras,emt,2,0.00379,0.0475
+José Abascal - Modesto Lafuente,emt,2,0.00379,0.0552
+Plaza Vista Alegre,emt,2,0.00378,0.0459
+San Antonio De Padua,emt,2,0.00377,0.0485
+Pablo Neruda - Villalobos,emt,2,0.00376,0.0399
+López De Hoyos - Cartagena,emt,2,0.00376,0.0546
+Juan Herrera,emt,3,0.00376,0.0458
+Fuente Carrantona - Hacienda De Pavones,emt,3,0.00375,0.0509
+Santuario,emt,3,0.00373,0.0468
+Plaza De La Asociación,emt,2,0.00373,0.04
+Vizconde Arlesson - Puerto Balbarán,emt,2,0.00371,0.0423
+Avenida De Logroño - Bahía De Cádiz,emt,2,0.00371,0.0445
+Infanta Mercedes,emt,2,0.00371,0.0518
+La Masó - Nuria,emt,3,0.00371,0.0414
+Imperial - Pirámides,emt,2,0.00371,0.0542
+Buenos Aires - Pedro Laborde,emt,2,0.00371,0.0426
+Paseo De Extremadura 382,emt,2,0.0037,0.0384
+Alberto Aguilera - Galileo,emt,3,0.0037,0.0466
+Plaza Del Parterre,emt,4,0.00369,0.0367
+Forges - Jardín De La Duquesa,emt,3,0.00368,0.0544
+Imagen - Puerto De La Morcuera,emt,2,0.00367,0.0457
+Plaza De Italia,emt,2,0.00366,0.0493
+Alcalá - 25 De Septiembre,emt,2,0.00366,0.0574
+Ronda Sur - Avenida De Las Glorietas,emt,4,0.00365,0.0366
+Fuente Carrantona - Encomienda De Palacios,emt,2,0.00365,0.0477
+San Luis - Avenida De Burgos,emt,2,0.00365,0.047
+Avenida De Valladolid - Brigada Tráfico,emt,4,0.00364,0.0478
+Villablanca - Sepiolita,emt,4,0.00364,0.0519
+Irene Caba Alba - María De Maeztu,emt,4,0.00363,0.035
+Encomienda De Palacios - Tacona,emt,3,0.00363,0.0464
+Estafeta - Avenida San Fermín,emt,3,0.00362,0.0379
+Eduardo Barreiros - Centro De Salud,emt,2,0.00361,0.0387
+Parque Darwin,emt,3,0.00361,0.0451
+Arturo Soria - Josefa Valcárcel,emt,2,0.00361,0.0414
+Las Suertes,emt,3,0.0036,0.0319
+Santa Irene,emt,2,0.0036,0.0445
+Parque De Palomeras,emt,2,0.0036,0.0353
+Ensanche De Vallecas - Gutiérrez Maroto,emt,2,0.00359,0.033
+Mejorana - Lagartera,emt,2,0.00359,0.0422
+Corazón De María - Santa Rita,emt,2,0.00358,0.0482
+Martínez Seco - Benita López,emt,2,0.00358,0.0349
+Vital Aza - Albasanz,emt,4,0.00357,0.0461
+Abrantes - Carrero Juan Ramón,emt,2,0.00356,0.0457
+Félix Rodríguez De La Fuente,emt,2,0.00355,0.0557
+General Ricardos - Marcelino Camacho,emt,3,0.00354,0.0443
+Avenida De Los Poblados - Tolosa Latour,emt,3,0.00353,0.0385
+López Ibor - Isla Cristina,emt,2,0.00353,0.0393
+Felipe Ii,emt,2,0.00352,0.0585
+Noviciado,emt,2,0.00351,0.0521
+Tanatorio M30,emt,3,0.00351,0.05
+Avenida De Las Águilas - José De Cadalso,emt,2,0.00349,0.0392
+Yeserías,emt,3,0.00349,0.0536
+Fermín Caballero - Patones,emt,3,0.00347,0.0407
+Llano Castellano - Manuel Tovar,emt,3,0.00347,0.0453
+Avenida De Logroño - Polideportivo,emt,3,0.00347,0.0541
+Eugenia De Montijo - Fátima,emt,2,0.00346,0.038
+Gabriela Mistral - Alas Clarín,emt,2,0.00345,0.0358
+Fermín Caballero - Sangenjo,emt,2,0.00345,0.042
+Jefatura Provincial Tráfico,emt,2,0.00344,0.042
+Cuatro Torres,emt,2,0.00343,0.0489
+Moscatelar - Parma,emt,2,0.00341,0.0417
+Colonia Pinar Del Rey,emt,2,0.0034,0.0396
+Corregidor Sancho De Córdoba,emt,3,0.0034,0.0451
+Plaza De La Paja,emt,2,0.00339,0.0508
+Martín Alzaga - Altea,emt,2,0.00339,0.0436
+Santa María De La Cabeza - Puente Praga,emt,3,0.00339,0.0581
+Ruidera - Bohonal,emt,3,0.00337,0.0401
+Nicolás Salmerón - Paredes De Nava,emt,3,0.00337,0.0548
+Los Yébenes - Centro De Salud,emt,2,0.00337,0.043
+Urgel,emt,3,0.00337,0.0484
+Mar Adriático,emt,2,0.00337,0.0363
+Imperial - Pontones,emt,2,0.00336,0.0526
+Arganda - Puente Praga,emt,2,0.00335,0.0478
+Joaquín Lorenzo - Islas Marquesas,emt,3,0.00335,0.0381
+Biblioteca Nacional,emt,2,0.00334,0.058
+Fuentidueña - Centro De Salud,emt,2,0.00334,0.0332
+San Luis - Santos De La Humosa,emt,2,0.00333,0.0388
+Alonso Cano,emt,2,0.00332,0.0531
+Maestra Justa Freire - P. Aluche Cercanías,emt,2,0.00332,0.0388
+Metro San Bernardo,emt,2,0.00332,0.0512
+López De Aranda,emt,2,0.00332,0.0505
+Manizales,emt,3,0.00331,0.0344
+Camino Viejo Leganés - Carcastillo,emt,3,0.0033,0.0441
+General Perón - Infanta Mercedes,emt,2,0.0033,0.0484
+Golondrina - Galaxia,emt,2,0.0033,0.0315
+Orense - San Germán,emt,2,0.00329,0.0501
+Plaza Del Parterre,emt,4,0.00329,0.0392
+Avenida Santa Eugenia 13,emt,2,0.00328,0.0419
+Avenida De La Aviación - Medina Del Campo,emt,3,0.00328,0.035
+Glorieta Cirilo Martín Martín,emt,3,0.00328,0.035
+Ventisquero De La Condesa - Valle Enmedio,emt,2,0.00327,0.0305
+San Millán De La Cogolla - Atapuerca,emt,2,0.00327,0.0419
+Bravo Murillo - Quevedo,emt,2,0.00327,0.0436
+Estadio Vallehermoso,emt,2,0.00327,0.0365
+Glorieta San Martín De La Vega,emt,2,0.00327,0.0361
+Manuel Fraga Iribarne - Fernando Higueras,emt,2,0.00327,0.033
+Joan Maragall - San Germán,emt,2,0.00327,0.0501
+Palacio Real,emt,2,0.00327,0.0488
+Fernández Caro - Francisco Luján,emt,2,0.00327,0.0366
+Paseo De El Pardo 43,emt,2,0.00327,0.0311
+Sor Ángela De La Cruz - Orense,emt,2,0.00327,0.0448
+Instituto Raúl Vázquez,emt,2,0.00327,0.0385
+Ramón Y Cajal - Víctor De La Serna,emt,2,0.00327,0.0501
+Victoria Kent - Arroyo Cañaveral,emt,2,0.00327,0.0447
+Paseo De La Dirección - Molina,emt,2,0.00327,0.0428
+Robledal,emt,2,0.00327,0.0426
+Plaza Elíptica,emt,2,0.00327,0.0325
+Canalejas,emt,2,0.00327,0.0589
+Paradores - Guecho,emt,2,0.00327,0.0245
+Glorieta Álvarez De Castro,emt,2,0.00327,0.0508
+Eloy Gonzalo,emt,2,0.00327,0.0458
+Minerva - Avenida De Las Comunidades,emt,2,0.00327,0.0394
+Laguna Del Marquesado - Real De Pinto,emt,2,0.00327,0.0242
+Ribera Del Loira - Partenón,emt,2,0.00327,0.0337
+Plaza De Los Metales,emt,2,0.00327,0.0275
+Campo De Calatrava,emt,2,0.00327,0.039
+Residencia De Estudiantes,emt,2,0.00327,0.0297
+Avenida De La Victoria - Centro Comercial,emt,2,0.00327,0.0297
+Guetaria - Alzola,emt,2,0.00327,0.0397
+Arroyo Del Monte - Ventisquero Condesa,emt,2,0.00327,0.0377
+Illescas 103,emt,2,0.00327,0.0375
+Gandhi - José Arcones Gil,emt,2,0.00327,0.0314
+Tomás Redondo - Ribera Del Loira,emt,2,0.00327,0.0316
+Carretera De Boadilla - Mirlo,emt,2,0.00327,0.0335
+Junta Municipal Latina,emt,2,0.00327,0.0387
+Carabanchel Alto - La Peseta,emt,2,0.00326,0.0381
+Suecia - Bucarest,emt,4,0.00326,0.0468
+Fernández Clausells - Isla De Oza,emt,2,0.00326,0.0379
+Junta Municipal Latina,emt,3,0.00326,0.0388
+Entrearroyos,emt,2,0.00325,0.0468
+Valdemarín - Cisne,emt,2,0.00323,0.0314
+Doctor Castroviejo - López Ibor,emt,2,0.00322,0.0386
+Santa Felicidad - Iglesia,emt,2,0.00321,0.0509
+Príncipe De Vergara - María De Molina,emt,2,0.00321,0.0583
+Carretera De Canillas - Gomeznarro,emt,2,0.00321,0.0376
+San Bernardo - Dos De Mayo,emt,2,0.00321,0.0507
+Mojácar,emt,2,0.00319,0.0508
+Alcalá - Ciudad Pegaso,emt,3,0.00318,0.0513
+San Ildefonso,emt,2,0.00318,0.0536
+Sagrados Corazones,emt,2,0.00318,0.0499
+Planeta - Avenida Logroño,emt,2,0.00318,0.056
+Lago Calafate,emt,2,0.00317,0.0412
+Prosperidad,emt,2,0.00317,0.052
+Campotejar - Gran Avenida,emt,2,0.00316,0.0386
+Metro San Cristóbal,emt,2,0.00315,0.0307
+La Bañeza - Ponferrada,emt,3,0.00315,0.0405
+Pinos Alta - Bravo Murillo,emt,2,0.00314,0.0449
+Entrevías Cercanías,emt,2,0.00313,0.0408
+Plaza De Venecia,emt,3,0.00312,0.0512
+Arturo Soria - Conservatorio,emt,2,0.00312,0.0409
+Isla De Arosa,emt,2,0.00311,0.0393
+Pléyades - Ana Teresa,emt,4,0.0031,0.0339
+Avenida De Logroño - Brezos,emt,2,0.00309,0.0427
+Brezos,emt,5,0.00308,0.0494
+Paseo De Extremadura 392,emt,2,0.00307,0.037
+Teatro Circo Price,emt,5,0.00306,0.0572
+Imagen - Puerto Balbarán,emt,3,0.00306,0.0438
+Avenida De Daroca - Ricardo Ortiz,emt,3,0.00306,0.0569
+Metro Miguel Hernández,emt,2,0.00306,0.0406
+Corregidor Diego Valderrábano - Lituania,emt,2,0.00306,0.0513
+Mendivil,emt,2,0.00303,0.0522
+Isla De Oza - San Martín De Porres,emt,3,0.00303,0.0373
+Eduardo Barreiros - Corte De Faraón,emt,3,0.00303,0.0373
+Lagartera,emt,2,0.00303,0.0407
+Arturo Soria - José Del Hierro,emt,3,0.00303,0.0467
+Puente De Segovia,emt,2,0.00303,0.0502
+Puente De Segovia - Paseo De Extremadura,emt,2,0.00302,0.0496
+San Romualdo - Albasanz,emt,2,0.00302,0.0544
+Villaverde Cruce,emt,2,0.00301,0.0363
+Nazaret,emt,4,0.003,0.0646
+Las Meninas,emt,2,0.00299,0.0438
+Avenida De Burgos - Avenida De Manoteras,emt,2,0.00295,0.0448
+Ermita Virgen Del Puerto,emt,4,0.00295,0.053
+Menéndez Pelayo - Sainz De Baranda,emt,2,0.00295,0.0634
+Valdebernardo - Pavones,emt,2,0.00294,0.0451
+La Salle - Blanca De Castilla,emt,2,0.00294,0.0348
+La Gavia - Centro Comercial,emt,2,0.00294,0.0319
+Martínez Seco - Diamante,emt,2,0.00293,0.0337
+Parque De Las Avenidas,emt,3,0.00293,0.0511
+José Abascal - Santa Engracia,emt,2,0.00293,0.0515
+Martín Alzaga - Artajona,emt,3,0.00293,0.0423
+Pintor Rosales,emt,4,0.00293,0.0521
+Pedroches - Benamejí,emt,2,0.00292,0.0381
+Embajadores,emt,2,0.00292,0.0577
+García Tapia - Diego Valderrábano,emt,2,0.00291,0.0529
+Puente De Vallecas,emt,2,0.0029,0.055
+Condesa De Venadito - Torrelaguna,emt,2,0.0029,0.0507
+Ocaña - Intercambiador De Aluche,emt,2,0.00289,0.0373
+San Luis - Solsona,emt,2,0.00288,0.0383
+Joaquín Turina - La Fortuna,emt,2,0.00288,0.0438
+Canillejas,emt,2,0.00288,0.0584
+Av. Burgos - Nudo Manoteras,emt,2,0.00287,0.0445
+Conde De Peñalver - Alcalá,emt,2,0.00287,0.0553
+Tolosa Latour - Acceso 12 Octubre,emt,2,0.00287,0.0371
+Rodríguez Castelao - Gabriela Mistral,emt,3,0.00286,0.0347
+Quintanadueñas,emt,2,0.00285,0.0444
+Avenida Santa Eugenia - Camino De Vasares,emt,3,0.00285,0.0404
+Suecia - Rumanía,emt,3,0.00285,0.052
+Llano Castellano - Valdegovia,emt,2,0.00285,0.0434
+Puerta De Arganda,emt,2,0.00284,0.0542
+Ocaña - Camarena,emt,2,0.00282,0.0376
+Santiago Bernabéu,emt,3,0.00282,0.0497
+Abrantes - Camino Viejo Leganés,emt,2,0.00281,0.0423
+I. S. Carlos Iii - Campus Chamartín,emt,2,0.00281,0.0467
+Moscatelar - Milán,emt,2,0.0028,0.0401
+Oca - Matilde Hernández,emt,2,0.0028,0.0505
+Santos De La Humosa,emt,3,0.0028,0.0375
+Puente San Isidro - Ermita Del Santo,emt,2,0.00278,0.05
+La Bañeza - Cándido Mateos,emt,3,0.00278,0.0402
+Marqués De Hoyos,emt,2,0.00277,0.0485
+Marqués De Vadillo,emt,3,0.00277,0.0537
+Colón,emt,2,0.00277,0.0551
+Plaza Del Encuentro,emt,4,0.00276,0.0449
+Carretera De Húmera - Riaza,emt,3,0.00275,0.034
+Fuente Carrantona - Encomienda De Palacios,emt,3,0.00274,0.0459
+Monasterio De Arlanza - Nuestra Señora De Valverde,emt,2,0.00274,0.0427
+Julia García Boután - Niza,emt,4,0.00273,0.0474
+San Lorenzo,emt,2,0.00273,0.0334
+Los Yébenes,emt,2,0.00272,0.0413
+Paseo De La Esperanza - Gargantilla,emt,2,0.00272,0.0456
+Palacio De Congresos,emt,2,0.00271,0.0463
+Corregidor Alonso Aguilar,emt,2,0.00271,0.0449
+Villafranca,emt,3,0.00271,0.0549
+San Francisco De Sales,emt,3,0.0027,0.0506
+Orcasitas,emt,3,0.0027,0.0376
+Alicún,emt,3,0.0027,0.0487
+Ventura Rodríguez,emt,4,0.0027,0.0535
+Fuentidueña - Peña Cervera,emt,2,0.00269,0.0322
+Villablanca - Gran Vía Del Este,emt,5,0.00269,0.0494
+Buenos Aires - Arroyo Del Olivar,emt,2,0.00268,0.0463
+Metro La Peseta,emt,2,0.00268,0.0369
+Plaza San Cayetano,emt,2,0.00268,0.0565
+Cartagena - Béjar,emt,2,0.00267,0.0564
+Rafael Finat - Valle Inclán,emt,2,0.00266,0.0397
+Glorieta Cirilo Martín Martín,emt,2,0.00265,0.0306
+Ronda Sur - Santa Rafaela,emt,3,0.00265,0.0388
+Leoneses - Villalobos,emt,2,0.00265,0.0399
+Rafaela Ybarra - Avenida De Los Poblados,emt,3,0.00265,0.0449
+Emilio Muñoz - Miguel Yuste,emt,2,0.00265,0.0518
+Paseo De La Habana - San Juan De Dios,emt,2,0.00264,0.0479
+Alcalde López Casero,emt,2,0.00264,0.0536
+Pedro Rico - Hospital La Paz,emt,2,0.00263,0.0515
+Magdalena,emt,2,0.00262,0.0538
+Tanatorio Sur,emt,2,0.00262,0.0315
+Gutiérrez Mellado - Secundino Zuazo,emt,4,0.00262,0.0318
+Carretera De Boadilla - Galicia,emt,2,0.00262,0.0325
+Puente San Isidro - San Illán,emt,2,0.00262,0.044
+Metro Mirasierra,emt,2,0.00262,0.0296
+Fernández Caro - Agastia,emt,2,0.00262,0.0353
+Illescas - Escalona,emt,2,0.00262,0.0361
+Bravo Murillo - Donoso Cortés,emt,2,0.00262,0.0418
+Santo Domingo De La Calzada - Atapuerca,emt,2,0.00262,0.0402
+San Pol De Mar,emt,2,0.00262,0.0475
+Guetaria - Ordicia,emt,2,0.00262,0.0382
+Concejal Francisco Jiménez - Alhambra,emt,2,0.00262,0.0434
+Avenida De La Victoria - Virgen De Los Olmos,emt,2,0.00262,0.0288
+Manuel Fraga Iribarne - Estanislao Pérez,emt,2,0.00262,0.0319
+Estafeta - Avenida San Fermín,emt,2,0.00262,0.0349
+Ganados Del Salobral,emt,3,0.00262,0.0267
+Paseo De El Pardo - Campaña,emt,2,0.00262,0.0301
+Luis Ocaña - Gales,emt,2,0.00262,0.0428
+Víctor De La Serna,emt,2,0.00262,0.0477
+Anastasia López - Braille,emt,2,0.00262,0.0375
+Blas Cabrera - Casuarina,emt,2,0.00262,0.0422
+Centro Transportes Madrid,emt,2,0.00262,0.0371
+Paseo De La Dirección - Cantueso,emt,2,0.00262,0.041
+Aragoneses,emt,2,0.00262,0.0381
+Cementerio La Almudena - Parada 1,emt,2,0.00262,0.0412
+Pablo Neruda - Villalobos,emt,2,0.00262,0.0382
+Tomás Redondo - Juan Zaragueta,emt,2,0.00262,0.0306
+Yécora - Invierno,emt,2,0.00262,0.0343
+Hermanos García Noblejas - Centro De Salud,emt,2,0.00262,0.0305
+Ramiro De Maeztu,emt,2,0.00262,0.0288
+Sor Ángela De La Cruz - Infanta Mercedes,emt,2,0.00262,0.0429
+Minerva - Molino Viejo,emt,2,0.00262,0.0379
+Arapiles,emt,2,0.00262,0.0438
+Nuestra Señora De Loreto,emt,2,0.00262,0.0541
+Provincias Vascongadas,emt,2,0.00262,0.0239
+Albergue Juvenil,emt,2,0.00262,0.0409
+Álvarez De Castro - Eloy Gonzalo,emt,2,0.00262,0.0483
+Ribera Del Loira - Xerox,emt,2,0.00262,0.0326
+Laguna Del Marquesado - San Erasmo,emt,2,0.00262,0.0237
+Las Vistillas,emt,2,0.00262,0.0466
+Melquíades Álvarez,emt,2,0.00262,0.0352
+Cabeza Mesada - Puerto Porzuna,emt,2,0.00262,0.0332
+Benavente,emt,2,0.00262,0.0556
+Casa De Campo,emt,2,0.00262,0.0432
+Fuente Carrantona - Arroyo Fontarrón,emt,2,0.00262,0.0401
+Aster,emt,2,0.00262,0.0446
+Senda Del Infante - Olga Ramos,emt,2,0.00262,0.0363
+Avenida De Canillejas - M40,emt,3,0.00261,0.0545
+Jardines De Aranjuez,emt,2,0.0026,0.0615
+Vecinos Del Pozo,emt,3,0.0026,0.0355
+Canal,emt,2,0.0026,0.0502
+López De Hoyos - Cardenal Silíceo,emt,2,0.00259,0.0498
+Francisco Villaespesa - Lago Constanza,emt,2,0.00259,0.051
+López De Hoyos - Padre Claret,emt,3,0.00259,0.0456
+Arturo Soria - Añastro,emt,2,0.00258,0.0452
+Avenida De Canillejas - Néctar,emt,2,0.00258,0.0574
+Santa Felicidad,emt,2,0.00258,0.0486
+Cristo De La Victoria - Santuario,emt,2,0.00258,0.0448
+Marqués De Vadillo,emt,3,0.00258,0.0537
+Avenida Valdemarín - Blanca De Castilla,emt,2,0.00258,0.0305
+Caramuel - Antillón,emt,4,0.00257,0.0468
+Carretera De Canillas - Utrillas,emt,2,0.00257,0.0363
+Metro Puerta Del Ángel,emt,2,0.00257,0.0489
+Puente De Los Franceses - Clínica Moncloa,emt,3,0.00257,0.046
+José Prat - Ladera De Los Almendros,emt,3,0.00256,0.0496
+Veza,emt,2,0.00256,0.0431
+Orovilla - Felicidad,emt,2,0.00255,0.0385
+Gutiérrez Maroto - Centro Comercial,emt,2,0.00254,0.0319
+Avenida De Logroño - Algemesí,emt,2,0.00254,0.0531
+Corredera,emt,2,0.00254,0.0509
+Gregorio Sánchez Herráez,emt,2,0.00253,0.0331
+El Rastro,emt,2,0.00253,0.0558
+Quintanadueñas - Puerto De Somport,emt,2,0.00252,0.0434
+Santa María De La Cabeza - Parque Bomberos,emt,2,0.00252,0.059
+Llano Castellano - Herrera Oria,emt,3,0.00252,0.0418
+Almagro - Rubén Darío,emt,2,0.00252,0.0545
+Avenida De Andalucía - Resina,emt,2,0.00251,0.0298
+Biblioteca Miguel Hernández,emt,2,0.00251,0.0393
+Fuentespina - Centro De Salud,emt,2,0.00251,0.0454
+San Luis - Santos De La Humosa,emt,2,0.00249,0.0376
+Aragoneses,emt,3,0.00248,0.038
+Antonia Rodríguez Sacristán - Centro Salud,emt,2,0.00248,0.0389
+Legazpi,emt,2,0.00248,0.0512
+Carretera De Fuencarral A Hortaleza,emt,2,0.00248,0.0428
+Avenida De Moratalaz - Diego Valderrábano,emt,2,0.00248,0.049
+Avenida De Logroño - Polideportivo,emt,2,0.00247,0.0411
+Madrid Sur,emt,3,0.00246,0.0457
+O Donnell - Narváez,emt,2,0.00246,0.0603
+Paseo De Extremadura Km. 8,emt,2,0.00244,0.0358
+Playa De América,emt,4,0.00244,0.0494
+Arzobispo Morcillo - Facultad Medicina,emt,2,0.00244,0.0515
+Sevilla,emt,3,0.00243,0.0616
+Francisco Pi Y Margall - Alcalde Moreno Torres,emt,2,0.00243,0.0431
+Puerta De Toledo,emt,3,0.00243,0.0548
+Castellana - Ministerio Interior,emt,2,0.00242,0.0539
+Rafael Finat - Avenida De Las Águilas,emt,2,0.00242,0.0391
+Delicias - Atocha,emt,3,0.00241,0.0567
+Avenida De Canillejas - Rusia,emt,2,0.00241,0.0476
+Toledo - La Paloma,emt,4,0.00241,0.0555
+Arturo Soria - Aleixandre,emt,2,0.00241,0.0461
+Cerro Negro,emt,3,0.0024,0.0526
+San Romualdo - Julián Camarillo,emt,2,0.0024,0.0517
+Templo De Debod,emt,3,0.0024,0.0531
+Cazorla - Alcores,emt,2,0.00239,0.037
+Sierra Toledana - Camino Valderribas,emt,2,0.00238,0.0496
+Joaquín Turina - Parque Carlos Matallanas,emt,2,0.00238,0.0424
+Ermita Del Santo - Avenida Del Manzanares,emt,2,0.00237,0.0472
+General Oráa - Emilio Castelar,emt,2,0.00237,0.0531
+Narváez - Ibiza,emt,4,0.00235,0.06
+Almagro - Zurbano,emt,2,0.00235,0.0538
+Arturo Soria - Ángel Gordillo,emt,2,0.00235,0.0444
+Arturo Soria - Gran Vía De Hortaleza,emt,2,0.00234,0.0458
+Guadarrama - Grandeza Española,emt,2,0.00234,0.0504
+Consejo Superior De Deportes,emt,2,0.00234,0.0453
+Puerta De Alcalá,emt,2,0.00233,0.0595
+Avenida De Manoteras - Oña,emt,2,0.00232,0.043
+Marquesado De Santa Marta,emt,2,0.00232,0.0603
+O Donnell - Retiro,emt,2,0.00231,0.0594
+Alonso Martínez,emt,2,0.00231,0.0536
+Cea Bermúdez,emt,2,0.00231,0.0491
+Senda Del Rey,emt,2,0.0023,0.0451
+Cavanilles - Abtao,emt,3,0.0023,0.0593
+Felipe Ii,emt,3,0.0023,0.0591
+Plaza Del Encuentro,emt,2,0.00229,0.0432
+Las Suertes - Cañada Del Santísimo,emt,2,0.00229,0.0309
+Valdebernardo - Luis De Hoyos,emt,2,0.00229,0.0432
+Fermín Caballero - Isla De Tabarca,emt,3,0.00229,0.0414
+Ensanche De Vallecas - Embalse De Pinilla,emt,3,0.00229,0.0309
+García Tapia - Media Legua,emt,2,0.00229,0.0503
+Canal Del Bósforo - Avenida De Canillejas,emt,2,0.00228,0.0574
+Campos Ibáñez - Martínez Seco,emt,2,0.00228,0.0327
+Neptuno,emt,3,0.00228,0.0595
+Plaza De La Palmera,emt,2,0.00228,0.0427
+Marqués De Lozoya,emt,3,0.00227,0.0611
+Metro Herrera Oria,emt,2,0.00227,0.0395
+Hospital 12 De Octubre,emt,2,0.00227,0.0359
+Avenida De La Albufera - Sierra Del Cadi,emt,2,0.00225,0.0526
+Minerva - Omega,emt,4,0.00225,0.0515
+Monasterio Silos - Monasterio Sobrado,emt,3,0.00224,0.0412
+Conde De Peñalver - Ayala,emt,2,0.00224,0.0525
+Puente San Isidro - Pontones,emt,2,0.00224,0.0443
+Avenida De América - Instituto Barajas,emt,2,0.00223,0.0553
+Barajas,emt,2,0.00223,0.0541
+La Peseta - Vía Lusitana,emt,3,0.00223,0.0489
+Parque De La Arganzuela,emt,2,0.00223,0.0514
+Isabel Colbrand - Molinaseca,emt,2,0.00222,0.0461
+Metro Herrera Oria,emt,3,0.00222,0.0418
+Aquitania - República Eslovaca,emt,3,0.00222,0.0552
+Pérez De Ayala - Benjamín Palencia,emt,2,0.00221,0.049
+Hospital Carlos Iii,emt,2,0.00221,0.0448
+Gallur,emt,2,0.00221,0.0467
+Luis De Hoyos,emt,2,0.00221,0.0499
+Vía Carpetana - Caramuel,emt,2,0.00221,0.0479
+Toledo - Humilladero,emt,4,0.00221,0.0546
+Melquíades Álvarez,emt,2,0.0022,0.0486
+Media Legua,emt,2,0.0022,0.0432
+Plaza Del Liceo,emt,2,0.0022,0.0387
+Puerta De Toledo,emt,3,0.0022,0.0538
+La Peseta - Pinar De San José,emt,2,0.00219,0.0359
+Príncipe De Vergara - María De Molina,emt,2,0.00218,0.0567
+Paseo De La Habana - Cochabamba,emt,2,0.00218,0.0463
+Valvanera - Tórtola,emt,2,0.00217,0.0482
+Alfonso Xiii - Pradillo,emt,2,0.00217,0.0445
+Osa Mayor - Carretera De Húmera,emt,4,0.00216,0.0331
+Legazpi,emt,2,0.00216,0.0562
+Hospital 12 De Octubre - Urgencias,emt,3,0.00216,0.0343
+Pobladura Del Valle - Avenida Canillejas,emt,2,0.00216,0.0493
+Parque Calero,emt,3,0.00215,0.0491
+Museo Reina Sofía,emt,3,0.00215,0.0576
+Plaza Castilla,emt,2,0.00215,0.0451
+Paseo De La Esperanza - Vallejo Nájera,emt,2,0.00215,0.0439
+Plaza Niño Jesús,emt,3,0.00213,0.0595
+Fermín Caballero - Betanzos,emt,3,0.00213,0.0375
+Barrio Aeropuerto,emt,2,0.00212,0.0601
+Moncloa,emt,3,0.00212,0.0496
+Monasterio Silos - Monasterio Huelgas,emt,4,0.00212,0.0408
+Lima - Santiago Bernabéu,emt,2,0.00212,0.0445
+Nicolás Salmerón - Crematorio,emt,4,0.00211,0.0521
+Cuesta De San Vicente,emt,3,0.00211,0.0536
+Machupichu - Mota Del Cuervo,emt,2,0.00211,0.0359
+Los Yébenes - Illescas,emt,2,0.0021,0.0397
+Metro Islas Filipinas,emt,2,0.0021,0.0483
+Pico De Artilleros - Corregidor Conde Maceda,emt,3,0.0021,0.0442
+Puente Calero,emt,2,0.0021,0.0523
+Leoneses,emt,2,0.00209,0.0374
+José Silva - Agastia,emt,2,0.00209,0.0444
+Corregidor Alonso Aguilar,emt,2,0.00208,0.0476
+Museo Del Prado - Jardín Botánico,emt,2,0.00208,0.0587
+Buenos Aires - Palomeras,emt,2,0.00208,0.0444
+Pío Felipe - Buenos Aires,emt,2,0.00206,0.0462
+Emilio Muñoz - Alfonso Gómez,emt,2,0.00205,0.0494
+Avenida De Canillejas - Albaida,emt,3,0.00205,0.0518
+Duque De Pastrana,emt,3,0.00205,0.044
+Blasa Pérez - General Ricardos,emt,2,0.00204,0.0462
+Peña Cervera - Congosto,emt,2,0.00204,0.0312
+José Banús,emt,2,0.00204,0.0511
+Lacoma,emt,3,0.00203,0.037
+La Elipa,emt,3,0.00203,0.0426
+López De Hoyos - Pantoja,emt,2,0.00202,0.0477
+Avenida De Los Poblados - Carabanchel Bajo,emt,2,0.00202,0.0379
+Plátano,emt,2,0.00201,0.0416
+Silvano - El Algabeño,emt,3,0.00201,0.0362
+Blanco Argibay - Paseo De La Dirección,emt,2,0.00201,0.0417
+Menéndez Pelayo - Sainz De Baranda,emt,3,0.00201,0.0592
+Pi Y Margall - Blasco Ibáñez,emt,2,0.00201,0.042
+Encomienda De Palacios - Valdebernardo,emt,2,0.00201,0.0473
+Carretera De Húmera - Riaza,emt,2,0.002,0.0297
+Rafael Salgado,emt,2,0.00199,0.0474
+Mariano De Cavia,emt,3,0.00199,0.0603
+San Mariano - Néctar,emt,3,0.00199,0.0544
+Polideportivo Orcasitas,emt,2,0.00199,0.043
+Francisco Villaespesa - Ezequiel Solana,emt,2,0.00197,0.0486
+Blas De Otero - Santa Genoveva,emt,2,0.00197,0.0464
+Emilio Castelar,emt,2,0.00197,0.0556
+Embajadores,emt,3,0.00197,0.0574
+Aviación Española,emt,2,0.00197,0.0347
+General Ampudia,emt,2,0.00196,0.034
+Colegiata - Tirso De Molina,emt,2,0.00196,0.0527
+Fuente Carrantona - Encomienda De Palacios,emt,2,0.00196,0.0385
+Estafeta - Navascués,emt,2,0.00196,0.0337
+San Carlos,emt,2,0.00196,0.0511
+Enrique Larreta,emt,2,0.00196,0.045
+Yécora - Nanclares De Oca,emt,2,0.00196,0.0332
+Carretera Colmenar - Regimiento,emt,2,0.00196,0.0292
+Pelícano - Argüeso,emt,2,0.00196,0.049
+Pablo Neruda - Lago Calafate,emt,2,0.00196,0.0368
+Avenida De La Victoria - Sáinz De La Calleja,emt,2,0.00196,0.028
+Las Águilas,emt,2,0.00196,0.0383
+Metro Tetuán,emt,2,0.00196,0.0411
+Partenón - Ribera Del Sena,emt,2,0.00196,0.0339
+Quevedo,emt,2,0.00196,0.0461
+Parque De Atracciones,emt,2,0.00196,0.0393
+Mariano De Cavia,emt,2,0.00196,0.0593
+Rafaela Ybarra - Centro Comercial,emt,2,0.00196,0.0368
+República Argentina,emt,2,0.00196,0.028
+Braille - Molins De Rey,emt,2,0.00196,0.0362
+Parque Del Capricho,emt,2,0.00196,0.058
+Valderrebollo - Tineo,emt,2,0.00196,0.0322
+Resina - San Erasmo,emt,2,0.00196,0.0231
+Timón - Alcañiz,emt,2,0.00196,0.0513
+San Dámaso,emt,2,0.00196,0.0421
+San Francisco El Grande,emt,2,0.00196,0.0445
+Cementerio Sur - Entrada Principal,emt,2,0.00196,0.0305
+Senda Del Infante - Gloria Fuertes,emt,2,0.00196,0.0351
+Alfonso Xiii - Alhelíes,emt,2,0.00196,0.0427
+Sierra De Guadalupe,emt,2,0.00196,0.0406
+Ribera Del Loira - Ribera Del Sena,emt,2,0.00196,0.0316
+Galileo,emt,2,0.00196,0.042
+Arturo Soria - Condesa De Venadito,emt,2,0.00196,0.0395
+Minerva - Caliza,emt,2,0.00196,0.0365
+Monte Del Gozo,emt,2,0.00196,0.0429
+Mar De Las Antillas - Santa Susana,emt,2,0.00196,0.0351
+Avenida De Canillejas - Néctar,emt,2,0.00196,0.0544
+Vidauba - Rodrigo De Arana,emt,2,0.00196,0.0405
+Cementerio La Almudena - Parada 2,emt,2,0.00196,0.0396
+Blas Cabrera - Rafael Finat,emt,2,0.00196,0.0389
+Tomás Redondo - Vía De Los Poblados,emt,2,0.00196,0.0297
+Encomienda De Palacios - Pico Artilleros,emt,3,0.00196,0.0446
+Biblioteca Miguel Hernández,emt,2,0.00196,0.0367
+Arequipa - Aconcagua,emt,2,0.00196,0.0316
+Ventisquero De La Condesa - Cerro Minguete,emt,2,0.00196,0.0355
+Junta Municipal Villaverde,emt,2,0.00196,0.0345
+Plaza Calicanto,emt,2,0.00196,0.0394
+Víctor De La Serna - Colombia,emt,2,0.00196,0.0456
+Castillo De Uclés - Hermanos García Noblejas,emt,2,0.00196,0.0296
+Mercamadrid - Naves Auxiliares,emt,2,0.00196,0.0357
+Luis Ocaña - Alcalde Andrés Madrid Dávila,emt,2,0.00196,0.041
+Camino De Campamento - San Roberto,emt,2,0.00196,0.0414
+Ribera Manzanares - Santa Olalla,emt,2,0.00196,0.0453
+Guecho - Ibaiondo,emt,2,0.00196,0.0234
+Alonso Cano - Fernández Villaverde,emt,2,0.00196,0.0555
+Concejal Francisco Jiménez - Viñegra,emt,2,0.00196,0.0416
+Valcarlos - Tierra De Melide,emt,2,0.00196,0.0387
+Ventisquero De La Condesa - Clínica Cemtro,emt,2,0.00196,0.0288
+Arturo Soria - Juan Pérez De Zúñiga,emt,2,0.00196,0.0341
+Seseña - Centro De Salud,emt,2,0.00196,0.0349
+Carretera De Boadilla - Centro Cultural,emt,2,0.00196,0.0314
+Sebastián Álvaro,emt,2,0.00196,0.0398
+Alberto Aguilera - Blasco De Garay,emt,2,0.00196,0.0445
+Canal,emt,2,0.00196,0.0401
+Illescas - Tembleque,emt,2,0.00196,0.0407
+Manuel Fraga Iribarne - Jordi Solé Tura,emt,2,0.00196,0.0309
+Astillero,emt,2,0.00196,0.0309
+Mariano De Cavia,emt,2,0.00195,0.0584
+Carretera De Canillas - Torquemada,emt,2,0.00195,0.0351
+Motilla Del Palancar,emt,2,0.00194,0.0372
+Cristo De La Victoria - Olvido,emt,2,0.00194,0.0428
+Alfonso Xiii - Paseo De La Habana,emt,2,0.00194,0.0473
+Valencia De Don Juan - Patones,emt,2,0.00194,0.0416
+Ventisquero De La Condesa - Cerro Minguete,emt,2,0.00193,0.0355
+Joaquín Turina - Las Cruces,emt,2,0.00193,0.0412
+Avenida Valdemarín - La Salle,emt,2,0.00193,0.0296
+Pico Ocejón - Ana Teresa,emt,4,0.00192,0.0336
+Rodríguez Castelao - Rosalía De Castro,emt,4,0.00192,0.0344
+Metro Vía Carpetana,emt,4,0.00191,0.0447
+República Dominicana,emt,2,0.00191,0.0478
+Metro Barajas,emt,2,0.0019,0.0505
+Vinateros - Media Legua,emt,2,0.0019,0.0425
+Padre Claret - Ramón Y Cajal,emt,2,0.0019,0.0446
+Torrelaguna - Avenida De Badajoz,emt,2,0.0019,0.0472
+Cazorla - Villacarrillo,emt,2,0.0019,0.036
+Goya - Príncipe De Vergara,emt,2,0.0019,0.0567
+Avenida Quinta,emt,3,0.0019,0.0489
+Consenso - Generosidad,emt,2,0.0019,0.0371
+Blas Cabrera - Oliva De Plasencia,emt,2,0.00189,0.04
+Metro Peñagrande,emt,2,0.00189,0.039
+Colegio Valdeluz,emt,2,0.00189,0.0387
+César Manrique - Chantada,emt,2,0.00189,0.0387
+Pez - Jesús Del Valle,emt,2,0.00189,0.0485
+Las Suertes - Peñaranda,emt,2,0.00189,0.0309
+Metro García Noblejas,emt,4,0.00188,0.0436
+Avenida De Logroño - San Severo,emt,2,0.00188,0.0396
+Ascao - Julián Camarillo,emt,2,0.00188,0.0443
+Fuentespina,emt,2,0.00187,0.0435
+Resina - San Eustaquio,emt,2,0.00187,0.029
+Avenida De Daroca - Apóstol Santiago,emt,2,0.00186,0.0539
+Llano Castellano - Francisco Sancha,emt,3,0.00186,0.0458
+Goya - Velázquez,emt,2,0.00186,0.0572
+Antonio López - Inmaculada Concepción,emt,2,0.00186,0.0513
+Avenida Carabanchel Alto - Allariz,emt,3,0.00185,0.0346
+Orovilla - Felicidad,emt,2,0.00185,0.0399
+Puente Praga,emt,2,0.00185,0.0495
+Bahía De Palma - Bahía De Almería,emt,4,0.00184,0.0471
+García Tapia - Media Legua,emt,2,0.00184,0.0423
+Hortaleza,emt,2,0.00184,0.0582
+General Perón - Orense,emt,2,0.00183,0.051
+Tierno Galván - Planetario,emt,2,0.00183,0.0513
+Arzobispo Morcillo - Julio Palacios,emt,2,0.00182,0.0492
+Castiello De Jaca - Berdún,emt,2,0.00181,0.0461
+Hospital Niño Jesús,emt,3,0.00181,0.0578
+Metro Virgen Del Cortijo,emt,2,0.00181,0.0508
+Jacobeo - Pinar De San José,emt,2,0.0018,0.0352
+Congosto - Puerto Porzuna,emt,2,0.0018,0.0356
+Arcos De Jalón - Avenida De Canillejas,emt,2,0.0018,0.0455
+Toledo - Pasillo Verde,emt,3,0.0018,0.0521
+Alberto Alcocer - Padre Damián,emt,2,0.0018,0.0473
+Cibeles - Casa De América,emt,3,0.00179,0.0611
+Delicias - Cáceres,emt,3,0.00178,0.0527
+Altamirano,emt,2,0.00178,0.0531
+Julián Camarillo - Miguel Yuste,emt,2,0.00178,0.0493
+Avenida De Entrevías - Esteban Carros,emt,2,0.00177,0.0383
+Paseo De La Habana - Veracruz,emt,2,0.00176,0.045
+General Ricardos - Eugenia De Montijo,emt,2,0.00176,0.0413
+Metro Las Rosas,emt,4,0.00176,0.0498
+Carpetana,emt,3,0.00175,0.0438
+Avenida De Los Poblados - Avenida Orcasur,emt,2,0.00175,0.0362
+Hacienda De Pavones - Alonso De Tobar,emt,2,0.00175,0.0452
+Valvanera - Tórtola,emt,2,0.00175,0.0454
+Hospital 12 Octubre,emt,2,0.00174,0.0349
+Sierra Toledana - Baltasar Santos,emt,2,0.00174,0.0473
+Fermín Caballero - Islas Cíes,emt,2,0.00173,0.04
+Desamparados,emt,2,0.00173,0.0582
+Alfonso Xiii - Ramón Y Cajal,emt,2,0.00173,0.0433
+Serrano - Diego De León,emt,2,0.00172,0.0505
+Avenida De La Aviación - Navalmoral,emt,2,0.00172,0.0351
+Ermita Del Santo - Centro Comercial,emt,2,0.00172,0.0451
+Oña - Centro Deportivo,emt,2,0.00172,0.0413
+Oña - Hospital,emt,2,0.00171,0.0413
+Beata,emt,2,0.00171,0.0541
+Imperial - Pontones,emt,2,0.00171,0.0427
+Lucano - Canal Del Bósforo,emt,3,0.0017,0.0544
+Cabo Machichaco,emt,2,0.0017,0.0344
+Felipe Ii,emt,4,0.0017,0.064
+Arroyomolino - Alhaurín,emt,2,0.0017,0.0518
+Hermanos García Noblejas - Gandhi,emt,3,0.00169,0.044
+Entrevías Cercanías,emt,2,0.00169,0.038
+Avenida De Los Poblados - Eugenia Montijo,emt,2,0.00169,0.0372
+Arroyo Del Olivar - Carlos Martín Álvarez,emt,3,0.00169,0.0502
+Guadarrama - Paseo Jesuitas,emt,2,0.00169,0.048
+Batalla Del Salado - Embajadores,emt,2,0.00169,0.0505
+Polideportivo Gallur,emt,2,0.00168,0.0461
+Congosto,emt,3,0.00168,0.0343
+Marquesado Santa Marta - Ricardo Velázquez Bosco,emt,3,0.00168,0.0569
+Acacias,emt,2,0.00168,0.0426
+Avenida De Canillejas - Fenelón,emt,4,0.00167,0.0495
+Arroyo Belincoso - Vinateros,emt,2,0.00167,0.048
+Enrique García Álvarez - Camino Vasares,emt,2,0.00167,0.0391
+La Del Manojo De Rosas - Doña Francisquita,emt,3,0.00166,0.0386
+General Ricardos - Iglesia,emt,2,0.00166,0.0513
+Luis De Hoyos - Fuente Carrantona,emt,2,0.00166,0.0415
+Antonio Machado - Sinesio Delgado,emt,3,0.00165,0.0412
+Consejo Superior De Deportes,emt,2,0.00165,0.0446
+Sinesio Delgado - Finisterre,emt,2,0.00165,0.0432
+Rosalía De Castro - Gabriela Mistral,emt,2,0.00165,0.0349
+Valdecarros,emt,2,0.00164,0.03
+Avenida Moratalaz - Vinateros,emt,2,0.00164,0.0414
+Campos Ibáñez - Paseo De La Estación,emt,2,0.00164,0.0316
+Belzunegui,emt,2,0.00164,0.0396
+Sainz De Baranda - Narváez,emt,2,0.00163,0.0611
+Ayacucho - Sandro Pertini,emt,3,0.00163,0.0353
+Las Suertes - Antonio Gades,emt,2,0.00163,0.03
+Paseo De La Alameda De Osuna 80,emt,4,0.00163,0.0519
+Virgen Del Puerto - Mármol,emt,2,0.00163,0.0507
+Lista,emt,2,0.00163,0.0501
+Silvano - Esperanza,emt,2,0.00163,0.0374
+Valdetorres De Jarama - Rogelio Muñoz,emt,2,0.00163,0.0364
+Alberto Alcocer - Paseo De La Habana,emt,2,0.00162,0.0467
+Emigrantes - Carretera De Canillas,emt,2,0.00162,0.0349
+Mar De Cristal,emt,2,0.00162,0.035
+Pico Artilleros,emt,3,0.00161,0.0476
+Isabel Colbrand - Palas De Rey,emt,2,0.00161,0.0441
+Conde De Casal,emt,2,0.0016,0.0584
+Romero Robledo,emt,2,0.0016,0.052
+Avenida De América - Ciudad Pegaso,emt,3,0.0016,0.0524
+Sagrados Corazones,emt,2,0.0016,0.0429
+Plaza De Cieza,emt,2,0.00159,0.038
+Castellana - Hospital La Paz,emt,2,0.00159,0.0444
+Monforte De Lemos - Parque Norte,emt,2,0.00159,0.0504
+Arroyo,emt,2,0.00158,0.0404
+Valvanera - Algodre,emt,2,0.00158,0.0461
+Viejas - Cocheras Emt,emt,2,0.00158,0.0449
+Huerta De Castañeda - Paseo De Los Olivos,emt,2,0.00158,0.0476
+Santa Engracia - María De Guzmán,emt,3,0.00158,0.0583
+Méndez Álvaro - Centro Comercial,emt,3,0.00157,0.0505
+Av. Mediterráneo - Conde De Casal,emt,2,0.00157,0.0623
+Polvoranca,emt,2,0.00157,0.0403
+Corbeta - La Rioja,emt,5,0.00157,0.0515
+Santa Eugenia Cercanías,emt,2,0.00157,0.0455
+Laponia,emt,2,0.00156,0.0517
+Pérez De Ayala - El Bosco,emt,2,0.00156,0.0468
+Valdebernardo,emt,2,0.00156,0.0517
+Cibeles - Ayuntamiento,emt,3,0.00155,0.0608
+Antón Martín,emt,3,0.00155,0.0558
+Alcalá Zamora - Antonio Saura,emt,2,0.00155,0.0429
+Centro Servicios Sociales Gallur,emt,2,0.00155,0.0446
+San Aquilino,emt,2,0.00155,0.0433
+Sainz De Baranda - Parque Roma,emt,2,0.00154,0.0627
+Illescas - Camarena,emt,2,0.00154,0.0384
+Arcos De Jalón - Albericia,emt,2,0.00153,0.0471
+Fuente Carrantona - García Tapia,emt,3,0.00152,0.0517
+Palomeras Bajas - Romeo Y Julieta,emt,2,0.00152,0.0438
+Plaza Del Hidrógeno,emt,2,0.00152,0.0489
+Fuente Carrantona - Arroyo Fontarrón,emt,2,0.00152,0.0439
+Metro Alfonso Xiii,emt,2,0.00151,0.046
+Metro San Francisco,emt,2,0.00151,0.0393
+Paseo De La Dirección - Jaramagos,emt,2,0.00151,0.0404
+Oña - Infanta María,emt,2,0.0015,0.0407
+Buenos Aires - Pedro Laborde,emt,2,0.0015,0.0428
+Lucero,emt,4,0.0015,0.0445
+Alcalá - Goya,emt,3,0.00148,0.0624
+Galeón - Bergantín,emt,2,0.00148,0.0568
+Nuria - Peña Sirio,emt,2,0.00148,0.0404
+Padre Amigo,emt,2,0.00148,0.0395
+Alcalá - Goya,emt,3,0.00148,0.0624
+Nunciatura,emt,2,0.00148,0.0452
+Candilejas - Pablo Neruda,emt,2,0.00147,0.0439
+Tembleque - Illescas,emt,2,0.00147,0.0393
+Conde De Casal - Doctor Esquerdo,emt,2,0.00147,0.0578
+Fuente De La Carra,emt,3,0.00147,0.0423
+Emilio Muñoz - Santa Leonor,emt,2,0.00146,0.0473
+Mariano De Cavia,emt,2,0.00146,0.0614
+José Del Hierro - Polideportivo,emt,2,0.00146,0.0478
+Avenida De Entrevías - Villacarrillo,emt,2,0.00145,0.0351
+Metro Palos De La Frontera,emt,2,0.00145,0.0545
+Herrera Oria - Ventisquero De La Condesa,emt,2,0.00145,0.0399
+Ferrocarril,emt,2,0.00145,0.0489
+Suecia - Manchester,emt,2,0.00144,0.0464
+Marqués De Salamanca,emt,2,0.00144,0.0581
+Metro Sainz De Baranda,emt,2,0.00143,0.0621
+Imperial - Polideportivo,emt,2,0.00142,0.0519
+San Romualdo - Albasanz,emt,2,0.00142,0.052
+Joaquín Lorenzo - Isla Malaita,emt,2,0.00142,0.0377
+Aluche,emt,3,0.00141,0.0369
+Pío Felipe - Benjamín Palencia,emt,2,0.00141,0.0441
+María De Maeztu - Teresa Claramunt,emt,4,0.00141,0.0338
+César Manrique - La Cabrera,emt,2,0.00141,0.0407
+Blas De Otero - Santa Irene,emt,2,0.00141,0.0447
+Ramón Y Cajal - Gabriel Y Galán,emt,2,0.0014,0.0424
+Ascao,emt,2,0.0014,0.0466
+Sorolla - Avenida De Asturias,emt,2,0.0014,0.043
+Avenida Villa De Vallecas - Congosto,emt,2,0.0014,0.0303
+El Tercio,emt,2,0.00139,0.0442
+Puente De Los Franceses,emt,3,0.00139,0.0432
+Paseo De La Habana - Honduras,emt,2,0.00138,0.0438
+Museo Sorolla,emt,2,0.00138,0.0528
+Eduardo Barreiros - Psa,emt,2,0.00138,0.0361
+Caramuel - Sepúlveda,emt,3,0.00138,0.0449
+Chueca,emt,2,0.00138,0.0559
+Metro Carabanchel Alto,emt,3,0.00138,0.0354
+Metro San Bernardo,emt,2,0.00138,0.0506
+Hermanos Machado - Carlos Hernández,emt,2,0.00138,0.0516
+Sinesio Delgado - Ginzo De Limia,emt,2,0.00137,0.0429
+Plaza De Cataluña,emt,2,0.00137,0.0542
+Padre Damián - Rafael Salgado,emt,2,0.00137,0.0453
+Joan Maragall - Pedro Teixeira,emt,2,0.00137,0.0492
+Puente Praga,emt,2,0.00137,0.0494
+Alonso Cano - María De Guzmán,emt,2,0.00137,0.0528
+Julián Besteiro - Fortunata Y Jacinta,emt,2,0.00136,0.0512
+Metro Las Tablas,emt,3,0.00135,0.0436
+Avena - Beltrán Y Rózpide,emt,2,0.00135,0.0412
+Carretera De Húmera - Fuente Del Rey,emt,2,0.00135,0.0288
+Pinar De Chamartín,emt,2,0.00135,0.0513
+Emigrantes - Carretera De Canillas,emt,2,0.00135,0.034
+Portalegre - Avenida Oporto,emt,2,0.00135,0.0492
+Valvanera - Algodre,emt,2,0.00135,0.0444
+Oliva De Plasencia,emt,2,0.00134,0.0386
+Avenida De Cantabria,emt,3,0.00134,0.052
+Planetario,emt,2,0.00134,0.0494
+La Bañeza - Cándido Mateos,emt,2,0.00134,0.0378
+Arroyo - Paseo De La Dirección,emt,2,0.00134,0.0398
+Ricardo Ortiz - San Secundino,emt,2,0.00133,0.0593
+Torrelaguna - Condesa De Venadito,emt,2,0.00133,0.0453
+Esteban Carros - Padre Llanos,emt,2,0.00133,0.0337
+Gregorio Marañón,emt,2,0.00133,0.0571
+Mota Del Cuervo,emt,2,0.00133,0.036
+Antonio Machado - Centro Cultural,emt,2,0.00133,0.0404
+Virgen Del Puerto - Segovia,emt,2,0.00133,0.0492
+Valencia De Don Juan - Alfredo Marqueríe,emt,2,0.00133,0.04
+Olmos,emt,2,0.00132,0.0416
+Alameda De Osuna - Rambla,emt,2,0.00132,0.0549
+Monforte De Lemos - Ganapanes,emt,2,0.00132,0.0417
+América Española,emt,2,0.00131,0.0561
+Hermanos García Noblejas - Villaescusa,emt,2,0.00131,0.0437
+Tierra De Melide - Atapuerca,emt,2,0.00131,0.0412
+San Millán De La Cogolla - Atapuerca,emt,2,0.00131,0.0419
+Puerto Serrano,emt,2,0.00131,0.0454
+Avenida De Los Poblados - Empalme,emt,2,0.00131,0.0383
+Arequipa - Emigrantes,emt,3,0.00131,0.0306
+Hospital Infanta Leonor - Urgencias,emt,2,0.00131,0.039
+Tierra De Melide - Atapuerca,emt,2,0.00131,0.0372
+Concejal Francisco Jiménez - Cocheras,emt,2,0.00131,0.0399
+Hospital San Rafael,emt,2,0.00131,0.0501
+Agustín De Foxá,emt,2,0.00131,0.0431
+Valderrebollo - Centro Alzheimer,emt,2,0.00131,0.0312
+Resina - San Eustaquio,emt,2,0.00131,0.0226
+Fuencarral - Alburquerque,emt,2,0.00131,0.0441
+Illescas 34,emt,2,0.00131,0.0391
+Hospital 12 De Octubre - Entrada Principal,emt,3,0.00131,0.0331
+Villasandino - Villamanín,emt,2,0.00131,0.0402
+San Sebastián - Atocha,emt,2,0.00131,0.0569
+Fuente Carrantona - Hacienda De Pavones,emt,3,0.00131,0.0371
+Cardenal Cisneros,emt,2,0.00131,0.0438
+Valhondo - Ciclón,emt,2,0.00131,0.0488
+Estafeta - Carabelos,emt,2,0.00131,0.0326
+Hermanos García Noblejas - Villaescusa,emt,2,0.00131,0.0454
+Guecho - Gobelas,emt,2,0.00131,0.0228
+Camino De Campamento - Colonia Lourdes,emt,2,0.00131,0.0398
+Juan Zorrilla,emt,2,0.00131,0.0386
+Aconcagua - Nevado Cumbal,emt,2,0.00131,0.0306
+Guzmán El Bueno - Fernández De Los Ríos,emt,2,0.00131,0.0403
+Condesa De Venadito,emt,2,0.00131,0.038
+Parque Santa María,emt,2,0.00131,0.0339
+Cavanilles - Abtao,emt,2,0.00131,0.056
+Braille - Caldas De Estrach,emt,3,0.00131,0.0349
+Ronda Sur - Serena,emt,2,0.00131,0.0373
+Mar De Las Antillas - Santa Susana,emt,2,0.00131,0.0351
+Simca - Talbot,emt,2,0.00131,0.0355
+Zodiaco,emt,2,0.00131,0.0605
+Fuente Del Tiro - Fuente De Lima,emt,2,0.00131,0.0368
+Vidauba - Damasquillo,emt,2,0.00131,0.039
+Mercamadrid - Zona Comercial,emt,2,0.00131,0.0345
+Venta Del Batán,emt,2,0.00131,0.0378
+Costa Rica,emt,2,0.00131,0.0436
+Arturo Soria - Pilar Cavero,emt,2,0.00131,0.033
+Esteban Carros - Cooperativa Eléctrica,emt,3,0.00131,0.033
+Blanco Argibay - Pinos Baja,emt,2,0.00131,0.0379
+Alcalde Andrés Madrid Dávila - Pilar Bellosillo,emt,2,0.00131,0.0394
+Minerva - Omega,emt,2,0.00131,0.0353
+Avenida Manzanares - San Pompeyo,emt,2,0.00131,0.0404
+Princesa - Centro Comercial,emt,3,0.00131,0.0426
+Príncipe De Vergara - Jorge Juan,emt,3,0.00131,0.0639
+Campo De Las Naciones,emt,2,0.00131,0.0328
+Marqués De Viana - Gladiolo,emt,2,0.00131,0.0395
+Castillo De Uclés - Zaratán,emt,2,0.00131,0.0287
+Cementerio La Almudena - Parada 3,emt,2,0.00131,0.0381
+Villalonso - Puebla De Sanabria,emt,2,0.00131,0.0333
+Campamento,emt,2,0.00131,0.0387
+Doctor Arce,emt,2,0.00131,0.0273
+Arroyo Del Monte - Ventisquero Condesa,emt,2,0.00131,0.028
+Cerro Minguete - Riscos De Polanco,emt,2,0.00131,0.0343
+Metro Miguel Hernández,emt,2,0.00131,0.0354
+Ronda De Don Bosco,emt,2,0.00131,0.0377
+Carretera Colmenar Viejo,emt,2,0.00131,0.0284
+Avenida De La Victoria - Federico Agustí,emt,2,0.00131,0.0272
+Llanos - Arroyo De La Bulera,emt,4,0.00131,0.026
+Playa De Riazor,emt,2,0.00131,0.0503
+Avenida Aragón - Ingeniero Torres Quevedo,emt,2,0.00131,0.0343
+Yécora - Fuentelviejo,emt,2,0.00131,0.0321
+Maruja Mallo - Montoro,emt,2,0.00131,0.0324
+Rafael Finat - Osa De La Vega,emt,2,0.00131,0.0375
+Vía De Los Poblados,emt,2,0.00131,0.0289
+Granaderos,emt,2,0.00131,0.0338
+Gaínza,emt,2,0.00131,0.0386
+Félix Candela,emt,3,0.00131,0.0308
+Colonia Jardín,emt,2,0.00131,0.0305
+La Latina,emt,2,0.00131,0.0501
+O Donnell - Retiro,emt,2,0.00131,0.0587
+Lavapiés,emt,2,0.00131,0.0486
+Secundino Zuazo - Josefina Aldecoa,emt,2,0.00131,0.03
+Néctar - Esfinge,emt,2,0.00131,0.0516
+Villaverde Alto Cercanías,emt,2,0.00131,0.03
+Cristo De La Victoria - Ferroviarios,emt,2,0.00131,0.0412
+Seseña - Escalona,emt,2,0.00131,0.0337
+Juan Esplandiú - Sainz De Baranda,emt,2,0.00131,0.0576
+Camino Viejo Leganés - Pelícano,emt,2,0.00131,0.0467
+Gloria Fuertes - Federica Montseny,emt,2,0.00131,0.0339
+Ribera Manzanares - Felipe Moratilla,emt,2,0.00131,0.0434
+Cementerio Sur - Sección 6E,emt,2,0.00131,0.0296
+Pablo Neruda - Avenida De Palomeras,emt,2,0.00131,0.0355
+Cartagena - López De Hoyos,emt,2,0.00131,0.0549
+Alfonso Xiii - Ramón Y Cajal,emt,2,0.00131,0.041
+La Paloma,emt,2,0.00131,0.0426
+Avenida Del Valle,emt,2,0.00131,0.0329
+Ermita Virgen De La Soledad,emt,2,0.0013,0.0383
+Ronda De Don Bosco,emt,2,0.0013,0.0396
+Avenida De Manoteras - Fuente De La Mora,emt,3,0.0013,0.0487
+Virgen Del Puerto - Ruy González,emt,2,0.0013,0.0494
+San Mariano - Néctar,emt,2,0.0013,0.0516
+Pirámides,emt,3,0.0013,0.052
+La Salle - Blanca De Castilla,emt,2,0.00129,0.0287
+Hermanos Machado - San Juan De La Cuesta,emt,2,0.00129,0.0508
+Pradera De Corralillos,emt,2,0.00129,0.0343
+San Cesareo - San Eustaquio,emt,2,0.00129,0.0282
+Noviciado,emt,2,0.00129,0.0464
+Fray Bernardino Sahagún,emt,2,0.00129,0.0452
+Rosalía De Castro - Gabriela Mistral,emt,2,0.00129,0.0344
+Pío Xii - La Paloma,emt,3,0.00128,0.0439
+Palomeras Bajas - Cenicienta,emt,3,0.00128,0.0408
+Vía Carpetana - Centro De Salud,emt,3,0.00128,0.0446
+Avenida De Canillejas - Pobladura Valle,emt,4,0.00128,0.0496
+Pacífico,emt,2,0.00127,0.0597
+Avenida Quinta - Calle Diez,emt,2,0.00127,0.0467
+La Masó - Moralzarzal,emt,2,0.00127,0.0398
+Herrera Oria - Labastida,emt,2,0.00127,0.0404
+Jazmín - Golfo De Salónica,emt,2,0.00127,0.0508
+Colonia De La Prensa,emt,2,0.00127,0.0401
+Unanimidad - Alianza,emt,2,0.00126,0.0358
+Suecia - Catania,emt,3,0.00126,0.0484
+Arzobispo Morcillo - Parque Norte,emt,2,0.00126,0.0471
+Imperial - Pirámides,emt,2,0.00126,0.0415
+Arcos De Jalón - Albericia,emt,2,0.00125,0.0439
+Ronda Comunicación - Edificio Central,emt,2,0.00125,0.0464
+Avenida Santa Eugenia - Fuentespina,emt,2,0.00125,0.0418
+Ronda Sur - Depósito De Agua,emt,2,0.00124,0.0372
+Emigrantes - Tribaldos,emt,2,0.00124,0.0343
+Ensanche De Vallecas - Peñaranda,emt,2,0.00124,0.03
+Felicidad - Unanimidad,emt,2,0.00123,0.0384
+Castiello De Jaca - Burguete,emt,2,0.00123,0.0443
+Avenida De La Guindalera,emt,3,0.00123,0.0494
+Alameda De Osuna - Carabela,emt,3,0.00122,0.0536
+Avenida De Daroca - Mateo García,emt,2,0.00122,0.0512
+Metro Antonio Machado,emt,2,0.00122,0.0401
+General Ricardos - Comandante Fontanes,emt,2,0.00122,0.0496
+Metro Las Tablas,emt,3,0.00121,0.0423
+Colegio Valdeluz,emt,2,0.00121,0.0407
+Los Cármenes,emt,2,0.00121,0.0435
+Arequipa - Emigrantes,emt,2,0.0012,0.034
+Cantalejo - Arroyofresno,emt,2,0.0012,0.0374
+Pío Xii - Avenida De Burgos,emt,3,0.00119,0.0443
+Hermanos De Pablo,emt,2,0.00119,0.0469
+Julián Camarillo - Rufino González,emt,2,0.00119,0.0472
+Hospital San Rafael,emt,2,0.00118,0.0418
+Valdetorres De Jarama - Ángel Luis Herrán,emt,2,0.00118,0.0355
+El Pozo,emt,2,0.00118,0.0335
+Fermín Caballero - Isla De Tabarca,emt,2,0.00118,0.0376
+Indalecio Prieto - José Prat,emt,2,0.00117,0.0494
+Entrevías Cercanías,emt,2,0.00117,0.042
+Saavedra Fajardo,emt,2,0.00117,0.0496
+Joaquín Lorenzo - Doctor Castroviejo,emt,2,0.00117,0.0372
+Vía Carpetana - Ermita Del Santo,emt,2,0.00116,0.0434
+Suecia - Manchester,emt,3,0.00116,0.0489
+Camino De Santiago - Atapuerca,emt,2,0.00116,0.0441
+Doctor Esquerdo - Cavanilles,emt,3,0.00116,0.0608
+Torrelaguna - Ramírez De Arellano,emt,3,0.00116,0.0437
+Alfredo Marqueríe,emt,2,0.00116,0.0396
+Ciudad Universitaria,emt,4,0.00115,0.046
+Congosto - Peña Rivera,emt,2,0.00115,0.0344
+Virgen Del Puerto - Fósforo,emt,2,0.00114,0.0488
+Ramón Y Cajal - Víctor De La Serna,emt,2,0.00114,0.0417
+Almanzora,emt,3,0.00114,0.0468
+Avenida De Andalucía - San Fermín,emt,2,0.00114,0.035
+Marqués De Urquijo - Teleférico,emt,2,0.00114,0.0497
+Doctor Castroviejo - López Ibor,emt,2,0.00114,0.0371
+Finisterre - Fernández Almagro,emt,2,0.00113,0.0418
+Ginebra - Suecia,emt,2,0.00113,0.0456
+Monasterio Silos - Monasterio Liébana,emt,2,0.00113,0.0399
+Plaza De Los Navarros,emt,2,0.00113,0.0387
+Estación De Delicias,emt,2,0.00113,0.0531
+Enrique García Álvarez,emt,2,0.00112,0.0378
+Baltasar Santos - Sierra Toledana,emt,2,0.00112,0.0453
+La Masó - Nuria,emt,2,0.00112,0.041
+Nudo Sur,emt,2,0.0011,0.0482
+Silvano - Alcorisa,emt,2,0.0011,0.0364
+Avenida De Entrevías - La Serena,emt,2,0.0011,0.0367
+Encomienda De Palacios - Pico Artilleros,emt,2,0.00109,0.0424
+Diego De León - Velázquez,emt,2,0.00109,0.0481
+Conde De Peñalver - Maldonado,emt,2,0.00108,0.0481
+Santa Bárbara,emt,2,0.00108,0.0543
+Paseo De La Habana - Macarena,emt,2,0.00107,0.0429
+José Del Hierro - Mandarina,emt,2,0.00106,0.0463
+Salorino - Navalmoral De La Mata,emt,2,0.00106,0.0339
+Vinateros - Señor De La Elipa,emt,2,0.00106,0.046
+Antonio López - Mariblanca,emt,3,0.00106,0.0481
+Lucano - Fenelón,emt,2,0.00105,0.0517
+Maqueda,emt,2,0.00105,0.0384
+Lista,emt,2,0.00105,0.0558
+Artilleros,emt,2,0.00104,0.0459
+Pobladura Del Valle - Arcos De Jalón,emt,2,0.00104,0.0438
+Ramírez De Prado - Juan De Mariana,emt,2,0.00104,0.0529
+Glorieta De Lalín,emt,2,0.00104,0.0425
+Avenida De Logroño - Brezos,emt,2,0.00104,0.0514
+Galiana - Cerro Bermejo,emt,2,0.00104,0.0458
+Manojo De Rosas - Bohemios,emt,2,0.00103,0.0372
+Camarena - Puerto Chico,emt,2,0.00103,0.0373
+Luis De Hoyos,emt,2,0.00103,0.0399
+Pirámides Cercanías,emt,2,0.00103,0.0409
+Parque Eva Duarte,emt,2,0.00103,0.056
+Ronda Segovia - Imperial,emt,2,0.00102,0.0503
+Estadio De Vallecas,emt,2,0.00102,0.0482
+Paseo De La Habana - Menéndez Pidal,emt,2,0.00102,0.0427
+Parque De Berlín,emt,2,0.00101,0.0412
+Castiello De Jaca - Puente La Reina,emt,2,0.001,0.045
+Braulio Gutiérrez,emt,3,0.001,0.0443
+Pedro Rico - Arzobispo Morcillo,emt,3,0.001,0.0455
+Colegio Senara,emt,2,0.001,0.0398
+Dolores Barranco,emt,2,0.00099,0.047
+Ensanche Vallecas,emt,2,0.00099,0.0292
+Carlos Martín Álvarez - Javier De Miguel,emt,2,0.00099,0.0479
+Cerro Del Castañar,emt,3,0.00099,0.0388
+Estación Hortaleza - Polideportivo,emt,2,0.00099,0.0414
+Villaverde Bajo Cercanías,emt,2,0.00099,0.0307
+Alberto Aguilera - Galileo,emt,2,0.00099,0.0491
+Bahía De La Concha,emt,4,0.00098,0.0458
+Cardenal Tarancón - Antonio Gades,emt,2,0.00098,0.0291
+Pirámides,emt,2,0.00098,0.0408
+Plaza Del Este,emt,2,0.00098,0.0417
+Nuestra Señora De América,emt,2,0.00098,0.0465
+Narváez - Doce De Octubre,emt,2,0.00097,0.0588
+Metro Ríos Rosas,emt,2,0.00097,0.0552
+Joan Maragall - San Germán,emt,2,0.00097,0.0478
+Cuacos De Yuste,emt,2,0.00096,0.0378
+Joan Maragall - Ine,emt,2,0.00096,0.0479
+Príncipe Pío - Campo Del Moro,emt,2,0.00096,0.0498
+Carabela - Balandro,emt,3,0.00096,0.0546
+Julián Besteiro - San Germán,emt,2,0.00095,0.0497
+Buenos Aires - Pablo Neruda,emt,2,0.00095,0.0412
+Museo Ciencias Naturales,emt,2,0.00094,0.0552
+Pedroñeras - El Provencio,emt,3,0.00094,0.0333
+Palomeras Bajas - Mogambo,emt,2,0.00094,0.0422
+Ascao - Luis Ruiz,emt,2,0.00094,0.0449
+Avenida Santa Eugenia 13,emt,2,0.00094,0.0436
+Santa Irene,emt,2,0.00094,0.0431
+Círculo De Bellas Artes,emt,4,0.00093,0.0621
+Castiello De Jaca - Puente La Reina,emt,2,0.00093,0.0428
+El Bosco - Pérez De Ayala,emt,2,0.00093,0.0448
+Paseo Olivos - Avenida De Los Apóstoles,emt,2,0.00093,0.0454
+Paseo De La Habana - Jerez,emt,2,0.00093,0.0424
+Plaza De Cieza,emt,2,0.00092,0.04
+Sepúlveda - María Del Carmen,emt,3,0.00092,0.0436
+Quintanavides,emt,2,0.00092,0.0463
+General Ricardos - Camino Viejo Leganés,emt,2,0.00092,0.0485
+El Cairo,emt,2,0.00092,0.0492
+Joaquín Lorenzo - Isla Malaita,emt,2,0.00092,0.0368
+Indalecio Prieto - Los Pinillas,emt,2,0.00092,0.0492
+Avenida Carabanchel Alto - Gómez Arteche,emt,2,0.00091,0.0342
+Polideportivo Gallur,emt,2,0.00091,0.0427
+Valdetorres De Jarama - Sandro Pertini,emt,2,0.0009,0.0349
+Martínez Campos,emt,2,0.0009,0.0509
+Metro García Noblejas,emt,2,0.0009,0.0455
+Palomeras Bajas - Romeo Y Julieta,emt,2,0.0009,0.0423
+Avenida De Guadalajara - Albericia,emt,2,0.0009,0.0451
+Avenida De La Aviación - Mirabel,emt,2,0.0009,0.0343
+Arcos De Jalón - Amposta,emt,2,0.0009,0.0432
+Alcalá - Retiro,emt,4,0.00089,0.0655
+Largo Caballero - Avenida Daroca,emt,3,0.00089,0.0497
+Playa De Barlovento,emt,3,0.00089,0.0472
+Torrejón De La Calzada - Cerceda,emt,3,0.00089,0.0493
+Alonso Cano - Ríos Rosas,emt,2,0.00089,0.0509
+Cantalejo - Chapineria,emt,2,0.00089,0.0368
+Arroyo Fontarrón - Tacona,emt,2,0.00088,0.0421
+García Tapia - Oberón,emt,2,0.00088,0.0492
+Estación Hortaleza - Virgen Del Carmen,emt,2,0.00088,0.0416
+Nador,emt,2,0.00088,0.0416
+Palomeras Bajas - Mogambo,emt,2,0.00087,0.0424
+Andaluces - Rafael Alberti,emt,3,0.00087,0.0404
+Conde Duque,emt,2,0.00087,0.0451
+Monasterio Silos - Monasterio Montesclaros,emt,2,0.00086,0.0393
+Glorieta Francisco Bayéu,emt,2,0.00085,0.0367
+Plaza Del Encuentro,emt,2,0.00085,0.0432
+Santo Domingo De La Calzada - Sauceda,emt,2,0.00085,0.051
+Chantada - Cándido Mateos,emt,2,0.00085,0.0367
+La Masó - Saloú,emt,2,0.00084,0.0385
+Eugenia De Montijo - Fátima,emt,2,0.00084,0.039
+Parque De Palomeras,emt,3,0.00084,0.0396
+Machupichu - Silvano,emt,2,0.00084,0.035
+Plaza De La Goleta,emt,2,0.00084,0.0538
+María Odiaga - Padre Amigo,emt,2,0.00084,0.0381
+Eduardo Barreiros - Asombro De Damasco,emt,2,0.00083,0.035
+Metro Las Tablas,emt,2,0.00082,0.0411
+Villaverde Alto Cercanías,emt,2,0.00082,0.0276
+Ricardo Ortiz - San Emilio,emt,2,0.00082,0.0566
+Arcos De Jalón - San Román Del Valle,emt,2,0.00081,0.0429
+Nazaret,emt,2,0.00081,0.0579
+Padre Damián - Lázaro Galdiano,emt,2,0.00081,0.0437
+Glorieta López De Hoyos,emt,2,0.0008,0.0567
+Reyes,emt,2,0.0008,0.0449
+San Cesareo - San Erasmo,emt,2,0.00079,0.0276
+Emilio Muñoz - Miguel Yuste,emt,2,0.00079,0.0495
+Metro Peñagrande,emt,2,0.00078,0.0403
+Motilla Del Palancar,emt,2,0.00078,0.033
+Juan Duque - Segovia,emt,2,0.00078,0.0479
+Méndez Álvaro,emt,2,0.00078,0.0567
+Sinesio Delgado - Ribadavia,emt,2,0.00078,0.0413
+Benjamín Palencia - Humanes,emt,2,0.00077,0.0423
+Cinca,emt,2,0.00077,0.0517
+Fermín Caballero - Islas Cíes,emt,2,0.00077,0.0367
+Encomienda De Palacios - Arroyo Fontarrón,emt,2,0.00077,0.0431
+Vía Carpetana - Laguna,emt,2,0.00077,0.043
+Betanzos - Chantada,emt,2,0.00077,0.0411
+Concejal Francisco Jiménez - Carboneras,emt,2,0.00077,0.0454
+Marqués De Urquijo,emt,2,0.00077,0.0482
+Isaac Peral - Fernández De Los Ríos,emt,3,0.00076,0.051
+Herrera Oria - Sicilia,emt,2,0.00076,0.0392
+Argüelles,emt,2,0.00076,0.0483
+Deyanira - Campezo,emt,2,0.00076,0.045
+Avena - Heno,emt,2,0.00076,0.0398
+Biblioteca Miguel Hernández,emt,2,0.00076,0.0384
+Cuesta De La Vega,emt,2,0.00076,0.0493
+Marcelino Camacho - Laguna,emt,3,0.00075,0.0426
+Centro De Salud Ensanche Vallecas,emt,2,0.00075,0.0294
+Islas Aleutianas - Herrera Oria,emt,2,0.00075,0.0375
+Feria De Madrid - Puerta Norte,emt,2,0.00075,0.037
+Estación De Atocha,emt,2,0.00075,0.0582
+Pedroñeras - El Provencio,emt,2,0.00075,0.0349
+Plaza Castilla,emt,2,0.00074,0.0454
+Metro Barrio Del Pilar,emt,2,0.00074,0.0407
+Ervigio,emt,2,0.00074,0.0423
+Evangelios,emt,2,0.00074,0.0459
+Rosalía De Castro - Ramón Gómez De La Serna,emt,2,0.00073,0.0344
+Copérnico,emt,2,0.00072,0.0474
+Avenida Santa Eugenia - Puentelarra,emt,3,0.00072,0.0389
+Avenida De Las Águilas - José De Cadalso,emt,2,0.00072,0.0373
+Alcocer - Villaverde Cruce,emt,2,0.00072,0.0362
+Payaso Fofó - Arroyo Del Olivar,emt,2,0.00071,0.0461
+Sinesio Delgado - Doroteo Benache,emt,2,0.00071,0.0414
+Hospital De La Princesa,emt,2,0.00071,0.0467
+Puente San Isidro - San Illán,emt,2,0.0007,0.0421
+Bacares - Golfo De Salónica,emt,2,0.0007,0.0488
+Cristo De La Victoria - Jaspe,emt,2,0.0007,0.0397
+Osa Mayor - Carretera De Húmera,emt,2,0.0007,0.028
+Fermín Caballero - Isla De Arosa,emt,2,0.0007,0.0362
+Luis Ruiz,emt,2,0.00069,0.0443
+Puente De Segovia,emt,2,0.00069,0.049
+Diego De León - Núñez De Balboa,emt,2,0.00069,0.0467
+Vía Carpetana - Casimiro Escudero,emt,2,0.00069,0.0425
+Menéndez Pelayo - Granada,emt,2,0.00069,0.0594
+Mariano De Cavia,emt,2,0.00068,0.0594
+Francisco Silvela - Príncipe De Vergara,emt,3,0.00068,0.0629
+Vélez Rubio,emt,3,0.00068,0.0465
+Ricardo Ortiz - San Marcelo,emt,2,0.00068,0.0555
+Plaza Andrés Jaúregui,emt,2,0.00067,0.0341
+Blanca De Castilla - Camino De La Zarzuela,emt,2,0.00067,0.028
+Las Águilas - Cercanías,emt,2,0.00067,0.0372
+Canillas,emt,2,0.00067,0.0341
+Roquetas De Mar,emt,2,0.00067,0.0485
+Indalecio Prieto - Copérnico,emt,2,0.00067,0.0472
+Hospital Niño Jesús,emt,2,0.00067,0.0572
+Ruber Internacional,emt,2,0.00067,0.0381
+Camino De Santiago - Valcarlos,emt,2,0.00067,0.0454
+Madre Molas,emt,2,0.00067,0.0433
+Arcentales - Avenida De Canillejas,emt,2,0.00067,0.0545
+Valdebebas Cercanías,emt,2,0.00066,0.0318
+Canalejas,emt,2,0.00066,0.0538
+Miguel Servet,emt,2,0.00066,0.0464
+Centro De Salud Ensanche Vallecas,emt,2,0.00066,0.0302
+San Cipriano - Minerva,emt,2,0.00066,0.0341
+Avenida De Daroca - Miguel De Unamuno,emt,2,0.00066,0.0488
+Mariano De Cavia,emt,2,0.00066,0.0564
+Fuencarral - Bilbao,emt,2,0.00066,0.0422
+Sagrados Corazones,emt,2,0.00066,0.0477
+General Perón - Aviador Zorita,emt,2,0.00066,0.0505
+Monte Del Gozo,emt,2,0.00066,0.0359
+Avenida Guindalera - Camilo José Cela,emt,2,0.00066,0.0486
+Fernández Almagro - Betanzos,emt,2,0.00066,0.0406
+Auditorio Nacional,emt,2,0.00066,0.0521
+Metro Príncipe De Vergara,emt,2,0.00066,0.0554
+Domimgo Párraga - Real De Pinto,emt,2,0.00066,0.0291
+Puerto De La Cruz Verde,emt,2,0.00066,0.0435
+República Dominicana,emt,3,0.00066,0.0492
+Castillo De Uclés - Castillo De Simancas,emt,2,0.00066,0.0279
+Avenida Aragón - Parque Empresarial Pegaso,emt,2,0.00066,0.0332
+César Cort Botí - Leandro Silva,emt,2,0.00066,0.0299
+Valcarlos - San Millán De La Cogolla,emt,2,0.00066,0.0402
+Maqueda - Tembleque,emt,2,0.00066,0.0372
+Ruperto Chapí,emt,2,0.00066,0.0414
+Felipe Ii,emt,3,0.00066,0.0645
+Avenida Aragón - Campezo,emt,2,0.00066,0.0311
+Zoo,emt,2,0.00066,0.0364
+Sanchinarro,emt,2,0.00066,0.0534
+Príncipe Pío - Campo Del Moro,emt,2,0.00066,0.0503
+Plaza Tarifa,emt,2,0.00066,0.0446
+Felipe Ii,emt,2,0.00066,0.06
+Arturo Soria - Josefa Valcárcel,emt,2,0.00066,0.0319
+Fuente Del Tiro - Paseo De Extremadura,emt,2,0.00066,0.0355
+Santa Gema,emt,2,0.00066,0.0265
+Avenida Logroño 164,emt,2,0.00066,0.057
+Metro Montecarmelo,emt,2,0.00066,0.0388
+Ayacucho - Nevado Del Ruiz,emt,2,0.00066,0.0297
+Juan Esplandiú 9,emt,2,0.00066,0.0545
+Robledo,emt,2,0.00066,0.0366
+Cementerio Sur - Sección 19G,emt,2,0.00066,0.0287
+Seseña - Valmojado,emt,2,0.00066,0.0326
+Valcarlos - Tierra De Melide,emt,2,0.00066,0.0395
+Toledo - Humilladero,emt,2,0.00066,0.0477
+Ciclón,emt,2,0.00066,0.0465
+Euro - Aguacate,emt,3,0.00066,0.043
+Usera,emt,2,0.00066,0.053
+Concejal Francisco Jiménez - Caramuel,emt,2,0.00066,0.0384
+Madre Antonia París,emt,2,0.00066,0.0366
+Sagasta,emt,2,0.00066,0.0495
+Vía De Los Poblados - Cristalia,emt,2,0.00066,0.0281
+Doctor Esquerdo - Cavanilles,emt,2,0.00066,0.053
+Avenida De La Victoria - Avenida De La Estación,emt,2,0.00066,0.0265
+Ribera Manzanares - Cordillera,emt,2,0.00066,0.0416
+Nuestra Señora Valverde - Alonso Quijano,emt,2,0.00066,0.0426
+San Mario,emt,2,0.00066,0.0316
+Marqués De Viana - Genciana,emt,2,0.00066,0.038
+Camino De Las Cruces,emt,2,0.00066,0.0364
+Avenida De La Victoria - Centro Comercial,emt,2,0.00066,0.0223
+Blas De Lezo - Ilusión,emt,2,0.00066,0.0468
+Oliva De Plasencia,emt,3,0.00066,0.0329
+Ginebra - Suecia,emt,2,0.00066,0.0447
+Ronda Sur - Montánchez,emt,2,0.00066,0.036
+José Prat - Indalecio Prieto,emt,2,0.00066,0.0472
+Fernández De Los Ríos - Hilarión Eslava,emt,2,0.00066,0.0388
+Mercamadrid - Pescados,emt,2,0.00066,0.0334
+Abad Juan Catalán,emt,2,0.00066,0.0471
+Atapuerca - San Juan De Ortega,emt,2,0.00066,0.0508
+Santa Adela,emt,2,0.00066,0.0328
+Empalme,emt,2,0.00066,0.0369
+Hermanos García Noblejas - Alsacia,emt,2,0.00066,0.0434
+Gloria Fuertes - María Montessori,emt,2,0.00066,0.0328
+Maruja Mallo - Camino Del Olivar,emt,2,0.00066,0.0314
+Arqueros,emt,2,0.00066,0.0327
+Alfonso Xiii - Pradillo,emt,2,0.00066,0.0394
+Marqués De La Valdavia,emt,2,0.00066,0.0597
+Avenida De La Aviación - Valle Inclán,emt,2,0.00066,0.0361
+Bravo Murillo - Cristóbal Bordiú,emt,2,0.00066,0.0372
+Villamanín - Villavaliente,emt,2,0.00066,0.0387
+Secundino Zuazo - Fina De Calderón,emt,2,0.00066,0.0291
+Metro Guzmán El Bueno,emt,2,0.00066,0.0319
+Puerta De Toledo,emt,2,0.00066,0.0409
+Hermanos García Noblejas - Alsacia,emt,2,0.00066,0.0419
+Bucaramanga - Centro Comercial,emt,3,0.00066,0.0344
+Avenida Del Talgo - Residencia,emt,2,0.00066,0.0348
+San Eustaquio - Laguna Del Marquesado,emt,2,0.00066,0.0221
+Sancho Dávila,emt,2,0.00066,0.0531
+Cementerio La Almudena - Parada 4,emt,2,0.00066,0.0367
+Ofelia Nieto - Paseo De La Dirección,emt,2,0.00066,0.0444
+Avenida De Jaca,emt,2,0.00066,0.0571
+Mar De Las Antillas - Abarzuza,emt,2,0.00066,0.0339
+Juanita Cruz - María De Maeztu,emt,2,0.00066,0.0272
+Hospital Infanta Leonor - Acceso Principal,emt,2,0.00066,0.0375
+Santa Prisca,emt,2,0.00066,0.0533
+Carretera Colmenar - Batallón,emt,2,0.00066,0.0276
+Avenida De La Memoria,emt,2,0.00066,0.042
+Francisco Silvela - Juan Bravo,emt,2,0.00066,0.0547
+Junta Municipal Latina,emt,2,0.00066,0.0375
+San Juan Bautista,emt,2,0.00066,0.0425
+La Peseta - Corona,emt,3,0.00066,0.0511
+Camino De Campamento - Villagarcía,emt,2,0.00066,0.0383
+Los Molinos,emt,3,0.00066,0.0539
+Plaza De Las Regiones,emt,2,0.00066,0.0419
+Indalecio Prieto - Los Juglares,emt,2,0.00066,0.0517
+Santa María Magdalena,emt,2,0.00066,0.0418
+Rafael Alberti - San Claudio,emt,2,0.00066,0.0342
+Avenida Manzanares - San Cándido,emt,2,0.00066,0.0389
+Alberto Palacios - Ferroviarios,emt,2,0.00066,0.0276
+Esfinge - Canal Del Bósforo,emt,2,0.00066,0.0491
+Casatejada,emt,2,0.00066,0.0335
+Plata Y Castañar,emt,2,0.00066,0.0323
+Sanchidrián,emt,2,0.00066,0.0296
+Patones - Sangenjo,emt,2,0.00066,0.0431
+Guetaria - Ordicia,emt,2,0.00066,0.0372
+Chamartín,emt,2,0.00066,0.0413
+Escalona - Illescas,emt,2,0.00066,0.0376
+Burjasot,emt,2,0.00066,0.0337
+Pablo Neruda - Luis Buñuel,emt,2,0.00066,0.0343
+Alcalde Andrés Madrid Dávila - Casa Tilly,emt,2,0.00066,0.0379
+Los Cármenes,emt,2,0.00066,0.0489
+Simca - Horizon,emt,2,0.00066,0.0343
+Metro Lacoma,emt,2,0.00066,0.0331
+Aeropuerto T4,emt,2,0.00065,0.0605
+San Mariano - Canal Del Bósforo,emt,2,0.00065,0.049
+Estación Hortaleza - Chaves Nogales,emt,2,0.00065,0.0401
+Monasterio Paular - Monasterio Huelgas,emt,2,0.00065,0.0407
+Pradera De Vaquerizas,emt,2,0.00065,0.0332
+Suecia - Francfort,emt,2,0.00065,0.0441
+Antonio Machado - Isla De Oza,emt,3,0.00065,0.0413
+Andaluces - San Claudio,emt,2,0.00065,0.0404
+Avenida Santa Eugenia - Virgen Las Viñas,emt,2,0.00065,0.0402
+Avenida Guindalera - Camilo José Cela,emt,2,0.00065,0.0489
+Calle Once - Avenida Segunda,emt,2,0.00065,0.0447
+Valencia De Don Juan - Alfredo Marqueríe,emt,2,0.00064,0.0392
+Polideportivo Palomeras,emt,2,0.00064,0.0403
+Beata,emt,2,0.00064,0.0501
+Telefónica,emt,3,0.00064,0.0444
+Encierros - Gran Avenida,emt,2,0.00064,0.0399
+Joan Maragall - Sor Ángela De La Cruz,emt,2,0.00063,0.0466
+Unanimidad - Alianza,emt,2,0.00063,0.0372
+Mota Del Cuervo,emt,2,0.00063,0.0328
+Almanzora - Bacares,emt,2,0.00063,0.0452
+Joan Maragall - San Germán,emt,2,0.00062,0.0484
+Plaza Niño Jesús,emt,2,0.00062,0.057
+Comendadoras,emt,2,0.00062,0.0438
+San Juan De La Cruz,emt,2,0.00062,0.0538
+Plaza De Las Regiones,emt,2,0.00062,0.0407
+Carretera De Vallecas - Unanimidad,emt,2,0.00062,0.0346
+Pico Artilleros - Luis De Hoyos,emt,2,0.00062,0.0457
+Alberique - Comisaría,emt,2,0.00062,0.0494
+Julián Camarillo - Santa Leonor,emt,2,0.00062,0.0454
+Peñaranda - Puentedey,emt,2,0.00061,0.0292
+Príncipe De Vergara - Diego De León,emt,2,0.0006,0.0465
+Castellana - Profesor Waksman,emt,2,0.0006,0.0478
+Arroyo De Las Pavas,emt,2,0.0006,0.042
+Bravo Murillo - Plaza Castilla,emt,2,0.0006,0.0449
+Ecuador,emt,3,0.0006,0.0508
+Mercado Tirso De Molina,emt,2,0.00059,0.0474
+Avenida De Entrevías - Vedra,emt,2,0.00059,0.0357
+Plaza Antonio María Segovia,emt,2,0.00059,0.0367
+Ríos Rosas - Alonso Cano,emt,2,0.00058,0.0535
+Iglesia - Alonso Cano,emt,2,0.00058,0.0495
+Camino De Santiago - San Millán Cogolla,emt,2,0.00057,0.0438
+Alonso Cano,emt,2,0.00057,0.0494
+Alcalá Zamora - María Tudor,emt,2,0.00057,0.0488
+Pedro Rico - Finisterre,emt,2,0.00057,0.0442
+María Odiaga - Federico Grases,emt,2,0.00057,0.0374
+Finisterre - Melchor Fernández Almagro,emt,2,0.00057,0.0438
+Metro Méndez Álvaro,emt,2,0.00057,0.0561
+Joan Maragall - Rosario Pino,emt,2,0.00056,0.0464
+Monforte De Lemos - Finisterre,emt,2,0.00056,0.0432
+Camarena - Sagrada Familia,emt,2,0.00055,0.0363
+Avenida De Los Toreros,emt,3,0.00055,0.0544
+La Masó - Moralzarzal,emt,2,0.00054,0.0396
+Baltasar Santos - Navacerrada,emt,2,0.00054,0.0436
+Parque De Ingenieros,emt,2,0.00054,0.0345
+Foresta,emt,2,0.00054,0.0444
+César Manrique - Chantada,emt,2,0.00054,0.036
+Valhondo - Ciclón,emt,3,0.00053,0.0451
+César Manrique - La Cabrera,emt,2,0.00053,0.0361
+Conde De Casal - Doctor Esquerdo,emt,2,0.00052,0.0618
+Marqués De Torroja,emt,3,0.00052,0.0431
+Plaza Niño Jesús,emt,2,0.00052,0.0565
+Avenida De La Paz,emt,2,0.00052,0.0419
+Ana Teresa - Antares,emt,2,0.00051,0.0328
+Alcocer - Virgen Desamparados,emt,2,0.00051,0.0353
+Los Rosales - Niquel,emt,2,0.0005,0.03
+Sepúlveda - Apóstoles,emt,4,0.0005,0.0427
+Monasterio Silos - Avenida Montecarmelo,emt,2,0.00049,0.0379
+Estación De Delicias,emt,2,0.00049,0.0506
+Arroyo Fontarrón - Francisco De Luján,emt,2,0.00049,0.0425
+Arroyo Fontarrón - Encomienda De Palacios,emt,2,0.00048,0.0425
+Marismas - Pérez De Ayala,emt,2,0.00048,0.0434
+Alameda De Osuna,emt,2,0.00048,0.051
+Fernández Almagro - Ferrol,emt,2,0.00048,0.0401
+Camarena - Ocaña,emt,2,0.00047,0.0361
+Matilde Landa,emt,2,0.00047,0.0403
+Nuestra Señora De Valverde - Sumatra,emt,3,0.00047,0.041
+Conde De Peñalver - Alcalá,emt,2,0.00047,0.059
+San Luis - Almanzora,emt,2,0.00047,0.044
+José Antonio Armona,emt,2,0.00047,0.0542
+Las Águilas,emt,2,0.00047,0.0368
+Vinateros - Marroquina,emt,2,0.00046,0.0441
+Plaza Castilla,emt,2,0.00046,0.0446
+Nuestra Señora De Valverde - Islas Jarvi,emt,2,0.00046,0.0403
+Antonio Machado - Sinesio Delgado,emt,2,0.00045,0.0406
+Vicente Carballal,emt,2,0.00045,0.0299
+Encomienda De Palacios - Arroyo Fontarrón,emt,2,0.00045,0.0407
+Antonio De Leyva - Alejandro Sánchez,emt,2,0.00045,0.0544
+Suecia - Avenida De Canillejas,emt,2,0.00045,0.0437
+Paseo Jesuitas - Agila,emt,2,0.00045,0.0439
+Eduardo Barreiros - Corte De Faraón,emt,2,0.00044,0.0361
+Julia García Boután - Suecia,emt,2,0.00044,0.0453
+Pico Artilleros - Luis De Hoyos,emt,2,0.00044,0.0385
+Plaza Del Norte,emt,2,0.00044,0.0404
+Real De Arganda,emt,2,0.00043,0.0362
+Embajadores - Ronda De Valencia,emt,2,0.00043,0.0566
+Narváez - O Donnell,emt,2,0.00043,0.0584
+Alfredo Marqueríe,emt,2,0.00042,0.0381
+Ascao - Julián Camarillo,emt,2,0.00042,0.0445
+Cementerio La Almudena,emt,2,0.00041,0.0481
+Calle De Las Delicias,emt,2,0.00041,0.0548
+Parque San Isidro,emt,2,0.00041,0.0412
+Finisterre - Villa De Marín,emt,2,0.00041,0.0431
+Parque Katiuska,emt,2,0.00041,0.036
+Cristo Rey,emt,2,0.00041,0.0519
+Eduardo Barreiros - El Caserío,emt,2,0.0004,0.0342
+Ramírez De Prado - Vara Del Rey,emt,2,0.0004,0.0503
+Centro De Carga Aérea 1,emt,2,0.0004,0.0571
+Suecia - Rumanía,emt,2,0.00039,0.0434
+Sofía - Budapest,emt,2,0.00039,0.0447
+Vinateros - Cañada,emt,2,0.00039,0.0439
+Obenque - Velero,emt,2,0.00038,0.0498
+Torrelaguna - Ramírez De Arellano,emt,2,0.00038,0.0445
+Corregidor Antonio Mena,emt,2,0.00038,0.0384
+Pirámides - Yeserías,emt,2,0.00038,0.0515
+Avenida De Cantabria - Bergantín,emt,2,0.00038,0.0511
+San Cipriano - Minerva,emt,2,0.00037,0.0491
+Plaza Del Mar,emt,2,0.00037,0.0494
+Mogambo - Volver A Empezar,emt,2,0.00037,0.0409
+Sevilla Diago - Avenida De Canillejas,emt,2,0.00037,0.0473
+San Norberto - Parque Bomberos,emt,2,0.00037,0.0271
+Sorzano,emt,2,0.00037,0.0417
+Ronda Comunicación - Edificio Oeste 2,emt,2,0.00036,0.0446
+Castellana - Rafael Salgado,emt,2,0.00036,0.0489
+Martínez De La Riva - Puerto Bonaigua,emt,2,0.00036,0.0458
+Castiello De Jaca - Burguete,emt,2,0.00036,0.0431
+Ermita De San Isidro,emt,2,0.00035,0.0412
+Domimgo Párraga - Real De Pinto,emt,2,0.00035,0.0269
+Pico Artilleros - Corregidor Conde Maceda,emt,2,0.00034,0.0442
+Avenida Santa Eugenia - Camino Vasares,emt,2,0.00034,0.0419
+Avenida De Canillejas - Hinojal,emt,2,0.00034,0.0494
+Democracia - Arboleda,emt,3,0.00034,0.0388
+Gran Vía Del Sureste - Ensanche Vallecas,emt,2,0.00033,0.0283
+Avenida General,emt,2,0.00033,0.0571
+Cardenal Tarancón - Pilar Madariaga,emt,2,0.00033,0.0283
+Silvano - José Domingo Rus,emt,2,0.00033,0.034
+Feria De Madrid,emt,2,0.00033,0.0362
+Alberto Alcocer - Padre Damián,emt,2,0.00032,0.0423
+Avenida De Daroca - Santa Prisca,emt,2,0.00032,0.0478
+Carretera De Castilla - Iese,emt,2,0.00032,0.0401
+Santo Domingo De La Calzada - Rabanal,emt,2,0.00032,0.043
+Joaquín Costa - Velázquez,emt,4,0.00032,0.0613
+Arroyo Pozuelo - Hinojo,emt,2,0.00032,0.0387
+Centro De Carga Aérea 4,emt,2,0.00032,0.0567
+Húmera - Vía Láctea,emt,2,0.00032,0.0373
+Golondrina - Arroyo Pozuelo,emt,3,0.00032,0.036
+Avenida Canillejas - Julia García Boután,emt,2,0.00031,0.0474
+Vía Lusitana - Braganza,emt,2,0.00031,0.0564
+Juan Ignacio Luca De Tena - Juana I,emt,2,0.0003,0.0554
+Indalecio Prieto - José Prat,emt,2,0.0003,0.047
+Luis De Hoyos - Damasco,emt,2,0.0003,0.047
+Julián Camarillo - Albarracín,emt,2,0.0003,0.0438
+Nudo Eisenhower,emt,2,0.00029,0.0513
+Serena - Campiña,emt,2,0.00029,0.0376
+Parque De La Paloma,emt,2,0.00029,0.0386
+Marismas - Maruja García Romero,emt,2,0.00029,0.0429
+Pedroñeras - Silvano,emt,2,0.00029,0.034
+Roger De Flor,emt,2,0.00028,0.0411
+Avenida De Manoteras - Oña,emt,2,0.00028,0.0473
+Alejandro Casona - Doctor Reinosa,emt,2,0.00028,0.0338
+Estación De Pitis,emt,3,0.00027,0.0328
+Centro De Salud Pavones,emt,4,0.00027,0.0458
+Hospital San Rafael,emt,2,0.00027,0.0496
+Embajadores,emt,2,0.00027,0.0564
+Paseo Olivos - Costanilla De Los Olivos,emt,2,0.00027,0.0435
+Metro Artilleros,emt,2,0.00026,0.0445
+Arroyo Fontarrón 245,emt,2,0.00026,0.0405
+Ribadavia,emt,2,0.00025,0.0399
+Antonio De Leyva - Jacinto Verdaguer,emt,2,0.00025,0.054
+García Tapia - Molina De Segura,emt,2,0.00025,0.047
+Cuacos De Yuste,emt,2,0.00025,0.0332
+Partenón - Hamburgo,emt,2,0.00025,0.036
+Rafaela Ybarra - Pradolongo,emt,2,0.00025,0.0385
+Avenida De Los Toreros,emt,2,0.00024,0.055
+Juan Duque - Moreno Nieto,emt,2,0.00024,0.046
+Beatriz De Bobadilla,emt,2,0.00023,0.0549
+Pío Xii,emt,2,0.00023,0.042
+Paseo De Extremadura - Guadarrama,emt,2,0.00023,0.0504
+Padre Damián - Pedro Muguruza,emt,2,0.00023,0.0419
+Ruidera - Lagartera,emt,2,0.00023,0.0394
+Ribadavia - Chantada,emt,2,0.00023,0.0396
+María Odiaga - Witerico,emt,2,0.00023,0.0368
+Marqués De Comillas,emt,2,0.00022,0.0529
+Avenida De Entrevías - Ronda Sur,emt,2,0.00022,0.0349
+Zaida - Centro Social,emt,2,0.00021,0.0405
+Pirámides,emt,2,0.00021,0.05
+Virgen Del Cortijo,emt,2,0.0002,0.0469
+Barrio Peñagrande,emt,2,0.0002,0.0332
+Araquil - Paseo Ermita,emt,2,0.0002,0.0328
+Concejal Francisco Jiménez - Berlanas,emt,2,0.00019,0.0437
+Felipe Ii,emt,2,0.00019,0.0573
+Arcentales - San Romualdo,emt,2,0.00018,0.0474
+Juan Duque - Pizarra,emt,2,0.00018,0.0463
+Ramírez De Prado - General Lacy,emt,2,0.00018,0.0493
+Acacias,emt,3,0.00018,0.0561
+Arcentales - Avenida De Canillejas,emt,2,0.00018,0.0473
+Senda Del Infante - Olga Ramos,emt,2,0.00017,0.0322
+Sepúlveda - Concejal Francisco Jiménez,emt,2,0.00017,0.0432
+Mateo Inurria,emt,2,0.00017,0.045
+Sofía - Manchester,emt,2,0.00017,0.0444
+Andaluces - Pablo Neruda,emt,2,0.00016,0.0403
+Benjamín Palencia - Tossa,emt,2,0.00016,0.0407
+López De Hoyos - Navarro Amandi,emt,3,0.00015,0.0423
+Metro Las Musas,emt,2,0.00015,0.0463
+Mogambo - La Violetera,emt,2,0.00015,0.0397
+Príncipe De Vergara - Serrano,emt,2,0.00015,0.0484
+Buenos Aires - Pedro Laborde,emt,2,0.00014,0.0424
+Juan Ignacio Luca De Tena - Botánico,emt,3,0.00013,0.0546
+María Odiaga - Piedrahíta,emt,2,0.00013,0.0365
+Manojo De Rosas - Corte De Faraón,emt,2,0.00013,0.0349
+Casa Del Reloj,emt,2,0.00012,0.0478
+Avenida Moratalaz - Vinateros,emt,2,0.00012,0.0431
+Mojácar,emt,2,0.00012,0.0466
+Pico Artilleros,emt,2,0.00012,0.0377
+Carretera De Vallecas - Villafuerte,emt,2,0.00011,0.0361
+Granja San Ildefonso - Batres,emt,2,0.00011,0.0286
+Carabanchel - Hospital Militar,emt,2,0.0001,0.0411
+Guillermo De Osma,emt,2,0.0001,0.048
+Isaac Peral - Julián Romea,emt,2,0.0001,0.0519
+Deyanira - Pirra,emt,2,0.0001,0.0431
+Balandro - Canoa,emt,2,9e-05,0.0488
+Buganvilla,emt,2,9e-05,0.0418
+Puerta Arganda,emt,2,9e-05,0.0471
+Carretera De Vallecas - Avenida Rosales,emt,2,8e-05,0.0336
+Mirasierra,emt,2,7e-05,0.0385
+Paseo Jesuitas - Salvador Crespo,emt,2,7e-05,0.0428
+Avenida Santa Eugenia - Puentelarra,emt,2,6e-05,0.0404
+Manoteras,emt,2,6e-05,0.0466
+Deyanira - Euterpe,emt,2,6e-05,0.043
+Carretera De Vallecas - Coalición,emt,2,6e-05,0.036
+Paseo De Extremadura - Albéniz,emt,2,5e-05,0.049
+Osa Mayor - Bellatrix,emt,2,5e-05,0.0321
+Avenida Canillejas - Julia García Boután,emt,2,5e-05,0.0473
+Malgrat De Mar,emt,2,5e-05,0.0401
+Cerro Milano - La Gavia,emt,2,5e-05,0.0285
+Simancas,emt,2,5e-05,0.0473
+Pléyades - Osa Mayor,emt,2,5e-05,0.0273
+Martínez De La Riva - Candilejas,emt,2,5e-05,0.0439
+Antonio De Leyva - Miguel Soriano,emt,2,4e-05,0.0519
+Avenida De Cantabria - Centro De Salud,emt,3,4e-05,0.0519
+Avenida Del Recuerdo,emt,2,4e-05,0.0439
+Centro De Carga Aérea 2,emt,2,4e-05,0.0554
+Arroyo Fontarrón - Pío Felipe,emt,2,4e-05,0.0391
+Pléyades - Ana Teresa,emt,2,4e-05,0.0272
+Pico Artilleros - García Tapia,emt,2,3e-05,0.0462
+Puente De Vallecas,emt,3,3e-05,0.0581
+Carretera De Alcobendas - Isabel Colbrand,emt,2,3e-05,0.0426
+Avenida De Canillejas - Plaza Vicalvarada,emt,2,2e-05,0.0519
+Arcentales - San Romualdo,emt,2,2e-05,0.0517
+Expropiación - Avenida De Los Poblados,emt,2,2e-05,0.0384
+Ronda Comunicación - Edificio Norte 1,emt,2,2e-05,0.0427
+Barrio Canillejas,emt,2,2e-05,0.0468
+Santo Domingo Calzada - Castiello De Jaca,emt,2,2e-05,0.0414
+Sierra Guadalupe,emt,2,2e-05,0.0374
+Alberique - Albaida,emt,2,2e-05,0.0472
+Boyer - Rivas,emt,2,2e-05,0.0471
+Gran Vía Del Sureste - Las Suertes,emt,2,1e-05,0.0276
+Esfinge - Canal Del Bósforo,emt,2,1e-05,0.0468
+Rosas De Aravaca - Estación,emt,2,1e-05,0.036
+Vía Lusitana - Coimbra,emt,2,1e-05,0.0537
+San Romualdo - Cronos,emt,2,1e-05,0.0517
+Monasterio De Silos - Santuario De Valverde,emt,2,1e-05,0.0392
+Arroyo Pozuelo - Carretera De De Húmera,emt,2,1e-05,0.0373
+Arroyo Pozuelo - Alcornoque,emt,2,1e-05,0.0387
+Evaristo San Miguel,emt,2,1e-05,0.0511
+Avenida Orcasur - Fernando Ortiz,emt,2,0.0,0.0366
+Moncloa,emt,1,0.0,0.0477
+Agrónomos,emt,2,0.0,0.0448
+Pobladura Del Valle - Avenida Canillejas,emt,2,0.0,0.0495
+Avenida Del Talgo - Frente Residencia,emt,1,0.0,0.0336
+Camino De La Zarzuela - Cabellera Berenice,emt,2,0.0,0.0346
+Avenida De Valladolid - La Bombilla,emt,2,0.0,0.0477
+Parque De La Bombilla,emt,2,0.0,0.0458
+Alberto Palacios - Astillero,emt,1,0.0,0.0268
+Intercambiador Plaza Elíptica,emt,2,0.0,0.0536
+San Fermín,emt,1,0.0,0.0306
+Canillejas,emt,1,0.0,0.054
+Estación De Atocha,emt,1,0.0,0.0574
+San Martín De Porres - Artesa De Segre,emt,2,0.0,0.0365
+Carretera Colmenar - Regimiento,emt,1,0.0,0.0269
+Alsacia,emt,1,0.0,0.0454
+Barrio Aeropuerto,emt,1,0.0,0.0514
+Reina Victoria,emt,1,0.0,0.0549
+Sevilla,emt,1,0.0,0.0576
+Princesa - Rey Francisco,emt,2,0.0,0.0495
+Cruz Roja,emt,2,0.0,0.0545
+Rubio Y Galí - Aranjuez,emt,2,0.0,0.0544
+El Barrial,emt,1,0.0,0.0218
+Carabanchel Alto,emt,1,0.0,0.0324
+Manuel Becerra,emt,1,0.0,0.0519
+Pobladura Del Valle - Alconera,emt,2,0.0,0.0496
+Moncloa,emt,1,0.0,0.0461
+Colonia Manzanares,emt,1,0.0,0.0399
+María De Maeztu - María Montessori,emt,2,0.0,0.0338
+Hospital 12 De Octubre - Tolosa Latour,emt,1,0.0,0.0321
+Carabanchel Alto,emt,1,0.0,0.0351
+Pavones,emt,1,0.0,0.0484
+Suecia - Francfort,emt,2,0.0,0.0496
+Suecia - Bucarest,emt,2,0.0,0.0481
+Estación De Atocha,emt,1,0.0,0.0604
+Dehesa Príncipe,emt,1,0.0,0.0317
+Las Cárcavas,emt,1,0.0,0.0304
+Plaza De España - Terminal,emt,1,0.0,0.0523
+Pobladura Del Valle - San Román Del Valle,emt,2,0.0,0.0474
+Alsacia,emt,1,0.0,0.0416
+María De Maeztu - Irene Caba Alba,emt,1,0.0,0.0317
+Alfonso Xiii,emt,1,0.0,0.0379
+Paseo De La Florida,emt,2,0.0,0.0497
+San Ignacio,emt,1,0.0,0.0319
+Tribunal,emt,1,0.0,0.0472
+López Ibor - Joaquín Lorenzo,emt,1,0.0,0.0367
+Felipe Ii,emt,1,0.0,0.0601
+El Plantío,emt,1,0.0,0.0258
+Las Rosas,emt,1,0.0,0.0428
+Moncloa,emt,1,0.0,0.0477
+Estadística - Geografía E Historia,emt,2,0.0,0.043
+Carretera De El Pardo,emt,2,0.0,0.0417
+Sepúlveda - Cocheras Metro,emt,2,0.0,0.0421
+Sepúlveda - Huerta Castañeda,emt,2,0.0,0.0427
+Sepúlveda - Cebreros,emt,2,0.0,0.0445
+San Ignacio,emt,1,0.0,0.0349
+Plaza De La Emperatriz,emt,2,0.0,0.0354
+Banco De España,emt,2,0.0,0.0597
+Niceto Alcalá Zamora - Octavio Paz,emt,2,0.0,0.0488
+Sanchinarro,emt,1,0.0,0.0412
+Mar De Cristal,emt,1,0.0,0.0297
+Samaranch - Fernando Higueras,emt,2,0.0,0.0339
+Sepúlveda - Cifse,emt,2,0.0,0.0458
+Campamento,emt,1,0.0,0.0356
+Cuatro Caminos,emt,1,0.0,0.0358
+Atocha,emt,1,0.0,0.0563
+Monasterio Paular - Monasterio Silos,emt,2,0.0,0.0392
+Fuencarral,emt,1,0.0,0.0337
+Caramuel - Doña Mencía,emt,2,0.0,0.0448
+Lola Flores - Padre Poveda,emt,1,0.0,0.0321
+Jefatura Provincial Tráfico,emt,2,0.0,0.0467
+Pavones,emt,1,0.0,0.0451
+Príncipe Pío,emt,1,0.0,0.0479
+Círculo De Bellas Artes,emt,2,0.0,0.0578
+Legazpi,emt,1,0.0,0.0503
+Samaranch - Fernández Ordoñez,emt,2,0.0,0.0328
+Samaranch - Fina De Calderón,emt,2,0.0,0.0318
+Félix Candela - Gutiérrez Mellado,emt,2,0.0,0.0308
+Valdebebas,emt,1,0.0,0.029
+Mar De Cristal,emt,1,0.0,0.0341
+Velázquez - Ayala,emt,2,0.0,0.0599
+Plaza Mayor,emt,1,0.0,0.0537
+Casa De Campo,emt,1,0.0,0.0352
+Cibeles,emt,1,0.0,0.059
+Hospital Ramón Y Cajal,emt,1,0.0,0.0593
+Pirámides Cercanías,emt,2,0.0,0.0543
+Ingeniero Emilio Herrera - Princesa Éboli,emt,2,0.0,0.0486
+Las Tablas,emt,1,0.0,0.0347
+Barrio Goya,emt,1,0.0,0.037
+Canillejas,emt,1,0.0,0.0302
+Ganados Del Salobral - Maricara,emt,2,0.0,0.026
+Arroyo De La Bulera - Viñas Del Río,emt,1,0.0,0.0254
+Estación De Atocha,emt,1,0.0,0.0459
+República Dominicana,emt,1,0.0,0.0456
+Plaza Lima,emt,1,0.0,0.0456
+Minerva - Caliza,emt,2,0.0,0.0489
+Valderrivas,emt,2,0.0,0.0489
+Puerta De Hierro,emt,1,0.0,0.0373
+Las Tablas Norte,emt,1,0.0,0.0387
+Plaza Castilla,emt,1,0.0,0.0481
+Avenida Logroño - Pajarones,emt,2,0.0,0.0571
+Aluche,emt,1,0.0,0.0356
+Conde De Romanones - Tirso De Molina,emt,1,0.0,0.0538
+Sevilla,emt,1,0.0,0.0511
+Embajadores,emt,1,0.0,0.0443
+Puerta De Toledo,emt,1,0.0,0.0535
+Plaza Castilla,emt,1,0.0,0.0481
+Alcalá Zamora - María Tudor,emt,1,0.0,0.0507
+Pavones,emt,2,0.0,0.0452
+Plaza Mayor,emt,1,0.0,0.0495
+Santa Engracia - Caracas,emt,2,0.0,0.0535
+Santa Engracia - García De Paredes,emt,2,0.0,0.0543
+Alhambra - Cullera,emt,2,0.0,0.0489
+Plaza Castilla,emt,1,0.0,0.0481
+Pacífico,emt,1,0.0,0.0596
+Madrid Sur,emt,1,0.0,0.0381
+Canillejas,emt,1,0.0,0.0614
+Doctor Esquerdo - Goya,emt,2,0.0,0.0645
+Corregidor Diego Valderrábano,emt,2,0.0,0.0512
+Artilleros - Calahorra,emt,2,0.0,0.0573
+Puerta Arganda,emt,1,0.0,0.0542
+Felipe Ii,emt,1,0.0,0.0566
+Los Molinos,emt,1,0.0,0.0512
+Callao,emt,1,0.0,0.0542
+Puerta Arganda,emt,1,0.0,0.0329
+Diego De León,emt,1,0.0,0.0579
+Mar Caspio - Liberación,emt,2,0.0,0.0354
+Fuente Carrantona - García Tapia,emt,2,0.0,0.0517
+Glorieta López De Hoyos,emt,2,0.0,0.0602
+Cuatro Caminos,emt,2,0.0,0.0573
+Mar De Cristal,emt,1,0.0,0.0289
+Diego De León,emt,1,0.0,0.0587
+Embajadores,emt,1,0.0,0.0541
+Juan Xxiii,emt,2,0.0,0.0529
+Callao,emt,1,0.0,0.0542
+Las Vistillas,emt,2,0.0,0.0539
+Las Tablas Sur,emt,1,0.0,0.038
+Felipe Ii,emt,1,0.0,0.0606
+Moncloa,emt,1,0.0,0.0398
+Somosaguas,emt,1,0.0,0.0405
+Aluche,emt,1,0.0,0.0359
+Moratalaz,emt,1,0.0,0.043
+La Paloma,emt,2,0.0,0.0544
+Ronda Sur - Barros,emt,2,0.0,0.0365
+Montecarmelo,emt,1,0.0,0.0395
+Plaza Castilla,emt,1,0.0,0.0481
+Pacífico,emt,1,0.0,0.0596
+Javier De Miguel - Costabona,emt,2,0.0,0.046
+Callao,emt,1,0.0,0.0542
+Puente De Vallecas,emt,1,0.0,0.05
+Marqués De Viana,emt,1,0.0,0.0353
+Plaza Castilla,emt,1,0.0,0.0481
+Plaza Castilla,emt,1,0.0,0.0476
+Metro La Elipa,emt,2,0.0,0.0534
+Barajas,emt,1,0.0,0.054
+Estación De Atocha,emt,1,0.0,0.0574
+Villablanca - Jardín De La Duquesa,emt,2,0.0,0.0495
+Nuestra Señora Valverde - Manuel Villarta,emt,2,0.0,0.0406
+Barrio Peñagrande,emt,1,0.0,0.0332
+Costa Brava - Fuenfría,emt,2,0.0,0.0425
+Monasterio Huelgas - Monasterio Paular,emt,2,0.0,0.0408
+Cuatro Caminos,emt,2,0.0,0.0609
+Nicolás Salmerón - Matamorosa,emt,2,0.0,0.052
+Fernández Villaverde - Alonso Cano,emt,2,0.0,0.0609
+Ronda De Segovia,emt,2,0.0,0.0541
+Plaza Castilla,emt,1,0.0,0.045
+Tribunal,emt,1,0.0,0.0405
+Parque De Las Avenidas,emt,1,0.0,0.047
+Callao,emt,1,0.0,0.0515
+Gran Capitán,emt,1,0.0,0.0287
+Plaza Castilla,emt,1,0.0,0.0467
+Puerta De Alcalá,emt,1,0.0,0.0615
+Avenida De América,emt,1,0.0,0.0618
+Aeropuerto T4,emt,1,0.0,0.0605
+Diego De León,emt,1,0.0,0.0604
+Felipe Ii,emt,1,0.0,0.0585
+Parque Roma,emt,1,0.0,0.0517
+San José Obrero,emt,1,0.0,0.0427
+Antonio López - Centro Comercial,emt,2,0.0,0.0469
+Moncloa,emt,1,0.0,0.0472
+Casa De Campo,emt,1,0.0,0.0316
+Conde De Romanones - Tirso De Molina,emt,1,0.0,0.0538
+Cuatro Caminos,emt,1,0.0,0.0556
+Bravo Murillo - Lope De Haro,emt,2,0.0,0.0541
+Metro Tetuán,emt,2,0.0,0.0522
+Virgen Del Cortijo,emt,1,0.0,0.0465
+Canillejas,emt,1,0.0,0.0614
+Ecobulevar,emt,1,0.0,0.0293
+Avenida De Logroño - Bahía De Almería,emt,2,0.0,0.0471
+Plaza Castilla,emt,1,0.0,0.0481
+Manuel Becerra,emt,1,0.0,0.0591
+Bahía De Pollensa - Bahía De Gando,emt,2,0.0,0.0454
+Valhondo - Tornado,emt,2,0.0,0.0442
+Cementerio Civil,emt,2,0.0,0.0496
+Cementerio Carabanchel,emt,1,0.0,0.0412
+Moncloa,emt,1,0.0,0.0477
+Pavones,emt,1,0.0,0.0451
+Fuencarral,emt,1,0.0,0.0337
+Plaza Castilla,emt,1,0.0,0.0481
+Arzobispo Morcillo - Facultad Medicina,emt,2,0.0,0.0515
+Padre Llanos - Esteban Carros,emt,1,0.0,0.032
+Plaza De España - Terminal,emt,1,0.0,0.0523
+Metro Puerta De Toledo,emt,1,0.0,0.0455
+Mediterráneo,emt,2,0.0,0.0588
+Estación De Atocha,emt,1,0.0,0.0574
+Junta Municipal Retiro,emt,2,0.0,0.06
+González Feito - Antonio López,emt,2,0.0,0.0421
+Estafeta - Navascués,emt,2,0.0,0.0379
+Playa De Zarauz,emt,2,0.0,0.0471
+Felipe Ii,emt,1,0.0,0.0525
+El Salvador,emt,1,0.0,0.0309
+Méndez Álvaro - Terminal,emt,1,0.0,0.0489
+Argüelles,emt,1,0.0,0.0409
+Puerta De Toledo,emt,1,0.0,0.055
+Hortaleza,emt,1,0.0,0.0333
+Argüelles,emt,1,0.0,0.0409
+La Peseta,emt,1,0.0,0.051
+Aquitania - Nuremberg,emt,2,0.0,0.0551
+Centro De Especialidades De Moratalaz,emt,2,0.0,0.052
+Alsacia,emt,1,0.0,0.0402
+Plaza Mayor De Barajas,emt,2,0.0,0.0541
+Barajas,emt,1,0.0,0.0445
+Hortaleza,emt,1,0.0,0.0317
+Villaverde Alto,emt,1,0.0,0.0313
+Fin De Semana,emt,1,0.0,0.0355
+Plaza De La Cebada,emt,1,0.0,0.0518
+Vicálvaro,emt,1,0.0,0.0572
+Campamento,emt,1,0.0,0.0387
+Fátima - Nuestra Señora De La Luz,emt,2,0.0,0.0411
+Orcasitas,emt,1,0.0,0.0332
+López De Hoyos - Velázquez,emt,2,0.0,0.0576
+Velázquez - Joaquín Costa,emt,2,0.0,0.0557
+Santa Eugenia,emt,1,0.0,0.0374
+Pitis,emt,2,0.0,0.0328
+Colegiata,emt,1,0.0,0.0495
+Cordel De Pavones,emt,1,0.0,0.0451
+Mar De Cristal,emt,1,0.0,0.0297
+Cristalia,emt,1,0.0,0.0273
+Legazpi,emt,1,0.0,0.05
+Plaza De Cataluña,emt,1,0.0,0.0258
+Verbena De La Paloma - Soto Del Parral,emt,2,0.0,0.04
+Parque Europa,emt,1,0.0,0.0343
+Mediterráneo - Politécnico,emt,2,0.0,0.0499
+Mercamadrid,emt,1,0.0,0.0323
+Sierra Guadalupe,emt,1,0.0,0.0406
+Fuencarral Cercanías,emt,1,0.0,0.0409
+Cuatro Caminos,emt,1,0.0,0.0556
+Vía Carpetana - La Campana,emt,2,0.0,0.0436
+Forges - Efigenia,emt,2,0.0,0.0543
+Vicálvaro,emt,1,0.0,0.0449
+Plaza Castilla,emt,1,0.0,0.045
+Callao,emt,1,0.0,0.0542
+Avenida De América,emt,1,0.0,0.0505
+Méndez Álvaro,emt,1,0.0,0.0481
+Los Puertos,emt,1,0.0,0.0416
+Entrevías,emt,1,0.0,0.0347
+Felipe Ii,emt,1,0.0,0.0585
+Narváez,emt,1,0.0,0.0566
+Manoteras,emt,1,0.0,0.0444
+Josefa Valcárcel - Juan Rizi,emt,2,0.0,0.0586
+Marqués De Zafra,emt,1,0.0,0.0504
+Doctor Esquerdo - Cavanilles,emt,1,0.0,0.0503
+Barrio Blanco,emt,1,0.0,0.0353
+Cristo Rey,emt,1,0.0,0.0486
+Concha Espina,emt,2,0.0,0.0528
+Las Tablas,emt,1,0.0,0.0483
+Polígono Industrial La Resina,emt,1,0.0,0.0216
+Sierra Guadalupe,emt,1,0.0,0.0406
+La Elipa,emt,1,0.0,0.0506
+Moncloa,emt,1,0.0,0.0373
+Cristo Rey,emt,1,0.0,0.0485
+Mar De Cristal,emt,1,0.0,0.0365
+Pintor Rosales,emt,1,0.0,0.0496
+Entrevías,emt,1,0.0,0.0403
+Hospital Infanta Leonor,emt,1,0.0,0.0362
+Abtao - Av. Del Mediterráneo,emt,1,0.0,0.0577
+Nanclares De Oca - Arcaute,emt,2,0.0,0.045
+Yécora - Nanclares De Oca,emt,2,0.0,0.0414
+Ensanche De Vallecas - Antonio Gades,emt,2,0.0,0.0309
+Cementerio La Almudena,emt,1,0.0,0.0354
+Manuel Becerra,emt,1,0.0,0.0633
+Castillo De Uclés,emt,1,0.0,0.0272
+Villa Vallecas,emt,1,0.0,0.0374
+Pavones,emt,1,0.0,0.0358
+Avenida De América,emt,1,0.0,0.0618
+Batán,emt,1,0.0,0.0369
+Diego De León,emt,1,0.0,0.0604
+Barajas,emt,1,0.0,0.0541
+Estación De Atocha,emt,1,0.0,0.0604
+San Cristóbal,emt,1,0.0,0.0326
+Vía Lusitana - Carrero Juan Ramón,emt,2,0.0,0.0539
+Valdebernardo,emt,1,0.0,0.0491
+Aluche,emt,1,0.0,0.0361
+Bronce,emt,2,0.0,0.0545
+Alto Del Arenal,emt,1,0.0,0.0332
+Polideportivo Palomeras,emt,2,0.0,0.0403
+Plaza De España - Terminal,emt,1,0.0,0.0523
+El Cañaveral,emt,1,0.0,0.0447
+Cibeles,emt,1,0.0,0.0639
+Alhambra - Los Cármenes,emt,1,0.0,0.0466
+Mogambo,emt,2,0.0,0.0362
+Palomeras,emt,1,0.0,0.035
+Marqués De Viana,emt,1,0.0,0.0366
+Parque De La Constitución,emt,2,0.0,0.0407
+Luis Rosales,emt,2,0.0,0.0408
+Sol - Sevilla,emt,1,0.0,0.0586
+Cibeles,emt,1,0.0,0.059
+Plaza Mayor,emt,1,0.0,0.0537
+Alsacia,emt,1,0.0,0.055
+Palomeras,emt,1,0.0,0.033
+Boyer - Vigil,emt,2,0.0,0.0469
+Doctor Lozano - Santa Marta,emt,1,0.0,0.0476
+Avenida Cuarta - Calle Cinco,emt,2,0.0,0.0489
+Callao,emt,1,0.0,0.0542
+Camino Viejo Leganés - Carrero Juan Ramón,emt,2,0.0,0.044
+La Peseta,emt,1,0.0,0.051
+Beata,emt,1,0.0,0.05
+Cocherón De La Villa - Avenida De La Albufera,emt,2,0.0,0.0387
+Avenida De Burgos - Yuca,emt,2,0.0,0.0451
+Congosto,emt,1,0.0,0.0332
+Blas De Lezo - Cerro Del Tesoro,emt,1,0.0,0.0365
+Moncloa,emt,1,0.0,0.0461
+Cuatro Caminos,emt,1,0.0,0.0556
+Cardenal Cisneros,emt,2,0.0,0.0463
+Orcasitas,emt,1,0.0,0.0358
+Rafaela Ybarra - Marina Vega,emt,2,0.0,0.0488
+Chamartín,emt,1,0.0,0.0397
+Villaverde Alto,emt,1,0.0,0.0283
+La Peseta,emt,1,0.0,0.0486
+Moncloa,emt,1,0.0,0.0461
+Avenida Manzanares,emt,1,0.0,0.0374
+Sevilla,emt,1,0.0,0.0589
+Plaza Del Perú,emt,1,0.0,0.0469
+Sevilla,emt,1,0.0,0.0585
+Santamarca,emt,1,0.0,0.0401
+Las Cortes,emt,1,0.0,0.0586
+Golondrina - Virgen De Los Rosales,emt,2,0.0,0.0348
+Hortaleza,emt,1,0.0,0.0328
+Sol - Sevilla,emt,1,0.0,0.0586
+Castillo De Arévalo,emt,2,0.0,0.0424
+Golondrina - Veleta,emt,2,0.0,0.0349
+Carretera De Húmera - Fuente Del Rey,emt,2,0.0,0.033
+Cibeles,emt,1,0.0,0.0561
+Arroyo Fresno,emt,1,0.0,0.0321
+Alfredo Marqueríe - Fermín Caballero,emt,1,0.0,0.0413
+Rafael Alberti - San Claudio,emt,2,0.0,0.0388
+San Claudio - Fernández Hijicos,emt,2,0.0,0.0388
+Avenida Complutense - Ciencias Información,emt,2,0.0,0.0457
+Buenos Aires,emt,1,0.0,0.049
+Galeón - Bergantín,emt,2,0.0,0.0571
+Pavones,emt,1,0.0,0.0358
+Reales Academias - Imserso,emt,2,0.0,0.0449
+Arturo Soria,emt,1,0.0,0.0418
+Ciudad Periodistas,emt,1,0.0,0.0401
+Príncipe Pío,emt,1,0.0,0.054
+Estación De Atocha,emt,1,0.0,0.0574
+Arroyo De La Bulera - Maricara,emt,1,0.0,0.0254
+Cuatro Caminos,emt,1,0.0,0.0556
+Nuevos Ministerios,emt,1,0.0,0.053
+Av. América - Fco. Silvela,emt,1,0.0,0.0618
+Pico Ocejón - Osa Mayor,emt,2,0.0,0.0325
+Campamento,emt,1,0.0,0.0363
+Barrio Del Pilar,emt,1,0.0,0.0389
+Cuatro Caminos,emt,1,0.0,0.0565
+Sepúlveda - Los Yébenes,emt,1,0.0,0.0347
+Princesa - Rey Francisco,emt,2,0.0,0.0523
+Aravaca,emt,2,0.0,0.0325
+Tirso De Molina,emt,1,0.0,0.0529
+Moncloa,emt,1,0.0,0.0403
+Atocha,emt,1,0.0,0.05
+Marqués De Viana,emt,1,0.0,0.0425
+Hospital 12 De Octubre - Tolosa Latour,emt,1,0.0,0.0321
+Avenida De América,emt,1,0.0,0.0464
+Hortaleza,emt,1,0.0,0.0361
+Estación De Pitis,emt,1,0.0,0.0265
+Prosperidad,emt,1,0.0,0.0495
+Manuel Becerra,emt,1,0.0,0.0632
+Cementerio Sur,emt,1,0.0,0.0279
+Cementerio De Fuencarral,emt,1,0.0,0.0422
+Hospital Isabel Zendal,emt,1,0.0,0.0308
+María Mercedes De Borbón - Félix Candela,emt,1,0.0,0.0283
+San Amaro,emt,1,0.0,0.0481
+Reina Victoria,emt,1,0.0,0.0309
+Puerta De Toledo,emt,1,0.0,0.0393
+Batán,emt,1,0.0,0.0372
+Pinar De San José - Hospitalidad,emt,1,0.0,0.0537

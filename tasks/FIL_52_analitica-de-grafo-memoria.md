@@ -2,7 +2,8 @@
 kind: fil
 title: "Analítica de grafo sobre el grafo urbano real — centralidad, comunidades (§7 / FIL_36)"
 owner: Filippos (interactive)
-status: pending
+status: done
+resolved_at: "2026-08-31"
 allow_infra_apply: false
 created_at: "2026-08-31"
 depends_on: [FIL_51]

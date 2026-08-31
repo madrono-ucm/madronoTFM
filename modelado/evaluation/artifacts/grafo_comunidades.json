@@ -1,0 +1,156 @@
+{
+ "n_comunidades": 55,
+ "n_barrios": 131,
+ "n_nodos_comparados": 7976,
+ "ARI": 0.364,
+ "NMI": 0.753,
+ "modularidad": 0.934,
+ "comunidades_que_juntan_barrios": [
+  {
+   "comunidad": 1,
+   "barrios": [
+    "156",
+    "052",
+    "053",
+    "155",
+    "162",
+    "054"
+   ],
+   "n_barrios": 11,
+   "n_nodos": 197
+  },
+  {
+   "comunidad": 11,
+   "barrios": [
+    "044",
+    "153",
+    "151",
+    "155",
+    "154",
+    "152"
+   ],
+   "n_barrios": 11,
+   "n_nodos": 276
+  },
+  {
+   "comunidad": 40,
+   "barrios": [
+    "117",
+    "112",
+    "126",
+    "125",
+    "115",
+    "113"
+   ],
+   "n_barrios": 10,
+   "n_nodos": 171
+  },
+  {
+   "comunidad": 6,
+   "barrios": [
+    "026",
+    "022",
+    "012",
+    "035",
+    "021",
+    "025"
+   ],
+   "n_barrios": 9,
+   "n_nodos": 208
+  },
+  {
+   "comunidad": 5,
+   "barrios": [
+    "051",
+    "045",
+    "044",
+    "052",
+    "046",
+    "042"
+   ],
+   "n_barrios": 9,
+   "n_nodos": 234
+  },
+  {
+   "comunidad": 10,
+   "barrios": [
+    "083",
+    "084",
+    "085",
+    "094",
+    "087",
+    "065"
+   ],
+   "n_barrios": 8,
+   "n_nodos": 385
+  },
+  {
+   "comunidad": 4,
+   "barrios": [
+    "124",
+    "125",
+    "111",
+    "122",
+    "112",
+    "123"
+   ],
+   "n_barrios": 8,
+   "n_nodos": 115
+  },
+  {
+   "comunidad": 15,
+   "barrios": [
+    "073",
+    "074",
+    "014",
+    "041",
+    "075",
+    "015"
+   ],
+   "n_barrios": 8,
+   "n_nodos": 234
+  }
+ ],
+ "barrios_partidos_por_el_grafo": [
+  {
+   "barrio": "091",
+   "n_comunidades": 5,
+   "n_nodos": 90
+  },
+  {
+   "barrio": "043",
+   "n_comunidades": 5,
+   "n_nodos": 35
+  },
+  {
+   "barrio": "011",
+   "n_comunidades": 5,
+   "n_nodos": 160
+  },
+  {
+   "barrio": "135",
+   "n_comunidades": 4,
+   "n_nodos": 54
+  },
+  {
+   "barrio": "131",
+   "n_comunidades": 4,
+   "n_nodos": 104
+  },
+  {
+   "barrio": "201",
+   "n_comunidades": 4,
+   "n_nodos": 131
+  },
+  {
+   "barrio": "113",
+   "n_comunidades": 4,
+   "n_nodos": 81
+  },
+  {
+   "barrio": "022",
+   "n_comunidades": 4,
+   "n_nodos": 75
+  }
+ ]
+}

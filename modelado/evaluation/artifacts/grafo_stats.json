@@ -1,0 +1,64 @@
+{
+ "PROXIMO_A": {
+  "nodos": 9121,
+  "aristas": 50850,
+  "componentes": 76,
+  "grado_medio": 11.2,
+  "grado_max": 56
+ },
+ "CONECTADO_CON": {
+  "nodos": 3375,
+  "aristas": 3947,
+  "componentes": 20,
+  "modos": {
+   "metro": 240,
+   "emt": 3657,
+   "metro_ligero": 50
+  }
+ },
+ "sensores_por_distrito": {
+  "Vicálvaro": 62,
+  "Barajas": 63,
+  "Villa de Vallecas": 80,
+  "Moratalaz": 117,
+  "Villaverde": 141,
+  "Chamberí": 151,
+  "Retiro": 152,
+  "Usera": 155,
+  "Centro": 161,
+  "Arganzuela": 212,
+  "Salamanca": 215,
+  "Puente de Vallecas": 226,
+  "Tetuán": 233,
+  "Latina": 249,
+  "Moncloa - Aravaca": 282,
+  "San Blas - Canillejas": 295,
+  "Carabanchel": 340,
+  "Chamartín": 351,
+  "Hortaleza": 362,
+  "Ciudad Lineal": 423,
+  "Fuencarral - El Pardo": 541
+ },
+ "distritos_con_menos_sensores": [
+  [
+   "Vicálvaro",
+   62
+  ],
+  [
+   "Barajas",
+   63
+  ],
+  [
+   "Villa de Vallecas",
+   80
+  ],
+  [
+   "Moratalaz",
+   117
+  ],
+  [
+   "Villaverde",
+   141
+  ]
+ ]
+}
