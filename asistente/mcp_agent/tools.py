@@ -2124,6 +2124,7 @@ def _ruta_saludable_impl(origen: str, destino: str, perfil: str, momento: "datet
         ruta_sana=tramo(r["ruta_sana"]), ruta_rapida=tramo(r["ruta_rapida"]),
         delta_distancia_pct=r["delta_distancia_pct"],
         reduccion_exposicion_pct=r["reduccion_exposicion_pct"],
+        cambio_exposicion_pct=r["cambio_por_senal_pct"],
         mejor_hora_salida=mh["mejor_hora"],
         lugares_disponibles=_ruta.lugares(), dias_disponibles=_ruta.dias(),
     )
@@ -2139,8 +2140,10 @@ def ruta_saludable(
     por `perfil` (`FIL_37`).
 
     Devuelve la **ruta sana** frente a la **ruta rápida** (solo distancia),
-    con `delta_distancia_pct`, `reduccion_exposicion_pct` por señal y
-    `mejor_hora_salida` (la hora del día que minimiza la exposición).
+    con `delta_distancia_pct`, `reduccion_exposicion_pct` (un número — la
+    reducción de la exposición *ponderada*, lo que el enrutado minimiza, así
+    que nunca negativa), `cambio_exposicion_pct` por señal (± — canjes entre
+    señales) y `mejor_hora_salida` (la hora que minimiza la exposición).
 
     §7.4: demostración de metodología — sirve los **3 días curados** de
     agosto 2026 (`momento` elige el día por día de la semana y la hora);

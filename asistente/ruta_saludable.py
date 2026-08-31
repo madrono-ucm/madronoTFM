@@ -113,24 +113,34 @@ def _dijkstra(g, dia: str, hora: int, pesos: dict, origen: str, destino: str) ->
     return camino[::-1]
 
 
-def _metricas(g, dia: str, hora: int, camino: "list[str]") -> dict:
+def _metricas(g, dia: str, hora: int, camino: "list[str]", pesos: dict) -> dict:
+    """Exposición acumulada **por arista** — la misma agregación que
+    `_dijkstra` minimiza (`FIL_43`): `Σ_aristas 0.5·(extremo_u + extremo_v)`,
+    normalizada por señal, y su combinación ponderada por perfil
+    `E_ponderada` (el término de exposición del coste). Al ser lo optimizado,
+    la `E_ponderada` de la ruta sana nunca supera a la de la rápida.
+    `expo_bruta` por señal para un "cambio" legible."""
     dist_m = 0.0
     for i in range(len(camino) - 1):
-        a = camino[i]
-        for v, length_m in g["adyacencia"][a]:
+        for v, length_m in g["adyacencia"][camino[i]]:
             if v == camino[i + 1]:
                 dist_m += length_m
                 break
-    acc = {s: 0.0 for s in _SENALES}
-    n = 0
-    for nid in camino:
-        e = _expo_nodo(g, dia, hora, nid)
+    norm = {s: 0.0 for s in _SENALES}
+    bruta = {s: 0.0 for s in _SENALES}
+    for i in range(len(camino) - 1):
+        eu = _expo_nodo(g, dia, hora, camino[i])
+        ev = _expo_nodo(g, dia, hora, camino[i + 1])
         for s in _SENALES:
-            if e[s] is not None:
-                acc[s] += e[s]
-        n += 1
-    return {"n_nodos": len(camino), "dist_m": round(dist_m, 1),
-            **{f"{s}_medio": round(acc[s] / max(n, 1), 2) for s in _SENALES}}
+            norm[s] += 0.5 * (_norm(g, s, eu[s]) + _norm(g, s, ev[s]))
+            bruta[s] += 0.5 * ((eu[s] or 0.0) + (ev[s] or 0.0))
+    E = sum(pesos[s] * norm[s] for s in _SENALES)
+    return {
+        "n_nodos": len(camino), "dist_m": round(dist_m, 1),
+        "E_ponderada": round(E, 4),
+        "expo_bruta": {s: round(bruta[s], 1) for s in _SENALES},
+        **{f"{s}_medio": round(bruta[s] / max(len(camino) - 1, 1), 2) for s in _SENALES},
+    }
 
 
 def ruta(origen: str, destino: str, perfil: str = "general", *, dia: str, hora: int) -> dict:
@@ -152,11 +162,16 @@ def ruta(origen: str, destino: str, perfil: str = "general", *, dia: str, hora: 
 
     p_sana = _dijkstra(g, dia, hora, w, o, d)
     p_rapida = _dijkstra(g, dia, hora, w_rapida, o, d)
-    m_sana, m_rapida = _metricas(g, dia, hora, p_sana), _metricas(g, dia, hora, p_rapida)
+    m_sana = _metricas(g, dia, hora, p_sana, w)
+    m_rapida = _metricas(g, dia, hora, p_rapida, w)
 
     delta = (m_sana["dist_m"] - m_rapida["dist_m"]) / max(m_rapida["dist_m"], 1.0) * 100
-    red = {
-        s: round((m_rapida[f"{s}_medio"] - m_sana[f"{s}_medio"]) / max(m_rapida[f"{s}_medio"], 1e-6) * 100, 1)
+    # headline: reducción de la exposición PONDERADA (lo que Dijkstra minimiza)
+    # -> nunca negativa para la ruta sana (FIL_43).
+    reduccion = (m_rapida["E_ponderada"] - m_sana["E_ponderada"]) / max(m_rapida["E_ponderada"], 1e-9) * 100
+    # por señal: CAMBIO (± -- la ruta sana canjea unas señales por otras)
+    cambio = {
+        s: round((m_rapida["expo_bruta"][s] - m_sana["expo_bruta"][s]) / max(m_rapida["expo_bruta"][s], 1e-6) * 100, 1)
         for s in _SENALES
     }
     return {
@@ -165,7 +180,8 @@ def ruta(origen: str, destino: str, perfil: str = "general", *, dia: str, hora: 
         "ruta_sana": {"nodos": p_sana, **m_sana},
         "ruta_rapida": {"nodos": p_rapida, **m_rapida},
         "delta_distancia_pct": round(delta, 1),
-        "reduccion_exposicion_pct": red,
+        "reduccion_exposicion_pct": round(max(reduccion, 0.0), 1),
+        "cambio_por_senal_pct": cambio,
     }
 
 
@@ -175,8 +191,7 @@ def mejor_hora(origen: str, destino: str, perfil: str, *, dia: str) -> dict:
     mejor, best_h = math.inf, None
     for h in _HORAS:
         r = ruta(origen, destino, perfil, dia=dia, hora=h)
-        m = r["ruta_sana"]
-        score = sum(_norm(g, s, m[f"{s}_medio"]) for s in _SENALES)
+        score = r["ruta_sana"]["E_ponderada"]  # misma agregación que Dijkstra minimiza
         if score < mejor:
             mejor, best_h = score, h
     return {"origen": origen, "destino": destino, "perfil": perfil, "dia": dia,

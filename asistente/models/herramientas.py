@@ -364,10 +364,14 @@ class RutaSaludable(BaseModel):
     O₃, ruido diario por distrito), ponderada por `perfil`.
 
     Compara la **ruta sana** (pesos del perfil) con la **ruta rápida** (solo
-    distancia) y da la reducción de exposición por señal y la mejor hora de
-    salida. Demostración de metodología (§7.4): sirve los 3 días curados de
-    agosto 2026; `fiabilidad` topada en BAJA. Sin artefacto, con un lugar no
-    reconocido o sin camino → `disponible=false` + `motivo`, nunca excepción.
+    distancia). `reduccion_exposicion_pct` es **un solo número**: la
+    reducción de la exposición *ponderada* — la misma cantidad que el
+    enrutado minimiza (`FIL_43`), así que para la ruta sana nunca es
+    negativa. `cambio_exposicion_pct` da el cambio **por señal** (± — la ruta
+    sana canjea unas señales por otras). Demostración de metodología (§7.4):
+    sirve los 3 días curados de agosto 2026; `fiabilidad` topada en BAJA. Sin
+    artefacto, con un lugar no reconocido o sin camino → `disponible=false` +
+    `motivo`, nunca excepción.
     """
 
     origen: str
@@ -380,7 +384,8 @@ class RutaSaludable(BaseModel):
     ruta_sana: TramoRuta | None = None
     ruta_rapida: TramoRuta | None = None
     delta_distancia_pct: float | None = None
-    reduccion_exposicion_pct: dict[str, float] = Field(default_factory=dict)
+    reduccion_exposicion_pct: float | None = None
+    cambio_exposicion_pct: dict[str, float] = Field(default_factory=dict)
     mejor_hora_salida: int | None = None
     lugares_disponibles: list[str] = Field(default_factory=list)
     dias_disponibles: list[str] = Field(default_factory=list)

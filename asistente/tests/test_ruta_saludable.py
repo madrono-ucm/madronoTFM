@@ -29,7 +29,10 @@ class ToolTests(unittest.TestCase):
         # la rápida nunca es más larga que la sana
         self.assertLessEqual(r.ruta_rapida.dist_m, r.ruta_sana.dist_m + 1.0)
         self.assertIn(r.mejor_hora_salida, range(24))
-        self.assertIn("traf", r.reduccion_exposicion_pct)
+        # FIL_43: la reducción reportada es la que Dijkstra minimiza -> nunca negativa
+        self.assertIsInstance(r.reduccion_exposicion_pct, float)
+        self.assertGreaterEqual(r.reduccion_exposicion_pct, -1e-6)
+        self.assertIn("traf", r.cambio_exposicion_pct)  # ± permitido, honesto
 
     def test_perfil_invalido_degrada(self):
         r = tools.ruta_saludable("Sol", "Retiro", "supersonico")
@@ -56,6 +59,16 @@ class ToolTests(unittest.TestCase):
         c = tools.ruta_saludable("Legazpi", "Bernabéu", "ciclista", datetime(2026, 8, 26, 14))
         g = tools.ruta_saludable("Legazpi", "Bernabéu", "general", datetime(2026, 8, 26, 14))
         self.assertGreaterEqual(c.delta_distancia_pct, g.delta_distancia_pct - 1e-6)
+
+    def test_reduccion_ponderada_nunca_negativa(self):
+        # FIL_43 — barrido de pares/perfiles/horas
+        for o, d in (("Atocha", "Sol"), ("Moncloa", "Retiro"), ("Legazpi", "Ventas")):
+            for perfil in ("general", "ciclista", "sensible_aire", "sensible_ruido"):
+                for h in (3, 8, 14, 20):
+                    r = tools.ruta_saludable(o, d, perfil, datetime(2026, 8, 26, h))
+                    self.assertTrue(r.disponible)
+                    self.assertGreaterEqual(r.reduccion_exposicion_pct, -1e-6,
+                                            f"{o}->{d} {perfil} {h}h: {r.reduccion_exposicion_pct}")
 
 
 class RouterTests(unittest.TestCase):
