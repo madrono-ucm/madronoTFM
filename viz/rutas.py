@@ -51,11 +51,20 @@ LUGARES = {
 }
 
 # perfil -> pesos (dist en km; exposición normalizada 0..~1 por señal)
+# Un perfil = un vector de pesos por señal. Compartido por `ruta_saludable`
+# (FIL_37) y la capa social del mapa (FIL_45). `dist` solo lo usa el
+# enrutado; la capa social usa los pesos de señal.
 PERFILES = {
-    "general":        {"dist": 1.0, "traf": 0.30, "no2": 0.30, "o3": 0.20, "noise": 0.20},
-    "ciclista":       {"dist": 0.6, "traf": 0.50, "no2": 0.60, "o3": 0.40, "noise": 0.40},
-    "sensible_aire":  {"dist": 0.8, "traf": 0.20, "no2": 0.90, "o3": 0.70, "noise": 0.20},
-    "sensible_ruido": {"dist": 0.8, "traf": 0.30, "no2": 0.30, "o3": 0.20, "noise": 0.90},
+    "general":            {"dist": 1.0, "traf": 0.30, "no2": 0.30, "o3": 0.20, "noise": 0.20},
+    "ciclista":           {"dist": 0.6, "traf": 0.50, "no2": 0.60, "o3": 0.40, "noise": 0.40},
+    "sensible_aire":      {"dist": 0.8, "traf": 0.20, "no2": 0.90, "o3": 0.70, "noise": 0.20},
+    "sensible_ruido":     {"dist": 0.8, "traf": 0.30, "no2": 0.30, "o3": 0.20, "noise": 0.90},
+    # FIL_45 — perfiles de sensibilidad
+    "asma_epoc":          {"dist": 0.7, "traf": 0.20, "no2": 1.00, "o3": 0.85, "noise": 0.20},
+    "mayor":              {"dist": 0.9, "traf": 0.25, "no2": 0.55, "o3": 0.70, "noise": 0.45},
+    "infancia":           {"dist": 0.8, "traf": 0.55, "no2": 0.75, "o3": 0.55, "noise": 0.35},
+    "movilidad_reducida": {"dist": 1.3, "traf": 0.35, "no2": 0.45, "o3": 0.35, "noise": 0.80},
+    "trabajo_exterior":   {"dist": 0.5, "traf": 0.40, "no2": 0.75, "o3": 0.75, "noise": 0.50},
 }
 _NORM = {"traf": 300.0, "no2": 200.0, "o3": 180.0, "noise": (45.0, 75.0)}  # traf en unidades *100
 

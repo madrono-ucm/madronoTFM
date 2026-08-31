@@ -31,15 +31,30 @@ python -m http.server -d viz/mapa      # http://localhost:8000
 Necesita red al abrir (bundle de deck.gl por CDN). La tira
 `viz/mapa_frames.png` es el respaldo sin red y la figura de la memoria.
 
-### Controles (panel izquierdo, en 4 grupos colapsables)
+### Controles (panel izquierdo, en 5 grupos colapsables)
 
 - **⏱ Tiempo**: los 3 días curados de agosto 2026 (miércoles normal /
   domingo tranquilo / miércoles cargado), play/slider (bucle de 24 h),
   horizonte *ahora / +1h / +3h / +6h* (afecta solo a la métrica *tráfico*).
-- **🎨 Capa de color**: métrica (salud por defecto · tráfico · NO₂ · O₃)
-  con la leyenda pegada; *modelo vs persistencia (E2)* (colorea por la
-  divergencia STGNN(h1) − persistencia; el marcador de *skill* compara
-  ambos contra el valor real).
+- **🎨 Capa de color**: métrica (salud por defecto · tráfico · NO₂ · O₃ ·
+  *salud (perfil)* · *dosis NO₂* · *dosis O₃*) con la leyenda pegada;
+  **escala lineal / bandas OMS·UE** (en *bandas* el nodo se colorea por el
+  umbral en que cae — NO₂ 25/40/100/200, O₃ 100/120/180/240 µg/m³ — y la
+  leyenda **nombra** la banda, con paleta apta para deuteranopía);
+  *modelo vs persistencia (E2)* (colorea por la divergencia STGNN(h1) −
+  persistencia; el marcador de *skill* compara ambos contra el valor real).
+- **♿ Salud · perfil de sensibilidad** (`FIL_45`): 9 perfiles con los
+  mismos pesos que `ruta_saludable` (`FIL_37`) — general, ciclista,
+  sensible_aire, sensible_ruido, asma_epoc, mayor, infancia,
+  movilidad_reducida, trabajo_exterior; al elegir uno la métrica pasa a
+  *salud (perfil)* (ponderación tráfico/NO₂/O₃/ruido propia del perfil).
+  **"Mejor hora hoy"** (y la peor) por barrido de 24 h. **Confianza IDW**:
+  capa opcional que marca los nodos lejos de las 11 estaciones de aire
+  (gap G4). Las métricas *dosis NO₂ / dosis O₃* son la media de la
+  exposición prevista de las próximas 8 h como % de la guía OMS.
+  Guardarraíles siempre a la vista: agregados por zona, sin datos
+  personales, describe el aire y la hora (no señala barrios), apoyo a la
+  decisión — no consejo médico.
 - **🧭 Vista**: cámara **2D / 3D**, **"encajar a Madrid"**, **"vista
   limpia"** (oculta todo el chrome para una captura); representación de los
   nodos **auto / puntos / barras (3D)** — en *barras* la columna sube donde
@@ -49,8 +64,9 @@ Necesita red al abrir (bundle de deck.gl por CDN). La tira
 - **Panel inferior (resumen)**: media de la ciudad de la métrica actual a
   lo largo de las 24 h (con la hora marcada), barras por distrito ahora, y
   meteo + skill del modelo.
-- **🚶 Ruta saludable (E3)**: dos desplegables (origen·destino × perfil);
-  traza la ruta sana (verde) vs rápida (gris) recalculada cada hora.
+- **🚶 Ruta saludable (E3)**: dos desplegables (origen·destino × perfil,
+  los 9 de arriba); traza la ruta sana (verde) vs rápida (gris)
+  recalculada cada hora.
 - **Tooltip** al pasar el ratón por un nodo (id, distrito, salud/NO₂/O₃).
 - **Panel derecho**: pestaña *distritos* (pulso: 21 distritos ordenados por
   salud, se reordenan con el reloj) / pestaña *arista-nodo* (clic en un
@@ -77,7 +93,7 @@ visualizan por la **explicabilidad de grafo**, no por precisión.
 | **city-planner inputs** | ✅ **entregado** — la vista agregada de importancia de aristas + el pulso de distrito son artefactos de planificación. |
 | **hosted endpoint** | ✅ **entregado** — publicado en **https://madrono-ucm.github.io/madronoTFM/** (rama `gh-pages`, `FIL_42`). No es una API de producción. |
 | **open dataset** | encuadre — se **consume** MTD (`FIL_38`), no se publica un dataset propio. |
-| **cyclist / movilidad reducida routing** | encuadre — el sustrato existe (grafo + atributos), la herramienta sería `FIL_37` (`ruta_saludable`, condicional). |
+| **cyclist / movilidad reducida routing** | ✅ **entregado** — `FIL_37` sirve `ruta_saludable` (12.ª tool MCP) y el mapa (`FIL_45`) expone los 9 perfiles de sensibilidad, incluidos `ciclista` y `movilidad_reducida`, tanto para colorear como para la ruta E3. |
 
 ## Ficheros
 
