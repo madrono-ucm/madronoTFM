@@ -21,12 +21,12 @@ ONNX vendorizados. El pipeline sigue congelado.
 - `git log --oneline -- viz/` es la línea temporal del entregable.
 - Esta tabla es la fuente de verdad del estado.
 
-| URL publicada | _(pendiente de M4 — `FIL_35` la fija en Pages)_ |
+| URL publicada | _(pendiente de M4 — `FIL_35` la fija en Pages)_ · local: `python -m http.server -d viz/mapa` |
 |---|---|
-| Último milestone alcanzado | **M2 — `prevision_animada.parquet` generado** |
-| Fecha | 2026-08-31 (adelantado sobre el objetivo 09-04) |
-| Siguiente | M3 (`FIL_34`) — primer HTML animado — objetivo **2026-09-08** |
-| Fork Vía A/B | **Vía A** en marcha (datos del proyecto). Vía B (MTD) tras M3. |
+| Último milestone alcanzado | **M3 — primer HTML animado** (`viz/mapa/index.html`) |
+| Fecha | 2026-08-31 (objetivo era 09-08 — 8 días de adelanto) |
+| Siguiente | M4 (`FIL_35`) — capas ricas + hosting — objetivo **2026-09-10** |
+| Fork Vía A/B | **Vía A** hecha hasta M3. Vía B (MTD, `FIL_38`) opcional a partir de aquí. |
 
 ## Fork abierto — decisión del usuario antes de M2
 
@@ -54,7 +54,7 @@ calendario respira tras M3.
 | **M0** | — | ✅ hecho | 2026-08-30 | (plan y tickets cerrados; `FIL_31` sirve el STGNN de tráfico que alimenta todo) |
 | **M1** | `FIL_32` | ✅ hecho | 2026-08-31 | `viz/grafo_madrid.json`: 1.798 nodos con distrito, 8.758 aristas, top-15 importancia, lookups aire/ruido. `viz/build_grafo_madrid.py` + 6 tests. |
 | **M2** | `FIL_33` | ✅ hecho | 2026-08-31 | G1 resuelto (`viz/data/gold_slices/`, ~4,6 MB). `viz/data/prevision_animada.parquet` (129.456 filas = 1.798 × 24 h × 3 días: 08-19 / 08-23 / 08-26). Inferencia 24×3 de los 2 STGNN, aire IDW a nodos, ruido diario por distrito, índice de salud. `viz/build_prevision_animada.py` + 7 tests. |
-| **M3** | `FIL_34` | ⬜ | 2026-09-08 | **Primer HTML animado**: bucle de 24 h, play/scrub, color de nodo por métrica (índice de salud por defecto), top-15 aristas influyentes animadas por flujo (E1), ticker meteo (E5), selector de 3 días. |
+| **M3** | `FIL_34` | ✅ hecho | 2026-08-31 | `viz/mapa/index.html` (deck.gl CDN, distritos de fondo sin tiles) + `data.json` 2,9 MB + `weather.json` + `meta.json`. Bucle 24 h play/scrub, selector día/métrica/horizonte, ticker meteo (E5), 15 arcos de importancia animados por flujo (E1), color por índice de salud (E7), marcador de skill. `viz/mapa_frames.png` (6 fotogramas) para la memoria. `viz/build_mapa_animado.py` + 6 tests. `viz/requirements.txt` (G10). |
 | **M4** | `FIL_35` | ⬜ | 2026-09-10 | Mapa "wow" completo: toggle modelo-vs-persistencia (E2), panel glass-box por arista (E4), pulso de distrito (E6). **Publicado en una URL de GitHub Pages.** |
 | **M5** | `FIL_36` | ⬜ | 2026-09-13 | (entregable estable) — figura de la memoria + `DATA_SOURCES.md` + promoción de "city-planner inputs" y "hosted endpoint" + limitaciones §7.4. |
 | **M6** | `FIL_37` | ⏸ condicional | 2026-09-14 | Capa de ruta que "respira" (E3): healthy vs fastest recalculada cada hora, selector de perfil. Sólo si el gate de `FIL_37` se abre (~09-08). |

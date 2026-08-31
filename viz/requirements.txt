@@ -1,0 +1,4 @@
+# viz/ — mapa animado del grafo (FIL_32-37). Solo lectura de datos locales.
+pandas>=2.0
+pyarrow>=14
+matplotlib>=3.7
