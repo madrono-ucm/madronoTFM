@@ -2,7 +2,8 @@
 kind: fil
 title: "Grafo canónico de Madrid — artefacto exportado para viz + routing"
 owner: Filippos (interactive)
-status: pending
+status: done
+resolved_at: "2026-08-31"
 allow_infra_apply: false
 created_at: "2026-08-30"
 updated_at: "2026-08-30"
