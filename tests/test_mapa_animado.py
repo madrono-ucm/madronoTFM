@@ -68,6 +68,31 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertTrue(_PNG.exists())
         self.assertGreater(_PNG.stat().st_size, 20_000)
 
+    # --- FIL_47: legibilidad ---
+    def test_meta_legibilidad(self):
+        self.assertEqual(len(self.meta["distrito_centroide"]), 21)
+        for c in self.meta["distrito_centroide"]:
+            lon, lat = c["pos"]
+            self.assertTrue(-4 < lon < -3 and 40 < lat < 41)
+            self.assertTrue(c["nombre"])
+        self.assertEqual(len(self.meta["hitos"]), 14)
+        nombres = {h["nombre"] for h in self.meta["hitos"]}
+        self.assertIn("Plaza Elíptica", nombres)
+        (a, b), (c, d) = self.meta["bbox"]
+        self.assertTrue(a < c and b < d)
+        self.assertGreaterEqual(len(self.meta["ejes_geojson"]["features"]), 5)
+        self.assertGreaterEqual(len(self.meta["parques_geojson"]["features"]), 10)
+        pq = {f["properties"]["nombre"] for f in self.meta["parques_geojson"]["features"]}
+        self.assertTrue(any("Retiro" in n for n in pq))
+        self.assertTrue(any("Casa de Campo" in n for n in pq))
+
+    def test_html_legibilidad(self):
+        for marca in ("TextLayer", "WebMercatorViewport", "getTooltip", "fitBounds",
+                      'id="v2d"', 'id="v3d"', 'id="fit"', 'id="l-ejes"', 'id="l-parques"',
+                      'id="r-od"', 'id="r-perfil"', "<details", "titulo-sub",
+                      'characterSet:"auto"', "focus-visible", 'lang="es"'):
+            self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_47)")
+
 
 if __name__ == "__main__":
     unittest.main()

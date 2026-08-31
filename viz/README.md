@@ -31,16 +31,23 @@ python -m http.server -d viz/mapa      # http://localhost:8000
 Necesita red al abrir (bundle de deck.gl por CDN). La tira
 `viz/mapa_frames.png` es el respaldo sin red y la figura de la memoria.
 
-### Controles
+### Controles (panel izquierdo, en 4 grupos colapsables)
 
-- **día**: 3 días curados de agosto 2026 (data-driven: miércoles normal /
-  domingo tranquilo / miércoles cargado).
-- **horizonte**: ahora / +1h / +3h / +6h (afecta solo a la métrica *tráfico*).
-- **métrica**: salud (por defecto) · tráfico · NO₂ · O₃.
-- **modelo vs persistencia (E2)**: colorea por la divergencia STGNN(h1) −
-  persistencia; el marcador de *skill* compara ambos contra el valor real.
-- **play / slider**: bucle de 24 h.
-- **panel derecho**: pestaña *distritos* (pulso: 21 distritos ordenados por
+- **⏱ Tiempo**: los 3 días curados de agosto 2026 (miércoles normal /
+  domingo tranquilo / miércoles cargado), play/slider (bucle de 24 h),
+  horizonte *ahora / +1h / +3h / +6h* (afecta solo a la métrica *tráfico*).
+- **🎨 Capa de color**: métrica (salud por defecto · tráfico · NO₂ · O₃)
+  con la leyenda pegada; *modelo vs persistencia (E2)* (colorea por la
+  divergencia STGNN(h1) − persistencia; el marcador de *skill* compara
+  ambos contra el valor real).
+- **🧭 Vista**: cámara **2D / 3D**, **"encajar a Madrid"**, y capas
+  conmutables — nombres de distrito, hitos (Sol, Atocha…), ejes
+  estructurantes (M-30, Castellana… *contexto*), parques grandes, textura
+  del grafo.
+- **🚶 Ruta saludable (E3)**: dos desplegables (origen·destino × perfil);
+  traza la ruta sana (verde) vs rápida (gris) recalculada cada hora.
+- **Tooltip** al pasar el ratón por un nodo (id, distrito, salud/NO₂/O₃).
+- **Panel derecho**: pestaña *distritos* (pulso: 21 distritos ordenados por
   salud, se reordenan con el reloj) / pestaña *arista-nodo* (clic en un
   nodo → curvas de 24 h + aristas de importancia que lo tocan).
 
@@ -74,8 +81,14 @@ visualizan por la **explicabilidad de grafo**, no por precisión.
 | `export_gold_slices.py` | congela las 4 tablas Gold a `data/gold_slices/` (G1) |
 | `build_grafo_madrid.py` | `grafo_madrid.json` — nodos+distrito, aristas, lookups |
 | `build_prevision_animada.py` | `data/prevision_animada.parquet` — inferencia 24×3 de los 2 STGNN |
+| `build_grafo_ruta.py` | `asistente/modelos/grafo_ruta.json` — artefacto de la 12.ª tool MCP (`FIL_37`) |
+| `rutas.py` | enrutado saludable (`ruta()` / `mejor_hora()` / `pareto()`) + `mapa/rutas.json` |
 | `build_mapa_animado.py` | `mapa/` (HTML + JSON) + `mapa_frames.png` |
+| `assets/distritos_madrid.geojson` | 21 distritos (Bronce `barrios_distritos`) |
+| `assets/ejes_madrid.geojson` | trazados **aproximados** de M-30 / Castellana / Gran Vía / A-2 / A-3 — solo contexto visual (`FIL_47`), no entran en el grafo |
+| `assets/parques_madrid.geojson` | 16 parques grandes (subconjunto curado de `parques_jardines_madrid`, Bronce) |
 | `PROGRESO_MAPA.md` | seguimiento milestone a milestone del entregable |
 
 Tests: `tests/test_grafo_madrid.py`, `tests/test_prevision_animada.py`,
-`tests/test_mapa_animado.py` (bajo `tests/` porque el CI no recorre `viz/`).
+`tests/test_mapa_animado.py`, `tests/test_rutas.py` (bajo `tests/` porque el
+CI no recorre `viz/`).

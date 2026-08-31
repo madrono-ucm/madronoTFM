@@ -1,0 +1,230 @@
+{
+ "type": "FeatureCollection",
+ "_nota": "Parques grandes de Madrid (subconjunto curado de parques_jardines_madrid, Bronce 2026-08-28). Puntos (centroide aprox del registro), no poligonos. Solo contexto/orientacion (FIL_47).",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque del Retiro",
+    "distrito": "RETIRO"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.68793,
+     40.41964
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Casa de Campo",
+    "distrito": "MONCLOA-ARAVACA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.73019,
+     40.41472
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Madrid Río",
+    "distrito": "DISTRITO"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.71254,
+     40.39815
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque Juan Carlos I",
+    "distrito": "BARAJAS"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.61489,
+     40.46
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque del Oeste",
+    "distrito": "MONCLOA-ARAVACA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.72816,
+     40.4318
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Dehesa de la Villa",
+    "distrito": "MONCLOA-ARAVACA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.72073,
+     40.45818
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "El Capricho",
+    "distrito": "BARAJAS"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.6001,
+     40.45446
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Quinta de los Molinos",
+    "distrito": "SAN BLAS-CANILLEJAS"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.62171,
+     40.44246
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque Enrique Tierno Galván",
+    "distrito": "ARGANZUELA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.68162,
+     40.3921
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque de Pradolongo",
+    "distrito": "USERA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.71196,
+     40.37558
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque de Berlín",
+    "distrito": "CHAMARTIN"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.67606,
+     40.4515
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Quinta de la Fuente del Berro",
+    "distrito": "SALAMANCA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.66252,
+     40.423
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque de San Isidro",
+    "distrito": "CARABANCHEL"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.7285,
+     40.39925
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque Forestal de Valdebebas",
+    "distrito": "HORTALEZA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.64145,
+     40.48494
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque Cerro del Tío Pío",
+    "distrito": "PUENTE DE VALLECAS"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.65524,
+     40.39702
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "nombre": "Parque Emperatriz María de Austria",
+    "distrito": "CARABANCHEL"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -3.72276,
+     40.38231
+    ]
+   }
+  }
+ ]
+}
