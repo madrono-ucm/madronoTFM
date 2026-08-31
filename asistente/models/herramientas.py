@@ -275,6 +275,27 @@ class CalidadAirePrevistaGrafo(RespuestaPrevision):
     vecinos_influyentes: list[VecinoGrafo] = Field(default_factory=list)
 
 
+class TraficoPrevistaGrafo(RespuestaPrevision):
+    """Previsión de congestión servida por el **modelo de grafo** (STGNN de
+    `ML_05`) vía ONNX (`FIL_31`, gemela de `CalidadAirePrevistaGrafo`).
+
+    Mismo envoltorio que `TraficoPrevista` más lo propio del grafo:
+    `punto_id` fijado (peor caso), `n_nodos_grafo`, `grafo` (origen), y
+    **`vecinos_influyentes`** — qué conexiones entre puntos de tráfico pesan
+    más en la predicción de este nodo (`∂pérdida/∂edge_weight` precalculada).
+    `valor_previsto` es `avg_service_level` (0..6). §7.4: este STGNN es una
+    demostración de metodología; `fiabilidad` topada en BAJA.
+    """
+
+    lugar: str
+    punto_id: str | None = None
+    unidad: str | None = "avg_service_level"
+    n_nodos_grafo: int | None = None
+    grafo: str | None = None
+    fuente_grafo: str | None = None
+    vecinos_influyentes: list[VecinoGrafo] = Field(default_factory=list)
+
+
 class TraficoPrevista(RespuestaPrevision):
     """Previsión de congestión de tráfico para un punto de medida y horizonte
     (`FIL_13`): la sirve `asistente.mcp_agent.tools.trafico_prevista`
