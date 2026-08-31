@@ -2,14 +2,30 @@
 kind: fil
 title: "ruta_saludable — recomendador ambiental sobre el grafo"
 owner: Filippos (interactive)
-status: in-progress
+status: done
 allow_infra_apply: false
 created_at: "2026-08-30"
 updated_at: "2026-08-31"
+resolved_at: "2026-08-31"
 depends_on: [FIL_34]
 milestone: M6
 target: "2026-09-14"
 ---
+
+## Cierre (2026-08-31) — 12.ª tool MCP
+
+`viz/rutas.py` (PR #211) + **12.ª tool MCP `ruta_saludable`**:
+`viz/build_grafo_ruta.py` → `asistente/modelos/grafo_ruta.json` (1,8 MB:
+grafo + adyacencia + exposición prevista por día/hora + ruido por distrito +
+lugares + perfiles). `asistente/ruta_saludable.py` — Dijkstra en **Python
+puro** (sin `networkx`, sin Neo4j/Athena — autocontenido como
+`asistente/athena.py`). Tool `ruta_saludable(origen, destino, perfil,
+momento)` → `RutaSaludable` (contenedor con `output_schema`, `FIL_24`);
+`momento` elige el día curado (por fecha exacta o día de la semana) y la
+hora. Router `GET /ruta-saludable`. `server.py` a **12 tools**,
+`test_mcp_tools`/`test_mcp_transport` a 12. `asistente/tests/test_ruta_saludable.py`
+(11). Suite `asistente/`+`tests/` → **171 en verde**. `fiabilidad` topada
+BAJA (§7.4, demostración de metodología, 3 días curados).
 
 ## Gate — ABIERTO (2026-08-31)
 
