@@ -1,7 +1,7 @@
 ---
 kind: fil
 title: "Parseo XML de 4 feeds de ingesta con xml.etree.ElementTree en vez de defusedxml"
-status: pending
+status: done
 created_at: "2026-08-30"
 source: "VIC_26 (ronda 4 de evaluación técnica, bandit)"
 severity: baja
@@ -84,3 +84,15 @@ tocar el resto de la lógica de parseo. Añadir `defusedxml` a
 - Suite de tests de `ingesta/` sigue en verde tras el cambio.
 - `bandit -r ingesta/capturas/` ya no reporta `B405`/`B314` para estos 4
   ficheros.
+
+
+## Resuelto (2026-08-31)
+
+Los 4 imports (`emt_incidencias_madrid`, `parques_jardines_madrid`,
+`poi_madrid`, `trafico_madrid`) pasan de `import xml.etree.ElementTree as ET`
+a `from defusedxml import ElementTree as ET` — todo el parseo
+(`ET.fromstring`) va ahora por `defusedxml`, con sus límites contra
+expansión de entidades. `defusedxml>=0.7,<1` añadido a
+`ingesta/requirements.txt`. Las anotaciones `ET.Element` siguen siendo
+forward-refs perezosas (`from __future__ import annotations` en los 4
+ficheros), nunca se evalúan. `ingesta/tests/` → 309 en verde.

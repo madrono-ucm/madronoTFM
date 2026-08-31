@@ -24,7 +24,6 @@ import argparse
 import logging
 import os
 import time
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -32,6 +31,7 @@ from typing import Iterator, Optional
 from zoneinfo import ZoneInfo
 
 import requests
+from defusedxml import ElementTree as ET
 
 from .bronze import BronzeWriter, now_madrid
 
