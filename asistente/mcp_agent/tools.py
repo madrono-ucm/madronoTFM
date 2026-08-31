@@ -29,6 +29,7 @@ import math
 from datetime import datetime, timedelta
 
 from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, sql_literal
+from asistente import ruta_saludable as _ruta
 from asistente.models.herramientas import (
     AfluenciaEstimada,
     AfluenciaPrevista,
@@ -46,6 +47,8 @@ from asistente.models.herramientas import (
     ParadaBicimadCercana,
     TraficoCercano,
     TraficoPrevista,
+    RutaSaludable,
+    TramoRuta,
     TraficoPrevistaGrafo,
     VecinoGrafo,
 )
@@ -2062,3 +2065,98 @@ def afluencia_prevista(
             (hora de Madrid).
     """
     return _afluencia_prevista_impl(lugar, horizonte_horas, radio_m, momento)
+
+
+# ---------------------------------------------------------------------------
+# ruta_saludable (FIL_37) -- enrutado multi-objetivo sobre el grafo de Madrid:
+# ruta sana (distancia + exposición prevista, ponderada por perfil) vs ruta
+# rápida. Python puro, sin Neo4j ni Athena -- lee el artefacto vendorizado
+# asistente/modelos/grafo_ruta.json.
+# ---------------------------------------------------------------------------
+
+_PERFILES_RUTA = ("general", "ciclista", "sensible_aire", "sensible_ruido")
+
+
+def _dia_hora_para(momento: "datetime | None"):
+    """`momento` -> (dia_curado, hora). Sin artefacto -> (None, None)."""
+    if not _ruta.disponible():
+        return None, None
+    dias = _ruta.dias()
+    if momento is None:
+        return dias[-1], 8
+    inst = momento.astimezone(MADRID_TZ) if momento.tzinfo else momento.replace(tzinfo=MADRID_TZ)
+    import datetime as _dt
+
+    iso = inst.date().isoformat()
+    if iso in dias:  # la fecha exacta es uno de los días curados
+        return iso, inst.hour
+    wd = inst.weekday()
+    mismo = [d for d in dias if _dt.date.fromisoformat(d).weekday() == wd]
+    return (mismo[0] if mismo else dias[-1]), inst.hour
+
+
+def _ruta_saludable_impl(origen: str, destino: str, perfil: str, momento: "datetime | None") -> RutaSaludable:
+    base = dict(origen=origen, destino=destino, perfil=perfil)
+    if perfil not in _PERFILES_RUTA:
+        return RutaSaludable(**base, motivo=f"perfil no válido; usa {list(_PERFILES_RUTA)}")
+    if not _ruta.disponible():
+        return RutaSaludable(**base, motivo="falta asistente/modelos/grafo_ruta.json (viz/build_grafo_ruta.py)")
+
+    dia, hora = _dia_hora_para(momento)
+    try:
+        r = _ruta.ruta(origen, destino, perfil, dia=dia, hora=hora)
+        mh = _ruta.mejor_hora(origen, destino, perfil, dia=dia)
+    except ValueError as exc:  # lugar no reconocido / día-hora / sin camino
+        return RutaSaludable(
+            **base, dia=dia, hora=hora, motivo=str(exc),
+            lugares_disponibles=_ruta.lugares(), dias_disponibles=_ruta.dias(),
+        )
+    except Exception as exc:  # noqa: BLE001 - degradación elegante
+        return RutaSaludable(**base, dia=dia, hora=hora, motivo=f"fallo enrutando: {exc}")
+
+    tramo = lambda t: TramoRuta(
+        nodos=t["nodos"], n_nodos=t["n_nodos"], dist_m=t["dist_m"],
+        traf_medio=t["traf_medio"], no2_medio=t["no2_medio"],
+        o3_medio=t["o3_medio"], noise_medio=t["noise_medio"],
+    )
+    return RutaSaludable(
+        **base, dia=dia, hora=hora, disponible=True,
+        ruta_sana=tramo(r["ruta_sana"]), ruta_rapida=tramo(r["ruta_rapida"]),
+        delta_distancia_pct=r["delta_distancia_pct"],
+        reduccion_exposicion_pct=r["reduccion_exposicion_pct"],
+        cambio_exposicion_pct=r["cambio_por_senal_pct"],
+        mejor_hora_salida=mh["mejor_hora"],
+        lugares_disponibles=_ruta.lugares(), dias_disponibles=_ruta.dias(),
+    )
+
+
+def ruta_saludable(
+    origen: str, destino: str, perfil: str = "general", momento: datetime | None = None
+) -> RutaSaludable:
+    """Ruta **saludable** entre dos lugares de referencia de Madrid: enrutado
+    multi-objetivo sobre el grafo urbano (`coords-knn8`, 1.798 nodos) donde
+    el coste de cada arista es `distancia + exposición prevista` (tráfico a
+    1 h del STGNN, NO₂/O₃ interpolados, ruido diario por distrito), ponderada
+    por `perfil` (`FIL_37`).
+
+    Devuelve la **ruta sana** frente a la **ruta rápida** (solo distancia),
+    con `delta_distancia_pct`, `reduccion_exposicion_pct` (un número — la
+    reducción de la exposición *ponderada*, lo que el enrutado minimiza, así
+    que nunca negativa), `cambio_exposicion_pct` por señal (± — canjes entre
+    señales) y `mejor_hora_salida` (la hora que minimiza la exposición).
+
+    §7.4: demostración de metodología — sirve los **3 días curados** de
+    agosto 2026 (`momento` elige el día por día de la semana y la hora);
+    `fiabilidad` topada en BAJA. El O₃ apenas se puede esquivar (contaminante
+    regional). Sin artefacto, lugar no reconocido o sin camino →
+    `disponible=false` + `motivo` (con `lugares_disponibles`), nunca excepción.
+
+    Args:
+        origen: Lugar de referencia (ver `lugares_disponibles`: Atocha, Sol,
+            Moncloa, Retiro, Bernabéu, Plaza Elíptica, ...).
+        destino: Otro lugar de referencia.
+        perfil: `general` | `ciclista` | `sensible_aire` | `sensible_ruido`.
+        momento: Instante (ISO 8601). Si es `None`, un día laborable curado a
+            las 08:00.
+    """
+    return _ruta_saludable_impl(origen, destino, perfil, momento)
