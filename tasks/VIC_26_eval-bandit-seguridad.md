@@ -44,7 +44,10 @@ línea:
   con `xml.etree.ElementTree` en vez de `defusedxml`. Riesgo bajo (CPython
   ≥3.7.1 ya bloquea XXE por defecto; queda expuesta la expansión de
   entidades internas, un DoS de memoria, no fuga de datos) pero el fix es
-  barato → **`FIL_31`**.
+  barato → **`FIL_41`** (renumerado desde `FIL_31` el 31/8: colisión con
+  `feat/fil31-trafico-stgnn-tool`, sin mergear a `main`, que en su último
+  push añadió su propio `FIL_31_stgnn-trafico-como-tool-mcp.md` -- ver
+  nota en `doc/PLAN-EVALUACION-TECNICA-4.md`).
 
 Los 10 Low (`B110` try/except/pass) ya triados en `VIC_25` como decisiones
 documentadas en el propio código, sin ticket nuevo.

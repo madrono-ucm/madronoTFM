@@ -33,7 +33,8 @@ solo para esta auditoría — no se añaden a `requirements.txt` sin que un
 - `VIC_26` (bandit): 42 hallazgos; el de mayor volumen (`B608` SQL
   injection, 22 casos) resultó falso positivo en el 100% (el proyecto ya
   escapa con `sql_literal()`); el parseo XML sin `defusedxml` sí era real
-  → `FIL_31`.
+  → `FIL_31` (renumerado a **`FIL_41`** el 31/8, ver nota de cierre más
+  abajo).
 - `VIC_27` (pip-audit): 3 CVEs reales, todos en dependencias transitivas
   sin ruta de explotación real en este proyecto, bump recomendado por
   higiene → `FIL_32` (renumerado a **`FIL_39`** el 30/8 tras aterrizar una
@@ -61,3 +62,17 @@ cambios de fondo). **Pendiente de recomprobar cuando esa rama
 efectivamente se mergee a `main`**: confirmar que `FIL_39`/`FIL_40` (ver
 ronda 5) no colisionan con lo que aterrice, y renumerar de nuevo si hiciera
 falta.
+
+### Nota (31/8, actualización): colisión de numeración ampliada a `FIL_31`
+
+El push más reciente de esa misma rama (`b68133f`, 31/8) añadió su propio
+`tasks/FIL_31_stgnn-trafico-como-tool-mcp.md` (coincide con el propio
+nombre de la rama) — colisiona con el `FIL_31` de esta ronda
+(`xml-parsing-sin-defusedxml`), que hasta ahora no tenía conflicto.
+Renumerado proactivamente, mismo criterio que arriba, a **`FIL_41`**
+(`tasks/FIL_41_xml-parsing-sin-defusedxml.md`, mismo contenido). Con esto,
+`FIL_31`, `FIL_32`/`33` (→ `39`/`40`) de esta sesión están todos fuera del
+rango `31`-`38` que reclama esa rama. **Sigue pendiente recomprobar
+cuando la rama se mergee a `main`**: confirmar que `FIL_39`/`40`/`41` no
+colisionan con lo que aterrice realmente (su propia numeración interna
+podría cambiar antes del merge, como ya ha pasado una vez).

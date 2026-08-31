@@ -78,8 +78,10 @@ por defecto en `ElementTree`, así que no hay XXE clásico; queda expuesta
 la expansión de entidades internas / "billion laughs", un DoS por memoria,
 no una fuga de datos) y la fuente es un endpoint municipal de confianza,
 pero el fix (`defusedxml.ElementTree`, API-compatible) es tan barato que
-merece hacerse como higiene defensiva. → **`FIL_31`** (ver
-`tasks/FIL_31_xml-parsing-sin-defusedxml.md`).
+merece hacerse como higiene defensiva. → **`FIL_41`** (renumerado desde
+`FIL_31` el 31/8 por colisión con una rama sin mergear, ver
+`doc/PLAN-EVALUACION-TECNICA-4.md`; ver
+`tasks/FIL_41_xml-parsing-sin-defusedxml.md`).
 
 ## Los 10 Low (resumidos, no ameritan detalle línea a línea)
 
@@ -91,7 +93,7 @@ merece hacerse como higiene defensiva. → **`FIL_31`** (ver
   óptica de `S110` de `ruff`) — decisión ya razonada, no un descuido.
   **Sin `FIL_*` nuevo, ya cubierto.**
 - **`B405` (8, import de `ElementTree`)** — mismo hallazgo que `B314` a
-  nivel de import, mismos 4 ficheros, ya cubiertos por `FIL_31`.
+  nivel de import, mismos 4 ficheros, ya cubiertos por `FIL_41`.
 
 ## Cruce con `VIC_19`
 
@@ -102,7 +104,7 @@ ronda.
 
 ## Conclusión
 
-1 `FIL_*` nuevo (`FIL_31`, severidad baja, higiene defensiva de XML). El
+1 `FIL_*` nuevo (`FIL_41`, severidad baja, higiene defensiva de XML). El
 hallazgo de mayor volumen (`B608`, SQL injection, 22 casos) se verificó
 línea a línea y resultó ser enteramente falso positivo: el proyecto ya
 tiene una defensa explícita y consistente (`sql_literal()`) para el único
