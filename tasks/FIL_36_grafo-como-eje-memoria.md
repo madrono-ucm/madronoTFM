@@ -49,3 +49,27 @@ Cero AWS.
 ## Entregable / progreso
 
 Milestone **M5** en `viz/PROGRESO_MAPA.md`.
+
+## Ampliación pendiente — encuadre de justicia ambiental + "Beneficiarios" (`FIL_45`/`FIL_46`)
+
+Añadir a la memoria (coordinado con `VIKT_10`):
+
+- **Párrafo de justicia ambiental**: la exposición al aire y al ruido en
+  Madrid no se reparte igual; este trabajo hace la *previsión* legible por
+  banda de umbral y por perfil de sensibilidad (capa `FIL_45`), pero **no**
+  hace el análisis distribucional formal (exposición × vulnerabilidad
+  socioeconómica con test) — se deja explícitamente como límite y trabajo
+  futuro, sin cruzar datos personales ni señalar barrios.
+- **Sección "Beneficiarios"**:
+  - Personas con **asma / EPOC**, **mayores**, **infancia**,
+    **ciclistas y peatones**, **movilidad reducida**, **trabajo al aire
+    libre** — la capa social les da "cuándo" y "por dónde" con su propio
+    umbral.
+  - **Administración de movilidad** — la vista agregada de importancia de
+    aristas + el pulso de distrito son input de planificación.
+  - **Comunidad de datos abiertos** — todo reproducible desde fuentes
+    públicas; se cita y valida MTD (`FIL_38`).
+  - Alineado con los **ODS 3** (salud) y **11** (ciudades sostenibles).
+- Citar `FIL_46` como trabajo futuro (acceso en lenguaje natural + alertas
+  anticipadas por distrito) — sustrato hecho, falta canal de notificación y
+  política de umbral.

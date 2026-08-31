@@ -65,3 +65,19 @@ Cero AWS.
 Milestone **M3** en `viz/PROGRESO_MAPA.md` — primer HTML **animado**. A
 partir de aquí cada milestone re-publica el mismo fichero, así el entregable
 se ve crecer.
+
+## Ampliación pendiente — capa social (`FIL_45`), bajo E7
+
+- **Modo de color por banda de umbral** (OMS/UE), alternativo a la rampa
+  lineal sobre µg/m³; la leyenda nombra la banda, no el número. Bandas
+  distinguibles en deuteranopía.
+- **Selector de perfil de sensibilidad** (`general`, `asma_epoc`, `mayor`,
+  `infancia`, `ciclista`, `movilidad_reducida`, `trabajo_exterior`) —
+  reutiliza los pesos de `ruta_saludable` (`FIL_37`).
+- Control **"mejor hora hoy"**: barrido de 24 h que marca en el timeline la
+  hora de menor exposición ponderada para el perfil elegido.
+- **Toggle de confianza de la IDW**: sombrea los nodos por `idw_dist_m`
+  (`FIL_33`) — lejos de estación = interpolación poco fiable (G4).
+- **UI en español primero**, contraste **AA** (WCAG 2.1), navegable por
+  teclado (foco visible, `Tab`/flechas en timeline y selectores,
+  `aria-label`).
