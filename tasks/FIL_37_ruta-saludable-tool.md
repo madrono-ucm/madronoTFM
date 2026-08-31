@@ -1,24 +1,44 @@
 ---
 kind: fil
-title: "ruta_saludable — recomendador ambiental sobre el grafo (CONDICIONAL)"
+title: "ruta_saludable — recomendador ambiental sobre el grafo"
 owner: Filippos (interactive)
-status: blocked
+status: in-progress
 allow_infra_apply: false
 created_at: "2026-08-30"
-updated_at: "2026-08-30"
+updated_at: "2026-08-31"
 depends_on: [FIL_34]
 milestone: M6
-target: "2026-09-14 (si el gate se abre ~2026-09-08)"
+target: "2026-09-14"
 ---
 
-## Gate — no empezar hasta que se cumpla
+## Gate — ABIERTO (2026-08-31)
 
-1. Esta rama (`FIL_31`) mergeada limpia, **y**
-2. El núcleo del mapa (`FIL_34`) funcionando, a más tardar ~día 8 del
-   calendario (≈ 2026-09-07).
+`FIL_31` mergeado (PR #209) + núcleo del mapa (`FIL_34`, PR #210) funcionando
+el mismo día → el gate se cumple con 7 días de adelanto. El ticket entra.
 
-Si no se cumple, este ticket **no entra** en la entrega y queda como trabajo
-futuro con sustrato firme (el spine "map-only" es el entregable seguro).
+## Estado (2026-08-31) — core hecho
+
+`viz/rutas.py` + `tests/test_rutas.py` (6) + capa E3 en `viz/mapa/index.html`
++ `viz/mapa/rutas.json`. Ver "Resolución" abajo. **Pendiente**: la
+envoltura como 12.ª tool MCP (artefacto vendorizado en `asistente/`).
+
+## Resolución (2026-08-31)
+
+- `viz/rutas.py`: `grafo_madrid.json` → `networkx` (componente conexa mayor,
+  1.661/1.798 nodos). Coste de arista = `w_dist·(length_m/1000) + Σ_señal
+  w_señal·exposición_norm`, con exposición por nodo/hora de
+  `prevision_animada.parquet`. 4 perfiles (`general`, `ciclista`,
+  `sensible_aire`, `sensible_ruido`).
+- `ruta(o, d, perfil, dia, hora)` → ruta sana vs rápida + Δdistancia +
+  reducción de exposición por señal. `mejor_hora(...)` barre la ventana.
+  `pareto(dia, hora)` → puntos (Δdist %, reducción media %) para §7.
+- Resultado §7 (miércoles cargado, 14 h): ciclista **+10 % distancia →
+  +6,6 % reducción media**; general +2,2 %→+3,4 %; sensible_ruido
+  +8,6 %→+5,6 %. El **O₃ apenas se puede esquivar** (contaminante regional,
+  superficie suave — gap G4) — honesto en la memoria.
+- Capa **E3** en el mapa: selector de 6 rutas (3 OD × general/ciclista),
+  path sana (verde) vs rápida (gris) recalculada cada hora + readout.
+- `w_noise` opera sobre el LAeq diario del distrito (gap G2).
 
 ## Alcance (si el gate se abre)
 
