@@ -1,5 +1,12 @@
 requests>=2.31,<3
 
+# FIL_41: los feeds XML de datos.madrid.es (tráfico, EMT incidencias, POI,
+# parques) se parsean con `defusedxml.ElementTree` en vez de
+# `xml.etree.ElementTree` -- misma API para `fromstring`/`findall`/`findtext`,
+# con límites contra expansión de entidades ("billion laughs") en una
+# respuesta de red no firmada.
+defusedxml>=0.7,<1
+
 # Tarea 025 (BronzeWriter, soporte de escritura real en S3): cliente oficial
 # de AWS. En la EC2 de ingesta usa las credenciales del rol de instancia
 # (`madrono-tfm-dev-ingestion-role`, tarea 015) automáticamente, sin

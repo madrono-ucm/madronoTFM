@@ -132,13 +132,13 @@ import logging
 import os
 import re
 import time
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import requests
+from defusedxml import ElementTree as ET
 
 from .bronze import MADRID_TZ, now_madrid
 

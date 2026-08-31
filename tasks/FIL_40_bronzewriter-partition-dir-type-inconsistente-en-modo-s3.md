@@ -1,7 +1,7 @@
 ---
 kind: fil
 title: "BronzeWriter.partition_dir() usa `self.base_path / ...` pero base_path es str en modo S3 -- crash latente si se llama fuera de write_batch"
-status: pending
+status: done
 created_at: "2026-08-30"
 source: "VIC_28 (ronda 5 de evaluación técnica, mypy)"
 severity: baja (latente, no reproducida en producción)
@@ -107,3 +107,12 @@ arriba para el mismo resultado.
   es inequívocamente `Path` para cualquier lector humano, aunque mypy no
   vaya a estrecharlo automáticamente sin una comprobación explícita de
   `isinstance`).
+
+
+## Resuelto (2026-08-31)
+
+`partition_dir()` gana una guarda `if self.is_s3: raise RuntimeError(...)`
+al principio (con docstring "solo modo local — en modo S3 usar
+`partition_key()`"). Un `BronzeWriter` en modo S3 que llame `partition_dir()`
+ahora falla inmediato y explicativo en vez de con un `TypeError` de operador
+`/` sobre dos `str`. Sin cambios de API. `ingesta/tests/` → 309 en verde.
