@@ -23,10 +23,10 @@ ONNX vendorizados. El pipeline sigue congelado.
 
 | URL publicada | _(pendiente de M4 — `FIL_35` la fija en Pages)_ · local: `python -m http.server -d viz/mapa` |
 |---|---|
-| Último milestone alcanzado | **M5 (parte Sistema) — `DATA_SOURCES.md` + `viz/README.md` + enlaces** · editorial de memoria = `VIKT_10` |
-| Fecha | 2026-08-31 (objetivo era 09-13 — 13 días de adelanto) |
+| Último milestone alcanzado | **M6 — `ruta_saludable` + capa E3 + Pareto** (`viz/rutas.py`) |
+| Fecha | 2026-08-31 (objetivo era 09-14 — todo el spine M1–M6 en un día) |
 | Bloqueos | **G8** — habilitar GitHub Pages (Settings, acción del usuario) para publicar el HTML |
-| Opcional restante | `FIL_38` (MTD, backtest 30 meses) · `FIL_37` (`ruta_saludable`, condicional — gate abierto: rama merge + M3 hechos) |
+| Opcional restante | `FIL_38` (MTD, backtest 30 meses) · envolver `ruta_saludable` como 12.ª tool MCP (seguimiento en el ticket) |
 | Fork Vía A/B | **Vía A** completa. Vía B (MTD) disponible si se quiere una animación con variedad estacional. |
 
 ## Fork abierto — decisión del usuario antes de M2
@@ -58,7 +58,7 @@ calendario respira tras M3.
 | **M3** | `FIL_34` | ✅ hecho | 2026-08-31 | `viz/mapa/index.html` (deck.gl CDN, distritos de fondo sin tiles) + `data.json` 2,9 MB + `weather.json` + `meta.json`. Bucle 24 h play/scrub, selector día/métrica/horizonte, ticker meteo (E5), 15 arcos de importancia animados por flujo (E1), color por índice de salud (E7), marcador de skill. `viz/mapa_frames.png` (6 fotogramas) para la memoria. `viz/build_mapa_animado.py` + 6 tests. `viz/requirements.txt` (G10). |
 | **M4** | `FIL_35` | 🟡 código hecho | 2026-08-31 | **E2** toggle modelo-vs-persistencia (color divergente + marcador de skill por fotograma). **E4** panel glass-box: clic en nodo → sparklines 24 h (tráfico obs/h1, NO₂/O₃) + aristas de importancia que lo tocan. **E6** pulso de distrito: 21 distritos ordenados por salud, reordenan con el reloj. `tests/test_mapa_animado.py` a 7. **Falta** publicar en Pages → **acción del usuario** (G8). |
 | **M5** | `FIL_36` | 🟡 Sistema hecho | 2026-08-31 | `DATA_SOURCES.md` (todas las fuentes + licencias + MTD/Comunidad CC BY 4.0). `viz/README.md` (controles, limitaciones §7.4 G2/G3/G4/G5/G9, estado de los 4 ítems de encuadre). `README.md` raíz: sección "Mapa animado" + `viz/` en el layout + "11 tools". **Editorial de la memoria** (figura `mapa_frames.png`, subsección, reestructura del índice) → `VIKT_10`. |
-| **M6** | `FIL_37` | ⏸ condicional | 2026-09-14 | Capa de ruta que "respira" (E3): healthy vs fastest recalculada cada hora, selector de perfil. Sólo si el gate de `FIL_37` se abre (~09-08). |
+| **M6** | `FIL_37` | 🟡 core hecho | 2026-08-31 | `viz/rutas.py`: enrutado multi-objetivo sobre `grafo_madrid.json` (networkx, componente conexa de 1.661 nodos), 4 perfiles, `ruta()` / `mejor_hora()` / `pareto()`. Capa **E3** en el mapa: selector de 6 rutas (3 OD × general/ciclista), sana (verde) vs rápida (gris) recalculada cada hora + readout (Δdist, reducción por señal, mejor hora). `viz/mapa/rutas.json`. `tests/test_rutas.py` (6). **Pendiente**: envolver como 12.ª tool MCP (artefacto vendorizado en `asistente/`). |
 | opc. | `FIL_38` | ⬜ opcional | 2026-09-12 | Tabla de backtest `§7` a 30 meses (MTD + meteo histórica). O, si se elige la Vía B del fork, el **sustrato de la animación**. |
 
 ## Gaps / riesgos reales (auditados 2026-08-30)
