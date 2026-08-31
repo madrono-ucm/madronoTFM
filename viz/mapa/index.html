@@ -15,9 +15,14 @@
   #titulo { left:50%; top:10px; transform:translateX(-50%); padding:6px 16px; font-weight:650;
     letter-spacing:.2px; text-align:center; }
   #titulo small { display:block; font-weight:400; color:#9fb0c0; font-size:11px; margin-top:2px; }
-  #controls { left:12px; top:56px; width:272px; max-height:calc(100% - 68px); overflow:auto; }
-  #context  { right:12px; top:56px; width:250px; max-height:calc(100% - 68px); overflow:auto; }
-  #ticker   { left:12px; bottom:12px; font-variant-numeric:tabular-nums; }
+  #controls { left:12px; top:56px; width:272px; max-height:calc(100% - 200px); overflow:auto; }
+  #context  { right:12px; top:56px; width:250px; max-height:calc(100% - 200px); overflow:auto; }
+  #resumen  { left:12px; right:12px; bottom:12px; padding:8px 12px; display:flex; gap:16px;
+    align-items:stretch; font-variant-numeric:tabular-nums; }
+  #resumen .blk { display:flex; flex-direction:column; gap:2px; }
+  #resumen .blk.grow { flex:1; min-width:0; }
+  #resumen svg { display:block; width:100%; }
+  #resumen .hd { color:#9fb0c0; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; }
   details { border:1px solid #2c3644; border-radius:8px; margin:6px 0; padding:2px 8px 8px; }
   details[open] { background:rgba(255,255,255,.02); }
   summary { cursor:pointer; font-weight:600; padding:6px 0; list-style:none; }
@@ -86,6 +91,12 @@
       <button id="fit">encajar a Madrid</button>
       <button id="clean">vista limpia</button>
     </div>
+    <div class="row" aria-label="Representación de los nodos">
+      <span class="muted">nodos:</span>
+      <button data-r="auto" class="rp on">auto</button>
+      <button data-r="puntos" class="rp">puntos</button>
+      <button data-r="barras" class="rp">barras (3D)</button>
+    </div>
     <label class="chk"><input type="checkbox" id="l-distr" checked> nombres de distrito</label>
     <label class="chk"><input type="checkbox" id="l-hitos" checked> hitos (Sol, Atocha…)</label>
     <label class="chk"><input type="checkbox" id="l-ejes"> ejes (M-30, Castellana… · contexto)</label>
@@ -124,16 +135,32 @@
   <div class="muted" style="margin-top:10px">skill STGNN vs persistencia (h1): <b id="ctx-skill">—</b></div>
 </div>
 
-<div class="panel" id="ticker"><span id="wx">meteo —</span></div>
+<div class="panel" id="resumen">
+  <div class="blk grow">
+    <span class="hd" id="rs-ct-hd">media ciudad · 24 h</span>
+    <svg id="rs-city" viewBox="0 0 320 60" preserveAspectRatio="none" height="56"></svg>
+    <span class="muted" id="rs-city-txt">—</span>
+  </div>
+  <div class="blk grow">
+    <span class="hd">por distrito · ahora</span>
+    <svg id="rs-distr" viewBox="0 0 320 60" preserveAspectRatio="none" height="56"></svg>
+    <span class="muted" id="rs-distr-txt">—</span>
+  </div>
+  <div class="blk" style="min-width:190px">
+    <span class="hd">meteo · skill</span>
+    <div id="wx" style="margin-top:4px">meteo —</div>
+    <div class="muted" style="margin-top:6px">skill STGNN vs persistencia (h1): <b id="rs-skill">—</b></div>
+  </div>
+</div>
 
 <script>
-const {DeckGL, ScatterplotLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, WebMercatorViewport} = deck;
+const {DeckGL, ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, WebMercatorViewport} = deck;
 let META, DATA, WX, RUTAS, dgl, selNode = null;
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:40, bearing:-8},
   layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false},
-  clean:false,
+  clean:false, repr:"auto",
 };
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
@@ -169,6 +196,19 @@ const arcCol = a => a>0 ? ramp(1-scale(a/100,0,2.5)).concat(220) : [110,130,235,
 // radio de nodo dependiente del zoom: puntos nítidos de lejos, no una mancha
 function nodeRmin(){ const z = state.view.zoom;
   return z < 10.6 ? 1.6 : z < 11.6 ? 2.4 : z < 12.6 ? 3.2 : 4.2; }
+// "gravedad" 0..100 -> altura de barra: sube donde las condiciones son PEORES
+function nodeElev(i){
+  if(state.ghost){
+    const f = DATA[state.day]["traf_h1"][state.hour][i], p = DATA[state.day]["traf_now"][state.hour][i];
+    return (f<0||p<0) ? 0 : Math.min(100, Math.abs(f-p)*0.7);
+  }
+  const v = metricArr()[i];
+  if(v<0) return 0;
+  const md = META.metricas[state.metric], [lo,hi] = md.rango;
+  const t = scale(state.metric==="trafico" ? v/100 : v, lo, hi);
+  return (md.peor>0 ? t : 1-t) * 100;   // salud: alto = salud baja (problema)
+}
+const usaBarras = () => state.repr==="barras" || (state.repr==="auto" && state.view.pitch > 5);
 
 function layers(){
   const idxs = META.coords.map((_,i)=>i);
@@ -188,13 +228,19 @@ function layers(){
       getSourcePosition:d=>META.coords[d.s], getTargetPosition:d=>META.coords[d.t],
       getSourceColor:d=>arcCol(trafNow[d.s]), getTargetColor:d=>arcCol(trafNow[d.t]),
       getWidth:d=>0.8+3*d.w, getHeight:0.16, updateTriggers:{getSourceColor:[state.day,state.hour,state.hz]}}));
-  L.push(new ScatterplotLayer({id:"nodes", data:idxs, pickable:true,
-    radiusMinPixels:nodeRmin(), radiusMaxPixels:8, getPosition:i=>META.coords[i], getRadius:70,
-    stroked:true, getLineColor:[8,11,16,110], lineWidthMinPixels:0.4,
-    getFillColor:nodeColor,
-    updateTriggers:{getFillColor:[state.day,state.hour,state.metric,state.hz,state.ghost],
-                    radiusMinPixels:[state.view.zoom]},
-    onClick:info=>{ if(info.index!=null){ selNode=info.index; state.tab="a"; syncTabs(); render(); } }}));
+  const onNode = info => { if(info.index!=null){ selNode=info.index; state.tab="a"; syncTabs(); render(); } };
+  const trig = [state.day,state.hour,state.metric,state.hz,state.ghost];
+  if(usaBarras())
+    L.push(new ColumnLayer({id:"nodes", data:idxs, pickable:true, diskResolution:6,
+      radius:40, radiusUnits:"meters", extruded:true, elevationScale:24,
+      getPosition:i=>META.coords[i], getElevation:nodeElev, getFillColor:nodeColor,
+      material:{ambient:0.6, diffuse:0.5, shininess:20},
+      updateTriggers:{getFillColor:trig, getElevation:trig}, onClick:onNode}));
+  else
+    L.push(new ScatterplotLayer({id:"nodes", data:idxs, pickable:true,
+      radiusMinPixels:nodeRmin(), radiusMaxPixels:8, getPosition:i=>META.coords[i], getRadius:70,
+      stroked:true, getLineColor:[8,11,16,110], lineWidthMinPixels:0.4, getFillColor:nodeColor,
+      updateTriggers:{getFillColor:trig, radiusMinPixels:[state.view.zoom]}, onClick:onNode}));
   if(selNode!=null)
     L.push(new ScatterplotLayer({id:"sel", data:[selNode], getPosition:i=>META.coords[i],
       getRadius:nodeRmin()*3, radiusUnits:"pixels", stroked:true, filled:false,
@@ -337,13 +383,55 @@ function render(){
   document.getElementById("titulo-sub").textContent =
     `${state.day} (${(META.dow[state.day]||"")}) · ${hh} · ${META.n_nodos} nodos`;
   const w = (WX[state.day]||{})[state.hour];
-  document.getElementById("wx").textContent = w
-    ? `${state.day} ${hh} · ${w.temp_c}°C · viento ${w.wind_ms} m/s · lluvia ${w.precip} l/m² · HR ${w.humidity}%`
+  document.getElementById("wx").innerHTML = w
+    ? `${hh} · ${w.temp_c}°C · viento ${w.wind_ms} m/s<br>lluvia ${w.precip} l/m² · HR ${w.humidity}%`
     : "meteo —";
-  const s = skill();
-  document.getElementById("ctx-skill").textContent = isNaN(s) ? "—" : s.toFixed(2);
+  const s = skill(), sTxt = isNaN(s) ? "—" : s.toFixed(2);
+  const cs = document.getElementById("ctx-skill"); if(cs) cs.textContent = sTxt;
+  document.getElementById("rs-skill").textContent = sTxt;
   routeInfo();
+  resumen();
   if(state.tab==="d") pulse(); else edgePane();
+}
+
+// --- panel de resumen inferior (FIL_49) ---
+function _mediaCiudad(dia, metric, hora){
+  const arr = metric==="trafico" ? DATA[dia]["traf_"+state.hz][hora] : DATA[dia][metric][hora];
+  let s=0, n=0; for(const v of arr){ if(v>=0){ s+=(metric==="trafico"?v/100:v); n++; } }
+  return n ? s/n : null;
+}
+function resumen(){
+  const dia = state.day, m = state.metric, md = META.metricas[m];
+  // 1) media ciudad 24 h
+  const serie = Array.from({length:24}, (_,h)=>_mediaCiudad(dia, m, h));
+  const vals = serie.filter(v=>v!=null);
+  const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi-lo)*0.12 || 1;
+  const W=320, H=60;
+  const x = h => 4 + h*(W-8)/23;
+  const y = v => v==null ? null : H-4 - (v-lo+pad)/((hi-lo)+2*pad)*(H-8);
+  let area="M"+x(0)+" "+H, line="";
+  serie.forEach((v,h)=>{ const yy=y(v); if(yy==null) return;
+    area += " L"+x(h).toFixed(1)+" "+yy.toFixed(1); line += (line?"L":"M")+x(h).toFixed(1)+" "+yy.toFixed(1)+" "; });
+  area += " L"+x(23)+" "+H+" Z";
+  const col = md.peor>0 ? "#e6704b" : "#4bbf73";
+  document.getElementById("rs-city").innerHTML =
+    `<path d="${area}" fill="${col}22"/><path d="${line}" fill="none" stroke="${col}" stroke-width="1.6"/>`
+    + `<line x1="${x(state.hour)}" y1="0" x2="${x(state.hour)}" y2="${H}" stroke="#89a" stroke-dasharray="2 2"/>`;
+  const now=serie[state.hour], iMin=serie.indexOf(lo), iMax=serie.indexOf(hi);
+  document.getElementById("rs-ct-hd").textContent = `media ciudad · ${m} · 24 h`;
+  document.getElementById("rs-city-txt").textContent =
+    `ahora ${now==null?"—":now.toFixed(1)} · mín ${lo.toFixed(1)} @${String(iMin).padStart(2,"0")}h · máx ${hi.toFixed(1)} @${String(iMax).padStart(2,"0")}h`;
+  // 2) por distrito ahora (mismo criterio que el pulso, compacto)
+  const svals = DATA[dia].salud[state.hour], acc={};
+  META.distrito.forEach((d,i)=>{ if(svals[i]<0) return; (acc[d]=acc[d]||[0,0]); acc[d][0]+=svals[i]; acc[d][1]++; });
+  const rows = Object.entries(acc).map(([d,s])=>[d,s[0]/s[1]]).sort((a,b)=>a[1]-b[1]);
+  const bw = (W-8)/rows.length;
+  document.getElementById("rs-distr").innerHTML = rows.map(([d,v],k)=>{
+    const hgt = (H-8)*scale(v,55,96), c = ramp(scale(v,55,96));
+    return `<rect x="${(4+k*bw).toFixed(1)}" y="${(H-4-hgt).toFixed(1)}" width="${(bw-1).toFixed(1)}" height="${hgt.toFixed(1)}" fill="rgb(${c.join(",")})"><title>${(META.distrito_nombre[d]||d)}: ${v.toFixed(0)}</title></rect>`;
+  }).join("");
+  document.getElementById("rs-distr-txt").textContent =
+    `peor: ${META.distrito_nombre[rows[0][0]]||rows[0][0]} ${rows[0][1].toFixed(0)} · mejor: ${META.distrito_nombre[rows[rows.length-1][0]]||rows[rows.length-1][0]} ${rows[rows.length-1][1].toFixed(0)}`;
 }
 
 function routeInfo(){
@@ -393,6 +481,8 @@ function mkControls(){
   document.getElementById("tab-d").onclick=()=>{ state.tab="d"; syncTabs(); render(); };
   document.getElementById("tab-a").onclick=()=>{ state.tab="a"; syncTabs(); render(); };
 
+  document.querySelectorAll(".rp").forEach(b=>b.onclick=()=>{ state.repr=b.dataset.r;
+    document.querySelectorAll(".rp").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); });
   document.getElementById("v2d").onclick=()=>setPitch(0);
   document.getElementById("v3d").onclick=()=>setPitch(40);
   document.getElementById("fit").onclick=fitBounds;
@@ -401,6 +491,7 @@ function mkControls(){
     e.target.classList.toggle("on", state.clean);
     document.getElementById("controls").style.opacity = state.clean ? ".22" : "1";
     document.getElementById("context").style.display = state.clean ? "none" : "";
+    document.getElementById("resumen").style.display = state.clean ? "none" : "flex";
     render();
   };
   const setChk = (id,key)=>{ const el=document.getElementById(id);
