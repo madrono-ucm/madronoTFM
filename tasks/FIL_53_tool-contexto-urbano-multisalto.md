@@ -2,7 +2,8 @@
 kind: fil
 title: "Tool MCP contexto_urbano(lugar) — consulta multi-salto genuina del grafo"
 owner: Filippos (interactive)
-status: pending
+status: done
+resolved_at: "2026-08-31"
 allow_infra_apply: false
 created_at: "2026-08-31"
 depends_on: [FIL_51]
@@ -45,3 +46,24 @@ Devuelve, para un `:Lugar` resuelto por texto:
 ## Coste
 
 Cero AWS, cero Neo4j en runtime (salvo la variante opcional). Tests mockean.
+
+## Resolución (2026-08-31)
+
+- `asistente/modelos/grafo_urbano.json.gz` (copia del artefacto de `FIL_51`,
+  ~0,66 MB) vendorizado.
+- `asistente/contexto_urbano.py` — carga el `.gz`, indexa, BFS ≤2 saltos en
+  Python puro (sin `networkx`, sin Neo4j — autocontenido).
+- **13.ª tool `contexto_urbano(lugar)`** → `ContextoUrbano` (contenedor con
+  `output_schema`): barrio/distrito por la jerarquía real, estaciones a 1
+  salto de `PROXIMO_A` por tipo, `:Lugar` a ≤2 saltos, transporte a ≤2
+  saltos de `CONECTADO_CON` desde la parada más cercana. Degrada con
+  `motivo` (+ ejemplos) — nunca excepción.
+- Router `GET /contexto-urbano`, `server.py` a **13 tools**,
+  `test_mcp_tools`/`test_mcp_transport` a 13.
+- `asistente/tests/test_contexto_urbano.py` (8).
+- Ejemplo: «Retiro» → Jardines de El Buen Retiro (parque), barrio Los
+  Jerónimos / distrito Retiro; 6 estaciones de tráfico a ≤300 m; 21 paradas
+  alcanzables a ≤2 saltos desde «Alcalá - Puerta de Alcalá» (Cibeles,
+  Círculo de Bellas Artes, Felipe II…).
+- La variante Cypher-nativa (`MATCH (l)-[:PROXIMO_A*1..2]-(x)` si
+  `NEO4J_*` está presente) queda para `FIL_54`.

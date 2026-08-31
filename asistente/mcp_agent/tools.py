@@ -29,6 +29,7 @@ import math
 from datetime import datetime, timedelta
 
 from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, sql_literal
+from asistente import contexto_urbano as _ctx
 from asistente import ruta_saludable as _ruta
 from asistente.models.herramientas import (
     AfluenciaEstimada,
@@ -47,8 +48,11 @@ from asistente.models.herramientas import (
     ParadaBicimadCercana,
     TraficoCercano,
     TraficoPrevista,
+    ContextoUrbano,
+    EstacionProxima,
     RutaSaludable,
     TramoRuta,
+    TransporteAlcanzable,
     TraficoPrevistaGrafo,
     VecinoGrafo,
 )
@@ -2160,3 +2164,50 @@ def ruta_saludable(
             las 08:00.
     """
     return _ruta_saludable_impl(origen, destino, perfil, momento)
+
+
+# ---------------------------------------------------------------------------
+# contexto_urbano (FIL_53) -- consulta MULTI-SALTO del grafo urbano
+# reconstruido: barrio/distrito por la jerarquia real, estaciones a 1 salto,
+# lugares a <=2 saltos de PROXIMO_A, transporte a <=2 saltos de CONECTADO_CON.
+# ---------------------------------------------------------------------------
+
+
+def contexto_urbano(lugar: str) -> ContextoUrbano:
+    """Contexto urbano **multi-salto** de un lugar de Madrid (`FIL_53`).
+
+    A diferencia de las otras 12 tools (que hacen `MATCH` de 1 salto),
+    atraviesa el grafo urbano reconstruido de Neo4j
+    (`asistente/modelos/grafo_urbano.json.gz`, `FIL_51`): resuelve `lugar`
+    por texto contra los `:Lugar`, da el **barrio y distrito por la
+    jerarquia real** (`UBICADO_EN`->`Barrio` `PERTENECE_A`->`Distrito`), las
+    **estaciones de medida a 1 salto** de `PROXIMO_A` por tipo, otros
+    **`:Lugar` a <=2 saltos** de `PROXIMO_A`, y las **paradas de transporte
+    alcanzables a <=2 saltos de `CONECTADO_CON`** desde la parada mas
+    cercana. Sin artefacto o sin lugar reconocido -> `disponible=false` +
+    `motivo` (con ejemplos), nunca excepcion.
+
+    Args:
+        lugar: Nombre (parcial) de un lugar de Madrid (POI, parque,
+            aparcamiento, cine). Se resuelve por coincidencia de texto.
+    """
+    if not _ctx.disponible():
+        return ContextoUrbano(lugar_consultado=lugar,
+                              motivo="falta asistente/modelos/grafo_urbano.json.gz (grafo.exportar_grafo)")
+    try:
+        r = _ctx.contexto(lugar)
+    except ValueError as exc:
+        return ContextoUrbano(lugar_consultado=lugar, motivo=str(exc))
+    except Exception as exc:  # noqa: BLE001
+        return ContextoUrbano(lugar_consultado=lugar, motivo=f"fallo consultando el grafo: {exc}")
+
+    return ContextoUrbano(
+        lugar_consultado=lugar, disponible=True,
+        lugar=r["lugar"], tipo=r["tipo"], barrio=r["barrio"], distrito=r["distrito"],
+        estaciones_1_salto={
+            k: [EstacionProxima(**e) for e in v] for k, v in r["estaciones_1_salto"].items()
+        },
+        lugares_cercanos_2_saltos=r["lugares_cercanos_2_saltos"],
+        transporte=TransporteAlcanzable(**r["transporte"]),
+        fuente_grafo=r["fuente_grafo"],
+    )

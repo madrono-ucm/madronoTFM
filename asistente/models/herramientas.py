@@ -389,3 +389,40 @@ class RutaSaludable(BaseModel):
     mejor_hora_salida: int | None = None
     lugares_disponibles: list[str] = Field(default_factory=list)
     dias_disponibles: list[str] = Field(default_factory=list)
+
+
+class EstacionProxima(BaseModel):
+    id: str
+    distancia_m: int
+
+
+class TransporteAlcanzable(BaseModel):
+    parada_ancla: str | None = None
+    alcanzables_2_saltos: int = 0
+    ejemplos: list[str] = Field(default_factory=list)
+
+
+class ContextoUrbano(BaseModel):
+    """Contexto **multi-salto** de un lugar de Madrid (`FIL_53`): a
+    diferencia del resto de tools (1 salto), atraviesa el grafo urbano
+    reconstruido (`grafo_urbano.json.gz`, `FIL_51`).
+
+    `barrio`/`distrito` por la jerarquía real (`UBICADO_EN`→`Barrio`
+    `PERTENECE_A`→`Distrito`); `estaciones_1_salto` por tipo desde
+    `PROXIMO_A`; `lugares_cercanos_2_saltos` (`PROXIMO_A` ≤2);
+    `transporte` = paradas alcanzables a ≤2 saltos de `CONECTADO_CON` desde
+    la parada más cercana. Sin lugar reconocido → `disponible=false` +
+    `motivo`, nunca excepción.
+    """
+
+    lugar_consultado: str
+    disponible: bool = False
+    motivo: str | None = None
+    lugar: str | None = None
+    tipo: str | None = None
+    barrio: str | None = None
+    distrito: str | None = None
+    estaciones_1_salto: dict[str, list[EstacionProxima]] = Field(default_factory=dict)
+    lugares_cercanos_2_saltos: dict[str, list[dict]] = Field(default_factory=dict)
+    transporte: TransporteAlcanzable | None = None
+    fuente_grafo: str | None = None

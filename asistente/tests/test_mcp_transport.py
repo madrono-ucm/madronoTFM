@@ -33,7 +33,7 @@ _ESPERADAS = {
     "calidad_aire_prevista", "calidad_aire_prevista_grafo",
     "trafico_cercano", "trafico_prevista", "trafico_prevista_grafo",
     "opciones_movilidad", "disponibilidad_aparcamiento", "eventos_cercanos",
-    "ruta_saludable",
+    "ruta_saludable", "contexto_urbano",
 }
 
 
@@ -90,7 +90,7 @@ async def _run_client(escenario):
 
 
 class TransporteEnMemoriaTests(unittest.TestCase):
-    def test_list_tools_expone_las_12(self):
+    def test_list_tools_expone_las_13(self):
         async def escenario(session):
             return await session.list_tools()
 

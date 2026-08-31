@@ -29,9 +29,10 @@ TOOL_FUNCTIONS = [
     tools.disponibilidad_aparcamiento,
     tools.eventos_cercanos,
     tools.ruta_saludable,
+    tools.contexto_urbano,
 ]
 
-# Las 12 tools tienen lógica real (`ruta_saludable`, FIL_37, es la última) -- no queda ninguna con NotImplementedError.
+# Las 13 tools tienen lógica real (`contexto_urbano`, FIL_53, es la última) -- no queda ninguna con NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS: list = []
 
 
