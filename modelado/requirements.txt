@@ -31,6 +31,15 @@ matplotlib>=3.8,<4
 # mantenimiento y exige una base de datos.
 mlflow>=2.16,<4
 
+# FIL_39: `cryptography` es transitiva (mlflow / evidently / google-auth) y
+# < 50 tiene el oráculo Bleichenbacher de PKCS7 (PYSEC-2026-3552 /
+# CVE-2026-69247). El fix es >= 50.0.0 pero mlflow 3.15.2 lo capa a < 50 por
+# conservadurismo; forzamos >= 50.0.1 aquí (pip avisa del conflicto de tope
+# pero la suite completa — modelado 67, asistente/grafo/ingesta 971, viz 41 —
+# pasa en verde y el MCP arranca con 13 tools). Ninguna API PKCS7 se llama
+# desde código propio, así que el impacto real ya era nulo; esto es higiene.
+cryptography>=50.0.1
+
 # Tier 2 (ML_05): GNN espacio-temporal. Solo `torch` (CPU, ver el
 # `--extra-index-url` de arriba) — la capa GraphSAGE está implementada a mano
 # (media ponderada por `edge_weight`), así el gradiente respecto a las
