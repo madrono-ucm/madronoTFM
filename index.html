@@ -76,12 +76,31 @@
   <details open>
     <summary>🎨 Capa de color</summary>
     <div class="row" id="metrics"></div>
+    <div class="row" aria-label="Escala de color">
+      <span class="muted">escala:</span>
+      <button data-e="lineal" class="es on">lineal</button>
+      <button data-e="bandas" class="es">bandas OMS·UE</button>
+    </div>
     <div class="muted" id="metlabel"></div>
     <div class="leg" id="leg"></div>
     <div class="muted" id="legrange" style="display:flex;justify-content:space-between"></div>
+    <div id="leg-bandas" class="muted" style="display:none;margin-top:4px"></div>
     <div class="row"><button id="ghost">modelo vs persistencia (E2)</button></div>
     <div class="muted" style="margin-top:4px">Arcos = 15 conexiones más influyentes del STGNN
       (importancia estática, grosor ∝ importancia, color animado por el tráfico). Clic en un nodo → detalle.</div>
+  </details>
+
+  <details>
+    <summary>♿ Salud · perfil de sensibilidad</summary>
+    <div class="row" id="perfiles"></div>
+    <div class="muted" id="mejor-hora" style="margin-top:2px"></div>
+    <label class="chk"><input type="checkbox" id="l-idw"> confianza de la interpolación de aire
+      (nodos lejos de estación = menos fiables)</label>
+    <div class="muted" style="margin-top:6px">Métricas de dosis: media de la exposición prevista de las
+      próximas 8 h como % de la guía OMS.</div>
+    <div class="muted" style="margin-top:8px;border-top:1px solid #2c3644;padding-top:6px">
+      Agregados por zona · datos abiertos, sin información personal · describe el aire y la hora,
+      no señala barrios · <b>apoyo a la decisión, no consejo médico</b>.</div>
   </details>
 
   <details>
@@ -159,8 +178,8 @@ let META, DATA, WX, RUTAS, dgl, selNode = null;
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
-  layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false},
-  clean:false, repr:"puntos",
+  layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false},
+  clean:false, repr:"puntos", escala:"lineal", perfil:"general",
 };
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
@@ -173,10 +192,61 @@ function lerp(stops,t){ const x=t*(stops.length-1), i=Math.floor(x), f=x-i;
 const ramp = t => lerp(RAMP, clamp01(t));
 const divg = t => lerp(DIV, clamp01(t));
 
+// paleta de bandas OMS/UE distinguible en deuteranopía (5 pasos)
+const BANDAS_PAL = [[44,123,182],[145,191,219],[255,255,191],[252,141,89],[215,25,28]];
+// métricas virtuales calculadas en el navegador (FIL_45)
+const MET_EXTRA = {
+  salud_perfil: {rango:[40,95], label:"Índice de salud según el perfil elegido", peor:-1, banda:"salud"},
+  dosis_no2:    {rango:[0,120], label:"Dosis NO₂ próximas 8 h (% de la guía OMS 24 h)", peor:1},
+  dosis_o3:     {rango:[0,150], label:"Dosis O₃ próximas 8 h (% de la guía OMS 8 h)", peor:1},
+};
+const metDef = m => META.metricas[m] || MET_EXTRA[m];
+const _n = (s,v) => s==="traf" ? clamp01(v/300) : s==="no2" ? clamp01(v/200)
+                  : s==="o3" ? clamp01(v/180) : clamp01((v-45)/30);
+
 function trafArr(hz){ return DATA[state.day]["traf_"+hz][state.hour]; }
+function _dosis(campo, guia){
+  const md = DATA[state.day][campo];
+  return META.coords.map((_,i)=>{
+    let s=0, n=0;
+    for(let h=state.hour; h<Math.min(24,state.hour+8); h++){ const v=md[h][i]; if(v>=0){ s+=v; n++; } }
+    return n ? s/n/guia*100 : -1;
+  });
+}
+function _saludPerfilHora(h){
+  const w = META.perfiles[state.perfil] || META.perfiles.general;
+  const sw = w.traf+w.no2+w.o3+w.noise;
+  const md = DATA[state.day];
+  return META.coords.map((_,i)=>{
+    const traf=md.trafico[h][i], no2=md.no2[h][i], o3=md.o3[h][i];
+    const db = META.ruido_distrito[META.distrito[i]];
+    if(no2<0||o3<0) return -1;
+    const carga = (w.traf*_n("traf", traf<0?0:traf) + w.no2*_n("no2",no2) + w.o3*_n("o3",o3)
+                 + w.noise*_n("noise", db==null?55:db)) / sw;
+    return Math.round(100*(1-carga));
+  });
+}
+const _saludPerfil = () => _saludPerfilHora(state.hour);
+function mejorHoraPerfil(){
+  let best=-1, bh=0;
+  for(let h=0;h<24;h++){ const a=_saludPerfilHora(h); let s=0,n=0;
+    for(const v of a){ if(v>=0){ s+=v; n++; } }
+    const m = n?s/n:0; if(m>best){ best=m; bh=h; } }
+  return {hora:bh, salud:best};
+}
 function metricArr(){
   if(state.metric==="trafico") return trafArr(state.hz);
+  if(state.metric==="salud_perfil") return _saludPerfil();
+  if(state.metric==="dosis_no2") return _dosis("no2", 25);
+  if(state.metric==="dosis_o3")  return _dosis("o3", 100);
   return DATA[state.day][state.metric][state.hour];
+}
+function _banda(m, v){
+  const key = (metDef(m).banda) || m;
+  const u = META.umbrales[key];
+  if(!u) return null;
+  let b = 0; for(const c of u.cortes){ if(v > c) b++; }
+  return {i:b, nombre:u.bandas[b]};
 }
 function nodeColor(i){
   if(state.ghost){
@@ -185,11 +255,16 @@ function nodeColor(i){
     if(f<0||p<0) return [70,80,95,28];
     return divg(0.5 + (f-p)/200).concat(235);
   }
-  const vals = metricArr(), v = vals[i];
-  if(v<0) return [70,80,95,28];   // sin dato -> casi invisible, no ensucia
-  const [lo,hi] = META.metricas[state.metric].rango;
+  const v = metricArr()[i];
+  if(v<0) return [70,80,95,28];
+  if(state.escala==="bandas" && _banda(state.metric, v)){
+    const {i:bi} = _banda(state.metric, v);
+    const peor = metDef(state.metric).peor>0;
+    return BANDAS_PAL[peor ? bi : BANDAS_PAL.length-1-bi].concat(240);
+  }
+  const [lo,hi] = metDef(state.metric).rango;
   let t = scale(state.metric==="trafico" ? v/100 : v, lo, hi);
-  if(META.metricas[state.metric].peor>0) t = 1-t;
+  if(metDef(state.metric).peor>0) t = 1-t;
   return ramp(t).concat(240);
 }
 const arcCol = a => a>0 ? ramp(1-scale(a/100,0,2.5)).concat(220) : [110,130,235,90];
@@ -204,7 +279,7 @@ function nodeElev(i){
   }
   const v = metricArr()[i];
   if(v<0) return 0;
-  const md = META.metricas[state.metric], [lo,hi] = md.rango;
+  const md = metDef(state.metric), [lo,hi] = md.rango;
   const t = scale(state.metric==="trafico" ? v/100 : v, lo, hi);
   return (md.peor>0 ? t : 1-t) * 100;   // salud: alto = salud baja (problema)
 }
@@ -241,6 +316,11 @@ function layers(){
       radiusMinPixels:nodeRmin(), radiusMaxPixels:8, getPosition:i=>META.coords[i], getRadius:70,
       stroked:true, getLineColor:[8,11,16,110], lineWidthMinPixels:0.4, getFillColor:nodeColor,
       updateTriggers:{getFillColor:trig, radiusMinPixels:[state.view.zoom]}, onClick:onNode}));
+  if(state.layers.idw && META.idw_dist)
+    L.push(new ScatterplotLayer({id:"idw", data:META.coords.map((_,i)=>i).filter(i=>META.idw_dist[i]>1800),
+      getPosition:i=>META.coords[i], getRadius:i=>Math.min(3, META.idw_dist[i]/2500),
+      radiusUnits:"pixels", radiusMinPixels:2, radiusMaxPixels:5,
+      stroked:true, filled:false, getLineColor:[255,190,90,150], lineWidthMinPixels:1}));
   if(selNode!=null)
     L.push(new ScatterplotLayer({id:"sel", data:[selNode], getPosition:i=>META.coords[i],
       getRadius:nodeRmin()*3, radiusUnits:"pixels", stroked:true, filled:false,
@@ -369,15 +449,26 @@ function tooltip({object, layer}){
 
 function render(){
   dgl.setProps({layers: layers(), viewState: state.view});
-  const md = META.metricas[state.metric];
+  const md = metDef(state.metric);
+  const bandas = state.escala==="bandas" && !state.ghost && (META.umbrales[md.banda||state.metric]);
   document.getElementById("metlabel").textContent = state.ghost
     ? "E2 · divergencia STGNN(h1) − persistencia (azul = STGNN menor, rojo = mayor)"
-    : md.label;
+    : md.label + (state.metric==="salud_perfil" ? ` · perfil: ${state.perfil}` : "");
   const leg = document.getElementById("leg");
+  leg.style.display = bandas ? "none" : "block";
   leg.className = "leg" + (state.ghost ? " div" : (md.peor>0 ? "" : " rev"));
+  document.getElementById("legrange").style.display = bandas ? "none" : "flex";
   document.getElementById("legrange").innerHTML = state.ghost
     ? "<span>−</span><span>+</span>"
     : `<span>${md.rango[0]}</span><span>${md.rango[1]}</span>`;
+  const lb = document.getElementById("leg-bandas");
+  if(bandas){ const u = META.umbrales[md.banda||state.metric];
+    lb.style.display = "block";
+    lb.innerHTML = u.bandas.map((nm,k)=>{
+      const c = md.peor>0 ? BANDAS_PAL[k] : BANDAS_PAL[BANDAS_PAL.length-1-k];
+      return `<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgb(${c.join(",")});margin-right:4px"></span>${nm}`;
+    }).join("<br>");
+  } else lb.style.display = "none";
   const hh = String(state.hour).padStart(2,"0")+":00";
   document.getElementById("hlabel").textContent = hh;
   document.getElementById("titulo-sub").textContent =
@@ -386,6 +477,10 @@ function render(){
   document.getElementById("wx").innerHTML = w
     ? `${hh} · ${w.temp_c}°C · viento ${w.wind_ms} m/s<br>lluvia ${w.precip} l/m² · HR ${w.humidity}%`
     : "meteo —";
+  const mh = mejorHoraPerfil();
+  document.getElementById("mejor-hora").innerHTML =
+    `Mejor hora hoy para <b>${state.perfil}</b>: <b>${String(mh.hora).padStart(2,"0")}:00</b> `
+    + `(salud media ${mh.salud.toFixed(0)}) · peor: ${(()=>{let w=101,wh=0;for(let h=0;h<24;h++){const a=_saludPerfilHora(h);let s=0,n=0;for(const v of a){if(v>=0){s+=v;n++;}}const m=n?s/n:101;if(m<w){w=m;wh=h;}}return String(wh).padStart(2,"0")+":00";})()}`;
   const s = skill(), sTxt = isNaN(s) ? "—" : s.toFixed(2);
   const cs = document.getElementById("ctx-skill"); if(cs) cs.textContent = sTxt;
   document.getElementById("rs-skill").textContent = sTxt;
@@ -462,11 +557,26 @@ function mkControls(){
       b.classList.add("on"); render(); }; dd.appendChild(b); });
 
   const mm = document.getElementById("metrics");
-  Object.keys(META.metricas).forEach((m,k)=>{ const b=document.createElement("button");
-    b.textContent = m; b.className = k===0?"met on":"met";
+  const METS = [...Object.keys(META.metricas), "salud_perfil", "dosis_no2", "dosis_o3"];
+  const ET = {salud_perfil:"salud (perfil)", dosis_no2:"dosis NO₂", dosis_o3:"dosis O₃"};
+  METS.forEach((m,k)=>{ const b=document.createElement("button");
+    b.textContent = ET[m] || m; b.className = k===0?"met on":"met"; b.dataset.m = m;
     b.onclick=()=>{ state.metric=m; state.ghost=false; document.getElementById("ghost").classList.remove("on");
       document.querySelectorAll(".met").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); };
     mm.appendChild(b); });
+
+  document.querySelectorAll(".es").forEach(b=>b.onclick=()=>{ state.escala=b.dataset.e;
+    document.querySelectorAll(".es").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); });
+
+  const pp = document.getElementById("perfiles");
+  Object.keys(META.perfiles).forEach(p=>{ const b=document.createElement("button");
+    b.textContent = p; b.className = p==="general" ? "pf on" : "pf"; b.dataset.p = p;
+    b.onclick=()=>{ state.perfil=p; state.metric="salud_perfil";
+      document.querySelectorAll(".pf").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+      document.querySelectorAll(".met").forEach(x=>x.classList.toggle("on", x.dataset.m==="salud_perfil"));
+      render(); };
+    pp.appendChild(b); });
+  document.getElementById("l-idw").onchange=e=>{ state.layers.idw=e.target.checked; render(); };
 
   document.querySelectorAll(".hz").forEach(b=>b.onclick=()=>{ state.hz=b.dataset.h;
     document.querySelectorAll(".hz").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); });
