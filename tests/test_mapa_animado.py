@@ -51,6 +51,18 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertNotIn("mapbox", self.html.lower())  # sin tiles/token
         self.assertIn("<title>", self.html)
 
+    def test_capas_ricas_presentes(self):
+        # E2 ghost, E4 panel glass-box de nodo, E6 pulso de distrito
+        for marca in ("id=\"ghost\"", "pane-a", "id=\"pulse\"", "edgePane", "ArcLayer", "traf_h1_act"):
+            self.assertIn(marca, self.html, f"falta {marca} en el HTML")
+
+    def test_meta_lookups_para_paneles(self):
+        self.assertEqual(len(self.meta["node_id"]), 1798)
+        self.assertIsInstance(self.meta["distrito_nombre"], dict)
+        # todo id de distrito de un nodo tiene nombre
+        for did in set(self.meta["distrito"]):
+            self.assertIn(did, self.meta["distrito_nombre"])
+
     def test_png_existe(self):
         self.assertTrue(_PNG.exists())
         self.assertGreater(_PNG.stat().st_size, 20_000)
