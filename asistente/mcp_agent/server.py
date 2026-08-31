@@ -77,21 +77,25 @@ mcp = MCPServer(
     instructions=_INSTRUCCIONES,
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
-        "(memoria del TFM, apartados 5.2 y 6.7). 13 tools con lógica real: "
+        "(memoria del TFM, apartados 5.2 y 6.7). 14 tools con lógica real: "
         "`calidad_aire` / `disponibilidad_aparcamiento` leen Gold vía Athena; "
         "`trafico_cercano` / `afluencia_estimada` / `eventos_cercanos` / "
         "`opciones_movilidad` cruzan el grafo urbano en Neo4j; "
         "`calidad_aire_prevista` (ML_09) y `trafico_prevista` (FIL_13) sirven "
         "una previsión desde los modelos ONNX de ML_07, `afluencia_prevista` "
         "(FIL_14) la deriva de ambas + persistencia, y "
-        "`calidad_aire_prevista_grafo` / `trafico_prevista_grafo` (FIL_26/31) `ruta_saludable` enruta sobre el grafo minimizando exposición prevista (FIL_37) y `contexto_urbano` hace una consulta multi-salto del grafo urbano (FIL_53) "
+        "`calidad_aire_prevista_grafo` / `trafico_prevista_grafo` (FIL_26/31) "
         "las sirven desde los STGNN de grafo (ML_05) con importancia de "
-        "aristas. Ver asistente/mcp_agent/tools.py."
+        "aristas, `ruta_saludable` enruta sobre el grafo minimizando "
+        "exposición prevista (FIL_37), `contexto_urbano` hace una consulta "
+        "multi-salto del grafo urbano (FIL_53) y `mejor_hora_zona` da la "
+        "franja del día más limpia en un distrito por perfil de sensibilidad "
+        "(FIL_46). Ver asistente/mcp_agent/tools.py."
     ),
 )
 
-# Las 13 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX /
-# Dijkstra sobre un grafo vendorizado):
+# Las 14 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX /
+# Dijkstra o barrido sobre un grafo vendorizado):
 # `read_only_hint=True`. `open_world_hint=True` porque consultan datos vivos
 # externos. Son la señal estándar de "es seguro llamar a esto" para el cliente.
 _ANOTACIONES_LECTURA = ToolAnnotations(read_only_hint=True, open_world_hint=True)
@@ -111,6 +115,7 @@ _TOOLS = (
     (tools.eventos_cercanos, "Eventos cercanos"),
     (tools.ruta_saludable, "Ruta saludable entre dos lugares"),
     (tools.contexto_urbano, "Contexto urbano multi-salto de un lugar"),
+    (tools.mejor_hora_zona, "Mejor hora del día para una zona"),
 )
 
 for _fn, _titulo in _TOOLS:

@@ -30,6 +30,7 @@ from datetime import datetime, timedelta
 
 from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, sql_literal
 from asistente import contexto_urbano as _ctx
+from asistente import mejor_hora_zona as _zona
 from asistente import ruta_saludable as _ruta
 from asistente.models.herramientas import (
     AfluenciaEstimada,
@@ -50,6 +51,7 @@ from asistente.models.herramientas import (
     TraficoPrevista,
     ContextoUrbano,
     EstacionProxima,
+    MejorHoraZona,
     RutaSaludable,
     TramoRuta,
     TransporteAlcanzable,
@@ -2214,3 +2216,83 @@ def contexto_urbano(lugar: str) -> ContextoUrbano:
         transporte=TransporteAlcanzable(**r["transporte"]),
         fuente_grafo=r["fuente_grafo"],
     )
+
+
+# ---------------------------------------------------------------------------
+# mejor_hora_zona (FIL_46) -- acceso en lenguaje natural a la capa social del
+# mapa (FIL_45): resuelve una zona por texto libre a distrito y hace el
+# barrido "mejor hora hoy" para un perfil de sensibilidad. Compone sustrato
+# que ya existe (ruta_saludable / grafo_ruta.json); no entrena ni consulta
+# nada nuevo. Sin canal de notificación -> las "alertas anticipadas" de
+# FIL_46 siguen siendo trabajo futuro.
+# ---------------------------------------------------------------------------
+
+
+def _mejor_hora_zona_impl(zona: str, perfil: str, momento: "datetime | None") -> MejorHoraZona:
+    base = dict(zona_consultada=zona, perfil=perfil)
+    if not _zona.disponible():
+        return MejorHoraZona(**base, motivo="falta asistente/modelos/grafo_ruta.json (viz/build_grafo_ruta.py)")
+    if perfil not in _zona.perfiles():
+        return MejorHoraZona(**base, motivo=f"perfil no válido; usa {_zona.perfiles()}")
+
+    dia, _ = _dia_hora_para(momento)
+    try:
+        r = _zona.mejor_hora_zona(zona, perfil, dia=dia)
+    except ValueError as exc:  # zona no reconocida / ambigua / día fuera de rango
+        return MejorHoraZona(
+            **base, dia=dia, motivo=str(exc),
+            zonas_disponibles=_zona.zonas_disponibles(), dias_disponibles=_zona.dias(),
+        )
+    except Exception as exc:  # noqa: BLE001 - degradación elegante
+        return MejorHoraZona(**base, dia=dia, motivo=f"fallo calculando: {exc}")
+
+    return MejorHoraZona(
+        **base, disponible=True,
+        distrito=r["distrito"], distrito_id=r["distrito_id"], dia=r["dia"],
+        n_nodos_zona=r["n_nodos_zona"],
+        mejor_hora=r["mejor_hora"], peor_hora=r["peor_hora"],
+        franja_inicio=r["franja_inicio"], franja_fin=r["franja_fin"],
+        reduccion_vs_peor_pct=r["reduccion_vs_peor_pct"],
+        serie_horaria=r["serie_horaria"],
+        zonas_disponibles=_zona.zonas_disponibles(), dias_disponibles=_zona.dias(),
+    )
+
+
+def mejor_hora_zona(
+    zona: str, perfil: str = "general", momento: datetime | None = None
+) -> MejorHoraZona:
+    """**Mejor hora del día** para salir a la calle en una zona de Madrid,
+    según la previsión de aire y ruido para un perfil de sensibilidad
+    (`FIL_46` — acceso en lenguaje natural a la capa social del mapa animado,
+    `FIL_45`).
+
+    Resuelve `zona` (texto libre: «Vallecas», «distrito centro», «13», un
+    nombre de distrito…) a uno de los **21 distritos** y hace un barrido de
+    24 h: para cada hora del día curado calcula la **exposición media de la
+    zona** (tráfico previsto del STGNN + NO₂ + O₃ interpolados + ruido diario
+    por distrito), ponderada con los mismos pesos que `ruta_saludable`
+    (`perfil` ∈ `general` | `ciclista` | `sensible_aire` | `sensible_ruido` |
+    `asma_epoc` | `mayor` | `infancia` | `movilidad_reducida` |
+    `trabajo_exterior`). Devuelve la **franja más limpia** (`franja_inicio`..
+    `franja_fin`), la `mejor_hora`, la `peor_hora`, `reduccion_vs_peor_pct` y
+    la `serie_horaria` completa (24 valores, sin unidad — para comparar horas
+    entre sí).
+
+    Es **petición-respuesta**: no hay suscripción ni avisos. Las *alertas
+    anticipadas por distrito* que también describe `FIL_46` (avisar cuando la
+    previsión cruza un umbral OMS/UE) siguen siendo trabajo futuro.
+
+    Encuadre (`FIL_45`): agregado por zona, sin datos personales; describe la
+    previsión, no señala barrios; apoyo a la decisión, no consejo médico.
+    §7.4: 3 días curados de agosto 2026, `fiabilidad` topada en BAJA. El O₃
+    (contaminante regional, pico de tarde) domina la forma de la curva. Sin
+    artefacto o zona no reconocida → `disponible=false` + `motivo` (con
+    `zonas_disponibles`), nunca excepción.
+
+    Args:
+        zona: Zona de Madrid en texto libre; se resuelve a distrito.
+        perfil: Perfil de sensibilidad (pondera tráfico/NO₂/O₃/ruido).
+        momento: Instante (ISO 8601); solo se usa su fecha para elegir el día
+            curado. Si es `None`, el último día curado.
+    """
+    return _mejor_hora_zona_impl(zona, perfil, momento)

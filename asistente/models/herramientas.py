@@ -391,6 +391,46 @@ class RutaSaludable(BaseModel):
     dias_disponibles: list[str] = Field(default_factory=list)
 
 
+class MejorHoraZona(BaseModel):
+    """Respuesta de `mejor_hora_zona` (`FIL_46`): la franja del día curado
+    con el aire más limpio en un distrito de Madrid para un perfil de
+    sensibilidad, por barrido de 24 h de la exposición media de la zona
+    (tráfico previsto + NO₂ + O₃ + ruido, ponderada como en `ruta_saludable`).
+
+    `serie_horaria` son los 24 valores de exposición ponderada (0..~1, sin
+    unidad — sirve para comparar horas entre sí, no como concentración).
+    `franja_inicio`/`franja_fin` acotan la racha de horas consecutivas más
+    limpia; `reduccion_vs_peor_pct` compara la mejor hora con la peor.
+
+    Encuadre (`FIL_45`): agregado por zona, sin datos personales; describe la
+    previsión de aire y hora, no señala barrios; apoyo a la decisión, no
+    consejo médico. Demostración de metodología (§7.4): 3 días curados,
+    `fiabilidad` topada en BAJA. Sin artefacto o zona no reconocida →
+    `disponible=false` + `motivo` (con `zonas_disponibles`), nunca excepción.
+    """
+
+    zona_consultada: str
+    perfil: str
+    disponible: bool = False
+    motivo: str | None = None
+    distrito: str | None = None
+    distrito_id: str | None = None
+    dia: str | None = None
+    n_nodos_zona: int | None = None
+    mejor_hora: int | None = None
+    peor_hora: int | None = None
+    franja_inicio: int | None = None
+    franja_fin: int | None = None
+    reduccion_vs_peor_pct: float | None = None
+    serie_horaria: list[float] = Field(default_factory=list)
+    zonas_disponibles: list[str] = Field(default_factory=list)
+    dias_disponibles: list[str] = Field(default_factory=list)
+    nota: str = (
+        "Agregado por zona, sin datos personales · describe el aire y la hora "
+        "previstos, no señala barrios · apoyo a la decisión, no consejo médico."
+    )
+
+
 class EstacionProxima(BaseModel):
     id: str
     distancia_m: int
