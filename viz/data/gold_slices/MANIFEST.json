@@ -1,0 +1,23 @@
+{
+ "generado": "2026-08-30T22:24:08.984427+00:00",
+ "origen": "Athena madrono-tfm_dev_gold (workgroup madrono-tfm-dev-silver-gold)",
+ "motivo": "G1 - congelar Gold antes de que la partition projection deslizante lo tire",
+ "tablas": {
+  "trafico_por_punto_hora": {
+   "parquet": "data\\gold_slices\\trafico_por_punto_hora.parquet",
+   "filas": 629664
+  },
+  "calidad_aire_por_estacion_contaminante_hora": {
+   "parquet": "data\\gold_slices\\calidad_aire_por_estacion_contaminante_hora.parquet",
+   "filas": 41847
+  },
+  "meteorologia_por_estacion_magnitud_hora": {
+   "parquet": "data\\gold_slices\\meteorologia_por_estacion_magnitud_hora.parquet",
+   "filas": 27164
+  },
+  "ruido_por_estacion_periodo_fecha": {
+   "parquet": "data\\gold_slices\\ruido_por_estacion_periodo_fecha.parquet",
+   "filas": 1116
+  }
+ }
+}

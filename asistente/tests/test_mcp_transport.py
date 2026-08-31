@@ -31,7 +31,7 @@ from asistente.mcp_agent.server import mcp
 _ESPERADAS = {
     "afluencia_estimada", "afluencia_prevista", "calidad_aire",
     "calidad_aire_prevista", "calidad_aire_prevista_grafo",
-    "trafico_cercano", "trafico_prevista",
+    "trafico_cercano", "trafico_prevista", "trafico_prevista_grafo",
     "opciones_movilidad", "disponibilidad_aparcamiento", "eventos_cercanos",
 }
 
@@ -89,7 +89,7 @@ async def _run_client(escenario):
 
 
 class TransporteEnMemoriaTests(unittest.TestCase):
-    def test_list_tools_expone_las_10(self):
+    def test_list_tools_expone_las_11(self):
         async def escenario(session):
             return await session.list_tools()
 

@@ -1,8 +1,8 @@
-"""Previsión desde el modelo **de grafo** (STGNN de `ML_05`), servido por
-ONNX sin `torch` en runtime (`FIL_20` + `FIL_26`).
+"""Previsión desde los modelos **de grafo** (STGNN de `ML_05`), servidos por
+ONNX sin `torch` en runtime (`FIL_20` + `FIL_26` + `FIL_31`).
 
 A diferencia de `asistente/prevision.py` (LightGBM, un vector de 19 features
-por estación), el STGNN necesita una **ventana de snapshots de todo el
+por entidad), el STGNN necesita una **ventana de snapshots de todo el
 grafo**: `[L, N, 17]` (L horas × N nodos × 17 features), estandarizada, más
 `edge_index`/`edge_weight`. Todo eso -- el orden de las features, las
 medias/desviaciones de estandarización, el índice de nodos, el grafo y la
@@ -10,27 +10,31 @@ importancia de aristas precalculada -- viene en el `*.meta.json` que genera
 `modelado.export.to_onnx --stgnn --meta`, vendido junto al `.onnx` (+ su
 sidecar `.onnx.data`) en `asistente/modelos/`.
 
-Un nodo del grafo es un par `"<station_id>__<contaminante>"`. El modelo
-predice los `n_horizontes` (1/3/6 h) de **todos** los nodos a la vez; el
-llamador se queda con la fila del nodo que le interesa.
+`target` ∈ {`calidad_aire`, `trafico`} → `stgnn_<target>.{onnx,meta.json}`.
+Para `calidad_aire` un nodo es `"<station_id>__<contaminante>"`; para
+`trafico` es un `point_id` de tráfico. El vector de 17 features es idéntico
+para ambos (`modelado/features/panel.py` es agnóstico del target); sólo
+cambia qué señal es `value` y las unidades de la salida.
 
-Nota honesta: el STGNN `@champion` de calidad del aire pierde a
-`calidad_aire_prevista` (LightGBM) en métricas puntuales con la ventana de
-datos corta del proyecto (§7.4). Su valor aquí es la **trazabilidad de
-grafo**: qué conexiones entre estaciones pesan en la predicción.
+El modelo predice los `n_horizontes` (1/3/6 h) de **todos** los nodos a la
+vez; el llamador se queda con la fila del nodo que le interesa.
+
+Nota honesta: los STGNN `@champion` pierden a `calidad_aire_prevista` /
+`trafico_prevista` (LightGBM) en métricas puntuales con la ventana de datos
+corta del proyecto (§7.4). Su valor aquí es la **trazabilidad de grafo**:
+qué conexiones entre entidades pesan en la predicción.
 """
 
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from asistente import prevision
 
 _MODELOS_DIR = Path(__file__).resolve().parent / "modelos"
-_MODELO = "stgnn_calidad_aire"
+TARGETS = ("calidad_aire", "trafico")
 
 # 17 features del STGNN = las 19 de `prevision.FEATURES` sin `lat`/`lon`.
 _IDX_17 = [i for i, f in enumerate(prevision.FEATURES) if f not in ("lat", "lon")]
@@ -38,17 +42,19 @@ _IDX_17 = [i for i, f in enumerate(prevision.FEATURES) if f not in ("lat", "lon"
 _estado: "dict[str, object]" = {}
 
 
-def _rutas(model_dir: Path) -> "tuple[Path, Path]":
-    return model_dir / f"{_MODELO}.onnx", model_dir / f"{_MODELO}.meta.json"
+def _rutas(model_dir: Path, target: str) -> "tuple[Path, Path]":
+    return model_dir / f"stgnn_{target}.onnx", model_dir / f"stgnn_{target}.meta.json"
 
 
-def disponible(*, model_dir: Path = _MODELOS_DIR) -> bool:
-    onnx, meta = _rutas(model_dir)
+def disponible(*, target: str = "calidad_aire", model_dir: Path = _MODELOS_DIR) -> bool:
+    onnx, meta = _rutas(model_dir, target)
     return onnx.exists() and meta.exists()
 
 
-def _cargar(model_dir: Path):
-    onnx, meta_path = _rutas(model_dir)
+def _cargar(model_dir: Path, target: str):
+    if target not in TARGETS:
+        raise ValueError(f"target {target!r} no soportado; usa uno de {TARGETS}")
+    onnx, meta_path = _rutas(model_dir, target)
     clave = str(onnx)
     if clave not in _estado:
         import numpy as np
@@ -73,17 +79,17 @@ def _cargar(model_dir: Path):
     return _estado[clave]
 
 
-def info(*, model_dir: Path = _MODELOS_DIR) -> dict:
+def info(*, target: str = "calidad_aire", model_dir: Path = _MODELOS_DIR) -> dict:
     """`meta.json` cargado (nodos, grafo, importancia de aristas...)."""
-    return dict(_cargar(model_dir)["meta"])
+    return dict(_cargar(model_dir, target)["meta"])
 
 
-def horizontes(*, model_dir: Path = _MODELOS_DIR) -> "list[int]":
-    return list(_cargar(model_dir)["meta"]["horizontes"])
+def horizontes(*, target: str = "calidad_aire", model_dir: Path = _MODELOS_DIR) -> "list[int]":
+    return list(_cargar(model_dir, target)["meta"]["horizontes"])
 
 
-def nodos(*, model_dir: Path = _MODELOS_DIR) -> "dict[str, int]":
-    return dict(_cargar(model_dir)["meta"]["node_index"])
+def nodos(*, target: str = "calidad_aire", model_dir: Path = _MODELOS_DIR) -> "dict[str, int]":
+    return dict(_cargar(model_dir, target)["meta"]["node_index"])
 
 
 def _features_17(actual, historial, *, instante, festivos):
@@ -97,10 +103,12 @@ def predecir(
     series_por_nodo: "dict[str, dict[datetime, float]]",
     ancla: datetime,
     *,
+    target: str = "calidad_aire",
     festivos: "frozenset" = frozenset(),
     model_dir: Path = _MODELOS_DIR,
 ) -> "tuple[dict, dict]":
-    """Corre el STGNN sobre una ventana de `L` horas terminando en `ancla`.
+    """Corre el STGNN de `target` sobre una ventana de `L` horas terminando
+    en `ancla`.
 
     `series_por_nodo[nodo][t]` = `avg_value` de ese nodo a la hora `t`
     (`datetime`). Los nodos ausentes o sin datos entran con features a 0
@@ -113,7 +121,7 @@ def predecir(
     """
     import numpy as np
 
-    st = _cargar(model_dir)
+    st = _cargar(model_dir, target)
     meta = st["meta"]
     L = int(meta["longitud_ventana"])
     node_index = meta["node_index"]
@@ -144,10 +152,12 @@ def predecir(
     return pred, completeness
 
 
-def vecinos_influyentes(nodo: str, *, k: int = 3, model_dir: Path = _MODELOS_DIR) -> "list[dict]":
+def vecinos_influyentes(
+    nodo: str, *, k: int = 3, target: str = "calidad_aire", model_dir: Path = _MODELOS_DIR
+) -> "list[dict]":
     """De la importancia de aristas precalculada (`meta.importancia_aristas`),
     las hasta `k` conexiones más influyentes que tocan `nodo`."""
-    imp = _cargar(model_dir)["meta"]["importancia_aristas"]
+    imp = _cargar(model_dir, target)["meta"]["importancia_aristas"]
     tocan = [
         {"nodo": e["b"] if e["a"] == nodo else e["a"], "importancia": e["importancia"]}
         for e in imp
