@@ -45,3 +45,12 @@ Cero AWS. GitHub Pages gratis y sin límite de CSP.
 
 Milestone **M4** en `viz/PROGRESO_MAPA.md` — mapa "wow" completo y
 **publicado en una URL**.
+
+## Ampliación pendiente — capa social (`FIL_45`), bajo E6
+
+- **Drill-down a barrio**: clic en un distrito del pulso → desglose por
+  barrio (nodos agregados por barrio, ordenados por índice de salud), con
+  el mismo criterio de agregado por zona.
+- **Pie de guardarraíles** siempre visible en el panel: "agregados por
+  zona, sin datos personales · previsión, no un mapa de estigma · apoyo a
+  la decisión, no consejo médico".

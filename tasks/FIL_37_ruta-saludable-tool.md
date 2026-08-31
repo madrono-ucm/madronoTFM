@@ -83,3 +83,12 @@ Cero AWS.
 ## Entregable / progreso
 
 Milestone **M6** (condicional) en `viz/PROGRESO_MAPA.md`.
+
+## Ampliación pendiente — perfiles compartidos (`FIL_45`)
+
+- El dict `PERFILES` (`viz/rutas.py` / `asistente/modelos/grafo_ruta.json`)
+  es la **única** definición de perfil: `ruta_saludable` y la capa social
+  (`FIL_45`) lo comparten. Un perfil = un vector de pesos por señal.
+- Añadir a ese dict **`movilidad_reducida`** (penaliza fuerte distancia y
+  ruido; el desvío tiene que compensar de verdad) y **`trabajo_exterior`**
+  (exposición sostenida: pondera dosis, no solo pico).
