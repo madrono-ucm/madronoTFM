@@ -42,6 +42,11 @@ _EJES = json.loads((_VIZ / "assets" / "ejes_madrid.geojson").read_text(encoding=
 _PARQUES = json.loads((_VIZ / "assets" / "parques_madrid.geojson").read_text(encoding="utf-8"))
 _OUT = _VIZ / "mapa"
 _DECKGL_CDN = "https://unpkg.com/deck.gl@9.0.38/dist.min.js"
+# FIL_50: basemap vectorial opcional (opt-in). Solo se descargan tiles si el
+# usuario elige un estilo; si el CDN no carga, el selector se deshabilita y el
+# mapa sigue siendo el DeckGL plano de siempre.
+_MAPLIBRE_JS_CDN = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
+_MAPLIBRE_CSS_CDN = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
 
 
 def _centroide(anillo: "list[list[float]]") -> "list[float]":
@@ -179,7 +184,11 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
 
 
 def _html() -> str:
-    return _TEMPLATE.replace("__DECKGL_CDN__", _DECKGL_CDN)
+    return (
+        _TEMPLATE.replace("__DECKGL_CDN__", _DECKGL_CDN)
+        .replace("__MAPLIBRE_JS_CDN__", _MAPLIBRE_JS_CDN)
+        .replace("__MAPLIBRE_CSS_CDN__", _MAPLIBRE_CSS_CDN)
+    )
 
 
 def _frame_strip_png(df: pd.DataFrame, dia: str) -> Path:
@@ -271,6 +280,8 @@ _TEMPLATE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Madrid — mapa animado del grafo</title>
 <script src="__DECKGL_CDN__"></script>
+<link href="__MAPLIBRE_CSS_CDN__" rel="stylesheet">
+<script src="__MAPLIBRE_JS_CDN__"></script>
 <style>
   :root { color-scheme: light dark; }
   html,body { margin:0; height:100%; font-family:system-ui,Segoe UI,Roboto,sans-serif; }
@@ -382,6 +393,15 @@ _TEMPLATE = r"""<!doctype html>
       <button data-r="auto" class="rp">auto</button>
       <button data-r="barras" class="rp">barras (3D)</button>
     </div>
+    <div class="row" aria-label="Basemap vectorial (opcional)">
+      <span class="muted">basemap:</span>
+      <select id="basemap" aria-label="Basemap vectorial">
+        <option value="ninguno">ninguno</option>
+        <option value="positron">Carto Positron (claro)</option>
+        <option value="dark-matter">Carto Dark Matter (oscuro)</option>
+        <option value="voyager">Carto Voyager (calles)</option>
+      </select>
+    </div>
     <label class="chk"><input type="checkbox" id="l-distr" checked> nombres de distrito</label>
     <label class="chk"><input type="checkbox" id="l-hitos" checked> hitos (Sol, Atocha…)</label>
     <label class="chk"><input type="checkbox" id="l-ejes"> ejes (M-30, Castellana… · contexto)</label>
@@ -445,7 +465,19 @@ let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
   layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false},
-  clean:false, repr:"puntos", escala:"lineal", perfil:"general",
+  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"ninguno",
+};
+
+// FIL_50: basemap vectorial opcional. "ninguno" = estilo vacío (transparente,
+// el aspecto plano de siempre); el resto son estilos Carto sin token. Solo se
+// piden tiles al elegir uno.
+const HAS_MAPLIBRE = typeof maplibregl !== "undefined";
+const BASEMAP_VACIO = {version:8, sources:{}, layers:[]};
+const BASEMAPS = {
+  ninguno: BASEMAP_VACIO,
+  positron: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+  "dark-matter": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+  voyager: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
 };
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
@@ -875,6 +907,16 @@ function mkControls(){
   setChk("l-distr","distr"); setChk("l-hitos","hitos"); setChk("l-ejes","ejes");
   setChk("l-parques","parques"); setChk("l-tex","tex");
 
+  const bmSel = document.getElementById("basemap");
+  if(!HAS_MAPLIBRE){
+    bmSel.disabled = true;
+    bmSel.title = "maplibre-gl no se pudo cargar; el mapa sigue funcionando sin basemap";
+  } else {
+    bmSel.value = state.basemap;
+    bmSel.onchange = ()=>{ state.basemap = bmSel.value;
+      dgl.setProps({mapStyle: BASEMAPS[state.basemap] || BASEMAP_VACIO}); };
+  }
+
   // ruta: 2 desplegables (origen·destino  ×  perfil)
   if(RUTAS && RUTAS.rutas.length){
     const ods = [...new Set(RUTAS.rutas.map(r=>r.origen+" → "+r.destino))];
@@ -910,6 +952,7 @@ Promise.all([
 ]).then(([m,d,w,ru])=>{
   META=m; DATA=d; WX=w; RUTAS=ru; state.day=m.dias[0];
   dgl = new DeckGL({container:"map", controller:true, viewState:state.view,
+    ...(HAS_MAPLIBRE ? {map: maplibregl, mapStyle: BASEMAPS[state.basemap] || BASEMAP_VACIO} : {}),
     onViewStateChange:e=>{ state.view=e.viewState; dgl.setProps({viewState:state.view}); },
     getTooltip:tooltip, layers:[]});
   mkControls(); syncTabs();
