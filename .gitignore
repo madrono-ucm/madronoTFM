@@ -249,3 +249,6 @@ modelado/evaluation/artifacts/
 
 # ML_07: los .onnx grandes se regeneran; solo se versiona el h6 + los paridad.json
 modelado/export/artifacts/
+
+# UNLOAD deja shards sin extension en subcarpetas; solo se versiona el <tabla>.parquet consolidado
+viz/data/gold_slices/*/
