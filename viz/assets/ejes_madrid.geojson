@@ -1,0 +1,20 @@
+{
+  "type": "FeatureCollection",
+  "_nota": "Trazados APROXIMADOS de las vías estructurantes de Madrid, hechos a mano para dar contexto visual al mapa (FIL_47). NO entran en el grafo ni en el enrutado — el grafo sigue siendo coords-knn8 (G9).",
+  "features": [
+    { "type": "Feature", "properties": { "nombre": "M-30" }, "geometry": { "type": "LineString", "coordinates": [
+      [-3.6720, 40.4780], [-3.6520, 40.4650], [-3.6430, 40.4450], [-3.6480, 40.4230],
+      [-3.6620, 40.4000], [-3.6870, 40.3860], [-3.7150, 40.3850], [-3.7360, 40.3980],
+      [-3.7430, 40.4200], [-3.7360, 40.4430], [-3.7180, 40.4620], [-3.6950, 40.4760],
+      [-3.6720, 40.4780] ] } },
+    { "type": "Feature", "properties": { "nombre": "Paseo de la Castellana" }, "geometry": { "type": "LineString", "coordinates": [
+      [-3.6924, 40.4100], [-3.6918, 40.4232], [-3.6903, 40.4380], [-3.6893, 40.4500],
+      [-3.6884, 40.4620], [-3.6880, 40.4720] ] } },
+    { "type": "Feature", "properties": { "nombre": "Gran Vía" }, "geometry": { "type": "LineString", "coordinates": [
+      [-3.7020, 40.4200], [-3.7060, 40.4212], [-3.7095, 40.4222], [-3.7120, 40.4250] ] } },
+    { "type": "Feature", "properties": { "nombre": "A-2" }, "geometry": { "type": "LineString", "coordinates": [
+      [-3.6820, 40.4380], [-3.6600, 40.4470], [-3.6350, 40.4560], [-3.6050, 40.4680], [-3.5800, 40.4780] ] } },
+    { "type": "Feature", "properties": { "nombre": "A-3" }, "geometry": { "type": "LineString", "coordinates": [
+      [-3.6720, 40.4010], [-3.6500, 40.3930], [-3.6250, 40.3850], [-3.6000, 40.3800], [-3.5750, 40.3760] ] } }
+  ]
+}
