@@ -20,6 +20,10 @@ python -m viz.build_mapa_animado     # -> viz/mapa/{index.html,data.json,...} + 
 
 ## Ver el mapa
 
+**En vivo:** https://madrono-ucm.github.io/madronoTFM/ (rama `gh-pages`, `FIL_42`).
+
+En local:
+
 ```bash
 python -m http.server -d viz/mapa      # http://localhost:8000
 ```
@@ -59,7 +63,7 @@ visualizan por la **explicabilidad de grafo**, no por precisión.
 | Ítem | Estado |
 |---|---|
 | **city-planner inputs** | ✅ **entregado** — la vista agregada de importancia de aristas + el pulso de distrito son artefactos de planificación. |
-| **hosted endpoint** | 🟡 el HTML se publica en GitHub Pages (pendiente de habilitar Pages en *Settings*). No es una API de producción. |
+| **hosted endpoint** | ✅ **entregado** — publicado en **https://madrono-ucm.github.io/madronoTFM/** (rama `gh-pages`, `FIL_42`). No es una API de producción. |
 | **open dataset** | encuadre — se **consume** MTD (`FIL_38`), no se publica un dataset propio. |
 | **cyclist / movilidad reducida routing** | encuadre — el sustrato existe (grafo + atributos), la herramienta sería `FIL_37` (`ruta_saludable`, condicional). |
 

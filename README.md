@@ -131,18 +131,23 @@ comandos con datos completos: `doc/VIKT-06-recorrido-e2e.md`.
 
 ## Mapa animado del grafo
 
+**En vivo: https://madrono-ucm.github.io/madronoTFM/**
+
 [`viz/`](viz/README.md) — el grafo de 1.798 nodos de tráfico sobre Madrid,
 animado hora a hora con la previsión de los STGNN de grafo (`trafico` +
 `calidad_aire`), importancia de aristas, índice de salud por nodo, pulso de
-distrito y toggle modelo-vs-persistencia. Se genera **offline** desde los
-ONNX vendorizados y un snapshot congelado de Gold (`viz/data/gold_slices/`).
+distrito, toggle modelo-vs-persistencia y rutas saludables (`ruta_saludable`,
+`FIL_37`). Se genera **offline** desde los ONNX vendorizados y un snapshot
+congelado de Gold (`viz/data/gold_slices/`).
 
 ```bash
 pip install -r viz/requirements.txt && python -m http.server -d viz/mapa
 ```
 
-Figura sin red para la memoria: `viz/mapa_frames.png`. Limitaciones (§7.4) y
-seguimiento: [`viz/README.md`](viz/README.md), `viz/PROGRESO_MAPA.md`.
+Publicado desde la rama `gh-pages` (`FIL_42`); `viz/mapa/` en `main` es la
+fuente de verdad. Figura sin red para la memoria: `viz/mapa_frames.png`.
+Limitaciones (§7.4) y seguimiento: [`viz/README.md`](viz/README.md),
+`viz/PROGRESO_MAPA.md`.
 
 ## Ejecutar la evaluación de ML
 
