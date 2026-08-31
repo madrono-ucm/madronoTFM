@@ -93,6 +93,12 @@ class MapaArtefactosTests(unittest.TestCase):
                       'characterSet:"auto"', "focus-visible", 'lang="es"'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_47)")
 
+    def test_html_pulido_y_clic(self):
+        # FIL_48: clic en nodo restaurado + anillo de selección + vista limpia
+        for marca in ("onClick:info=>", 'id:"sel"', 'id="clean"', "state.clean", "nodeRmin"):
+            self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_48)")
+        self.assertNotIn('id="l-tex" checked', self.html)  # textura off por defecto
+
 
 if __name__ == "__main__":
     unittest.main()
