@@ -2,7 +2,8 @@
 kind: fil
 title: "Mapa animado — capa social y de accesibilidad (perfiles de sensibilidad, umbrales OMS/UE, dosis, mejor hora)"
 owner: Filippos (interactive)
-status: pending
+status: done
+resolved_at: "2026-08-31"
 allow_infra_apply: false
 created_at: "2026-08-31"
 depends_on: [FIL_34]
@@ -89,3 +90,32 @@ perfiles = los mismos pesos que `ruta_saludable`.
 ## Entregable / progreso
 
 Milestone **M4b** en `viz/PROGRESO_MAPA.md`.
+
+
+## Resolución (2026-08-31) — `viz/build_mapa_animado.py`
+
+- **9 perfiles de sensibilidad** en `viz/rutas.py::PERFILES` (compartido con
+  `ruta_saludable`, `FIL_37`; `_PERFILES_RUTA` en `tools.py` a 9): general,
+  ciclista, sensible_aire, sensible_ruido + **asma_epoc, mayor, infancia,
+  movilidad_reducida, trabajo_exterior**. `grafo_ruta.json` regenerado.
+- Mapa (`_meta` + `_TEMPLATE`): grupo **♿ Salud · perfil de sensibilidad**
+  con los 9 perfiles → métrica **`salud (perfil)`** calculada en el
+  navegador (`w_traf·no2·o3·noise` normalizados, ruido = valor diario del
+  distrito).
+- **Escala lineal / bandas OMS·UE**: en modo bandas el color de nodo es
+  discreto por umbral (`meta.umbrales`: NO₂ 25/40/100/200; O₃
+  100/120/180/240; salud 60/70/80/90) con paleta distinguible en
+  deuteranopía; la leyenda **nombra la banda**, no el número.
+- Métricas **`dosis NO₂`** / **`dosis O₃`**: media de la exposición prevista
+  de las próximas 8 h como % de la guía OMS.
+- **"Mejor hora hoy"** por perfil: barrido de 24 h de la salud media de la
+  ciudad → mejor y peor hora, en el propio grupo.
+- **Confianza de la IDW**: capa opcional que marca los nodos con
+  `idw_dist_m` grande (lejos de las 11 estaciones de aire — gap G4).
+- **Guardarraíles** siempre visibles en el panel: agregados por zona, sin
+  datos personales, describe el aire y la hora (no señala barrios), apoyo a
+  la decisión no consejo médico.
+- UI en español, `:focus-visible`, `aria-label` (heredado de `FIL_47`).
+
+`tests/test_mapa_animado.py` +2. `tests/` 40, `asistente/` en verde.
+El análisis distribucional formal sigue fuera (encuadre en `FIL_36`).

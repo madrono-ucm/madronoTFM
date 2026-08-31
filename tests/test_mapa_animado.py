@@ -110,6 +110,25 @@ class MapaArtefactosTests(unittest.TestCase):
         # FIL_49: la capa "textura" pasa a ser TODAS las aristas del grafo
         self.assertGreater(len(self.meta["tex"]), 8000)
 
+    # --- FIL_45: capa social ---
+    def test_meta_capa_social(self):
+        self.assertEqual(len(self.meta["perfiles"]), 9)
+        for w in self.meta["perfiles"].values():
+            self.assertEqual(set(w), {"traf", "no2", "o3", "noise"})
+        self.assertIn("asma_epoc", self.meta["perfiles"])
+        self.assertIn("movilidad_reducida", self.meta["perfiles"])
+        for k in ("no2", "o3", "salud"):
+            u = self.meta["umbrales"][k]
+            self.assertEqual(len(u["cortes"]) + 1, len(u["bandas"]))
+        self.assertEqual(len(self.meta["idw_dist"]), 1798)
+        self.assertEqual(len(self.meta["ruido_distrito"]), 21)
+
+    def test_html_capa_social(self):
+        for marca in ("salud_perfil", "dosis_no2", "dosis_o3", 'id="perfiles"',
+                      'data-e="bandas"', 'id="l-idw"', "mejorHoraPerfil", "BANDAS_PAL",
+                      "consejo médico", 'id="mejor-hora"'):
+            self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_45)")
+
 
 if __name__ == "__main__":
     unittest.main()
