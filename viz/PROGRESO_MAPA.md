@@ -23,11 +23,10 @@ ONNX vendorizados. El pipeline sigue congelado.
 
 | URL publicada | **https://madrono-ucm.github.io/madronoTFM/** (rama `gh-pages`, `FIL_42`) · local: `python -m http.server -d viz/mapa` |
 |---|---|
-| Último milestone alcanzado | **M6 — `ruta_saludable` + capa E3 + Pareto** (`viz/rutas.py`) · M4 hosting ✅ (`FIL_42`) |
-| Fecha | 2026-08-31 (objetivo era 09-14 — todo el spine M1–M6 en un día) |
-| Bloqueos | — (G8 resuelto: Pages sirve desde `gh-pages`/`root`, verificado 200) |
-| Opcional restante | `FIL_38` (MTD, backtest 30 meses) · envolver `ruta_saludable` como 12.ª tool MCP (seguimiento en el ticket) |
-| Fork Vía A/B | **Vía A** completa. Vía B (MTD) disponible si se quiere una animación con variedad estacional. |
+| Estado | **spine M1–M6 completo + FIL_38 + FIL_42 + FIL_43 — todo mergeado** (2026-08-31; objetivo M6 era 09-14) |
+| Bloqueos | — (G8 resuelto: Pages sirve `gh-pages`/`root`; mapa refrescado con la corrección de `FIL_43`) |
+| Hecho después del spine | `FIL_42` hosting · `FIL_37` como **12.ª tool MCP** (`ruta_saludable`) · `FIL_38` backtest MTD (STGNN bate persistencia: skill +0,37 / +0,70 / +0,85 a h1/h3/h6) · `FIL_43` métrica de ruta = la que Dijkstra minimiza (0 negativas) |
+| Fork Vía A/B | **Vía A** completa. Vía B (MTD) usada para el backtest `FIL_38`; no como sustrato de la animación. |
 
 ## Fork abierto — decisión del usuario antes de M2
 
@@ -59,7 +58,8 @@ calendario respira tras M3.
 | **M4** | `FIL_35` + `FIL_42` | ✅ hecho | 2026-08-31 | **E2** toggle modelo-vs-persistencia (color divergente + marcador de skill por fotograma). **E4** panel glass-box: clic en nodo → sparklines 24 h (tráfico obs/h1, NO₂/O₃) + aristas de importancia que lo tocan. **E6** pulso de distrito: 21 distritos ordenados por salud, reordenan con el reloj. `tests/test_mapa_animado.py` a 7. **Publicado**: `FIL_42` — rama huérfana `gh-pages` con `viz/mapa/` + `.nojekyll`, Pages sirve `https://madrono-ucm.github.io/madronoTFM/` (200 verificado, `data.json` incluido). |
 | **M5** | `FIL_36` | 🟡 Sistema hecho | 2026-08-31 | `DATA_SOURCES.md` (todas las fuentes + licencias + MTD/Comunidad CC BY 4.0). `viz/README.md` (controles, limitaciones §7.4 G2/G3/G4/G5/G9, estado de los 4 ítems de encuadre). `README.md` raíz: sección "Mapa animado" + `viz/` en el layout + "11 tools". **Editorial de la memoria** (figura `mapa_frames.png`, subsección, reestructura del índice) → `VIKT_10`. |
 | **M6** | `FIL_37` | ✅ hecho | 2026-08-31 | `viz/rutas.py` (networkx, 1.661 nodos, 4 perfiles, `pareto()`) + capa **E3** en el mapa (6 rutas, sana vs rápida por hora + readout). **12.ª tool MCP `ruta_saludable`**: `viz/build_grafo_ruta.py` → `asistente/modelos/grafo_ruta.json`; `asistente/ruta_saludable.py` (Dijkstra en Python puro, sin networkx); router + `server.py` a 12 tools; `test_ruta_saludable.py` (11). Suite → 171 verde. |
-| opc. | `FIL_38` | ⬜ opcional | 2026-09-12 | Tabla de backtest `§7` a 30 meses (MTD + meteo histórica). O, si se elige la Vía B del fork, el **sustrato de la animación**. |
+| opc. | `FIL_38` | ✅ hecho | 2026-08-31 | Backtest del STGNN sobre MTD v4 (300 sensores, ~29 meses): skill vs persistencia **+0,37 / +0,70 / +0,85** a h1/h3/h6 — margen que crece con el horizonte. `modelado/training/backtest_stgnn_mtd.py`, `modelado/evaluation/artifacts/backtest_mtd.*`, `doc/FIL-38`. |
+| fix | `FIL_43` | ✅ hecho | 2026-08-31 | La "reducción de exposición" que se reportaba (media por nodo) no era la que Dijkstra minimizaba (suma por arista) → salía negativa 10-46 % de las veces. Ahora se reporta `E_ponderada` (lo optimizado) como un número, nunca negativo (0/144), + `cambio_por_senal_pct` (±) para el canje honesto entre señales. `viz/rutas.py` + `asistente/ruta_saludable.py` + mapa E3 + republicado en `gh-pages`. |
 
 ## Gaps / riesgos reales (auditados 2026-08-30)
 
