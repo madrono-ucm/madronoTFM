@@ -47,7 +47,6 @@ import json
 import logging
 import os
 import time
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -55,6 +54,7 @@ from pathlib import Path
 from typing import Optional
 
 import requests
+from defusedxml import ElementTree as ET
 
 from .bronze import MADRID_TZ, BronzeWriter, now_madrid
 

@@ -100,6 +100,17 @@ class BronzeWriter:
         return self.s3_client is not None
 
     def partition_dir(self, moment: datetime) -> Path:
+        """Solo modo local -- en modo S3 usar `partition_key()`.
+
+        `self.base_path` es `str` en modo S3 y `Path` en modo local; el
+        operador `/` de abajo solo tiene sentido sobre el `Path`. La guarda
+        convierte un `TypeError` confuso de operador en un fallo inmediato y
+        explicativo si alguna vez se llama en modo S3 (FIL_40).
+        """
+        if self.is_s3:
+            raise RuntimeError(
+                "partition_dir() no aplica en modo S3; usar partition_key()"
+            )
         return (
             self.base_path
             / self.dataset
