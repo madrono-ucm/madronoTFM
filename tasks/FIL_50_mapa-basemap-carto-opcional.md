@@ -2,7 +2,8 @@
 kind: fil
 title: "Mapa animado — basemap vectorial Carto opcional (opt-in, degradación elegante)"
 owner: Filippos (interactive)
-status: pending
+status: done
+resolved_at: "2026-08-31"
 allow_infra_apply: false
 created_at: "2026-08-31"
 depends_on: [FIL_47]
@@ -42,3 +43,20 @@ Cero AWS. Añade 2 dependencias de CDN (solo activas si se elige un basemap).
 
 Tests: el selector existe y arranca en "ninguno"; el HTML no rompe si
 `maplibregl` es `undefined` (guardas). Republicar a `gh-pages` (`FIL_42`).
+
+## Resuelto (2026-08-31) — `viz/build_mapa_animado.py`
+
+- `<head>` carga `maplibre-gl@4.7.1` (JS + CSS) desde unpkg. Constantes
+  `_MAPLIBRE_JS_CDN` / `_MAPLIBRE_CSS_CDN`, sustituidas en `_html()`.
+- `DeckGL` se construye con `map: maplibregl` + `mapStyle` **solo si**
+  `HAS_MAPLIBRE` (`typeof maplibregl !== "undefined"`). `state.basemap`
+  arranca en `"ninguno"` → estilo vacío `{version:8,sources:{},layers:[]}`
+  (transparente: se ve el degradado de siempre, cero peticiones de tiles).
+- Selector `#basemap` en 🧭 Vista: ninguno · Carto Positron · Dark Matter ·
+  Voyager (`basemaps.cartocdn.com/gl/*-gl-style/style.json`, sin token).
+  `onchange` → `dgl.setProps({mapStyle: BASEMAPS[v]})`.
+- **Degradación**: sin `maplibregl` el `<select>` queda `disabled` con
+  `title` explicativo y el mapa sigue siendo el `DeckGL` plano. La tira PNG
+  y el modo offline no dependen de esto.
+- `tests/test_mapa_animado.py::test_html_basemap_opcional`. `tests/` → 41.
+- **No** añade satélite/híbrido real (necesitaría tiles con token).

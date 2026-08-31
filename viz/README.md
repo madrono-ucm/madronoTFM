@@ -28,7 +28,8 @@ En local:
 python -m http.server -d viz/mapa      # http://localhost:8000
 ```
 
-Necesita red al abrir (bundle de deck.gl por CDN). La tira
+Necesita red al abrir (bundle de deck.gl por CDN; `maplibre-gl` también
+por CDN pero solo se usa si se activa un basemap, `FIL_50`). La tira
 `viz/mapa_frames.png` es el respaldo sin red y la figura de la memoria.
 
 ### Controles (panel izquierdo, en 5 grupos colapsables)
@@ -61,6 +62,11 @@ Necesita red al abrir (bundle de deck.gl por CDN). La tira
   las condiciones son **peores** (skyline de problema); y capas conmutables
   — nombres de distrito, hitos, ejes estructurantes (M-30, Castellana…
   *contexto*), parques grandes, textura del grafo (las 8.758 aristas).
+  **Basemap** vectorial opcional (`FIL_50`): *ninguno* por defecto (aspecto
+  plano de siempre, sin pedir tiles) · Carto *Positron / Dark Matter /
+  Voyager* sin token vía `maplibre-gl` por CDN; si el CDN no carga el
+  selector se deshabilita y el mapa sigue igual. Sin satélite (necesitaría
+  tiles con token).
 - **Panel inferior (resumen)**: media de la ciudad de la métrica actual a
   lo largo de las 24 h (con la hora marcada), barras por distrito ahora, y
   meteo + skill del modelo.

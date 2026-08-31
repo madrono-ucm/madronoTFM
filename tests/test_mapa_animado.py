@@ -129,6 +129,21 @@ class MapaArtefactosTests(unittest.TestCase):
                       "consejo médico", 'id="mejor-hora"'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_45)")
 
+    # --- FIL_50: basemap vectorial opcional ---
+    def test_html_basemap_opcional(self):
+        for marca in ("maplibre-gl.js", "maplibre-gl.css", 'id="basemap"',
+                      "HAS_MAPLIBRE", "BASEMAPS", "cartocdn.com",
+                      'typeof maplibregl !== "undefined"'):
+            self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_50)")
+        # arranca en "ninguno" y degrada si maplibre no carga
+        self.assertIn('basemap:"ninguno"', self.html.replace(" ", ""))
+        self.assertIn("bmSel.disabled = true", self.html)
+        # el selector ofrece ninguno + 3 estilos Carto
+        opciones = self.html.split('id="basemap"', 1)[1].split("</select>", 1)[0]
+        for v in ('value="ninguno"', 'value="positron"', 'value="dark-matter"',
+                  'value="voyager"'):
+            self.assertIn(v, opciones)
+
 
 if __name__ == "__main__":
     unittest.main()
