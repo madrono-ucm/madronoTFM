@@ -95,9 +95,20 @@ class MapaArtefactosTests(unittest.TestCase):
 
     def test_html_pulido_y_clic(self):
         # FIL_48: clic en nodo restaurado + anillo de selección + vista limpia
-        for marca in ("onClick:info=>", 'id:"sel"', 'id="clean"', "state.clean", "nodeRmin"):
+        for marca in ("onClick:onNode", "const onNode = info", 'id:"sel"', 'id="clean"',
+                      "state.clean", "nodeRmin"):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_48)")
         self.assertNotIn('id="l-tex" checked', self.html)  # textura off por defecto
+
+    def test_html_barras_y_resumen(self):
+        # FIL_49: ColumnLayer (barras 3D) + selector de representación + panel de resumen
+        for marca in ("ColumnLayer", "nodeElev", "usaBarras", 'class="rp"',
+                      'id="resumen"', "function resumen()", 'id="rs-city"', 'id="rs-distr"'):
+            self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_49)")
+
+    def test_meta_tex_es_el_grafo_completo(self):
+        # FIL_49: la capa "textura" pasa a ser TODAS las aristas del grafo
+        self.assertGreater(len(self.meta["tex"]), 8000)
 
 
 if __name__ == "__main__":
