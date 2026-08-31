@@ -42,6 +42,10 @@ def _distrito_por_punto(lat, lon, features):
     return None
 
 
+def _id_a_nombre(features):
+    return {f["properties"]["district_id"]: f["properties"]["name"] for f in features}
+
+
 def _nodos(node_coords, features):
     nodos = []
     for nid, (lat, lon) in node_coords.items():
@@ -133,8 +137,11 @@ def construir() -> dict:
 
     node_coords = {k: tuple(v) for k, v in meta["node_coords"].items()}
     idx_a_id = {i: nid for nid, i in meta["node_index"].items()}
+    id_a_nombre = _id_a_nombre(features)
 
     nodos = _nodos(node_coords, features)
+    for n in nodos:
+        n["distrito_nombre"] = id_a_nombre.get(n["distrito"])
     aristas = _aristas(meta["edge_index"], meta["edge_weight"], node_coords, idx_a_id)
 
     distrito_a_nodos: "dict[str, list[str]]" = {}
@@ -151,6 +158,7 @@ def construir() -> dict:
         "estaciones_aire": _estaciones_aire(meta_aire, node_coords),
         "estaciones_ruido": _estaciones_ruido(features),
         "distrito_a_nodos": distrito_a_nodos,
+        "distrito_id_a_nombre": id_a_nombre,
         "distritos_geojson": "viz/assets/distritos_madrid.geojson",
         "_fuente": "stgnn_trafico.meta.json + stgnn_calidad_aire.meta.json + Bronce barrios_distritos + gold_slices/ruido (G1)",
     }

@@ -23,9 +23,10 @@ ONNX vendorizados. El pipeline sigue congelado.
 
 | URL publicada | _(pendiente de M4 — `FIL_35` la fija en Pages)_ |
 |---|---|
-| Último milestone alcanzado | **M0 — plan cerrado** |
-| Fecha | 2026-08-30 |
-| Siguiente | M1 (`FIL_32`) — grafo canónico exportado — objetivo **2026-09-02** |
+| Último milestone alcanzado | **M2 — `prevision_animada.parquet` generado** |
+| Fecha | 2026-08-31 (adelantado sobre el objetivo 09-04) |
+| Siguiente | M3 (`FIL_34`) — primer HTML animado — objetivo **2026-09-08** |
+| Fork Vía A/B | **Vía A** en marcha (datos del proyecto). Vía B (MTD) tras M3. |
 
 ## Fork abierto — decisión del usuario antes de M2
 
@@ -51,9 +52,9 @@ calendario respira tras M3.
 | M | Ticket | Estado | Objetivo | Qué se ve en el mapa al cerrarlo |
 |---|---|---|---|---|
 | **M0** | — | ✅ hecho | 2026-08-30 | (plan y tickets cerrados; `FIL_31` sirve el STGNN de tráfico que alimenta todo) |
-| **M1** | `FIL_32` | ⬜ | 2026-09-02 | El grafo estático (1.798 nodos + aristas) sobre el basemap de Madrid. Sin animación. Primer commit de `mapa_trafico_madrid.html`. |
-| **M2** | `FIL_33` | ⬜ | 2026-09-04 | (sin cambio visible — exporta slices Gold **YA**; genera `prevision_animada.parquet`: inferencia 24× de los 2 STGNN + ruido diario por distrito + índice de salud) |
-| **M3** | `FIL_34` | ⬜ | 2026-09-08 | **Primer HTML animado**: bucle de 24 h, play/scrub, color de nodo por métrica (índice de salud por defecto), top-15 aristas influyentes animadas por flujo (E1), ticker meteo (E5), selector de 2-3 días. |
+| **M1** | `FIL_32` | ✅ hecho | 2026-08-31 | `viz/grafo_madrid.json`: 1.798 nodos con distrito, 8.758 aristas, top-15 importancia, lookups aire/ruido. `viz/build_grafo_madrid.py` + 6 tests. |
+| **M2** | `FIL_33` | ✅ hecho | 2026-08-31 | G1 resuelto (`viz/data/gold_slices/`, ~4,6 MB). `viz/data/prevision_animada.parquet` (129.456 filas = 1.798 × 24 h × 3 días: 08-19 / 08-23 / 08-26). Inferencia 24×3 de los 2 STGNN, aire IDW a nodos, ruido diario por distrito, índice de salud. `viz/build_prevision_animada.py` + 7 tests. |
+| **M3** | `FIL_34` | ⬜ | 2026-09-08 | **Primer HTML animado**: bucle de 24 h, play/scrub, color de nodo por métrica (índice de salud por defecto), top-15 aristas influyentes animadas por flujo (E1), ticker meteo (E5), selector de 3 días. |
 | **M4** | `FIL_35` | ⬜ | 2026-09-10 | Mapa "wow" completo: toggle modelo-vs-persistencia (E2), panel glass-box por arista (E4), pulso de distrito (E6). **Publicado en una URL de GitHub Pages.** |
 | **M5** | `FIL_36` | ⬜ | 2026-09-13 | (entregable estable) — figura de la memoria + `DATA_SOURCES.md` + promoción de "city-planner inputs" y "hosted endpoint" + limitaciones §7.4. |
 | **M6** | `FIL_37` | ⏸ condicional | 2026-09-14 | Capa de ruta que "respira" (E3): healthy vs fastest recalculada cada hora, selector de perfil. Sólo si el gate de `FIL_37` se abre (~09-08). |
@@ -61,18 +62,18 @@ calendario respira tras M3.
 
 ## Gaps / riesgos reales (auditados 2026-08-30)
 
-| # | Gap | Impacto | Mitigación en ticket |
+| # | Gap | Impacto | Estado |
 |---|---|---|---|
-| G1 | **Partition projection deslizante** — las particiones de agosto pueden dejar de consultarse pasada la 2.ª mitad de septiembre | Sin datos = sin mapa | `FIL_33` exporta los slices Gold a parquet local **como primera tarea** |
-| G2 | **Ruido es diario, por `(station, period, date)`, 5 días / 620 filas** — no hay ruido horario ni baseline de perfil | La capa de ruido animada **no es construible** | `FIL_33`/`FIL_34`: ruido = capa de contexto **estática por distrito** (LAeq medio diario) |
-| G3 | **Ventana ~14 días de agosto** sin variedad meteo/eventos | Animación fina (laborable vs finde), no "día de lluvia" | días curados **data-driven**; Vía B (MTD) como alternativa — ver fork |
-| G4 | **Aire: IDW desde ~24 estaciones a 1.798 nodos** | Superficie suave, no resolución de calle | declarado como limitación (`FIL_36` §7.4) |
-| G5 | **`importancia_aristas` es estática** (top-15 precalc.) | E1 no puede ser "importancia por hora" | E1 = conjunto fijo animado por el flujo previsto en los extremos |
-| G6 | **Volumen**: 1.798 nodos × 24 h × 2-3 días ≈ 10-25 MB | HTML no-snappy si va todo inline | `FIL_34`: JSON externo con `fetch` (OK en Pages), redondeo, o menos días/nodos |
-| G7 | **CI no recorre `viz/`** (`... asistente/ herramientas/ modelado/ tests/`) | Tests de viz no corren en CI | tests bajo `tests/`, o añadir `viz/` al workflow |
-| G8 | **GitHub Pages sin habilitar** + repo usa `doc/` no `docs/` | No hay hosting hasta acción del usuario | `FIL_35`: habilitar Pages en Settings + servir desde rama `gh-pages` |
-| G9 | Grafo `coords-knn8`, no `PROXIMO_A` reales de Neo4j | Aristas de proximidad, no topología de calle | aditivo (`--aristas-json`); declarado en §7.4 |
-| G10 | Deps nuevas (`pydeck`, `pyarrow`, `matplotlib`) sin declarar | Build no reproducible | `viz/requirements.txt` en `FIL_34` |
+| G1 | **Partition projection deslizante** — las particiones de agosto pueden dejar de consultarse pasada la 2.ª mitad de septiembre | Sin datos = sin mapa | ✅ **resuelto** — `viz/export_gold_slices.py` congeló las 4 tablas a `viz/data/gold_slices/` (2026-08-31, ~4,6 MB). A partir de aquí todo offline. |
+| G2 | **Ruido es diario, por `(station, period, date)`** — no hay ruido horario | La capa de ruido animada no es construible | ✅ **asumido** — ruido = constante por distrito (LAeq periodo "T" del slice), 17/21 distritos con dato, resto = media ciudad. No animado. |
+| G3 | **Ventana ~16 días de agosto** sin variedad meteo/eventos | Animación fina | ✅ **asumido** — 3 días data-driven (08-19 normal / 08-23 domingo tranquilo / 08-26 miércoles cargado). El *swing intradía* sí es real (salud 76→88 en el día cargado). |
+| G4 | **Aire: IDW desde 11 estaciones del STGNN a 1.798 nodos** | Superficie suave, no resolución de calle | ⬜ pendiente de declarar en `FIL_36` §7.4 |
+| G5 | **`importancia_aristas` es estática** (top-15 precalc.) | E1 no puede ser "importancia por hora" | ⬜ `FIL_34`: E1 = conjunto fijo animado por el flujo en los extremos |
+| G6 | **Volumen**: 129.456 filas (1.798 × 24 h × 3 días) | HTML no-snappy si va todo inline | ⬜ `FIL_34`: JSON externo con `fetch` + redondeo. Parquet actual 1,9 MB. |
+| G7 | **CI no recorre `viz/`** | Tests de viz no corren en CI | ✅ **resuelto** — `tests/test_grafo_madrid.py` + `tests/test_prevision_animada.py` bajo `tests/` (sí en CI). |
+| G8 | **GitHub Pages sin habilitar** + repo usa `doc/` no `docs/` | No hay hosting hasta acción del usuario | ⬜ `FIL_35` — **acción del usuario** pendiente |
+| G9 | Grafo `coords-knn8`, no `PROXIMO_A` reales de Neo4j | Aristas de proximidad, no topología de calle | ⬜ declarar en §7.4 (aditivo) |
+| G10 | Deps nuevas (`pydeck`, `pyarrow`, `matplotlib`) sin declarar | Build no reproducible | ⬜ `viz/requirements.txt` en `FIL_34` |
 
 ## Checklist detallado
 
