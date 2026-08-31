@@ -1,13 +1,31 @@
 ---
 kind: fil
 title: "gh-pages: index.html se republicó con el fix de FIL_43 pero rutas.json quedó con datos viejos -- readout de rutas roto en vivo"
-status: pending
+status: done
+resolved_at: "2026-08-31"
 created_at: "2026-08-31"
 source: "QA pass sobre FIL_43 (fix mergeado, PR #214)"
 severity: media (roto en el sitio público ahora mismo, arreglo mecánico)
 ---
 
-## Qué está roto (verificado en vivo)
+## Resolución (2026-08-31) — ya estaba, carrera de despliegue
+
+El ticket se abrió con un snapshot anterior a la republicación de
+`gh-pages` (commit `80138df`). El flujo de `FIL_43` **sí** regeneró
+`rutas.json` con el código nuevo (`python -m viz.build_mapa_animado`
+antes del `cp -r`) — la ventana rota fue entre el merge de PR #214 y
+ese push, unos minutos.
+
+Verificado en vivo ahora (`curl https://madrono-ucm.github.io/madronoTFM/rutas.json`):
+- `reduccion_exposicion_pct` = `24.4` (**número**, no diccionario).
+- `cambio_por_senal_pct` presente: `{traf: 60.0, no2: 16.8, o3: 15.6, noise: 13.5}`.
+- `pareto[].reduccion_ponderada_pct` presente.
+- El JS del readout E3 recibe un número → sin `[object Object]` ni `undefined`.
+
+(El `Last-Modified` de Pages no refleja bien la republicación, pero el
+contenido servido es el correcto.)
+
+## Qué estaba roto (snapshot del ticket)
 
 `FIL_43` (mergeado a `main`, commit `2b8b182`, PR #214) corrigió
 correctamente `viz/rutas.py`: verificado que el fix es matemáticamente
