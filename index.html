@@ -87,14 +87,14 @@
   <details>
     <summary>🧭 Vista</summary>
     <div class="row">
-      <button id="v2d">2D</button><button id="v3d" class="on">3D</button>
+      <button id="v2d" class="on">2D</button><button id="v3d">3D</button>
       <button id="fit">encajar a Madrid</button>
       <button id="clean">vista limpia</button>
     </div>
     <div class="row" aria-label="Representación de los nodos">
       <span class="muted">nodos:</span>
-      <button data-r="auto" class="rp on">auto</button>
-      <button data-r="puntos" class="rp">puntos</button>
+      <button data-r="puntos" class="rp on">puntos</button>
+      <button data-r="auto" class="rp">auto</button>
       <button data-r="barras" class="rp">barras (3D)</button>
     </div>
     <label class="chk"><input type="checkbox" id="l-distr" checked> nombres de distrito</label>
@@ -158,9 +158,9 @@ const {DeckGL, ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer,
 let META, DATA, WX, RUTAS, dgl, selNode = null;
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
-  view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:40, bearing:-8},
+  view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
   layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false},
-  clean:false, repr:"auto",
+  clean:false, repr:"puntos",
 };
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
