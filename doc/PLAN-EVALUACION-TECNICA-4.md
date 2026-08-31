@@ -72,7 +72,17 @@ nombre de la rama) — colisiona con el `FIL_31` de esta ronda
 Renumerado proactivamente, mismo criterio que arriba, a **`FIL_41`**
 (`tasks/FIL_41_xml-parsing-sin-defusedxml.md`, mismo contenido). Con esto,
 `FIL_31`, `FIL_32`/`33` (→ `39`/`40`) de esta sesión están todos fuera del
-rango `31`-`38` que reclama esa rama. **Sigue pendiente recomprobar
-cuando la rama se mergee a `main`**: confirmar que `FIL_39`/`40`/`41` no
-colisionan con lo que aterrice realmente (su propia numeración interna
-podría cambiar antes del merge, como ya ha pasado una vez).
+rango `31`-`38` que reclama esa rama.
+
+### Nota (31/8, cierre): rama mergeada, sin colisión final
+
+`feat/fil31-trafico-stgnn-tool` se mergeó a `main` (squash, commit
+`ea879b6`, "[FIL_31] STGNN de trafico como tool del MCP", PR #209).
+Verificado en vivo tras el merge: `main` tiene ahora `FIL_00`-`FIL_41`
+completos y **sin ningún número duplicado** (`ls tasks/ | grep -oE
+"^FIL_[0-9]+" | sort | uniq -c` sin ninguna línea con conteo > 1) — su
+`FIL_31`-`38` (mapa animado/grafo canónico) conviven limpiamente con
+nuestros `FIL_39`/`40`/`41` (renumerados desde `32`/`33`/`31`). La
+renumeración proactiva funcionó exactamente como se esperaba. Cierra
+definitivamente esta nota de seguimiento -- no hace falta más
+recomprobación.

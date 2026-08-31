@@ -73,6 +73,12 @@ animado/grafo canónico) reutiliza `FIL_32`-`38` para tickets propios sin
 relación con esta ronda. Renumerado proactivamente el `FIL_33` de esta
 ronda a **`FIL_40`**
 (`tasks/FIL_40_bronzewriter-partition-dir-type-inconsistente-en-modo-s3.md`,
-mismo contenido). **Pendiente de recomprobar cuando esa rama se mergee a
-`main`** -- confirmar que `FIL_39`/`FIL_40` no colisionan con lo que
-aterrice.
+mismo contenido).
+
+### Nota (31/8, cierre): rama mergeada, sin colisión final
+
+`feat/fil31-trafico-stgnn-tool` se mergeó a `main` (squash, commit
+`ea879b6`, PR #209). Verificado en vivo tras el merge: `main` tiene ahora
+`FIL_00`-`FIL_41` completos, sin ningún número duplicado -- ver el detalle
+en la nota equivalente de `doc/PLAN-EVALUACION-TECNICA-4.md`. Cierra esta
+nota de seguimiento.
