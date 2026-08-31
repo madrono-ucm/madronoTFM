@@ -1,12 +1,46 @@
 ---
 kind: fil
-title: "Acceso en lenguaje natural a la capa social + alertas anticipadas por distrito (ENCUADRE)"
+title: "Acceso en lenguaje natural a la capa social (tool `mejor_hora_zona`) + alertas anticipadas por distrito (parcial)"
 owner: Filippos (interactive)
-status: framing
+status: done
+resolved_at: "2026-08-31"
 allow_infra_apply: false
 created_at: "2026-08-31"
 depends_on: [FIL_45]
 ---
+
+## Resuelto en parte (2026-08-31) — la pregunta en lenguaje natural, SÍ; el canal de alertas, no
+
+El usuario pidió promover la parte construible. Hecho: **`mejor_hora_zona`,
+la 14.ª tool MCP** — responde «tengo asma, ¿cuándo paseo hoy por Vallecas?»
+componiendo sustrato que ya existía, sin infra ni entrenamiento nuevo.
+
+- `asistente/mejor_hora_zona.py` (Python puro, reutiliza
+  `asistente/ruta_saludable.py` → `grafo_ruta.json`):
+  - **Resolución de zona por texto libre a distrito**: nombre exacto,
+    `id` (`"13"`), subcadena, y alias coloquiales
+    (`vallecas`→ambiguo entre Puente/Villa, `moncloa`→`Moncloa - Aravaca`,
+    `san blas`, `el pardo`, `cuatro caminos`→`Tetuán`…). Ambigüedad y zona
+    desconocida → `ValueError` con la lista de los 21 distritos.
+  - **Barrido «mejor hora hoy»** por distrito + perfil: para cada una de las
+    24 h, exposición **media de los nodos del distrito** (tráfico previsto
+    STGNN + NO₂ + O₃ + ruido diario), ponderada con los 9 perfiles de
+    `FIL_45`/`FIL_37`. Devuelve `mejor_hora`, `peor_hora`, la **franja
+    limpia** (racha consecutiva ≤ mín + 20 % del rango), `reduccion_vs_peor_pct`
+    y la `serie_horaria` (24 valores).
+- `asistente/models/herramientas.py::MejorHoraZona` (+ `nota` con el
+  encuadre de `FIL_45`). Tool `mejor_hora_zona(zona, perfil, momento)` en
+  `tools.py`; router `GET /mejor-hora-zona`; `server.py` a **14 tools**;
+  `main.py` incluye el router. `asistente/tests/test_mejor_hora_zona.py`
+  (17). Suite `asistente/` → 162 en verde. `test_mcp_tools.py` /
+  `test_mcp_transport.py` a 14.
+
+**Sigue siendo trabajo futuro** (encuadre, sin cambio): el **canal de
+notificación** (push/correo/webhook) y la **política de umbral por
+distrito** para las *alertas anticipadas*. El asistente sigue siendo
+petición-respuesta, sin estado ni suscripción. `mejor_hora_zona` da la
+franja limpia bajo demanda; convertir eso en un aviso proactivo cuando la
+previsión cruza un umbral OMS/UE necesita las dos piezas de arriba.
 
 ## Qué es
 
