@@ -1,0 +1,25 @@
+{
+ "n_aristas_importancia": 15,
+ "spearman_importancia_vs_grado_proximo_a": {
+  "rho": 0.337,
+  "p": 0.2189
+ },
+ "sensores_grafo_trafico_en_proximo_a": 4622,
+ "arista_top": {
+  "a": "5412",
+  "b": "5768",
+  "importancia": 24.353
+ },
+ "alrededor_de_la_arista_top": {
+  "5412": {
+   "bicimad": 1,
+   "emt": 4,
+   "poi_turistico": 1
+  },
+  "5768": {
+   "bicimad": 2,
+   "emt": 6,
+   "poi_turistico": 1
+  }
+ }
+}
