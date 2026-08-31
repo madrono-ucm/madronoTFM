@@ -39,6 +39,7 @@ from asistente.routers import (
     disponibilidad_aparcamiento,
     eventos_cercanos,
     health,
+    mejor_hora_zona,
     opciones_movilidad,
     ruta_saludable,
     trafico_cercano,
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(trafico_prevista_grafo.router)
     app.include_router(ruta_saludable.router)
     app.include_router(contexto_urbano.router)
+    app.include_router(mejor_hora_zona.router)
     app.include_router(afluencia_estimada.router)
     app.include_router(afluencia_prevista.router)
     app.include_router(disponibilidad_aparcamiento.router)

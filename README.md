@@ -173,7 +173,7 @@ de integración end-to-end (`tests/integracion/`, `doc/FIL-18-...md`).
 | `infra/` | Terraform del lakehouse, Glue, Lambda, Athena, IAM, observabilidad. `OPERACION.md` = runbook. `kafka/` = diseño de la ruta caliente (sin aplicar). |
 | `grafo/` | Construcción del grafo urbano en Neo4j (`:Lugar`, `:EstacionMedida`, `PROXIMO_A`) desde Gold + OSM. |
 | `modelado/` | Feature store, entrenamiento LightGBM/STGNN, evaluación, MLflow registry, export a ONNX. |
-| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 11 tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo`, STGNN de grafo, `FIL_26`/`FIL_31`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
+| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 14 tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo` STGNN de grafo `FIL_26`/`FIL_31`, `ruta_saludable` `FIL_37`, `contexto_urbano` `FIL_53`, `mejor_hora_zona` `FIL_46`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
 | `herramientas/` | Scripts de operación: `costes/` (estimación de gasto), `salud/` (frescura de Gold, FIL_16). |
 | `viz/` | Mapa animado del grafo (`FIL_32`–`FIL_36`): scripts de build offline, `mapa/` (HTML deck.gl + JSON), `data/gold_slices/` (snapshot Gold congelado), `PROGRESO_MAPA.md`. |
 | `tests/` | Test de integración end-to-end (el resto de tests vive junto a su paquete). |
