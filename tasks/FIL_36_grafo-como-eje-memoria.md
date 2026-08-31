@@ -2,7 +2,9 @@
 kind: fil
 title: "El grafo como eje de la memoria — figura, DATA_SOURCES, promoción de ítems de encuadre"
 owner: Filippos (interactive) + coordinación VIKT
-status: pending
+status: done
+resolved_at: "2026-08-31"
+nota: "Sistema hecho (DATA_SOURCES.md, viz/README.md, README raíz). Parte editorial de la memoria -> VIKT_10; ampliación de la sección Beneficiarios -> FIL_45."
 allow_infra_apply: false
 created_at: "2026-08-30"
 updated_at: "2026-08-30"
