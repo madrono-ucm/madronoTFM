@@ -95,3 +95,17 @@ Una consulta Athena de lectura para los slices. Cero infra nueva.
 ## Entregable / progreso
 
 Milestone **M2** en `viz/PROGRESO_MAPA.md`.
+
+## Ampliación pendiente — capa social (`FIL_45`)
+
+`prevision_animada.parquet` añade columnas para la capa social/accesibilidad:
+
+- `banda_no2`, `banda_o3`, `banda_health` — la banda de umbral OMS/UE
+  (etiqueta), no solo el valor.
+- `dosis_no2_pct`, `dosis_o3_pct` — dosis acumulada de una ventana móvil
+  (p. ej. 8 h) como % de la guía diaria, por nodo y hora ancla.
+- `idw_dist_m` — distancia del nodo a la estación de aire más cercana de las
+  11 del STGNN (para el toggle de confianza de la IDW, gap G4).
+
+`viz/build_prevision_animada.py` calcula estas columnas de las que ya tiene;
+umbrales OMS/UE como constantes documentadas. Cero AWS.
