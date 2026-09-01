@@ -17,6 +17,44 @@ directa, y por qué?" — para que una sesión futura (de cualquiera de los
 dos, o de un asistente) pueda retomar contexto rápido sin releer todo el
 historial de `doc/`.
 
+## 2026-09-01 — Fix del mapa publicado (FIL_55), reanudación del pipeline + FIL_16/17
+
+**Punto de partida**: el usuario ve bugs en el frontend desplegado en
+GitHub Pages; arreglarlos y seguir con lo pendiente.
+
+1. **`FIL_55`** (PR #234, mergeado) — el panel de resumen del mapa animado
+   (`FIL_49`) lanzaba `TypeError` con las métricas virtuales de `FIL_45`
+   (`salud_perfil`/`dosis_*`, no viven en `DATA[dia]`) → cada clic de perfil
+   o de dosis congelaba el panel + el pulso de distrito. `_mediaCiudad()`/
+   `resumen()` arreglados; además `trig` de nodos += `perfil`/`escala`,
+   `ArcLayer.getTargetColor` en `updateTriggers`, `render()` en
+   `onViewStateChange`, `mejorHoraPerfil` memoizado. Verificado con arnés
+   headless jsdom (51 controles, 0 excepciones). `gh-pages` republicado
+   (commit `685bb6d`), sitio en vivo verificado.
+
+2. **`FIL_16`/`FIL_17`** aplicados con `terraform apply -target` (profile
+   `madrono`), con una **ventana breve de reanudación del pipeline** (~24
+   min, `pipeline_enabled=true` → `apply` → verificación → `false` →
+   `apply`) para poder verificar `FIL_17` end-to-end:
+   - **`FIL_17` ✅ aplicado y verificado**: los 4 productores con secreto
+     ya no llevan credenciales en claro en el env de la Lambda (sólo
+     `*_SSM_PATH`); política `ssm:GetParameter` acotada a los 6 ARNs. Test
+     invoke real de `cams_calidad_aire` → `200`, 16 registros a Bronze
+     leyendo la clave de SSM. **Se queda aplicado** (no depende del freeze).
+   - **Pipeline: RE-CONGELADO** (`pipeline_enabled=false`, decisión del
+     usuario). Durante la ventana: ~23 `aws_scheduler_schedule` →
+     `ENABLED`/`DISABLED`, ~27 `aws_glue_trigger` → `ACTIVATED`/
+     `DEACTIVATED`. Estado final = **congelado**, verificado (`terraform
+     plan` sin cambios, schedules `DISABLED`, triggers `DEACTIVATED`).
+   - **`FIL_16` ⚠️ parcial** (aceptado por el usuario): la regla
+     EventBridge `glue-job-failed` está creada y `ENABLED`; el topic SNS no
+     se aplicó — `madrono-terraform-deployer` no tiene permisos SNS (único
+     servicio sin `*FullAccess`). El usuario decide que basta con el diseño
+     + la regla; el canal SNS no es trabajo pendiente. Ver `doc/FIL-16`.
+   - El `apply` full traía además Kafka (deliberadamente sin aplicar) y un
+     rebuild de la layer Lambda (drift de `ingesta/requirements.txt` por
+     `defusedxml`) → se excluyeron con `-target`.
+
 ## 2026-08-25 — Revisión de arquitectura: Google Maps, drift de Terraform, hoja de ruta
 
 **Punto de partida**: petición de actuar como responsable técnico del
