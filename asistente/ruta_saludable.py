@@ -1,6 +1,8 @@
-"""FIL_37 — `ruta_saludable`: enrutado multi-objetivo sobre el grafo de
-Madrid (`coords-knn8`, 1.798 nodos), con coste de arista = distancia +
-exposición **prevista** (tráfico h1, NO₂, O₃, ruido), ponderada por perfil.
+"""`ruta_saludable`: la ruta que compromete distancia y exposición.
+
+Enrutado multi-objetivo sobre el grafo de Madrid (`coords-knn8`, 1.798
+nodos): coste de arista = distancia + exposición **prevista** (tráfico h1,
+NO₂, O₃, ruido), ponderada por perfil. Añadida en `FIL_37`.
 
 Autocontenido: lee `asistente/modelos/grafo_ruta.json` (vendorizado por
 `viz/build_grafo_ruta.py`) y hace Dijkstra en Python puro — sin `networkx`

@@ -1,6 +1,7 @@
-"""FIL_53 — `contexto_urbano(lugar)`: consulta **multi-salto** del grafo
-urbano de Madrid, a diferencia de las otras tools (que hacen `MATCH` de 1
-salto).
+"""`contexto_urbano(lugar)`: qué hay alrededor de un sitio de Madrid.
+
+Es la única tool que hace una consulta **multi-salto** del grafo urbano
+(las demás resuelven con un `MATCH` de 1 salto). Añadida en `FIL_53`.
 
 Autocontenido: lee `asistente/modelos/grafo_urbano.json.gz` (reconstrucción
 offline del grafo de Neo4j, `FIL_51`) y hace BFS ≤2 saltos en Python puro —
