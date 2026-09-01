@@ -2,7 +2,7 @@
 kind: fil
 title: "Higiene de comentarios y docstrings a nivel de producción — pasada por todo el código, módulo a módulo"
 owner: Filippos (interactive)
-status: in_progress
+status: done
 allow_infra_apply: false
 depends_on: []
 ---
@@ -51,16 +51,42 @@ sugerido por valor (lo más visible / lo más leído primero):
       la primera línea del docstring de `contexto_urbano.py` /
       `mejor_hora_zona.py` / `ruta_saludable.py` (lideraban con `FIL_NN —`).
       El resto de comentarios explican el porqué y son frases completas.  *(lote 2)*
-- [ ] `modelado/` — features, training, evaluation, export, estudios.
-- [ ] `ingesta/` — `capturas/`, `BronzeWriter`, `secretos.py`.
-- [ ] `procesamiento/` — `silver_gold/`, suites GE.
-- [ ] `grafo/` — `relaciones.py`, `geo.py`, `cargar_grafo.py`.
-- [ ] `herramientas/` — `salud/`, utilidades.
-- [ ] `infra/terraform/` — comentarios `.tf` (menos densos, pero
-      `lambda.tf`/`glue_scheduling.tf` tienen bloques que valen).
-- [ ] `tests/` — solo donde el comentario explique el *porqué* del caso.
+- [x] **`modelado/`** — ya a nivel producción; solo se reescribió el
+      docstring de `grafo_analitica/analisis.py` (lideraba con `FIL_52`).
+- [x] **`ingesta/`** — ya a nivel producción; los 26 `capturas/*.py`
+      lideran con "Productor/Captura/Carga de …", refs a ticket al final.
+      Nada que tocar.
+- [x] **`procesamiento/`** — ya a nivel producción; los ~90 ficheros de
+      `silver_gold/` siguen el mismo patrón consistente ("Job de AWS
+      Glue: …", "Agregación Silver → Gold: …", "Puerta de calidad GE: …").
+      Nada que tocar.
+- [x] **`grafo/`** — ya a nivel producción; solo se reescribió el
+      docstring de `exportar_grafo.py` (lideraba con `FIL_51`).
+- [x] **`herramientas/`** — ya a nivel producción. Nada que tocar.
+- [x] **`infra/terraform/`** — los comentarios `.tf` que llevan prefijo
+      `# FIL_NN` son frases completas que explican el *porqué* (retiradas
+      de Google Maps, PATH de SSM en vez del valor, cadencias). El prefijo
+      es procedencia y **se conserva** (no es artefacto publicado). Cero
+      `TODO`/`FIXME`/`HACK`. Nada que tocar.
+- [x] **`tests/`** — los comentarios existentes ya explican el *porqué*
+      del caso (mocks, escenarios límite). Nada que tocar.
 
 Marcar cada casilla en el PR que la cierra.
+
+## Cierre (2026-09-01)
+
+La pasada por todo el código encontró que **el resto del repo ya estaba a
+nivel de producción**: comentarios que explican el porqué, frases
+completas, cero código muerto, refs a ticket en paréntesis al final del
+docstring. El trabajo real de `FIL_59` fue:
+
+1. **`viz/`** (lote 1) — el módulo más flojo: docstrings reescritos +
+   comentarios inline mejorados + **quitados los `// FIL_NN` del
+   `_TEMPLATE`** (el `index.html` publicado en `gh-pages`), que es el único
+   artefacto que se sirve al público.
+2. **7 docstrings** en 6 módulos (`asistente/` ×3, `viz/` ×n, `grafo/` ×1,
+   `modelado/` ×1) que lideraban con `FIL_NN —` en vez de con el propósito.
+3. `doc/ESTILO-COMENTARIOS.md` — el estándar, para el código nuevo.
 
 ## Criterios de aceptación
 

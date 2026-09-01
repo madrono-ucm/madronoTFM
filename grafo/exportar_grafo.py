@@ -1,6 +1,9 @@
-"""FIL_51 — reconstruye el grafo urbano **sin tocar Neo4j**: mismo flujo que
-`grafo.cargar_grafo.cargar_grafo()` (`extract` Athena/S3 → `nodos` →
-`relaciones`) pero, en vez de `Neo4jLoader.load_*`, serializa a JSON.
+"""Reconstruye el grafo urbano como artefacto offline, sin tocar Neo4j.
+
+Corre el mismo flujo que `grafo.cargar_grafo.cargar_grafo()` (`extract`
+Athena/S3 → `nodos` → `relaciones`) pero, en vez de `Neo4jLoader.load_*`,
+serializa a JSON. Así la analítica de grafo y la tool multi-salto pueden
+usar el grafo real sin acceso de lectura a la instancia. Añadido en `FIL_51`.
 
     AWS_PROFILE=madrono AWS_REGION=eu-west-1 python -m grafo.exportar_grafo
 

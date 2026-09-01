@@ -1,4 +1,6 @@
-"""FIL_52 — analítica del grafo urbano real de Madrid (`FIL_51`).
+"""Analítica del grafo urbano real de Madrid para el capítulo de resultados.
+
+Corre sobre el artefacto reconstruido por `FIL_51`; añadida en `FIL_52`.
 
     python -m modelado.grafo_analitica.analisis
 
