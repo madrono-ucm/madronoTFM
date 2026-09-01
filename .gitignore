@@ -255,3 +255,6 @@ viz/data/gold_slices/*/
 
 # grafo urbano reconstruido (FIL_51): se versiona solo el .gz
 grafo/_data/*.json
+
+# Node solo para los tests funcionales del mapa (viz/test/); el lock sí se versiona
+node_modules/

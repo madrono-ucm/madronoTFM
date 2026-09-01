@@ -2,10 +2,60 @@
 kind: fil
 title: "Mapa animado — test funcional de la interfaz en CI (evitar regresiones tipo FIL_55)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 depends_on: [FIL_55]
+resolved_at: "2026-09-01"
 ---
+
+## Resolución (2026-09-01)
+
+`viz/test/mapa.test.mjs` (`node:test` + `jsdom`, `viz/package.json` con
+`jsdom` como única `devDependency`). El subtest de FIL_56 carga
+`viz/mapa/index.html` con stubs de `deck` (clases de capa que solo guardan
+props), `maplibregl` y `fetch` (devuelve los `viz/mapa/*.json` reales), y
+dispara los 51 controles: 4 métricas base + 3 virtuales, 9 perfiles,
+escala, 4 horizontes, 3 días, representación, 2D/3D/encajar/vista limpia,
+las 6 capas conmutables, las 2 pestañas, selección de ruta y play.
+Aserción: cero `window error` / `jsdomError`, y `#titulo-sub` deja de ser
+"—" tras la carga.
+
+**Con dientes**: reintroduciendo a mano el bug de FIL_55 en `_mediaCiudad`
+el subtest se pone rojo; restaurado, verde.
+
+`node_modules/` añadido a `.gitignore`; `viz/package-lock.json` sí se
+versiona. FIL_57 se resolvió en el mismo fichero de test.
+
+### Pendiente: el job de CI (necesita `workflow` scope)
+
+El código y el test están mergeados. Falta añadir el job a
+`.github/workflows/ci.yml` — el token de `madrono-ucm` no tiene el scope
+`workflow` y GitHub rechaza el push que toca `.github/workflows/`. Lo tiene
+que aplicar alguien con ese scope (`gh auth refresh -s workflow` o desde la
+web), añadiendo tras el job `terraform`:
+
+```yaml
+  # Tests funcionales del mapa animado publicado (FIL_56 / FIL_57): jsdom
+  # carga viz/mapa/index.html con deck.gl/maplibre/fetch simulados y dispara
+  # todos los controles; falla si el JS generado no es válido o si render()
+  # lanza. Única parte del repo que usa Node -- job propio, sin tocar Python.
+  mapa:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: viz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: viz/package-lock.json
+      - run: npm ci
+      - run: npm test
+```
+
+Mientras tanto el test corre en local con `cd viz && npm ci && npm test`.
 
 ## Contexto
 
