@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 7 — QA en navegador real del mapa publicado tras FIL_55"
 owner: Claude (QA)
-status: pending
+status: done
 depends_on: []
 ---
 
@@ -82,3 +82,24 @@ usar la URL publicada. Con la **consola abierta**, recorrer:
 - Solo lectura / navegación. No re-publicar `gh-pages`.
 - No “arreglar de paso” — si aparece un bug, va a un `FIL_*` nuevo con su
   repro.
+
+## Hecho (2026-09-01, Claude QA)
+
+Sí hubo navegador real disponible: se instaló Playwright + Chromium
+headless en el `.venv` de esta EC2 y se sirvió `viz/mapa/` en local con
+`python -m http.server`. Recorridos los 7 puntos con interacción real de
+WebGL (no el arnés jsdom que ya usó `FIL_55`): los 9 perfiles + 3
+métricas virtuales, escala lineal/bandas, bucle de 24h (sin crecimiento
+de heap detectable), 2D/3D/encajar/ghost, selector de basemap (las 4
+opciones cargan tiles reales de Carto sin error), ruta E3, layout móvil
+390px (sin scroll horizontal) y degradación sin maplibre (selector
+correctamente `disabled`) — **cero errores de consola en ~30
+interacciones distintas**. Confirmado que `#resumen` cambia de contenido
+real (no solo longitud) entre perfiles. Sincronía estática también
+verificada: `_html()` == `viz/mapa/index.html` == `gh-pages`, y el test
+de regresión (`test_resumen_soporta_metricas_virtuales`) sí cazaría una
+reaparición del bug. Único punto no ejercido con el mismo rigor: gestos
+de ratón reales de zoom/giro (punto 4).
+
+**Cero `FIL_*` nuevos.** Detalle completo en
+[`doc/VIC-32-eval-fil55-mapa-navegador.md`](../doc/VIC-32-eval-fil55-mapa-navegador.md).
