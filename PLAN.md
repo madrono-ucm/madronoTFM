@@ -141,9 +141,10 @@ avisaros. Protocolo:
    para el segundo — es lo esperado, no un error real: haced `git pull
    --rebase` y volved a intentarlo con el número correcto.
 
-**Próximo número libre: `108`** · **`FIL_*` → 56** · **`VIC_*` → 34** ·
-**`VIKT_*` → 12** (actualizado 2026-09-01: `FIL_55` mapa, `VIC_32`/`VIC_33`
-QA ronda 7, `VIKT_11` deltas del 01/09).
+**Próximo número libre: `108`** · **`FIL_*` → 61** · **`VIC_*` → 34** ·
+**`VIKT_*` → 12** (actualizado 2026-09-01: `FIL_55` mapa; `VIC_32`/`VIC_33` QA ronda 7;
+`VIKT_11` deltas del 01/09; `FIL_56`-`60` correctitud del mapa +
+higiene de comentarios).
 (plan transversal de revisión del TFM en `doc/PLAN-REVISION-TFM.md`, 30/8).
 (107 consumida el 29/8: extensión
 preventiva de la key estable a los 48 `glue_script_*`, ver Pista Sistema.
