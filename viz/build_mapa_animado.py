@@ -1,26 +1,38 @@
-"""FIL_34 (M3) + FIL_43 + FIL_47/48/49 — el mapa animado del grafo de Madrid.
+"""Genera el mapa animado del grafo de tráfico de Madrid.
 
-Lee `viz/grafo_madrid.json` + `viz/data/prevision_animada.parquet` +
-`viz/data/gold_slices/` + `viz/assets/*.geojson` y escribe:
+Es el entregable de visualización del TFM: un HTML autónomo que se publica
+en GitHub Pages y muestra los ~1.798 nodos del grafo latiendo hora a hora
+con la previsión de los dos STGNN (tráfico y calidad del aire), sobre los
+polígonos de distrito y sin tiles de mapa base (opcionalmente, un basemap
+vectorial Carto).
 
-- `viz/mapa/index.html`  — deck.gl (CDN) sobre los polígonos de distrito
-  (sin tiles). Bucle de 24 h; grupos de control colapsables (Tiempo / Capa
-  de color / Vista / Ruta); cámara 2D/3D + "encajar a Madrid" + "vista
-  limpia"; nodos como **puntos o barras extruidas** (`auto`/`puntos`/
-  `barras` — la barra sube donde las condiciones son peores, 3D con
-  sentido); etiquetas de distrito, hitos, ejes y parques como capas
-  conmutables; tooltip y clic por nodo; **panel de resumen inferior**
-  (media ciudad 24 h + por distrito + meteo/skill); leyenda pegada.
-  E1 arcos, E2 ghost, E3 ruta (2 desplegables), E4 panel de nodo,
-  E6 pulso. Carga `data.json` / `meta.json` / `weather.json` / `rutas.json`.
-- `viz/mapa/data.json`     — frames cuantizados (int) por día/hora/nodo.
-- `viz/mapa/meta.json`     — grafo, distritos, centroides, hitos, ejes, parques.
-- `viz/mapa/weather.json`   — media ciudad por día/hora (E5).
-- `viz/mapa_frames.png`     — tira de 6 fotogramas, sin tiles, para la memoria.
+Lee de local (nunca de red ni con credenciales): el grafo canónico
+(`viz/grafo_madrid.json`), la previsión ya inferida
+(`viz/data/prevision_animada.parquet`), los cortes congelados de Gold
+(`viz/data/gold_slices/`) y las capas geográficas (`viz/assets/*.geojson`).
+
+Escribe en `viz/mapa/`:
+
+- `index.html`   — la interfaz completa (deck.gl vía CDN). Bucle de 24 h;
+  cuatro grupos de control colapsables (Tiempo / Capa de color / Salud /
+  Vista / Ruta); cámara 2D/3D con "encajar a Madrid" y "vista limpia";
+  nodos como puntos o como barras extruidas cuya altura crece donde las
+  condiciones son peores; etiquetas de distrito, hitos, ejes y parques
+  como capas conmutables; tooltip y detalle al hacer clic en un nodo;
+  panel de resumen inferior (media de ciudad de 24 h, desglose por
+  distrito, meteo y skill del modelo). Carga los tres JSON de abajo más
+  `rutas.json` (opcional) con `fetch`.
+- `data.json`    — los valores por día, hora y nodo, cuantizados a entero
+  (los nulos van como -1 para no inflar el JSON).
+- `meta.json`    — todo lo estático: grafo, distritos, centroides, hitos,
+  ejes, parques, perfiles de sensibilidad y umbrales OMS/UE.
+- `weather.json` — la media de ciudad de meteo por día y hora.
+
+Y en `viz/`: `mapa_frames.png`, una tira de fotogramas para la memoria.
+
+Uso:
 
     python -m viz.build_mapa_animado
-
-Cero red, cero credenciales.
 """
 
 from __future__ import annotations
@@ -42,20 +54,25 @@ _EJES = json.loads((_VIZ / "assets" / "ejes_madrid.geojson").read_text(encoding=
 _PARQUES = json.loads((_VIZ / "assets" / "parques_madrid.geojson").read_text(encoding="utf-8"))
 _OUT = _VIZ / "mapa"
 _DECKGL_CDN = "https://unpkg.com/deck.gl@9.0.38/dist.min.js"
-# FIL_50: basemap vectorial opcional (opt-in). Solo se descargan tiles si el
-# usuario elige un estilo; si el CDN no carga, el selector se deshabilita y el
-# mapa sigue siendo el DeckGL plano de siempre.
+# El basemap vectorial (maplibre-gl) es opcional y opt-in: solo se descargan
+# tiles si quien mira el mapa elige un estilo Carto en el selector. Si el CDN
+# no carga, el selector queda deshabilitado y el mapa sigue siendo el DeckGL
+# plano de siempre. Se cargó como mejora en FIL_50.
 _MAPLIBRE_JS_CDN = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
 _MAPLIBRE_CSS_CDN = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
 
 
 def _centroide(anillo: "list[list[float]]") -> "list[float]":
+    """Centroide (media aritmética de vértices) de un anillo de polígono,
+    redondeado a 5 decimales. Aproximación suficiente para colocar la
+    etiqueta de texto de un distrito, no un centroide geométrico exacto."""
     xs = [p[0] for p in anillo]
     ys = [p[1] for p in anillo]
     return [round(sum(xs) / len(xs), 5), round(sum(ys) / len(ys), 5)]
 
-# métricas del selector -> (columna del parquet, [min, max] para la escala,
-# etiqueta, sentido: +1 = más alto peor)
+# Métricas que ofrece el selector de color, cada una como:
+#   clave -> (columna del parquet, [mínimo, máximo] de la escala,
+#             etiqueta para la leyenda, sentido: +1 si "más alto es peor")
 _METRICAS = {
     "salud": ("health_index", [55, 96], "Índice de salud (100 = mejor)", -1),
     "trafico": ("y_traf_h1", [0.0, 2.5], "Nivel de servicio previsto (h1)", 1),
@@ -66,7 +83,14 @@ _HORIZ_COL = {"now": "y_traf_obs", "h1": "y_traf_h1", "h3": "y_traf_h3", "h6": "
 
 
 def _frames_json(df: pd.DataFrame, node_ids: "list[str]") -> dict:
-    """`{dia: {metrica: [[valor_int]*n_nodos]*24}}`. Los nulos -> -1."""
+    """Construye el contenido de `data.json`.
+
+    Estructura: `{dia: {metrica: matriz[24 horas][n_nodos]}}` con los
+    valores redondeados a entero (el navegador solo necesita la precisión
+    del color) y los nulos como -1, para que el JSON quepa en unos pocos MB.
+    El tráfico se multiplica por 100 antes de redondear porque llega en
+    "nivel de servicio" (0-3), demasiado pequeño para cuantizar a entero.
+    """
     idx = {nid: i for i, nid in enumerate(node_ids)}
     out: dict = {}
     for dia, g_dia in df.groupby("day"):
@@ -77,7 +101,9 @@ def _frames_json(df: pd.DataFrame, node_ids: "list[str]") -> dict:
                 if pd.notna(v):
                     arr[int(h)][idx[nid]] = round(float(v) * (100 if clave == "trafico" else 1))
             md[clave] = arr
-        # columnas de horizonte para el toggle (solo tráfico) + real h1 para el skill
+        # Series de tráfico por horizonte de previsión (para el selector
+        # ahora/+1h/+3h/+6h) más la observación real a +1h, que el cliente
+        # usa para calcular el "skill" del modelo frente a la persistencia.
         for hk, hcol in {**_HORIZ_COL, "h1_act": "y_traf_act_h1"}.items():
             arr = [[-1] * len(node_ids) for _ in range(24)]
             for h, nid, v in zip(g_dia["hour"], g_dia["node_id"], g_dia[hcol]):
@@ -89,6 +115,10 @@ def _frames_json(df: pd.DataFrame, node_ids: "list[str]") -> dict:
 
 
 def _weather_json(dias: "list[str]") -> dict:
+    """Construye `weather.json`: la media de ciudad de temperatura, viento,
+    precipitación y humedad por día y hora, para el ticker de meteo. Media
+    sobre todas las estaciones porque el mapa solo muestra un valor global,
+    no una superficie meteorológica."""
     m = pd.read_parquet(_METEO)
     m = m[m["date"].isin(dias)]
     piv = (
@@ -106,12 +136,18 @@ def _weather_json(dias: "list[str]") -> dict:
 
 
 def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
+    """Construye `meta.json`: todo lo que no cambia con el reloj y que el
+    cliente necesita una sola vez — coordenadas y distrito de cada nodo,
+    polígonos y centroides de distrito, arcos de importancia, textura del
+    grafo, hitos, ejes, parques, y la capa social (perfiles de sensibilidad
+    y umbrales OMS/UE)."""
     nodos = {n["id"]: n for n in _GRAFO["nodos"]}
     coords = [[round(nodos[i]["lon"], 5), round(nodos[i]["lat"], 5)] for i in node_ids]
     distr = [nodos[i]["distrito"] for i in node_ids]
     distr_nom = {n["distrito"]: n.get("distrito_nombre") for n in _GRAFO["nodos"]}
     idx = {nid: k for k, nid in enumerate(node_ids)}
-    # aristas top-15 de importancia -> pares de índice + importancia normalizada
+    # Las 15 aristas más influyentes del STGNN, como pares de índice de nodo
+    # con la importancia normalizada a [0, 1] (el cliente la usa de grosor).
     imp = _GRAFO["importancia_aristas"]
     mx = max(e["importancia"] for e in imp) or 1.0
     arcs = [
@@ -119,23 +155,28 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
         for e in imp
         if e["a"] in idx and e["b"] in idx
     ]
-    # capa "textura" = todas las aristas del grafo real (8.758), muy tenues (FIL_49)
+    # La capa "textura" es el grafo completo (~8.758 aristas), que se dibuja
+    # muy tenue como contexto de fondo; va aparte de los arcos de importancia.
     tex = [[idx[e["a"]], idx[e["b"]]] for e in _GRAFO["aristas"] if e["a"] in idx and e["b"] in idx]
-    # centroide de cada distrito -> etiqueta de texto (FIL_47)
+    # Un punto por distrito donde anclar su etiqueta de texto en el mapa.
     centroides = [
         {"nombre": f["properties"]["name"], "pos": _centroide(f["geometry"]["coordinates"][0])}
         for f in _GEOJSON["features"]
     ]
-    # hitos: los 14 lugares de referencia de ruta_saludable
+    # Los 14 lugares de referencia que también usa `ruta_saludable` como
+    # origen/destino; aquí solo sirven de marcador con etiqueta.
     from viz.rutas import LUGARES
 
     hitos = [{"nombre": k, "pos": [round(v[1], 5), round(v[0], 5)]} for k, v in LUGARES.items()]
-    # extensión de los nodos para el auto-fit de cámara
+    # Envolvente de todos los nodos, para que la cámara encaje Madrid al abrir.
     lons = [c[0] for c in coords]
     lats = [c[1] for c in coords]
     bbox = [[min(lons), min(lats)], [max(lons), max(lats)]]
 
-    # --- FIL_45: capa social ---
+    # Capa social y de accesibilidad: perfiles de sensibilidad (mismos pesos
+    # que `ruta_saludable`), ruido medio por distrito, distancia de cada nodo
+    # a la estación de aire más cercana (fiabilidad de la interpolación) y las
+    # bandas de calidad del aire OMS/UE.
     from grafo.geo import haversine_m
     from viz.rutas import PERFILES
 
@@ -149,7 +190,8 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
         for i in node_ids
     ] if est_aire else [0] * len(node_ids)
     perfiles = {k: {s: v[s] for s in ("traf", "no2", "o3", "noise")} for k, v in PERFILES.items()}
-    # bandas de umbral OMS/UE (µg/m³) — nombre + cortes
+    # Umbrales de NO₂/O₃ (µg/m³) e índice de salud: cada banda es "valor por
+    # encima del corte i". Los nombres se muestran tal cual en la leyenda.
     umbrales = {
         "no2": {"cortes": [25, 40, 100, 200],
                 "bandas": ["≤ guía OMS 24 h", "≤ límite anual UE", "elevado", "≥ límite horario UE", "muy alto"]},
@@ -184,6 +226,9 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
 
 
 def _html() -> str:
+    """El HTML final: la plantilla con las URL de los CDN sustituidas.
+    Sin E/S ni red — se puede llamar en un test para comprobar el HTML
+    generado sin regenerar los JSON."""
     return (
         _TEMPLATE.replace("__DECKGL_CDN__", _DECKGL_CDN)
         .replace("__MAPLIBRE_JS_CDN__", _MAPLIBRE_JS_CDN)
@@ -192,6 +237,10 @@ def _html() -> str:
 
 
 def _frame_strip_png(df: pd.DataFrame, dia: str) -> Path:
+    """Tira de fotogramas (04/08/13/18/22 h) del índice de salud sobre los
+    distritos, con la misma estética oscura que la app, para incluir como
+    figura estática en la memoria. `matplotlib` se importa aquí porque solo
+    hace falta para esto."""
     import matplotlib
 
     matplotlib.use("Agg")
@@ -239,6 +288,9 @@ def _frame_strip_png(df: pd.DataFrame, dia: str) -> Path:
 
 
 def main() -> int:
+    """Regenera todo `viz/mapa/` (los tres JSON + `index.html`), luego
+    `rutas.json` vía `viz.rutas` y la figura `mapa_frames.png`. Idempotente
+    y sin red."""
     _OUT.mkdir(parents=True, exist_ok=True)
     df = pd.read_parquet(_PARQUET)
     node_ids = [n["id"] for n in _GRAFO["nodos"]]
@@ -255,7 +307,8 @@ def main() -> int:
     )
     (_OUT / "index.html").write_text(_html(), encoding="utf-8")
 
-    # E3 — rutas saludables (FIL_37). Si networkx no está, se omite la capa.
+    # La capa de rutas saludables necesita `networkx`. Si no está instalado
+    # (entorno mínimo), se omite `rutas.json` y el mapa carga sin esa capa.
     try:
         from viz import rutas as _rutas
 
@@ -459,6 +512,10 @@ _TEMPLATE = r"""<!doctype html>
 </div>
 
 <script>
+// Interfaz del mapa. `META` (estático), `DATA` (valores por día/hora/nodo) y
+// `WX` (meteo) se cargan de tres JSON al final del fichero; `state` guarda lo
+// que el usuario elige con los controles; `render()` reconstruye las capas de
+// deck.gl y los paneles a partir de `state` cada vez que algo cambia.
 const {DeckGL, ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, WebMercatorViewport} = deck;
 let META, DATA, WX, RUTAS, dgl, selNode = null;
 let state = {
@@ -468,9 +525,9 @@ let state = {
   clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"ninguno",
 };
 
-// FIL_50: basemap vectorial opcional. "ninguno" = estilo vacío (transparente,
-// el aspecto plano de siempre); el resto son estilos Carto sin token. Solo se
-// piden tiles al elegir uno.
+// Basemap vectorial opcional. "ninguno" es un estilo vacío (transparente, el
+// aspecto plano por defecto); el resto son estilos Carto que no necesitan
+// token. Solo se descargan tiles si se elige uno distinto de "ninguno".
 const HAS_MAPLIBRE = typeof maplibregl !== "undefined";
 const BASEMAP_VACIO = {version:8, sources:{}, layers:[]};
 const BASEMAPS = {
@@ -490,9 +547,10 @@ function lerp(stops,t){ const x=t*(stops.length-1), i=Math.floor(x), f=x-i;
 const ramp = t => lerp(RAMP, clamp01(t));
 const divg = t => lerp(DIV, clamp01(t));
 
-// paleta de bandas OMS/UE distinguible en deuteranopía (5 pasos)
+// Paleta de las bandas OMS/UE, en 5 pasos y distinguible en deuteranopía.
 const BANDAS_PAL = [[44,123,182],[145,191,219],[255,255,191],[252,141,89],[215,25,28]];
-// métricas virtuales calculadas en el navegador (FIL_45)
+// Métricas que no vienen en los datos: se calculan en el navegador a partir
+// del perfil de sensibilidad elegido. Misma forma que `META.metricas`.
 const MET_EXTRA = {
   salud_perfil: {rango:[40,95], label:"Índice de salud según el perfil elegido", peor:-1, banda:"salud"},
   dosis_no2:    {rango:[0,120], label:"Dosis NO₂ próximas 8 h (% de la guía OMS 24 h)", peor:1},
@@ -798,9 +856,10 @@ function render(){
   if(state.tab==="d") pulse(); else edgePane();
 }
 
-// --- panel de resumen inferior (FIL_49) ---
+// --- Panel de resumen inferior (media de ciudad + desglose por distrito) ---
 function _mediaCiudad(dia, metric, hora){
-  // FIL_45 métricas virtuales: no viven en DATA[dia], se calculan en el navegador
+  // Las métricas virtuales (salud por perfil, dosis) no están en DATA[dia];
+  // hay que reproducir aquí el mismo cálculo que hace `metricArr`.
   let arr;
   if(metric==="trafico")           arr = DATA[dia]["traf_"+state.hz][hora];
   else if(metric==="salud_perfil") arr = _saludPerfilHora(hora);

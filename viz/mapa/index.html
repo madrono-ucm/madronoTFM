@@ -184,6 +184,10 @@
 </div>
 
 <script>
+// Interfaz del mapa. `META` (estático), `DATA` (valores por día/hora/nodo) y
+// `WX` (meteo) se cargan de tres JSON al final del fichero; `state` guarda lo
+// que el usuario elige con los controles; `render()` reconstruye las capas de
+// deck.gl y los paneles a partir de `state` cada vez que algo cambia.
 const {DeckGL, ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, WebMercatorViewport} = deck;
 let META, DATA, WX, RUTAS, dgl, selNode = null;
 let state = {
@@ -193,9 +197,9 @@ let state = {
   clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"ninguno",
 };
 
-// FIL_50: basemap vectorial opcional. "ninguno" = estilo vacío (transparente,
-// el aspecto plano de siempre); el resto son estilos Carto sin token. Solo se
-// piden tiles al elegir uno.
+// Basemap vectorial opcional. "ninguno" es un estilo vacío (transparente, el
+// aspecto plano por defecto); el resto son estilos Carto que no necesitan
+// token. Solo se descargan tiles si se elige uno distinto de "ninguno".
 const HAS_MAPLIBRE = typeof maplibregl !== "undefined";
 const BASEMAP_VACIO = {version:8, sources:{}, layers:[]};
 const BASEMAPS = {
@@ -215,9 +219,10 @@ function lerp(stops,t){ const x=t*(stops.length-1), i=Math.floor(x), f=x-i;
 const ramp = t => lerp(RAMP, clamp01(t));
 const divg = t => lerp(DIV, clamp01(t));
 
-// paleta de bandas OMS/UE distinguible en deuteranopía (5 pasos)
+// Paleta de las bandas OMS/UE, en 5 pasos y distinguible en deuteranopía.
 const BANDAS_PAL = [[44,123,182],[145,191,219],[255,255,191],[252,141,89],[215,25,28]];
-// métricas virtuales calculadas en el navegador (FIL_45)
+// Métricas que no vienen en los datos: se calculan en el navegador a partir
+// del perfil de sensibilidad elegido. Misma forma que `META.metricas`.
 const MET_EXTRA = {
   salud_perfil: {rango:[40,95], label:"Índice de salud según el perfil elegido", peor:-1, banda:"salud"},
   dosis_no2:    {rango:[0,120], label:"Dosis NO₂ próximas 8 h (% de la guía OMS 24 h)", peor:1},
@@ -523,9 +528,10 @@ function render(){
   if(state.tab==="d") pulse(); else edgePane();
 }
 
-// --- panel de resumen inferior (FIL_49) ---
+// --- Panel de resumen inferior (media de ciudad + desglose por distrito) ---
 function _mediaCiudad(dia, metric, hora){
-  // FIL_45 métricas virtuales: no viven en DATA[dia], se calculan en el navegador
+  // Las métricas virtuales (salud por perfil, dosis) no están en DATA[dia];
+  // hay que reproducir aquí el mismo cálculo que hace `metricArr`.
   let arr;
   if(metric==="trafico")           arr = DATA[dia]["traf_"+state.hz][hora];
   else if(metric==="salud_perfil") arr = _saludPerfilHora(hora);
