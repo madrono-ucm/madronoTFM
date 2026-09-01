@@ -1,0 +1,12 @@
+{
+  "name": "madrono-viz-mapa-tests",
+  "private": true,
+  "description": "Tests funcionales del mapa animado (viz/mapa/index.html). Solo dev: jsdom + node:test, sin dependencias de ejecución.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}
