@@ -60,3 +60,47 @@ dependencias; hay que reconstruir la layer antes de reanudar.
 - `allow_infra_apply: true` pero **solo** para los recursos de la layer;
   cualquier `apply` sigue el patrón `-target` para no arrastrar Kafka.
 - No reanudar el pipeline (`pipeline_enabled`) como efecto colateral.
+
+## Adenda QA (`VIC_33`, 2026-09-01) — la causa raíz es más profunda de lo que dice el contexto de arriba, y hay un riesgo destructivo real
+
+Verificado en vivo (`terraform plan` completo, sin `-target`, contra el
+estado real de AWS) que el problema **no es solo** "la layer desplegada
+no tiene `defusedxml` todavía" — es que **`var.lambda_dependencies_layer_arn`
+sigue en `null` en `terraform.tfvars`** (confirmado: no aparece en
+`terraform.tfvars` ni `.tfvars.example`; `lambda_layer_build.tf:29` ya lo
+documentaba como pendiente de la tarea 033). Como
+`lambda.tf:546` es `layers = var.lambda_dependencies_layer_arn == null ? []
+: [...]`, el **estado deseado real hoy es "sin layer en absoluto"**, no
+solo "layer desactualizada".
+
+**Consecuencia verificada**: el `terraform plan` completo de hoy muestra,
+para las **16** `aws_lambda_function.producer[*]`, un diff
+`~ layers = [ - "arn:...:layer:madrono-tfm-dev-ingesta-dependencies:1" ]`
+**sin ningún `+`** — es decir, un `terraform apply` sin `-target` hoy
+**quitaría la layer de las 16 Lambdas por completo** (no la actualizaría a
+una versión nueva), lo que rompería el `import` de cualquier dependencia
+de terceros que vaya en la layer y no en el `.zip` de código propio
+(`netCDF4` y similares, ver el motivo original de usar CodeBuild en
+`lambda_layer_build.tf`). Con el pipeline congelado no se ejecuta, así
+que no ha roto nada todavía, pero es un `apply` sin `-target` de distancia
+de un incidente real.
+
+**Efecto colateral encontrado**: ese mismo drift hace que
+`aws_iam_policy.scheduler_invoke_lambda` (cuya `data
+"aws_iam_policy_document"` itera `[for fn in aws_lambda_function.producer :
+fn.arn]`) aparezca en el plan como `policy = ... -> (known after apply)`
+con el `Statement` completo marcado `-` sin reemplazo — el mismo síntoma
+transitorio que `VIC_33` esperaba que **ya hubiera quedado estable** tras
+el `apply` del 2026-09-01, y que sigue sin estabilizar porque la causa
+(Lambdas con cambio pendiente) sigue viva.
+
+**Implicación para la opción A de arriba**: al reconstruir la layer, hace
+falta **además** fijar `lambda_dependencies_layer_arn` en
+`terraform.tfvars` al ARN real de la nueva versión — reconstruir solo el
+`.zip`/CodeBuild sin fijar la variable deja el mismo problema (`layers=[]`
+deseado) intacto.
+
+Los ~35 `aws_s3_object.glue_script_*` que también aparecen en el plan
+completo son ruido benigno de fin de línea/espacios (contenido idéntico
+carácter a carácter salvo esa normalización) — verificado, no relacionado
+con este drift.
