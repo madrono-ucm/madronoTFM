@@ -129,6 +129,19 @@ class MapaArtefactosTests(unittest.TestCase):
                       "consejo médico", 'id="mejor-hora"'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_45)")
 
+    def test_resumen_soporta_metricas_virtuales(self):
+        # regresión: el panel de resumen (FIL_49) rompía con las métricas
+        # virtuales de FIL_45 (salud_perfil / dosis_*), que no viven en
+        # DATA[dia] -> `_mediaCiudad` hacía `undefined[hora]` y `render()`
+        # lanzaba en cada clic de perfil o de "salud (perfil)" / "dosis".
+        cuerpo = self.html.split("function _mediaCiudad", 1)[1].split("function resumen", 1)[0]
+        for marca in ('metric==="salud_perfil"', 'metric==="dosis_no2"', 'metric==="dosis_o3"'):
+            self.assertIn(marca, cuerpo, f"_mediaCiudad no cubre {marca}")
+        # resumen() usa metDef (que conoce MET_EXTRA), no META.metricas[m] directo
+        resumen = self.html.split("function resumen()", 1)[1].split("function routeInfo", 1)[0]
+        self.assertIn("md = metDef(m)", resumen)
+        self.assertNotIn("META.metricas[m]", resumen)
+
     # --- FIL_50: basemap vectorial opcional ---
     def test_html_basemap_opcional(self):
         for marca in ("maplibre-gl.js", "maplibre-gl.css", 'id="basemap"',

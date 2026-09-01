@@ -447,7 +447,7 @@ _TEMPLATE = r"""<!doctype html>
     <span class="muted" id="rs-city-txt">—</span>
   </div>
   <div class="blk grow">
-    <span class="hd">por distrito · ahora</span>
+    <span class="hd">salud por distrito · ahora</span>
     <svg id="rs-distr" viewBox="0 0 320 60" preserveAspectRatio="none" height="56"></svg>
     <span class="muted" id="rs-distr-txt">—</span>
   </div>
@@ -503,11 +503,12 @@ const _n = (s,v) => s==="traf" ? clamp01(v/300) : s==="no2" ? clamp01(v/200)
                   : s==="o3" ? clamp01(v/180) : clamp01((v-45)/30);
 
 function trafArr(hz){ return DATA[state.day]["traf_"+hz][state.hour]; }
-function _dosis(campo, guia){
+function _dosis(campo, guia, hora){
+  const h0 = hora==null ? state.hour : hora;
   const md = DATA[state.day][campo];
   return META.coords.map((_,i)=>{
     let s=0, n=0;
-    for(let h=state.hour; h<Math.min(24,state.hour+8); h++){ const v=md[h][i]; if(v>=0){ s+=v; n++; } }
+    for(let h=h0; h<Math.min(24,h0+8); h++){ const v=md[h][i]; if(v>=0){ s+=v; n++; } }
     return n ? s/n/guia*100 : -1;
   });
 }
@@ -525,12 +526,19 @@ function _saludPerfilHora(h){
   });
 }
 const _saludPerfil = () => _saludPerfilHora(state.hour);
+// barrido 24 h de salud media por perfil; memoizado por (día, perfil) porque se
+// llama en cada render (playback, pan/zoom) y recorre 24 x 1798 nodos
+const _mhpCache = {};
 function mejorHoraPerfil(){
-  let best=-1, bh=0;
+  const key = state.day + "|" + state.perfil;
+  if(_mhpCache[key]) return _mhpCache[key];
+  let best=-1, bh=0, worst=101, wh=0;
   for(let h=0;h<24;h++){ const a=_saludPerfilHora(h); let s=0,n=0;
     for(const v of a){ if(v>=0){ s+=v; n++; } }
-    const m = n?s/n:0; if(m>best){ best=m; bh=h; } }
-  return {hora:bh, salud:best};
+    const m = n?s/n:0;
+    if(m>best){ best=m; bh=h; }
+    if(m<worst){ worst=m; wh=h; } }
+  return (_mhpCache[key] = {hora:bh, salud:best, peor_hora:wh});
 }
 function metricArr(){
   if(state.metric==="trafico") return trafArr(state.hz);
@@ -600,9 +608,12 @@ function layers(){
     L.push(new ArcLayer({id:"imp", data:META.arcs,
       getSourcePosition:d=>META.coords[d.s], getTargetPosition:d=>META.coords[d.t],
       getSourceColor:d=>arcCol(trafNow[d.s]), getTargetColor:d=>arcCol(trafNow[d.t]),
-      getWidth:d=>0.8+3*d.w, getHeight:0.16, updateTriggers:{getSourceColor:[state.day,state.hour,state.hz]}}));
+      getWidth:d=>0.8+3*d.w, getHeight:0.16,
+      updateTriggers:{getSourceColor:[state.day,state.hour,state.hz], getTargetColor:[state.day,state.hour,state.hz]}}));
   const onNode = info => { if(info.index!=null){ selNode=info.index; state.tab="a"; syncTabs(); render(); } };
-  const trig = [state.day,state.hour,state.metric,state.hz,state.ghost];
+  // incluye perfil y escala: con la métrica "salud (perfil)" fija, cambiar de
+  // perfil o de escala (lineal<->bandas) recolorea los nodos aunque metric no cambie
+  const trig = [state.day,state.hour,state.metric,state.hz,state.ghost,state.perfil,state.escala];
   if(usaBarras())
     L.push(new ColumnLayer({id:"nodes", data:idxs, pickable:true, diskResolution:6,
       radius:40, radiusUnits:"meters", extruded:true, elevationScale:24,
@@ -778,7 +789,7 @@ function render(){
   const mh = mejorHoraPerfil();
   document.getElementById("mejor-hora").innerHTML =
     `Mejor hora hoy para <b>${state.perfil}</b>: <b>${String(mh.hora).padStart(2,"0")}:00</b> `
-    + `(salud media ${mh.salud.toFixed(0)}) · peor: ${(()=>{let w=101,wh=0;for(let h=0;h<24;h++){const a=_saludPerfilHora(h);let s=0,n=0;for(const v of a){if(v>=0){s+=v;n++;}}const m=n?s/n:101;if(m<w){w=m;wh=h;}}return String(wh).padStart(2,"0")+":00";})()}`;
+    + `(salud media ${mh.salud.toFixed(0)}) · peor: ${String(mh.peor_hora).padStart(2,"0")}:00`;
   const s = skill(), sTxt = isNaN(s) ? "—" : s.toFixed(2);
   const cs = document.getElementById("ctx-skill"); if(cs) cs.textContent = sTxt;
   document.getElementById("rs-skill").textContent = sTxt;
@@ -789,12 +800,18 @@ function render(){
 
 // --- panel de resumen inferior (FIL_49) ---
 function _mediaCiudad(dia, metric, hora){
-  const arr = metric==="trafico" ? DATA[dia]["traf_"+state.hz][hora] : DATA[dia][metric][hora];
+  // FIL_45 métricas virtuales: no viven en DATA[dia], se calculan en el navegador
+  let arr;
+  if(metric==="trafico")           arr = DATA[dia]["traf_"+state.hz][hora];
+  else if(metric==="salud_perfil") arr = _saludPerfilHora(hora);
+  else if(metric==="dosis_no2")    arr = _dosis("no2", 25, hora);
+  else if(metric==="dosis_o3")     arr = _dosis("o3", 100, hora);
+  else                             arr = DATA[dia][metric][hora];
   let s=0, n=0; for(const v of arr){ if(v>=0){ s+=(metric==="trafico"?v/100:v); n++; } }
   return n ? s/n : null;
 }
 function resumen(){
-  const dia = state.day, m = state.metric, md = META.metricas[m];
+  const dia = state.day, m = state.metric, md = metDef(m);
   // 1) media ciudad 24 h
   const serie = Array.from({length:24}, (_,h)=>_mediaCiudad(dia, m, h));
   const vals = serie.filter(v=>v!=null);
@@ -811,7 +828,8 @@ function resumen(){
     `<path d="${area}" fill="${col}22"/><path d="${line}" fill="none" stroke="${col}" stroke-width="1.6"/>`
     + `<line x1="${x(state.hour)}" y1="0" x2="${x(state.hour)}" y2="${H}" stroke="#89a" stroke-dasharray="2 2"/>`;
   const now=serie[state.hour], iMin=serie.indexOf(lo), iMax=serie.indexOf(hi);
-  document.getElementById("rs-ct-hd").textContent = `media ciudad · ${m} · 24 h`;
+  const _ETR = {salud_perfil:"salud (perfil "+state.perfil+")", dosis_no2:"dosis NO₂", dosis_o3:"dosis O₃"};
+  document.getElementById("rs-ct-hd").textContent = `media ciudad · ${_ETR[m]||m} · 24 h`;
   document.getElementById("rs-city-txt").textContent =
     `ahora ${now==null?"—":now.toFixed(1)} · mín ${lo.toFixed(1)} @${String(iMin).padStart(2,"0")}h · máx ${hi.toFixed(1)} @${String(iMax).padStart(2,"0")}h`;
   // 2) por distrito ahora (mismo criterio que el pulso, compacto)
@@ -953,7 +971,10 @@ Promise.all([
   META=m; DATA=d; WX=w; RUTAS=ru; state.day=m.dias[0];
   dgl = new DeckGL({container:"map", controller:true, viewState:state.view,
     ...(HAS_MAPLIBRE ? {map: maplibregl, mapStyle: BASEMAPS[state.basemap] || BASEMAP_VACIO} : {}),
-    onViewStateChange:e=>{ state.view=e.viewState; dgl.setProps({viewState:state.view}); },
+    onViewStateChange:e=>{ state.view=e.viewState; dgl.setProps({viewState:state.view});
+      // re-render props que dependen del zoom/pitch (radio de nodo, opacidad de
+      // etiquetas, puntos<->barras en "auto") sin recalcular en cada frame
+      if(!render._raf) render._raf = requestAnimationFrame(()=>{ render._raf = 0; render(); }); },
     getTooltip:tooltip, layers:[]});
   mkControls(); syncTabs();
   if(META.bbox) fitBounds(); else render();
