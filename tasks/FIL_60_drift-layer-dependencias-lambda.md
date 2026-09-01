@@ -2,10 +2,29 @@
 kind: fil
 title: "Resolver el drift de la layer de dependencias Lambda (defusedxml de FIL_41 no está desplegado)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: true
 depends_on: [FIL_41]
+resolved_at: "2026-09-01"
 ---
+
+## Resolución (2026-09-01) — opción B (documentar el aplazamiento)
+
+Decisión del usuario: **no aplicar** mientras el pipeline siga congelado.
+El drift (layer sin `defusedxml`) + el riesgo destructivo que encontró
+`VIC_33` (`lambda_dependencies_layer_arn = null` → un `apply` sin `-target`
+quita la layer de las 16 Lambdas) quedan documentados donde un futuro
+"reanudar el pipeline" los va a encontrar:
+
+- `infra/OPERACION.md` — aviso ⚠️ en la sección Terraform (no hacer
+  `apply` sin `-target` con el estado actual, y por qué) + nota en la
+  sección CodeBuild.
+- `doc/032-lambda-layer-codebuild.md` — sección "Drift conocido 2026-09-01".
+
+**Para cerrar de verdad** (cuando se reanude la ingesta): rehacer la layer
+con el flujo de dos `apply` de `doc/032` **y** fijar
+`lambda_dependencies_layer_arn` en el `.tfvars` al ARN de la nueva versión,
+antes de cualquier `apply` sin `-target`.
 
 ## Contexto
 
