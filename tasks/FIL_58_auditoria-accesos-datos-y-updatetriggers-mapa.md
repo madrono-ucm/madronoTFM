@@ -2,10 +2,28 @@
 kind: fil
 title: "Mapa animado — auditar las dos clases de bug de FIL_55 (accesos a datos sin guarda + updateTriggers incompletos)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 depends_on: [FIL_55]
+resolved_at: "2026-09-01"
 ---
+
+## Resolución (2026-09-01)
+
+Barrido completo del `_TEMPLATE` en `doc/FIL-58-...md` (tabla función →
+clave → cómo está acotada; tabla capa → state leído → en updateTriggers).
+
+- **Clase 1 (acceso a `DATA` sin guarda): sin hallazgos.** `FIL_55`
+  (`_mediaCiudad`) era el único caso; las otras 13 rutas que indexan
+  `DATA` por clave calculada están acotadas a las claves reales de
+  `data.json` o interceptan las métricas virtuales antes.
+- **Clase 2 (`updateTriggers` incompletos): 1 hallazgo menor, corregido.**
+  La capa `sel` (aro de selección de nodo) tenía `getRadius:nodeRmin()*3`
+  (depende de `state.view.zoom`) sin su `updateTrigger` → el aro no
+  reescalaba al hacer zoom con el ratón. Añadido
+  `updateTriggers:{getRadius:[state.view.zoom]}`. Impacto bajo.
+
+`viz/mapa/index.html` regenerado; `tests/` + `viz` (`npm test`) en verde.
 
 ## Contexto
 

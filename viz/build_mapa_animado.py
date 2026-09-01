@@ -691,7 +691,8 @@ function layers(){
   if(selNode!=null)
     L.push(new ScatterplotLayer({id:"sel", data:[selNode], getPosition:i=>META.coords[i],
       getRadius:nodeRmin()*3, radiusUnits:"pixels", stroked:true, filled:false,
-      getLineColor:[255,255,255,235], lineWidthMinPixels:2}));
+      getLineColor:[255,255,255,235], lineWidthMinPixels:2,
+      updateTriggers:{getRadius:[state.view.zoom]}}));   // el aro escala con el zoom, como los nodos
   if(state.layers.parques){
     L.push(new ScatterplotLayer({id:"pq-dot", data:META.parques_geojson.features,
       getPosition:f=>f.geometry.coordinates, getRadius:5, radiusMinPixels:4, radiusMaxPixels:9,
