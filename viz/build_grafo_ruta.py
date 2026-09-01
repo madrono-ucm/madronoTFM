@@ -1,7 +1,9 @@
-"""FIL_37 — genera `asistente/modelos/grafo_ruta.json`, el artefacto
-vendorizado que la 12.ª tool MCP `ruta_saludable` consume **sin depender de
-`viz/` ni de `networkx`** (mismo criterio que `asistente/athena.py` respecto
-a `grafo/`).
+"""Genera `asistente/modelos/grafo_ruta.json`, el artefacto vendorizado.
+
+La herramienta MCP `ruta_saludable` lo consume **sin depender de `viz/` ni
+de `networkx`** (mismo criterio de vendorizado que `asistente/athena.py`
+respecto a `grafo/`): así el asistente se despliega sin arrastrar el
+toolchain de visualización.
 
 Contiene: el grafo (nodos + adyacencia con `length_m`), la exposición
 prevista por nodo/día/hora (tráfico h1, NO₂, O₃) de
