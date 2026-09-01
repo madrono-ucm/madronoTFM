@@ -47,7 +47,10 @@ sugerido por valor (lo más visible / lo más leído primero):
 - [x] **`viz/`** — `build_mapa_animado.py` (+ `_TEMPLATE` → strip `FIL_NN`
       del `index.html` público), `rutas.py`, `build_grafo_*.py`,
       `export_gold_slices.py`, `build_prevision_animada.py`.  *(lote 1)*
-- [ ] `asistente/` — servidor MCP, routers, los 14 tools, modelos.
+- [x] **`asistente/`** — ya estaba a nivel producción; solo se reescribió
+      la primera línea del docstring de `contexto_urbano.py` /
+      `mejor_hora_zona.py` / `ruta_saludable.py` (lideraban con `FIL_NN —`).
+      El resto de comentarios explican el porqué y son frases completas.  *(lote 2)*
 - [ ] `modelado/` — features, training, evaluation, export, estudios.
 - [ ] `ingesta/` — `capturas/`, `BronzeWriter`, `secretos.py`.
 - [ ] `procesamiento/` — `silver_gold/`, suites GE.
