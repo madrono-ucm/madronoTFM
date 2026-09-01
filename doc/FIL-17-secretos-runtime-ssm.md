@@ -70,8 +70,10 @@ configuración (URLs, códigos de municipio…) siguen como env normales.
 ## Estado: APLICADO Y VERIFICADO (2026-09-01)
 
 `terraform apply` con `-target` ejecutado desde la pista interactiva
-(profile `madrono`, `arn:.../madrono-terraform-deployer`), junto con la
-reanudación del pipeline (`pipeline_enabled=true`, decisión del usuario):
+(profile `madrono`, `arn:.../madrono-terraform-deployer`). El pipeline se
+reanudó ~24 min para verificar end-to-end y **se volvió a congelar**
+(`pipeline_enabled=false`) — este cambio de Lambda **se queda aplicado**,
+no depende del interruptor:
 
 ```
 aws_iam_policy.ingestion_lambda_secrets          # creado

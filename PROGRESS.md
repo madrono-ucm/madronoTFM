@@ -32,21 +32,25 @@ GitHub Pages; arreglarlos y seguir con lo pendiente.
    headless jsdom (51 controles, 0 excepciones). `gh-pages` republicado
    (commit `685bb6d`), sitio en vivo verificado.
 
-2. **Reanudación del pipeline** (`pipeline_enabled=true`, decisión del
-   usuario tras 32 días congelado) + **`FIL_16`/`FIL_17`** aplicados con
-   `terraform apply -target` (profile `madrono`):
+2. **`FIL_16`/`FIL_17`** aplicados con `terraform apply -target` (profile
+   `madrono`), con una **ventana breve de reanudación del pipeline** (~24
+   min, `pipeline_enabled=true` → `apply` → verificación → `false` →
+   `apply`) para poder verificar `FIL_17` end-to-end:
    - **`FIL_17` ✅ aplicado y verificado**: los 4 productores con secreto
      ya no llevan credenciales en claro en el env de la Lambda (sólo
-     `*_SSM_PATH`); política `ssm:GetParameter` acotada a los 6 ARNs.
-   - **Unfreeze ✅**: ~23 `aws_scheduler_schedule` → `ENABLED`, ~26
-     `aws_glue_trigger` → `ACTIVATED`. La ingesta vuelve a acumular dato y
-     a gastar (~16 días para la entrega).
-   - **`FIL_16` ⚠️ parcial**: la regla EventBridge `glue-job-failed` está
-     creada y `ENABLED`, pero el topic SNS falló —
-     `madrono-terraform-deployer` no tiene permisos SNS (único servicio sin
-     `*FullAccess`). Falta `AmazonSNSFullAccess` en el usuario IAM (el
-     clasificador bloqueó adjuntarla) y re-aplicar 3 recursos. Ver
-     `doc/FIL-16`.
+     `*_SSM_PATH`); política `ssm:GetParameter` acotada a los 6 ARNs. Test
+     invoke real de `cams_calidad_aire` → `200`, 16 registros a Bronze
+     leyendo la clave de SSM. **Se queda aplicado** (no depende del freeze).
+   - **Pipeline: RE-CONGELADO** (`pipeline_enabled=false`, decisión del
+     usuario). Durante la ventana: ~23 `aws_scheduler_schedule` →
+     `ENABLED`/`DISABLED`, ~27 `aws_glue_trigger` → `ACTIVATED`/
+     `DEACTIVATED`. Estado final = **congelado**, verificado (`terraform
+     plan` sin cambios, schedules `DISABLED`, triggers `DEACTIVATED`).
+   - **`FIL_16` ⚠️ parcial** (aceptado por el usuario): la regla
+     EventBridge `glue-job-failed` está creada y `ENABLED`; el topic SNS no
+     se aplicó — `madrono-terraform-deployer` no tiene permisos SNS (único
+     servicio sin `*FullAccess`). El usuario decide que basta con el diseño
+     + la regla; el canal SNS no es trabajo pendiente. Ver `doc/FIL-16`.
    - El `apply` full traía además Kafka (deliberadamente sin aplicar) y un
      rebuild de la layer Lambda (drift de `ingesta/requirements.txt` por
      `defusedxml`) → se excluyeron con `-target`.
