@@ -1,18 +1,25 @@
-"""FIL_37 (M6) — `ruta_saludable`: enrutado multi-objetivo sobre el grafo de
-Madrid con coste de arista = distancia + exposición **prevista** (tráfico,
-NO₂, O₃, ruido), ponderada por perfil.
+"""Enrutado saludable: la ruta que minimiza distancia + exposición.
 
-- Grafo: `viz/grafo_madrid.json` (`coords-knn8`, 1.798 nodos).
-- Exposición por nodo y hora: `viz/data/prevision_animada.parquet`.
-- Perfiles: `general`, `ciclista`, `sensible_aire`, `sensible_ruido`.
+Calcula, sobre el grafo de Madrid, la ruta entre dos lugares que hace el
+mejor compromiso entre distancia y exposición **prevista** al tráfico, NO₂,
+O₃ y ruido, ponderando cada señal según un perfil de sensibilidad. Para
+cada consulta devuelve también la ruta puramente rápida como referencia.
 
-Escribe `viz/mapa/rutas.json` (rutas precomputadas para la capa E3 del mapa)
-y expone `ruta()` / `mejor_hora()` / `pareto()` para el resto (tests, un
-posible tool MCP, la memoria §7).
+Entradas (todo local, sin red ni credenciales):
+
+- `viz/grafo_madrid.json` — el grafo (`coords-knn8`, 1.798 nodos).
+- `viz/data/prevision_animada.parquet` — la exposición por nodo y hora.
+- `PERFILES` — el vector de pesos por señal de cada perfil, compartido con
+  la capa social del mapa.
+
+`main()` precomputa `viz/mapa/rutas.json` para la capa de rutas del mapa.
+`ruta()`, `mejor_hora()` y `pareto()` quedan expuestas para los tests, la
+herramienta MCP `ruta_saludable` y la figura de la memoria (§7).
 
     python -m viz.rutas
 
-Cero red, cero credenciales.
+Origen y comparativa Pareto en `doc/FIL-37`; la corrección de la métrica de
+reducción de exposición, en `doc/FIL-43`.
 """
 
 from __future__ import annotations
@@ -32,7 +39,8 @@ _GRAFO = json.loads((_VIZ / "grafo_madrid.json").read_text(encoding="utf-8"))
 _PARQUET = _VIZ / "data" / "prevision_animada.parquet"
 _OUT = _VIZ / "mapa" / "rutas.json"
 
-# lugar -> (lat, lon). Referencias conocidas; el enrutado usa el nodo más cercano.
+# Lugares de referencia como origen/destino, cada uno (lat, lon). El
+# enrutado no exige que caigan sobre un nodo: usa el nodo más cercano.
 LUGARES = {
     "Atocha": (40.4066, -3.6895),
     "Sol": (40.4169, -3.7033),
@@ -50,33 +58,37 @@ LUGARES = {
     "Ventas": (40.4319, -3.6636),
 }
 
-# perfil -> pesos (dist en km; exposición normalizada 0..~1 por señal)
-# Un perfil = un vector de pesos por señal. Compartido por `ruta_saludable`
-# (FIL_37) y la capa social del mapa (FIL_45). `dist` solo lo usa el
-# enrutado; la capa social usa los pesos de señal.
+# Cada perfil es un vector de pesos por señal: `dist` en km, el resto sobre
+# la exposición ya normalizada a 0..~1. Solo el enrutado usa `dist`; la capa
+# social del mapa reutiliza los pesos de señal. Los 4 primeros perfiles son
+# de `ruta_saludable`; los 5 siguientes se añadieron para la capa social.
 PERFILES = {
     "general":            {"dist": 1.0, "traf": 0.30, "no2": 0.30, "o3": 0.20, "noise": 0.20},
     "ciclista":           {"dist": 0.6, "traf": 0.50, "no2": 0.60, "o3": 0.40, "noise": 0.40},
     "sensible_aire":      {"dist": 0.8, "traf": 0.20, "no2": 0.90, "o3": 0.70, "noise": 0.20},
     "sensible_ruido":     {"dist": 0.8, "traf": 0.30, "no2": 0.30, "o3": 0.20, "noise": 0.90},
-    # FIL_45 — perfiles de sensibilidad
     "asma_epoc":          {"dist": 0.7, "traf": 0.20, "no2": 1.00, "o3": 0.85, "noise": 0.20},
     "mayor":              {"dist": 0.9, "traf": 0.25, "no2": 0.55, "o3": 0.70, "noise": 0.45},
     "infancia":           {"dist": 0.8, "traf": 0.55, "no2": 0.75, "o3": 0.55, "noise": 0.35},
     "movilidad_reducida": {"dist": 1.3, "traf": 0.35, "no2": 0.45, "o3": 0.35, "noise": 0.80},
     "trabajo_exterior":   {"dist": 0.5, "traf": 0.40, "no2": 0.75, "o3": 0.75, "noise": 0.50},
 }
-_NORM = {"traf": 300.0, "no2": 200.0, "o3": 180.0, "noise": (45.0, 75.0)}  # traf en unidades *100
+# Denominadores para normalizar cada señal a 0..1: un techo por señal, salvo
+# el ruido, que se escala entre (silencioso, ruidoso) en dB. El tráfico llega
+# multiplicado por 100 (nivel de servicio ~0-3 → ~0-300), como en el mapa.
+_NORM = {"traf": 300.0, "no2": 200.0, "o3": 180.0, "noise": (45.0, 75.0)}
 
 
 def _grafo_nx() -> "tuple[nx.Graph, dict]":
+    """El grafo como `networkx.Graph` restringido a su componente conexa
+    mayor (el grafo `coords-knn8` deja ~137 nodos sueltos que romperían
+    `shortest_path`). Devuelve también el lookup id -> (lat, lon)."""
     g = nx.Graph()
     coord = {n["id"]: (n["lat"], n["lon"]) for n in _GRAFO["nodos"]}
     for n in _GRAFO["nodos"]:
         g.add_node(n["id"], lat=n["lat"], lon=n["lon"], distrito=n["distrito"])
     for e in _GRAFO["aristas"]:
         g.add_edge(e["a"], e["b"], length_m=e["length_m"])
-    # trabajar en la componente conexa mayor (coords-knn8 deja ~137 sueltos)
     mayor = max(nx.connected_components(g), key=len)
     return g.subgraph(mayor).copy(), coord
 
@@ -111,12 +123,16 @@ def _n(sig: str, v: float) -> float:
 
 
 def _coste_arista(u, v, exp_h, w) -> float:
+    """Término de exposición del coste de una arista (u, v) a una hora dada:
+    media de la exposición normalizada de los dos extremos por señal,
+    ponderada por el perfil. El término de distancia se suma fuera, en
+    `_ruta_con_pesos`, porque necesita `length_m`."""
     eu, ev = exp_h.get(u, {}), exp_h.get(v, {})
     expo = 0.0
     for sig in ("traf", "no2", "o3", "noise"):
         m = 0.5 * (_n(sig, eu.get(sig, 0.0)) + _n(sig, ev.get(sig, 0.0)))
         expo += w[sig] * m
-    return expo  # + término de distancia se añade fuera (necesita length_m)
+    return expo
 
 
 def _ruta_con_pesos(g, exp_h, w, o, d):

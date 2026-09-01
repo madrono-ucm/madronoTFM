@@ -1,7 +1,8 @@
-"""FIL_32 — grafo canónico de Madrid: el artefacto que comparten la
-visualización animada (`FIL_34`) y, si se hace, `ruta_saludable` (`FIL_37`).
+"""Construye el grafo canónico de Madrid (`viz/grafo_madrid.json`).
 
-Se deriva de lo que **ya usan los modelos** — sin construir un grafo nuevo:
+Es el artefacto único que comparten la visualización animada y el enrutado
+saludable, para que ambos hablen del mismo grafo. Se deriva de lo que **ya
+usan los modelos**, sin construir un grafo nuevo:
 
 - nodos + coordenadas + grafo `coords-knn8`: de
   `asistente/modelos/stgnn_trafico.meta.json` (`node_coords`, `edge_index`,

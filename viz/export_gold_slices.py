@@ -1,6 +1,8 @@
-"""G1 — congela las ventanas de Gold que la animación necesita **antes** de
-que la partition projection deslizante deje de generarlas (ver
-`viz/PROGRESO_MAPA.md`, gap G1).
+"""Congela en el repo las ventanas de Gold que la animación necesita.
+
+Se ejecuta una sola vez, **antes** de que la partition projection deslizante
+de Athena deje de exponer esas particiones de agosto (ver `viz/PROGRESO_MAPA.md`,
+gap G1). A partir de aquí toda la cadena de `viz/` trabaja offline.
 
 Lee de Athena (workgroup `madrono-tfm-dev-silver-gold`, DB Gold) vía
 `UNLOAD ... TO s3://.../gold_slices/` en Parquet, sincroniza a
