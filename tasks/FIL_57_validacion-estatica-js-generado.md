@@ -2,10 +2,30 @@
 kind: fil
 title: "Mapa animado — validación estática del JS generado en el build (node --check + lint del _TEMPLATE)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 depends_on: [FIL_55]
+resolved_at: "2026-09-01"
 ---
+
+## Resolución (2026-09-01)
+
+En `viz/test/mapa.test.mjs`, junto con FIL_56:
+
+1. **Sintaxis**: se extrae el `<script>` inline del `index.html`, se
+   antepone `const deck = {}, maplibregl = {};` (los globales del CDN) y se
+   pasa por `node --check`. Un error de tecleo en el `_TEMPLATE` de
+   `viz/build_mapa_animado.py` deja de publicarse.
+2. **`id` ↔ `getElementById`**: cada `getElementById("x")` del HTML tiene
+   que tener su `id="x"`. Habría cazado el `onClick`/`id` perdido de la
+   reescritura de FIL_47.
+
+Corre en el job `mapa` de CI (`node --test`). No se añadió `eslint`: el
+par `node --check` + el chequeo de `id` cubre las dos clases de error que
+han aparecido de verdad (sintaxis y referencia a `id` inexistente) sin
+meter una config de lint nueva. El chequeo dentro de `build_mapa_animado.py`
+en sí no se añadió — el test sobre el `index.html` del repo es equivalente
+y no obliga a tener `node` para poder hacer el build.
 
 ## Contexto
 
