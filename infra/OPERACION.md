@@ -109,6 +109,25 @@ AWS_PROFILE=madrono terraform apply                       # o con -target=...
 Usa `-target=<recurso>` cuando `terraform plan` muestre drift no relacionado
 con tu cambio (p. ej. otras tareas fusionadas entre medias).
 
+> **⚠️ NO hagas `terraform apply` sin `-target` con el estado actual** (drift
+> conocido, `FIL_60` + adenda de `VIC_33`). Un `apply` completo hoy:
+>
+> - **quita la layer de dependencias de las 16 Lambdas productoras**
+>   (`~ layers = [ - "...ingesta-dependencies:1" ]` sin `+`), porque
+>   `var.lambda_dependencies_layer_arn` está en `null` en el `.tfvars` local
+>   de la EC2 (`lambda.tf:546` → `layers = ... == null ? [] : [...]`).
+>   Rompería el `import` de `netCDF4` y demás dependencias que van en la
+>   layer, no en el `.zip` de código. Con el pipeline congelado no se
+>   ejecuta, pero es un incidente a un `apply` de distancia.
+> - crea el stack de **Kafka** (`kafka.tf`, sin aplicar a propósito).
+> - reconstruye la **layer** (`aws_s3_object.layer_build_source` replace +
+>   CodeBuild) — `defusedxml` de `FIL_41` aún no está en la layer desplegada.
+> - toca ~35 `aws_s3_object.glue_script_*` (ruido benigno de fin de línea).
+>
+> Para reanudar la ingesta: primero reconstruir la layer (abajo) **y fijar
+> `lambda_dependencies_layer_arn`** al ARN de la nueva versión en el
+> `.tfvars`; solo entonces un `apply` es seguro.
+
 ### CodeBuild — Lambda Layer de dependencias
 
 `infra/terraform/lambda_layer_build.tf`:
@@ -123,6 +142,17 @@ Construye la layer desde `ingesta/requirements.txt` sobre
 `aws codebuild start-build --project-name madrono-tfm-dev-lambda-dependencies-layer`;
 3) segundo `apply` crea `aws_lambda_layer_version`. Solo hace falta rehacerlo
 si cambian las dependencias de `ingesta/requirements.txt`.
+
+**Estado 2026-09-01 (`FIL_60`, opción B — aplazado):** `ingesta/requirements.txt`
+cambió (`defusedxml`, `FIL_41`) y la layer desplegada aún no lo tiene. El
+**código** de `FIL_40`/`FIL_41` sí está en el `.zip` de las funciones (lo
+desplegó el `apply` de `FIL_17`), pero `defusedxml` es una dependencia que
+vive en la **layer**, no en el `.zip`: hasta rehacer la layer, un productor
+que llegue al `import defusedxml` daría `ImportError`. Con el pipeline
+congelado no se ejecuta, así que no rompe nada hoy. **Antes de reanudar la
+ingesta**: rehacer la layer con el flujo de dos `apply` de arriba **y**
+fijar `lambda_dependencies_layer_arn` en el `.tfvars` al ARN de la nueva
+versión (ver el aviso ⚠️ de la sección Terraform).
 
 ## Desplegar un productor nuevo de principio a fin
 
