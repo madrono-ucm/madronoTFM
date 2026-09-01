@@ -67,11 +67,37 @@ configuración (URLs, códigos de municipio…) siguen como env normales.
   comportamiento en los tests que fijan la var directamente.
 - `terraform validate` + `fmt -check` OK.
 
-## Estado: aplicado en el código, `terraform apply` pendiente
+## Estado: APLICADO Y VERIFICADO (2026-09-01)
 
-Igual que `FIL_16`: el pipeline está congelado (`pipeline_enabled=false`),
-las Lambda no se ejecutan. Al reanudar la ingesta, antes o junto al
-`apply` general:
+`terraform apply` con `-target` ejecutado desde la pista interactiva
+(profile `madrono`, `arn:.../madrono-terraform-deployer`), junto con la
+reanudación del pipeline (`pipeline_enabled=true`, decisión del usuario):
+
+```
+aws_iam_policy.ingestion_lambda_secrets          # creado
+aws_iam_role_policy_attachment.ingestion_lambda_secrets  # adjunto a madrono-tfm-dev-ingestion-role
+aws_lambda_function.producer  (16)               # env actualizado
+```
+
+Verificado contra AWS real:
+
+- `aws lambda get-function-configuration` de los 4 productores con secreto
+  → **sólo `BRONZE_BASE_PATH` + `*_SSM_PATH`**, cero valores en claro:
+  - `aemet_prevision_avisos` → `AEMET_API_KEY_SSM_PATH`
+  - `bluesky_menciones` → `BLUESKY_APP_PASSWORD_SSM_PATH` + `BLUESKY_IDENTIFIER_SSM_PATH`
+  - `cams_calidad_aire` → `CAMS_ADS_API_KEY_SSM_PATH`
+  - `transporte_publico_emt` → `EMT_PASS_KEY_SSM_PATH` + `EMT_CLIENT_ID_SSM_PATH`
+- Política `madrono-tfm-dev-ingestion-lambda-secrets` = `ssm:GetParameter`
+  sobre los **6 ARNs concretos** de SSM, sin comodines.
+- Nombres reales de función: guion **bajo** (`madrono-tfm-dev-aemet_prevision_avisos`),
+  no guion medio como decía el ejemplo de abajo.
+- Los otros 12 productores comparten el mismo `.zip` de código, así que su
+  `source_code_hash` también subió: despliega de paso la higiene de ingesta
+  ya mergeada (`FIL_40`/`FIL_41`: `partition_dir` + `defusedxml`).
+
+### Comando aplicado (referencia)
+
+Al reanudar la ingesta, antes o junto al `apply` general:
 
 ```bash
 cd infra/terraform
