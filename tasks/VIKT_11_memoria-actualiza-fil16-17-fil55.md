@@ -96,3 +96,54 @@ corrige**):
   `PLAN.md` §"Memoria — reparto"). No editar a la vez que `VIKT_09`/`10`.
 - Requiere que `VIC_33` haya verificado el estado de AWS primero.
 - `VIKT_*` añade y corrige; no reabrir §5.2 / §6 / Tabla 3.
+
+## Adenda QA (Claude, 2026-09-01) — `VIC_33` ya cerró; evaluación de
+## disponibilidad real antes de tocar el `.docx`, no una redacción lista
+
+`VIC_33` cerró hoy (`doc/VIC-33-eval-fil16-17-terraform.md`): `FIL_17`
+verificado como aplicado y correcto (sin secretos en claro, IAM de
+mínimo privilegio con los 6 ARNs exactos, ruta de código correcta),
+`FIL_16` verificado como parcial-aceptado (regla `ENABLED`, sin
+`Targets`, sin topic SNS), pipeline congelado confirmado (23/23
+schedulers `DISABLED`, 27/27 triggers `DEACTIVATED`). Este ticket ya
+puede afirmar "verificado" con base real, no solo con lo que reportó la
+sesión interactiva.
+
+**Pero, con lectura real del `.docx` actual (solo lectura, sin editar
+—`python-docx` en modo lectura no está bloqueado igual que la escritura,
+comprobado hoy)**: el `.docx` está **más atrasado** de lo que este ticket
+asume. Ninguna de las palabras "SNS", "notificaci[ón]", "correo",
+"aviso", "congelad[o]", "SSM", "credencial", "secreto" ni "mapa animado"
+aparece en ninguno de los 145 párrafos del documento. Es decir:
+
+- No hay ningún párrafo de gestión de secretos que "corregir" en §5/§6 —
+  hay que **añadir uno nuevo**, no editar uno existente.
+- §7.4 (párrafos 108-118, "Limitaciones identificadas") **no** contiene
+  ningún punto sobre alertado/observabilidad de Glue — el punto que
+  `VIKT_09` citaba (antes en el párrafo 116 de esa sesión) no está en el
+  `.docx` real de hoy, confirma que **ninguna de las ediciones de
+  `VIKT_07`/`VIKT_09` se ha aplicado todavía** (ambas siguen en
+  `status: done` porque el *redactado* estaba listo, no porque se
+  aplicara — mismo patrón ya visto: "Claude prepara, un humano aplica").
+- No existe ninguna sección "Visualización animada del grafo" — el
+  párrafo 130 (§7.5) sigue diciendo literalmente *"Exportar el STGNN a
+  ONNX: hoy bloqueado..."* y el 131 sigue diciendo *"...hoy sin
+  implementar en el panel de entrenamiento"* — la redacción **original**,
+  de antes incluso de `FIL_20`/`FIL_26`/`ML_01`. `FIL_36` (la sección del
+  mapa) tampoco se ha aplicado.
+
+**Implicación práctica**: los índices de párrafo de este ticket (y de
+`VIKT_05`/`07`/`09`) van a **desplazarse** en cuanto se aplique cualquier
+inserción — no tiene sentido fijar aquí "párrafo N: dice X, debería decir
+Y" con precisión falsa cuando ni siquiera existe el párrafo de destino
+todavía. **Recomendación de orden de aplicación** (para quien coja esto):
+1º `VIKT_07`/`09` (correcciones a texto ya existente, más simple, no
+depende de nada más), 2º `FIL_36` (añade la sección del mapa), 3º recién
+entonces este ticket (`VIKT_11`, que depende de contenido que los 2
+anteriores todavía no han creado). Aplicar `VIKT_11` antes que eso sería
+insertar contenido sobre secretos/alertado sin nada que lo referencie
+todavía en el hilo narrativo de §5-7.
+
+No se marca `status: done` — sigue bloqueado por la edición real del
+`.docx`, y además ahora se sabe que tiene dependencias de orden más
+estrictas de las que su propio `depends_on` declara.
