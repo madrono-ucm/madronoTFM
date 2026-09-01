@@ -1,5 +1,7 @@
-"""FIL_46 — `mejor_hora_zona`: acceso en lenguaje natural a la **capa social**
-del mapa animado (`FIL_45`).
+"""`mejor_hora_zona`: en qué franja del día conviene salir por una zona.
+
+Da acceso en lenguaje natural a la capa social del mapa animado (la que
+introdujo `FIL_45`). Añadida en `FIL_46`.
 
 Resuelve una zona de Madrid escrita en texto libre («Vallecas», «distrito
 centro», «13») a uno de los 21 distritos y hace el barrido **«mejor hora
