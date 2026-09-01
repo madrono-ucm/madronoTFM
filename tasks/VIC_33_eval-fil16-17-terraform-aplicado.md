@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación técnica ronda 7 — verificación independiente del terraform apply de FIL_16/FIL_17 + re-congelación"
 owner: Claude (QA)
-status: pending
+status: done
 depends_on: []
 ---
 
@@ -92,3 +92,26 @@ del 2026-09-01).
 - Solo lectura. Nada de `terraform apply` ni `aws` mutante.
 - Si algún comando `aws` lo bloquea el clasificador de auto-mode: anotarlo
   y seguir con el resto; no buscar rodeos.
+
+## Hecho (2026-09-01, Claude QA)
+
+Los 9 puntos verificados con comandos y salida reales de hoy contra AWS.
+7/9 confirman exactamente lo documentado por la sesión del 2026-09-01
+(secretos, IAM, ruta de código, pipeline congelado, `FIL_16` parcial,
+`fmt`/`validate`, coste de la ventana, integridad del `source_code_hash`).
+
+**Punto 6 (cero drift colateral) no se sostiene tal cual estaba escrito**:
+el `terraform plan` completo real da 9/54/1, no los ~10 recursos
+esperados. Investigado hasta la causa raíz (no solo reportado el
+número): un único hilo causal (`var.lambda_dependencies_layer_arn=null`,
+ya documentado en `lambda_layer_build.tf` y con ticket propio `FIL_60`)
+cascada en 16 `aws_lambda_function.producer` perdiendo su referencia a la
+layer (sin reemplazo — riesgo real si alguien aplica sin `-target`) y en
+que `aws_iam_policy.scheduler_invoke_lambda` no se había estabilizado
+como `VIC_33` esperaba. Añadido como adenda a `FIL_60` (mismo drift,
+alcance ampliado) en vez de abrir un ticket separado. Los ~35
+`aws_s3_object.glue_script_*` restantes son ruido benigno de fin de
+línea, verificado con el diff real de uno de ellos.
+
+Detalle completo en
+[`doc/VIC-33-eval-fil16-17-terraform.md`](../doc/VIC-33-eval-fil16-17-terraform.md).
