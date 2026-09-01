@@ -38,6 +38,7 @@ el chat antes de tocarlo y hacer `git pull` primero.
 | `VIKT_08` | **Auditoría de reproducibilidad**: clon limpio → cada tabla/figura de §7 regenerada; arreglar drift; verificar `doc/README.md`. Extiende `VIKT_04` | Sí (anexo) | ⬜ pendiente |
 | `VIKT_09` | **Pasada final memoria↔código** en el commit de entrega (post `FIL_11`–`FIL_19` + congelación). Metodología de `VIKT_01` | Sí | ⬜ pendiente — última antes de `VIKT_10` |
 | `VIKT_10` | **Revisión editorial humana** del `.docx` + **preparación de la defensa** (guion + Q&A: por qué no Kafka / por qué congelado / por qué STGNN no servido) | Sí | ⬜ pendiente — requiere humano |
+| `VIKT_11` | Incorporar los **deltas del 2026-09-01**: `FIL_17` (secretos runtime) pasó de "diseñado" a aplicado+verificado; `FIL_16` observabilidad parcialmente desplegada (regla EventBridge activa, sink SNS diferido); `FIL_55` arregló el panel de resumen del mapa publicado; ventana de re-congelación del pipeline | Sí | ⬜ pendiente — depende de `VIC_33` (verificación AWS) y coordina con `VIKT_09` |
 
 ## Fuentes técnicas (leer antes de escribir)
 
