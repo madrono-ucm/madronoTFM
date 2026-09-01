@@ -1,8 +1,11 @@
-"""FIL_33 (M2) — `viz/data/prevision_animada.parquet`: por nodo y hora, la
-señal observada y la prevista por los dos STGNN de grafo, más el índice de
-salud compuesto que colorea el mapa animado.
+"""Construye `viz/data/prevision_animada.parquet`, el sustrato de la animación.
 
-Entrada: los slices congelados en `viz/data/gold_slices/` (G1) + los ONNX
+Para cada nodo y hora: la señal observada, la prevista por los dos STGNN de
+grafo (tráfico y calidad del aire) y el índice de salud compuesto que
+colorea el mapa. Es lo que consumen tanto el mapa animado como el enrutado
+saludable.
+
+Entrada: los cortes congelados en `viz/data/gold_slices/` más los ONNX
 vendorizados (`asistente/prevision_grafo.py`, sin `torch`). Cero red.
 
     python -m viz.build_prevision_animada
