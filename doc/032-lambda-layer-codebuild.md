@@ -280,3 +280,21 @@ inofensivo, no un error).
   (`environment.type = "LINUX_CONTAINER"` + `BUILD_GENERAL1_SMALL` con una
   imagen `LINUX_CONTAINER` normal, no la variante `*-lambda-standard`, que
   es exclusiva del compute Lambda).
+
+## Drift conocido 2026-09-01 (`FIL_60`, opción B)
+
+`ingesta/requirements.txt` cambió (`defusedxml`, `FIL_41`) y `FIL_17` volvió
+a desplegar el `.zip` de código de las 16 Lambdas, así que un `terraform
+plan` completo muestra ahora `aws_s3_object.layer_build_source` (replace) +
+`aws_codebuild_project.lambda_dependencies_layer` (update). Además, como
+`lambda_dependencies_layer_arn` sigue en `null` en el `.tfvars` local que se
+usa para aplicar, el estado deseado real es "sin layer" y un `apply` sin
+`-target` **quitaría la layer de las 16 funciones** (verificado en
+`VIC_33`).
+
+**Decisión (usuario, 2026-09-01):** aplazar. El pipeline está congelado, las
+Lambdas no corren, así que el `ImportError` de `defusedxml` no se
+materializa. Al reanudar la ingesta: rehacer la layer con el flujo de dos
+`apply` de arriba **y** fijar `lambda_dependencies_layer_arn` al ARN de la
+nueva versión antes de cualquier `apply` sin `-target`. Aviso replicado en
+`infra/OPERACION.md` (secciones Terraform y CodeBuild).
