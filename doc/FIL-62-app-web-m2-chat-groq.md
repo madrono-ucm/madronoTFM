@@ -1,8 +1,9 @@
 # FIL_62 (M2) — chat en lenguaje natural (Groq) + frontend en S3/CloudFront
 
 Ejecutado 2026-09-02, sobre el despliegue real de `FIL_63` (M1). Verificado
-en vivo contra `https://35.42.164.183` (backend) y
-`https://d2obcdu8duk47f.cloudfront.net` (frontend), no solo en local.
+en vivo contra `https://35-42-164-183.nip.io` (backend, IP real
+`35.42.164.183`) y `https://d2obcdu8duk47f.cloudfront.net` (frontend), no
+solo en local.
 
 ## Qué se hizo
 
@@ -40,7 +41,7 @@ en vivo contra `https://35.42.164.183` (backend) y
    solo esa distribución concreta puede leer el bucket (`AWS:SourceArn`
    restringido en la bucket policy), sin acceso público directo a S3.
 
-## Dos bugs reales encontrados y arreglados en el camino
+## Tres bugs reales encontrados y arreglados en el camino
 
 - **Modelo de Groq deprecado**: `llama-3.3-70b-versatile` (elegido en el
   encuadre original de `FIL_62`) devolvía `404 model_not_found` en la
@@ -74,6 +75,32 @@ en vivo contra `https://35.42.164.183` (backend) y
   `Access-Control-Allow-*`) — evita duplicar la lógica CORS a mano en
   nginx. El `POST` real (con credenciales) sigue pasando por `auth_basic`
   con normalidad.
+- **Certificado autofirmado bloqueaba el login en silencio** (reportado
+  por el usuario tras el primer despliegue): el login (`demo`/`demo`) daba
+  siempre "usuario o contraseña incorrectos" pese a ser correctas.
+  Reproducido con Playwright (Chromium real, headless) contra la URL
+  pública de CloudFront: la petición `fetch()` a
+  `https://35.42.164.183/health` fallaba con
+  `net::ERR_CERT_AUTHORITY_INVALID` — un error de red, no de credenciales,
+  que el `catch` del login traducía (incorrectamente) en "usuario o
+  contraseña incorrectos". A diferencia de navegar directamente a la IP
+  (donde el navegador muestra un aviso clicable para aceptar el
+  certificado), un `fetch()` en segundo plano contra un certificado no
+  confiable falla sin ninguna forma de que el usuario lo acepte —
+  **el bug era inherente a tener el frontend en un origen distinto**, no
+  visible al probar M1 con `curl -k` o navegando a la IP directamente.
+  Arreglado obteniendo un **certificado real de Let's Encrypt**: como
+  Let's Encrypt exige un nombre DNS (no una IP desnuda) y esta EC2 no
+  tiene dominio propio, se usó `nip.io` (servicio DNS comodín público y
+  gratuito: `35-42-164-183.nip.io` resuelve a `35.42.164.183` sin
+  necesidad de configurar nada) — mismo IP, cero coste, cero
+  infraestructura nueva. `certbot certonly --webroot` (sin parar nginx,
+  con una `location /.well-known/acme-challenge/` añadida al bloque del
+  puerto 80) emitió el certificado; `web/index.html` y toda la
+  documentación se actualizaron para usar `https://35-42-164-183.nip.io`
+  en vez de la IP. Verificado con Playwright tras el fix: login y un
+  turno de chat completo funcionan de principio a fin contra la URL
+  pública real.
 
 ## Verificado en vivo (no solo en local)
 
@@ -100,17 +127,19 @@ en vivo contra `https://35.42.164.183` (backend) y
 - Neo4j sin credenciales en el `systemd` (documentado en `FIL_63`) — sigue
   sin resolverse; afecta a las tools de grafo tanto por HTTP directo como
   por el chat.
-- Certificado TLS real (Let's Encrypt) si se decide poner un dominio propio
-  — hoy autofirmado en el backend; CloudFront sí sirve con certificado
-  válido de AWS en su propio dominio `*.cloudfront.net`.
-- Infraestructura de S3/CloudFront aplicada a mano vía AWS CLI, no en
-  Terraform — mismo criterio ya asumido para la EC2 en `FIL_63` (esta parte
-  del proyecto no está gestionada por Terraform); queda como gap conocido,
-  no bloqueante para la demo.
+- Infraestructura de S3/CloudFront/certificado aplicada a mano vía AWS CLI
+  y `certbot`, no en Terraform — mismo criterio ya asumido para la EC2 en
+  `FIL_63` (esta parte del proyecto no está gestionada por Terraform);
+  queda como gap conocido, no bloqueante para la demo. `certbot` sí dejó
+  configurada la renovación automática del certificado.
+- `nip.io` es un servicio DNS público de terceros fuera del control del
+  proyecto — si algún día deja de resolver, el certificado y el `API` del
+  frontend habría que moverlos a un dominio propio real.
 
 ## Acceso
 
 - Frontend: `https://d2obcdu8duk47f.cloudfront.net` — usuario `demo`,
   contraseña `demo`.
-- Backend directo (Swagger, `/docs`): `https://35.42.164.183` — mismas
-  credenciales, certificado autofirmado (aviso de navegador esperado).
+- Backend directo (Swagger, `/docs`): `https://35-42-164-183.nip.io` —
+  mismas credenciales, certificado real de Let's Encrypt (sin aviso de
+  navegador).

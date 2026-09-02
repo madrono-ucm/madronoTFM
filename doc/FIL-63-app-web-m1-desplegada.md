@@ -10,11 +10,15 @@ Ejecutado 2026-09-02, contra la EC2 real (`i-0aa45f0df26b4b7e6`,
    `ubuntu`, `Restart=always`, mismo patrón operativo que
    `madrono-agent.service`. `enabled` (sobrevive a un reboot).
 2. **`nginx`** como proxy inverso (instalado vía `apt`, no estaba):
-   - TLS autofirmado (`openssl req -x509`, 825 días) — no hay dominio
-     propio apuntando a la IP, así que se optó por autofirmado en vez de
-     Let's Encrypt (que necesita un dominio real para el reto ACME). El
-     navegador avisará de certificado no confiable — aceptable para una
-     demo de TFM, documentado aquí explícitamente.
+   - TLS autofirmado inicialmente (`openssl req -x509`, 825 días) — no
+     había dominio propio apuntando a la IP, así que se optó por
+     autofirmado en vez de Let's Encrypt (que necesita un dominio real
+     para el reto ACME). **Sustituido en M2 por un certificado real** (ver
+     `doc/FIL-62-app-web-m2-chat-groq.md`) tras confirmar que el cert
+     autofirmado rompía en silencio el `fetch()` del frontend en
+     S3/CloudFront (`ERR_CERT_AUTHORITY_INVALID`, sin aviso clicable como
+     al navegar directamente a la IP). Acceso actual:
+     `https://35-42-164-183.nip.io`, no la IP desnuda.
    - **HTTP Basic Auth** (`demo`/`demo`, vía `htpasswd`) en el bloque
      `server`, cero código nuevo en `asistente/`.
    - Redirección 80→443.
@@ -85,5 +89,6 @@ acceso a esas credenciales.
 
 ## Acceso
 
-`https://35.42.164.183/` — usuario `demo`, contraseña `demo`. Certificado
-autofirmado (aviso de navegador esperado).
+`https://35-42-164-183.nip.io/` — usuario `demo`, contraseña `demo`.
+Certificado real de Let's Encrypt desde M2 (ver
+`doc/FIL-62-app-web-m2-chat-groq.md`), sin aviso de navegador.
