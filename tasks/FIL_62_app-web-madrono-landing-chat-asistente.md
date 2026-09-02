@@ -42,39 +42,41 @@ decidir con criterio antes de tocar código.
 - **No hay CORS ni autenticación en `asistente/main.py`** hoy — si se
   expusiera tal cual, sería una API abierta.
 
-## El punto que cambia la conversación de coste del proyecto
+## Decidido con el usuario (2026-09-02): LLM vía Groq, coste $0
 
 Todo Madroño, hasta ahora, mantiene **coste cero real** (Free tier de
 AWS/AuraDB, datos abiertos, sin claves de pago). Un chat en lenguaje
 natural de verdad necesita un LLM que decida qué tool llamar y redacte la
-respuesta — eso **sí tiene coste real por mensaje** (tokens de la API de
-Anthropic o equivalente), la primera pieza de todo el proyecto que rompe
-esa racha. Conviene decidirlo explícitamente, no que aparezca como
-sorpresa:
+respuesta — era la primera pieza del proyecto con riesgo de coste real
+por mensaje. Se descartó auto-hospedar (Ollama) sobre la EC2 del daemon:
+verificado en vivo que es una `t3.medium` (2 vCPU / 4 GB) con solo ~1,4 GB
+libres y ya usando swap — no hay margen para cargar inferencia ahí sin
+arriesgar el propio daemon. Se aplica el mismo criterio ya usado para
+elegir AuraDB Free sobre Neo4j autogestionado: una API gestionada con
+tier gratuito real gana a auto-hospedar cuando existe.
 
-- **Opción A — LLM real con tool-calling** (Anthropic Messages API +
-  `tool_use` sobre las 14 tools ya expuestas por HTTP): la experiencia
-  más parecida a "chatear de verdad", coste real pero pequeño con un
-  modelo barato (p. ej. Haiku) y uso de demo acotado — hace falta una
-  clave de API propia del proyecto (hoy no existe ninguna) y, siguiendo
-  el propio patrón de `herramientas/costes/`, un presupuesto/límite duro
-  (p. ej. N mensajes/día) para que un uso viral no dispare la factura.
-- **Opción B — chat "estructurado" sin LLM**: un front que hace
-  coincidencia de intención por palabra clave/plantilla contra las 14
-  tools (p. ej. "aire en Sol" → `calidad_aire(zona="Sol")`), sin llamar a
-  ningún modelo. Coste marginal cero, pero es un asistente de formulario
-  disfrazado de chat, no una conversación real — hay que ser honesto con
-  esa limitación si se elige esta vía para la memoria/demo.
-- **Opción C — híbrido acotado**: LLM real pero con un tope duro de
-  peticiones (por IP/sesión/día) y una alarma de coste en CloudWatch
-  Billing, mismo criterio de "barato con freno" que ya usa el proyecto en
-  otros sitios (`pipeline_enabled`, límites de Free tier documentados en
-  `infra/neo4j/README.md`).
+**Elegido: Groq** (`https://console.groq.com`, API compatible con
+OpenAI/`tool_use`). Verificado hoy, no supuesto:
 
-**Recomendación**: si el objetivo es la demo/defensa del TFM, la opción A
-acotada (un límite bajo y duro de mensajes) da la mejor experiencia por un
-coste predecible y pequeño — pero es una decisión del usuario, no algo
-que decidir por defecto.
+- Tier gratuito permanente, **sin tarjeta de crédito**, sin lista de
+  espera — alta con email en <60 s.
+- Límites reales (por organización, no por API key):
+  `llama-3.3-70b-versatile` → 30 RPM / **1.000 peticiones/día** / 12K TPM
+  / 100K TPD. Sobra para una demo/defensa de TFM; no hace falta ningún
+  presupuesto/freno adicional propio (`herramientas/costes/`-style) más
+  allá de manejar con elegancia un `429` si algún día se agota.
+- Sin API de *batch* en el tier gratuito — irrelevante aquí, el chat es
+  interactivo, no por lotes.
+- Modelo propuesto: `llama-3.3-70b-versatile` (tool-calling maduro, buen
+  español, dentro del tier gratuito) — cualquier otro Llama del catálogo
+  serviría igual de bien para este caso de uso, coherente con "el nivel
+  del modelo no importa mucho" ya que el valor real está en los datos y
+  las 14 tools, no en el modelo.
+
+Sigue haciendo falta una clave de API de Groq (hoy no existe ninguna en
+el proyecto) — gestionarla con el mismo patrón que el resto de secretos
+(`ingesta/capturas/secretos.py`, SSM `SecureString`, `FIL_17`), nunca
+hardcodeada.
 
 ## Piezas que hacen falta (si se decide seguir adelante)
 
@@ -96,10 +98,14 @@ que decidir por defecto.
      probablemente el chat use solo los routers HTTP, no el MCP montado.
    - Ninguna de las dos tiene ticket de Terraform hoy — hace falta
      escribirlo desde cero en cualquiera de los dos casos.
-2. **La capa de chat/orquestación** (nueva, ver opciones A/B/C arriba) —
-   endpoint nuevo (p. ej. `POST /chat`) que reciba el mensaje, decida qué
-   tool(s) llamar sobre los routers ya existentes, y devuelva una
-   respuesta en prosa.
+2. **La capa de chat/orquestación** (nueva) — endpoint nuevo (p. ej.
+   `POST /chat`) que reciba el mensaje, llame a Groq
+   (`llama-3.3-70b-versatile`) con `tool_use` sobre las 14 tools ya
+   expuestas por HTTP, ejecute la(s) tool(s) que el modelo elija, y
+   devuelva la respuesta en prosa que redacte Groq a partir del
+   resultado. Cliente Groq vía su SDK Python (compatible con el SDK de
+   OpenAI) o llamada HTTP directa — a decidir en el ticket de
+   implementación, no aquí.
 3. **Autenticación de demo** (`demo`/`demo`): lo más barato y simple es
    **HTTP Basic Auth a nivel del proxy** (nginx/Caddy), cero código en la
    app. Importante dejarlo explícito en la propia UI y en la memoria:
@@ -120,21 +126,22 @@ que decidir por defecto.
 
 ## Qué NO cubre este encuadre
 
-- No decide la opción A/B/C de coste — es una decisión del usuario.
-- No decide EC2 vs. Lambda para el despliegue.
+- No decide EC2 vs. Lambda para el despliegue del backend — sigue
+  abierto.
 - No es una implementación — cero código, cero Terraform, cero
-  despliegue en este ticket.
+  despliegue en este ticket. La decisión de coste del chat (Groq, tier
+  gratuito) sí quedó cerrada arriba.
 
 ## Restricciones
 
 - Ticket de encuadre (`framing`), sin código ni infraestructura
   aplicados.
-- Cualquier vía con LLM real necesita una clave de API que hoy no existe
-  en el proyecto — gestionarla con el mismo patrón que el resto de
-  secretos (`ingesta/capturas/secretos.py`, SSM `SecureString`,
-  `FIL_17`), nunca hardcodeada.
-- Antes de implementar, decidir explícitamente con el usuario: opción de
-  coste del chat (A/B/C) y vía de despliegue (EC2/Lambda).
+- La clave de API de Groq (hoy no existe ninguna en el proyecto) se
+  gestiona con el mismo patrón que el resto de secretos
+  (`ingesta/capturas/secretos.py`, SSM `SecureString`, `FIL_17`), nunca
+  hardcodeada.
+- Antes de implementar, sigue pendiente decidir con el usuario: vía de
+  despliegue del backend (EC2/Lambda).
 
 ## Próximo paso propuesto
 
