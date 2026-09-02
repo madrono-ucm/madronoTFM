@@ -2,7 +2,8 @@
 kind: fil
 title: "App web de Madroño — landing con acceso demo + chat con el asistente (encuadre)"
 owner: propuesto por Claude (QA), sin asignar
-status: framing
+status: done
+resolved_at: "2026-09-02"
 allow_infra_apply: false
 created_at: "2026-09-02"
 depends_on: []
@@ -87,30 +88,47 @@ antes de guardarse — exposición real, igual de naturaleza que la de
 
 Cuando se implemente el endpoint de chat, falta añadir la política IAM
 de `ssm:GetParameter` para este nuevo ARN al rol que sirva
-`asistente/main.py` (sea EC2 o Lambda, según se decida) — mismo patrón
-que `madrono-tfm-dev-ingestion-lambda-secrets` (`FIL_17`), ampliada o
-una nueva política dedicada.
+`asistente/main.py` — mismo patrón que
+`madrono-tfm-dev-ingestion-lambda-secrets` (`FIL_17`), ampliada o una
+nueva política dedicada.
+
+## Decidido con el usuario (2026-09-02): despliegue en la EC2 ya encendida
+
+Se descarta Lambda+API Gateway — se aprovecha la EC2 del daemon,
+consistente con el criterio de coste ya aplicado en todo el ticket. Datos
+reales de esa instancia, verificados hoy (no supuestos):
+
+- `i-0aa45f0df26b4b7e6`, `t3.medium`, región **`eu-south-2`** (no
+  `eu-west-1`, donde vive el resto de la infraestructura del proyecto —
+  cruce de región ya conocido de esta EC2, ver notas de entorno de
+  sesiones anteriores).
+- IP pública real: `35.42.164.183`. Sin dominio propio configurado hoy.
+- Un único security group, `sg-0b9b20f616f30216e` (`launch-wizard-1` —
+  nombre por defecto de la consola, esta EC2 no se gestiona por
+  Terraform). Regla actual: **solo el puerto 22 (SSH) abierto a
+  `0.0.0.0/0`** — nada de 80/443 todavía.
+- A diferencia de auto-hospedar un LLM (descartado antes en este mismo
+  ticket por falta de RAM), `uvicorn`+FastAPI es ligero — no debería
+  competir de forma significativa con el daemon existente.
+
+Esto deja el ticket de encuadre completo: **Groq + EC2 existente**, las
+dos decisiones de coste/despliegue cerradas. Ver `FIL_63` para el primer
+ticket de implementación (M1).
 
 ## Piezas que hacen falta (si se decide seguir adelante)
 
-1. **Desplegar `asistente/main.py` en algún sitio público** — dos rutas
-   razonables, ninguna implementada:
-   - **EC2 del daemon (ya encendida)**: `systemd` + `uvicorn` +
-     `nginx`/Caddy como proxy inverso (TLS + auth Basic ahí mismo, ver
-     punto 3). Coste marginal ≈ 0 (la EC2 ya corre); requiere abrir el
-     security group a 443 y, si no hay dominio propio, usar un DNS
-     dinámico o el IP público de la instancia.
-   - **Lambda + API Gateway** (vía Lambda Web Adapter, para servir ASGI/
-     FastAPI sin reescribir la app): más "serverless-nativo" y coherente
-     con el resto de la infraestructura, pero **riesgo real de
-     compatibilidad**: el propio docstring de `asistente/main.py` explica
-     que el `lifespan` del servidor MCP (`StreamableHTTPSessionManager`)
-     asume un proceso de larga duración — un modelo de una invocación por
-     petición de Lambda puede no sostener sesiones MCP igual (los
-     routers REST normales sí funcionarían bien). Si se elige esta vía,
-     probablemente el chat use solo los routers HTTP, no el MCP montado.
-   - Ninguna de las dos tiene ticket de Terraform hoy — hace falta
-     escribirlo desde cero en cualquiera de los dos casos.
+1. **Desplegar `asistente/main.py` en la EC2 del daemon** (decidido
+   arriba): `systemd` + `uvicorn` + `nginx`/Caddy como proxy inverso (TLS
+   + auth Basic ahí mismo, ver punto 3). Hace falta abrir el security
+   group `sg-0b9b20f616f30216e` a 443 (y 80 si se usa Let's Encrypt/ACME
+   para el certificado — necesita un dominio propio apuntando al
+   `35.42.164.183`, o un certificado autofirmado como alternativa más
+   barata pero con aviso del navegador). Ningún `.tf` la sirve hoy —
+   como el resto de esta EC2 no está gestionada por Terraform, lo más
+   consistente es aplicar el cambio de SG y el `systemd`/`nginx` a mano
+   (mismo criterio que el resto de la operación de esta instancia), no
+   forzar un `aws_security_group` nuevo por Terraform para un recurso que
+   ni siquiera está importado.
 2. **La capa de chat/orquestación** (nueva) — endpoint nuevo (p. ej.
    `POST /chat`) que reciba el mensaje, llame a Groq
    (`llama-3.3-70b-versatile`) con `tool_use` sobre las 14 tools ya
@@ -139,27 +157,27 @@ una nueva política dedicada.
 
 ## Qué NO cubre este encuadre
 
-- No decide EC2 vs. Lambda para el despliegue del backend — sigue
-  abierto.
 - No es una implementación — cero código, cero Terraform, cero
-  despliegue en este ticket. La decisión de coste del chat (Groq, tier
-  gratuito) sí quedó cerrada arriba.
+  despliegue real aplicado en este ticket. Las dos decisiones que
+  bloqueaban el encuadre (coste del LLM → Groq; despliegue → EC2
+  existente) quedaron cerradas arriba, con datos reales verificados
+  (rate limits de Groq, IP/SG/región reales de la EC2).
 
 ## Restricciones
 
-- Ticket de encuadre (`framing`), sin código ni infraestructura
-  aplicados.
-- La clave de API de Groq (hoy no existe ninguna en el proyecto) se
-  gestiona con el mismo patrón que el resto de secretos
-  (`ingesta/capturas/secretos.py`, SSM `SecureString`, `FIL_17`), nunca
-  hardcodeada.
-- Antes de implementar, sigue pendiente decidir con el usuario: vía de
-  despliegue del backend (EC2/Lambda).
+- Ticket de encuadre — sin código ni infraestructura aplicados aquí (la
+  clave de Groq sí se guardó en SSM, ver arriba, pero es la única acción
+  real de este ticket).
+- La clave de API de Groq vive en SSM `SecureString`
+  (`/madrono-tfm/dev/secrets/groq-api-key`), nunca hardcodeada.
 
-## Próximo paso propuesto
+## Cierre
 
-Si el usuario confirma que quiere seguir adelante: abrir un ticket de
-implementación (`M1` — landing + auth Basic + despliegue del backend ya
-existente sin chat todavía, para validar el despliegue primero; `M2` —
-capa de chat sobre eso) en vez de un único ticket monolítico, siguiendo
-el mismo patrón de milestones ya usado en el mapa animado (`FIL_34`→`60`).
+Encuadre completo, las dos decisiones cerradas con el usuario y datos
+reales verificados en ambas. Split en dos tickets de implementación
+siguiendo el mismo patrón de milestones ya usado en el mapa animado
+(`FIL_34`→`60`), en vez de uno monolítico:
+
+- **`FIL_63`** (M1) — landing + auth Basic + desplegar `asistente/main.py`
+  ya existente en la EC2, sin chat todavía (valida el despliegue primero).
+- **M2** (chat) — se abrirá tras cerrar `FIL_63`.
