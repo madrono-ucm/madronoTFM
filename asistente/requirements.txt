@@ -32,3 +32,9 @@ neo4j>=5,<6
 # `calidad_aire_prevista`. `numpy` para armar el tensor de entrada.
 onnxruntime>=1.18,<2
 numpy>=1.26,<3
+
+# FIL_62/M2: `asistente/chat.py` usa el SDK oficial de Groq (API compatible
+# con OpenAI/tool_use) para el chat en lenguaje natural sobre las tools ya
+# expuestas -- tier gratuito, sin tarjeta de crédito (ver FIL_62 para el
+# porqué de Groq frente a auto-hospedar un LLM en esta misma EC2).
+groq>=0.11,<1
