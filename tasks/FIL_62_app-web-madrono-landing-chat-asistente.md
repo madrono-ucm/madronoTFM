@@ -73,10 +73,23 @@ OpenAI/`tool_use`). Verificado hoy, no supuesto:
   del modelo no importa mucho" ya que el valor real está en los datos y
   las 14 tools, no en el modelo.
 
-Sigue haciendo falta una clave de API de Groq (hoy no existe ninguna en
-el proyecto) — gestionarla con el mismo patrón que el resto de secretos
-(`ingesta/capturas/secretos.py`, SSM `SecureString`, `FIL_17`), nunca
-hardcodeada.
+**Actualización (2026-09-02): la clave ya existe y está guardada.** El
+usuario la generó (`madrono-groq` en la consola de Groq) y se guardó de
+inmediato en SSM como `SecureString` en
+`/madrono-tfm/dev/secrets/groq-api-key` — mismo patrón exacto que el
+resto de secretos del proyecto (`ingesta/capturas/secretos.py`, `FIL_17`),
+verificado que no se puede leer en claro sin `--with-decryption`. **Nota
+de higiene**: la clave se pegó en texto plano en el chat de esta sesión
+antes de guardarse — exposición real, igual de naturaleza que la de
+`FIL_28`, aunque no en el repo. Queda a criterio del usuario rotarla en
+`console.groq.com/keys` si le preocupa; no se ha hecho aquí. El valor
+**no** se ha escrito en ningún fichero de este repositorio.
+
+Cuando se implemente el endpoint de chat, falta añadir la política IAM
+de `ssm:GetParameter` para este nuevo ARN al rol que sirva
+`asistente/main.py` (sea EC2 o Lambda, según se decida) — mismo patrón
+que `madrono-tfm-dev-ingestion-lambda-secrets` (`FIL_17`), ampliada o
+una nueva política dedicada.
 
 ## Piezas que hacen falta (si se decide seguir adelante)
 
