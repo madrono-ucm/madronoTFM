@@ -1,8 +1,9 @@
 ---
 kind: fil
 title: "App web de Madroño — M1: landing + auth demo + desplegar asistente/main.py en la EC2 (sin chat todavía)"
-owner: Filippos (interactive)
-status: pending
+owner: Filippos (interactive) + Claude
+status: done
+resolved_at: "2026-09-02"
 allow_infra_apply: true
 depends_on: [FIL_62]
 milestone: "M1"
@@ -85,3 +86,20 @@ chat es `M2`, un ticket aparte, después de que esto cierre.
   un `reboot` de prueba si se hace.
 - Documentado en `doc/FIL-63-...md`: qué opción de TLS se tomó (dominio+
   Let's Encrypt vs. autofirmado) y la URL/IP final de acceso.
+
+## Hecho (2026-09-02)
+
+Desplegado y verificado contra la instancia pública real (no localhost):
+`401` sin auth, `200` con `demo`/`demo`, `/health` y 3 tools reales
+(`calidad-aire`, `calidad-aire-prevista`, `trafico-prevista`)
+respondiendo con datos reales. TLS autofirmado (sin dominio propio).
+`systemd` `enabled` + `active`. Dos bugs reales encontrados y arreglados
+en el camino: `NoRegionError` de boto3 (faltaba `AWS_DEFAULT_REGION` en
+el `systemd`) y un `404` del landing por un efecto conocido de `index`
+de nginx (redirección interna que reentraba en el proxy) — arreglado con
+`try_files`. Detalle completo, incluida la limitación conocida de las
+tools que dependen de Neo4j (sin credenciales en esta sesión, mismo
+límite de toda la sesión, no un bug nuevo), en
+[`doc/FIL-63-app-web-m1-desplegada.md`](../doc/FIL-63-app-web-m1-desplegada.md).
+
+Acceso: `https://35.42.164.183/` — `demo`/`demo`.
