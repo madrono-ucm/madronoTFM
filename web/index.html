@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Madroño</title>
+<style>
+  :root { color-scheme: light dark; }
+  html,body { margin:0; height:100%; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  body { display:flex; flex-direction:column; background:#10120f; color:#ece9e0; }
+
+  /* ---- pantalla de acceso ---- */
+  #login { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
+  .card { max-width:400px; width:100%; text-align:center; }
+  .card h1 { font-size:30px; margin:0 0 6px; }
+  .card p.sub { color:#a7a294; margin:0 0 24px; line-height:1.5; font-size:14px; }
+  .field { text-align:left; margin-bottom:12px; }
+  .field label { display:block; font-size:12px; color:#a7a294; margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
+  .field input { width:100%; box-sizing:border-box; padding:10px 12px; border-radius:8px; border:1px solid #33362f; background:#191b17; color:#ece9e0; font-size:15px; }
+  .field input:focus { outline:2px solid #e2536b; outline-offset:1px; }
+  button.primary { width:100%; margin-top:8px; padding:11px; border:none; border-radius:8px; background:#e2536b; color:#10120f; font-weight:700; font-size:15px; cursor:pointer; }
+  button.primary:disabled { opacity:.6; cursor:default; }
+  .err { color:#e0716a; font-size:13px; margin-top:10px; min-height:16px; }
+  .hint { color:#757064; font-size:12px; margin-top:18px; }
+
+  /* ---- chat ---- */
+  #chat-screen { flex:1; display:none; flex-direction:column; height:100dvh; }
+  header.bar { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #262922; flex-shrink:0; }
+  header.bar .brand { font-weight:700; font-size:16px; flex:1; }
+  header.bar .brand small { display:block; font-weight:400; font-size:11px; color:#a7a294; }
+  header.bar button.logout { background:none; border:1px solid #33362f; color:#a7a294; border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; }
+
+  #msgs { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .msg { max-width:82%; padding:10px 13px; border-radius:14px; line-height:1.45; font-size:14.5px; white-space:pre-wrap; word-wrap:break-word; }
+  .msg.user { align-self:flex-end; background:#e2536b; color:#10120f; border-bottom-right-radius:4px; }
+  .msg.bot { align-self:flex-start; background:#191b17; border:1px solid #262922; border-bottom-left-radius:4px; }
+  .msg.bot.pending { color:#757064; font-style:italic; }
+  .msg.bot.error { border-color:#e0716a; color:#e0716a; }
+
+  .suggestions { display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 10px; flex-shrink:0; }
+  .suggestions button { background:#191b17; border:1px solid #33362f; color:#a7a294; border-radius:16px; padding:6px 12px; font-size:12.5px; cursor:pointer; }
+  .suggestions button:hover { border-color:#e2536b; color:#ece9e0; }
+
+  form#composer { display:flex; gap:8px; padding:12px 16px; border-top:1px solid #262922; flex-shrink:0; }
+  form#composer input { flex:1; padding:11px 14px; border-radius:20px; border:1px solid #33362f; background:#191b17; color:#ece9e0; font-size:15px; }
+  form#composer input:focus { outline:2px solid #e2536b; outline-offset:1px; }
+  form#composer button { border:none; background:#e2536b; color:#10120f; width:42px; height:42px; border-radius:50%; font-size:18px; cursor:pointer; flex-shrink:0; }
+  form#composer button:disabled { opacity:.5; }
+
+  a { color:#e2536b; }
+  :focus-visible { outline:2px solid #e2536b; outline-offset:2px; }
+
+  @media (max-width: 480px) {
+    .msg { max-width:90%; }
+  }
+</style>
+</head>
+<body>
+
+  <section id="login">
+    <div class="card">
+      <h1>🌳 Madroño</h1>
+      <p class="sub">Plataforma de inteligencia urbana de Madrid.<br>Chatea con el asistente sobre tráfico, aire, ruido y movilidad reales.</p>
+      <form id="login-form">
+        <div class="field">
+          <label for="u">Usuario</label>
+          <input id="u" type="text" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="p">Contraseña</label>
+          <input id="p" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="primary" type="submit" id="login-btn">Entrar</button>
+        <div class="err" id="login-err"></div>
+      </form>
+      <p class="hint">Acceso de demostración — <a href="https://madrono-ucm.github.io/madronoTFM/" target="_blank" rel="noopener">ver el mapa animado del grafo</a></p>
+    </div>
+  </section>
+
+  <section id="chat-screen">
+    <header class="bar">
+      <div class="brand">🌳 Madroño<small>asistente de datos urbanos de Madrid</small></div>
+      <button class="logout" id="logout-btn">Salir</button>
+    </header>
+    <div id="msgs"></div>
+    <div class="suggestions" id="suggestions">
+      <button data-q="¿Cómo está el tráfico cerca de Atocha?">Tráfico en Atocha</button>
+      <button data-q="¿Cómo está la calidad del aire en Retiro?">Aire en Retiro</button>
+      <button data-q="¿Cuál es la mejor hora para pasear por Sol hoy?">Mejor hora en Sol</button>
+      <button data-q="Recomiéndame una ruta saludable de Sol a Atocha">Ruta saludable</button>
+    </div>
+    <form id="composer">
+      <input id="input" type="text" placeholder="Escribe tu pregunta sobre Madrid..." autocomplete="off">
+      <button type="submit" aria-label="Enviar">➤</button>
+    </form>
+  </section>
+
+<script>
+// FIL_62/M2 -- landing (login demo) + chat, autocontenido, sin dependencias.
+// El backend real vive en la EC2 (FIL_63); esta página se sirve desde
+// S3+CloudFront, origen distinto -- por eso las credenciales de acceso se
+// reenvían como Basic Auth real en cada fetch() al backend, no son un
+// gate cosmético aparte.
+const API = "https://35.42.164.183"; // TODO: cambiar si se pone dominio propio
+
+let auth = sessionStorage.getItem("madrono_auth");
+let historial = [];
+
+function apiFetch(path, opts = {}) {
+  return fetch(API + path, {
+    ...opts,
+    headers: { ...(opts.headers || {}), "Authorization": "Basic " + auth },
+  });
+}
+
+async function tryLogin(u, p) {
+  auth = btoa(u + ":" + p);
+  const r = await apiFetch("/health");
+  if (!r.ok) { auth = null; return false; }
+  sessionStorage.setItem("madrono_auth", auth);
+  return true;
+}
+
+function showChat() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("chat-screen").style.display = "flex";
+  document.getElementById("input").focus();
+}
+
+function addMsg(texto, tipo) {
+  const el = document.createElement("div");
+  el.className = "msg " + tipo;
+  el.textContent = texto;
+  document.getElementById("msgs").appendChild(el);
+  el.scrollIntoView({ block: "end", behavior: "smooth" });
+  return el;
+}
+
+async function enviar(texto) {
+  document.getElementById("suggestions").style.display = "none";
+  addMsg(texto, "user");
+  const pending = addMsg("Consultando los datos reales de Madrid...", "bot pending");
+  const input = document.getElementById("input");
+  input.disabled = true;
+  try {
+    const r = await apiFetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mensaje: texto, historial }),
+    });
+    if (r.status === 401) { pending.remove(); logout(); return; }
+    const data = await r.json();
+    historial = data.historial || historial;
+    pending.remove();
+    addMsg(data.respuesta || "(sin respuesta)", "bot");
+  } catch (e) {
+    pending.remove();
+    addMsg("No se pudo contactar con el asistente. Comprueba tu conexión e inténtalo de nuevo.", "bot error");
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem("madrono_auth");
+  auth = null; historial = [];
+  document.getElementById("msgs").innerHTML = "";
+  document.getElementById("chat-screen").style.display = "none";
+  document.getElementById("login").style.display = "flex";
+  document.getElementById("login-err").textContent = "";
+}
+
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("login-btn");
+  const err = document.getElementById("login-err");
+  btn.disabled = true; err.textContent = "";
+  const ok = await tryLogin(document.getElementById("u").value, document.getElementById("p").value).catch(() => false);
+  btn.disabled = false;
+  if (ok) showChat(); else err.textContent = "Usuario o contraseña incorrectos.";
+});
+
+document.getElementById("composer").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = document.getElementById("input");
+  const v = input.value.trim();
+  if (!v) return;
+  input.value = "";
+  enviar(v);
+});
+
+document.querySelectorAll("#suggestions button").forEach(b => {
+  b.addEventListener("click", () => enviar(b.dataset.q));
+});
+
+document.getElementById("logout-btn").addEventListener("click", logout);
+
+if (auth) {
+  apiFetch("/health").then(r => { if (r.ok) showChat(); else sessionStorage.removeItem("madrono_auth"); });
+}
+</script>
+</body>
+</html>

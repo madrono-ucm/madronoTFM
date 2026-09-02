@@ -74,6 +74,15 @@ OpenAI/`tool_use`). Verificado hoy, no supuesto:
   del modelo no importa mucho" ya que el valor real está en los datos y
   las 14 tools, no en el modelo.
 
+**Actualización (M2, `2026-09-02`): el catálogo gratuito de Groq rota.**
+`llama-3.3-70b-versatile` ya no existía en el catálogo en el momento de
+implementar M2 (`404 model_not_found` en la primera llamada real) —
+confirma en la práctica que "el modelo concreto no importa mucho" seguía
+siendo el criterio correcto. Se cambió a `openai/gpt-oss-120b` (verificado
+en vivo con `client.models.list()`, activo hoy, tool-calling real, mismos
+límites de tier gratuito). Ver `doc/FIL-62-app-web-m2-chat-groq.md` para
+el detalle completo de M2.
+
 **Actualización (2026-09-02): la clave ya existe y está guardada.** El
 usuario la generó (`madrono-groq` en la consola de Groq) y se guardó de
 inmediato en SSM como `SecureString` en

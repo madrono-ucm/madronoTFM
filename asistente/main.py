@@ -27,6 +27,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from asistente.mcp_agent.server import mcp
 from asistente.routers import (
@@ -35,6 +36,7 @@ from asistente.routers import (
     calidad_aire,
     calidad_aire_prevista,
     calidad_aire_prevista_grafo,
+    chat,
     contexto_urbano,
     disponibilidad_aparcamiento,
     eventos_cercanos,
@@ -73,6 +75,18 @@ def create_app() -> FastAPI:
         version="0.8.0",
         lifespan=lifespan,
     )
+    # FIL_62/M2: la landing+chat se sirve desde S3+CloudFront, origen
+    # distinto de este backend (EC2) -- sin CORS el navegador bloquearía el
+    # fetch() del chat. Abierto a cualquier origen porque no hay estado de
+    # sesión/cookies que proteger (el auth real vive en nginx delante de
+    # este backend, ver FIL_63), mismo criterio de "no hay nada sensible
+    # que filtrar" ya aplicado al resto de la API.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
     app.include_router(health.router)
     app.include_router(calidad_aire.router)
     app.include_router(calidad_aire_prevista.router)
@@ -88,6 +102,7 @@ def create_app() -> FastAPI:
     app.include_router(disponibilidad_aparcamiento.router)
     app.include_router(eventos_cercanos.router)
     app.include_router(opciones_movilidad.router)
+    app.include_router(chat.router)
     app.mount("/mcp-server", mcp_app)
     return app
 
