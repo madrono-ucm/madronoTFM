@@ -101,7 +101,13 @@
 // S3+CloudFront, origen distinto -- por eso las credenciales de acceso se
 // reenvían como Basic Auth real en cada fetch() al backend, no son un
 // gate cosmético aparte.
-const API = "https://35.42.164.183"; // TODO: cambiar si se pone dominio propio
+// 35-42-164-183.nip.io resuelve a la misma IP de la EC2 (nip.io es un
+// servicio DNS comodín público gratuito: <ip-con-guiones>.nip.io -> <ip>)
+// -- se usa en vez de la IP desnuda porque Let's Encrypt exige un nombre
+// DNS, no una IP, para emitir un certificado real (antes autofirmado, con
+// el navegador bloqueando en silencio el fetch() del login con
+// ERR_CERT_AUTHORITY_INVALID; ver doc/FIL-62-app-web-m2-chat-groq.md).
+const API = "https://35-42-164-183.nip.io";
 
 let auth = sessionStorage.getItem("madrono_auth");
 let historial = [];

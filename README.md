@@ -138,7 +138,8 @@ Landing + chat en lenguaje natural sobre las 14 tools del asistente, vía Groq
 (`FIL_62`, `FIL_63`). Front estático (`web/index.html`, sin dependencias) en
 S3 + CloudFront (Origin Access Control, bucket privado). Backend FastAPI
 (`asistente/`) en la misma EC2 que el daemon de ingesta, detrás de nginx con
-TLS y Basic Auth: `https://35.42.164.183`. Detalle de la infraestructura y
+TLS (Let's Encrypt) y Basic Auth: `https://35-42-164-183.nip.io`. Detalle
+de la infraestructura y
 bugs encontrados en el despliegue: `doc/FIL-63-app-web-m1-desplegada.md`,
 `doc/FIL-62-app-web-m2-chat-groq.md`.
 
