@@ -63,6 +63,31 @@ class TraficoCercanoRouterTests(unittest.TestCase):
         self.assertEqual(body["fiabilidad"], "baja")
         self.assertEqual(body["veredicto"], "con_precaucion")
 
+    def test_lugar_con_estaciones_pero_sin_dato_de_gold_no_dice_que_no_encontro_el_lugar(self):
+        """Regresión: el grafo sí resuelve `lugar` y encuentra estaciones,
+        pero Gold no tiene fila para la fecha/hora consultada (p.ej. una
+        fecha sin datos de tráfico) -- la explicación no debe decir "no se
+        ha encontrado ningún lugar" (verificado como bug real en producción:
+        Puerta del Sol resolvía 6 estaciones reales pero el mensaje afirmaba
+        que no se había encontrado ningún lugar)."""
+        neo4j_rows = [
+            {"lugar_id": "poi:1", "lugar_nombre": "Puerta del Sol", "estacion_id": "trafico:10608", "distancia_m": 207.6}
+        ]
+        with patch("asistente.mcp_agent.tools.run_neo4j_query", return_value=neo4j_rows), patch(
+            "asistente.mcp_agent.tools.run_athena_query", return_value=[]
+        ):
+            response = self.client.get(
+                "/trafico-cercano",
+                params={"lugar": "Puerta del Sol", "momento": "2026-09-04T09:00:00+02:00"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["fiabilidad"], "baja")
+        self.assertEqual(body["veredicto"], "con_precaucion")
+        self.assertIn("Se han encontrado 1 estación", body["explicacion"])
+        self.assertNotIn("no se ha encontrado ningún lugar", body["explicacion"])
+
 
 if __name__ == "__main__":
     unittest.main()

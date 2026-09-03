@@ -124,9 +124,6 @@ solo en local.
 
 ## Qué queda pendiente (fuera de alcance de M1/M2)
 
-- Neo4j sin credenciales en el `systemd` (documentado en `FIL_63`) — sigue
-  sin resolverse; afecta a las tools de grafo tanto por HTTP directo como
-  por el chat.
 - Infraestructura de S3/CloudFront/certificado aplicada a mano vía AWS CLI
   y `certbot`, no en Terraform — mismo criterio ya asumido para la EC2 en
   `FIL_63` (esta parte del proyecto no está gestionada por Terraform);
@@ -135,6 +132,52 @@ solo en local.
 - `nip.io` es un servicio DNS público de terceros fuera del control del
   proyecto — si algún día deja de resolver, el certificado y el `API` del
   frontend habría que moverlos a un dominio propio real.
+
+## Seguimiento (2026-09-03): "el asistente no funciona como se esperaba"
+
+El usuario probó el chat en vivo y reportó dos ejemplos concretos.
+Investigado contra el backend real, no supuesto:
+
+1. **"¿Hay alguna actividad interesante en el centro hoy?" → "No he
+   podido obtener información de eventos".** Causa real: la limitación de
+   Neo4j de `FIL_63` (arriba) seguía sin resolver -- `eventos_cercanos`
+   fallaba con `KeyError: 'NEO4J_URI'`. **Arreglado**: el acceso a los
+   parámetros SSM de Neo4j (bloqueado en sesiones anteriores) cambió;
+   ahora `/opt/start-madrono-web.sh` (en la EC2, no en el repo) los lee de
+   SSM `SecureString` en caliente al arrancar `madrono-web.service` y los
+   exporta como `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD`/
+   `NEO4J_DATABASE` -- nunca en claro en disco, mismo patrón que
+   `groq-api-key`. Verificado con una conexión Neo4j real (586 `:Lugar`,
+   4702 `:EstacionMedida{tipo:'trafico'}`, 101.716 relaciones
+   `PROXIMO_A`) y con el endpoint real ya sin el `KeyError`.
+2. **"¿Qué pelis me recomiendas ver hoy?" → rechazo genérico.** No es un
+   bug: Madroño solo tiene tools de tráfico/aire/ruido/movilidad/eventos
+   de Madrid, así que declinar es el comportamiento esperado dado el
+   `_SYSTEM_PROMPT`. La redacción exacta del rechazo varía entre
+   ejecuciones (el modelo no es determinista al 100 % con
+   `temperature=0.2`), pero el efecto -- no llamar a ninguna tool y
+   explicar que está fuera de alcance -- es correcto.
+
+**Bug real encontrado durante la investigación, no reportado por el
+usuario pero descubierto al reproducir el caso 1**: una vez arregladas
+las credenciales de Neo4j, `trafico_cercano` seguía respondiendo "no se
+ha encontrado ningún lugar" para lugares que **sí existen** en el grafo
+(verificado: "Puerta del Sol" resuelve 6 estaciones de tráfico reales a
+&lt;300m). Causa: el pipeline de ingesta está deliberadamente congelado
+desde `2026-08-30` (verificado contra Athena: `max(date)` de
+`gold.trafico_por_punto_hora` para esas estaciones es exactamente esa
+fecha), así que una consulta "de hoy" (`2026-09-04`) nunca encuentra fila
+en Gold -- comportamiento esperado dado el estado del proyecto. Pero el
+router (`asistente/routers/trafico_cercano.py`) usaba el mismo mensaje
+para "no se encontró ningún lugar/estación" y para "se encontró el lugar
+pero no hay dato para esa fecha", dando a entender (falsamente) que el
+lugar no se había reconocido. Arreglado separando ambos casos en mensajes
+distintos, con test de regresión
+(`test_lugar_con_estaciones_pero_sin_dato_de_gold_no_dice_que_no_encontro_el_lugar`).
+Verificado en vivo: con `momento` dentro de la ventana real de datos
+(`2026-08-30T09:00:00`), la misma consulta a "Puerta del Sol" devuelve
+tráfico real ("fluido", intensidad y nivel de servicio reales de la
+estación `10608`).
 
 ## Acceso
 
