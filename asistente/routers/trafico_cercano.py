@@ -41,23 +41,51 @@ def consultar_trafico_cercano(
     resultado = tools.trafico_cercano(lugar, radio_m, momento)
     pregunta = f"¿Cómo está el tráfico cerca de «{lugar}»?"
 
-    if resultado.resumen == "sin_datos" or not resultado.estaciones:
+    if not resultado.estaciones:
         return RespuestaAsistente(
             pregunta=pregunta,
             veredicto=Veredicto.CON_PRECAUCION,
             fiabilidad=NivelFiabilidad.BAJA,
             explicacion=(
                 f"No se ha encontrado ningún lugar del grafo cuyo nombre contenga «{lugar}» "
-                f"con una estación de tráfico a menos de {radio_m:.0f}m, o no hay datos de "
-                "tráfico para la fecha/hora consultada. Esta tool resuelve «lugar» por "
-                "coincidencia de texto sobre el nombre del nodo `:Lugar` del grafo -- ver "
-                "asistente/README.md."
+                f"con una estación de tráfico a menos de {radio_m:.0f}m. Esta tool resuelve "
+                "«lugar» por coincidencia de texto sobre el nombre del nodo `:Lugar` del "
+                "grafo -- ver asistente/README.md."
             ),
             fuentes=[
                 FuenteConsultada(
                     dataset=resultado.fuente_grafo,
                     resumen=f"Sin lugares/estaciones coincidentes con «{lugar}» dentro de {radio_m:.0f}m",
                 )
+            ],
+        )
+
+    if resultado.resumen == "sin_datos":
+        # El lugar y sus estaciones sí se resolvieron contra el grafo --
+        # solo falta el dato de Gold para la fecha/hora consultada (p.ej.
+        # una fecha fuera de la ventana con datos reales). Mensaje
+        # deliberadamente distinto del caso "sin lugar/estación" de
+        # arriba, para no dar a entender que el lugar no se reconoció.
+        return RespuestaAsistente(
+            pregunta=pregunta,
+            veredicto=Veredicto.CON_PRECAUCION,
+            fiabilidad=NivelFiabilidad.BAJA,
+            explicacion=(
+                f"Se han encontrado {len(resultado.estaciones)} estación(es) de tráfico a "
+                f"menos de {radio_m:.0f}m de «{lugar}», pero no hay datos de tráfico para la "
+                f"fecha/hora consultada ({resultado.momento.isoformat()})."
+            ),
+            fuentes=[
+                FuenteConsultada(
+                    dataset=resultado.fuente_grafo,
+                    resumen=f"{len(resultado.estaciones)} estación(es) de tráfico dentro de {radio_m:.0f}m de «{lugar}»",
+                    consultado_en=resultado.momento,
+                ),
+                FuenteConsultada(
+                    dataset=resultado.fuente_gold,
+                    resumen="Sin fila para la fecha/hora consultada",
+                    consultado_en=resultado.momento,
+                ),
             ],
         )
 

@@ -58,27 +58,20 @@ Ejecutado 2026-09-02, contra la EC2 real (`i-0aa45f0df26b4b7e6`,
   `/calidad-aire`, `/calidad-aire-prevista`, `/trafico-prevista` — las
   tres responden `200` con JSON real y coherente (no mockeado).
 
-## Limitación conocida, no un bug de este ticket: Neo4j sin credenciales
+## Limitación conocida al desplegar M1, resuelta después (ver M2 seguimiento)
 
 Las tools que necesitan el grafo (`trafico_cercano`,
 `opciones_movilidad`, `disponibilidad_aparcamiento`, `eventos_cercanos`,
-la resolución de "lugar" en `ruta_saludable`/`trafico_prevista`) fallan
-con `KeyError: 'NEO4J_URI'` porque el `systemd` no tiene esas 4
-variables — **mismo límite ya documentado durante toda esta sesión**:
-esta sesión de Claude nunca ha tenido acceso a las credenciales reales de
-Neo4j (`aws ssm get-parameter --with-decryption` sobre
-`/madrono-tfm/dev/secrets/neo4j-*` bloqueado, ver `doc/VIKT-06-...md`).
-No se ha intentado sortear. Interesante de paso: algunas tools degradan
-con elegancia ante este fallo (`trafico_prevista` devuelve una respuesta
-estructurada explicando el motivo), otras no (`trafico_cercano` da un
-`500` crudo) — inconsistencia menor, no arreglada aquí (fuera del
-alcance de este ticket de despliegue).
-
-**Para que estas tools funcionen en producción**: añadir
-`NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD`/`NEO4J_DATABASE` al
-`systemd` (idealmente leídos de SSM en el arranque, no como
-`Environment=` en claro, mismo patrón que `secretos.py`) — quien tenga
-acceso a esas credenciales.
+la resolución de "lugar" en `ruta_saludable`/`trafico_prevista`) fallaban
+con `KeyError: 'NEO4J_URI'` porque el `systemd` no tenía esas 4
+variables — en el momento de este ticket, esta sesión de Claude no tenía
+acceso a las credenciales reales de Neo4j (`aws ssm get-parameter
+--with-decryption` sobre `/madrono-tfm/dev/secrets/neo4j-*` bloqueado).
+**Actualización (2026-09-03, reportado por el usuario): resuelto.** El
+acceso a esos parámetros SSM cambió, y se añadió un script de arranque
+(`/opt/start-madrono-web.sh`, no versionado en el repo por vivir solo en
+la EC2) que los lee de SSM en caliente antes de lanzar `uvicorn` -- nunca
+en claro en disco. Detalle completo: `doc/FIL-62-app-web-m2-chat-groq.md`.
 
 ## Qué queda para `M2` (aparte, no en este ticket)
 
