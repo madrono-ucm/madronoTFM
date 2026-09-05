@@ -3,64 +3,299 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#C81E3A">
 <title>Madroño</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: light dark; }
-  html,body { margin:0; height:100%; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  body { display:flex; flex-direction:column; background:#10120f; color:#ece9e0; }
+  :root {
+    color-scheme: light;
+    --bg: #FBF3E7;
+    --bg-soft: #F3E7D6;
+    --surface: #FFFFFF;
+    --surface-soft: #FFFDF9;
+    --ink: #241417;
+    --ink-soft: #7A6860;
+    --crimson: #C81E3A;
+    --crimson-deep: #96162C;
+    --gold: #E8A23C;
+    --gold-soft: #FBE7C6;
+    --forest: #2F5233;
+    --border: #EAD9C4;
+    --shadow: 30 18 12;
+    --danger: #B3273E;
+    --danger-bg: #FBE3E4;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #1B1013;
+      --bg-soft: #241418;
+      --surface: #2A181C;
+      --surface-soft: #2F1B1F;
+      --ink: #F8ECE5;
+      --ink-soft: #C9AEA3;
+      --crimson: #FF6478;
+      --crimson-deep: #E23D5C;
+      --gold: #F2B75B;
+      --gold-soft: #3A2A1B;
+      --forest: #7FB88A;
+      --border: #3D272B;
+      --shadow: 0 0 0;
+      --danger: #FF8A93;
+      --danger-bg: #3A1E22;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+  h1, h2, .brand-word { font-family: 'Sora', system-ui, sans-serif; letter-spacing: -0.02em; }
+  a { color: var(--crimson); }
+  :focus-visible { outline: 2px solid var(--crimson); outline-offset: 2px; }
+
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-a { width: 60vw; height: 60vw; max-width: 520px; max-height: 520px; top: -18vw; right: -14vw; background: radial-gradient(circle, var(--gold) 0%, transparent 70%); opacity: .35; }
+  .blob-b { width: 50vw; height: 50vw; max-width: 440px; max-height: 440px; bottom: -16vw; left: -16vw; background: radial-gradient(circle, var(--crimson) 0%, transparent 70%); opacity: .16; }
+
+  .mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 27%;
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-deep));
+    color: var(--surface-soft);
+    box-shadow: 0 8px 20px -6px rgba(var(--shadow) / .45);
+  }
+  .mark svg { width: 58%; height: 58%; }
 
   /* ---- pantalla de acceso ---- */
-  #login { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
-  .card { max-width:400px; width:100%; text-align:center; }
-  .card h1 { font-size:30px; margin:0 0 6px; }
-  .card p.sub { color:#a7a294; margin:0 0 24px; line-height:1.5; font-size:14px; }
-  .field { text-align:left; margin-bottom:12px; }
-  .field label { display:block; font-size:12px; color:#a7a294; margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
-  .field input { width:100%; box-sizing:border-box; padding:10px 12px; border-radius:8px; border:1px solid #33362f; background:#191b17; color:#ece9e0; font-size:15px; }
-  .field input:focus { outline:2px solid #e2536b; outline-offset:1px; }
-  button.primary { width:100%; margin-top:8px; padding:11px; border:none; border-radius:8px; background:#e2536b; color:#10120f; font-weight:700; font-size:15px; cursor:pointer; }
-  button.primary:disabled { opacity:.6; cursor:default; }
-  .err { color:#e0716a; font-size:13px; margin-top:10px; min-height:16px; }
-  .hint { color:#757064; font-size:12px; margin-top:18px; }
+  #login { flex: 1; display: flex; align-items: center; justify-content: center; padding: 28px 20px; position: relative; z-index: 1; }
+  .card {
+    max-width: 408px;
+    width: 100%;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 40px 32px 32px;
+    box-shadow: 0 24px 60px -24px rgba(var(--shadow) / .35);
+  }
+  .card .mark { width: 64px; height: 64px; margin: 0 auto 20px; }
+  .card h1 { font-size: 30px; font-weight: 800; margin: 0 0 8px; }
+  .card p.sub { color: var(--ink-soft); margin: 0 0 28px; line-height: 1.55; font-size: 14.5px; text-wrap: balance; }
+  .card p.sub strong { color: var(--ink); font-weight: 600; }
+
+  .field { text-align: left; margin-bottom: 14px; }
+  .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+  .field input {
+    width: 100%;
+    padding: 13px 15px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .field input:focus { outline: none; border-color: var(--crimson); box-shadow: 0 0 0 4px rgba(200, 30, 58, .12); }
+
+  button.primary {
+    width: 100%;
+    margin-top: 10px;
+    padding: 15px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-deep));
+    color: #fff;
+    font-weight: 700;
+    font-size: 15.5px;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 14px 26px -12px rgba(200, 30, 58, .55);
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  }
+  button.primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 18px 30px -12px rgba(200, 30, 58, .6); }
+  button.primary:active:not(:disabled) { transform: translateY(0); }
+  button.primary:disabled { opacity: .55; cursor: default; box-shadow: none; }
+
+  .alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    color: var(--danger);
+    background: var(--danger-bg);
+    border-radius: 12px;
+    padding: 10px 13px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 14px;
+  }
+  .alert:empty { display: none; }
+
+  .hint { color: var(--ink-soft); font-size: 12.5px; margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--border); }
+  .hint a { font-weight: 600; text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
 
   /* ---- chat ---- */
-  #chat-screen { flex:1; display:none; flex-direction:column; height:100dvh; }
-  header.bar { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #262922; flex-shrink:0; }
-  header.bar .brand { font-weight:700; font-size:16px; flex:1; }
-  header.bar .brand small { display:block; font-weight:400; font-size:11px; color:#a7a294; }
-  header.bar button.logout { background:none; border:1px solid #33362f; color:#a7a294; border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer; }
+  #chat-screen { flex: 1; display: none; flex-direction: column; height: 100dvh; position: relative; z-index: 1; }
+  header.bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+  .header-bar-wrap {
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  header.bar .mark { width: 38px; height: 38px; }
+  header.bar .brand { flex: 1; min-width: 0; }
+  header.bar .brand-word { display: block; font-weight: 700; font-size: 16px; line-height: 1.2; }
+  header.bar .tagline { display: block; font-size: 11.5px; color: var(--ink-soft); font-weight: 500; }
+  header.bar button.logout {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 7px 15px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease;
+  }
+  header.bar button.logout:hover { border-color: var(--crimson); color: var(--crimson); }
 
-  #msgs { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
-  .msg { max-width:82%; padding:10px 13px; border-radius:14px; line-height:1.45; font-size:14.5px; white-space:pre-wrap; word-wrap:break-word; }
-  .msg.user { align-self:flex-end; background:#e2536b; color:#10120f; border-bottom-right-radius:4px; }
-  .msg.bot { align-self:flex-start; background:#191b17; border:1px solid #262922; border-bottom-left-radius:4px; }
-  .msg.bot.pending { color:#757064; font-style:italic; }
-  .msg.bot.error { border-color:#e0716a; color:#e0716a; }
+  #msgs { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+  #msgs, .suggestions { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .composer-bar { border-top: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
+  .msg { max-width: 82%; padding: 12px 16px; border-radius: 20px; line-height: 1.5; font-size: 14.5px; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-deep));
+    color: #fff;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0 10px 20px -12px rgba(200, 30, 58, .5);
+  }
+  .msg.bot {
+    align-self: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    border-bottom-left-radius: 6px;
+  }
+  .msg.bot.pending { color: var(--ink-soft); font-style: italic; }
+  .msg.bot.error { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
 
-  .suggestions { display:flex; gap:8px; flex-wrap:wrap; padding:0 16px 10px; flex-shrink:0; }
-  .suggestions button { background:#191b17; border:1px solid #33362f; color:#a7a294; border-radius:16px; padding:6px 12px; font-size:12.5px; cursor:pointer; }
-  .suggestions button:hover { border-color:#e2536b; color:#ece9e0; }
+  .suggestions { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 12px; flex-shrink: 0; scrollbar-width: none; }
+  .suggestions::-webkit-scrollbar { display: none; }
+  .suggestions button {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 8px 15px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
+    white-space: nowrap;
+  }
+  .suggestions button:hover { border-color: var(--gold); color: var(--ink); background: var(--gold-soft); }
 
-  form#composer { display:flex; gap:8px; padding:12px 16px; border-top:1px solid #262922; flex-shrink:0; }
-  form#composer input { flex:1; padding:11px 14px; border-radius:20px; border:1px solid #33362f; background:#191b17; color:#ece9e0; font-size:15px; }
-  form#composer input:focus { outline:2px solid #e2536b; outline-offset:1px; }
-  form#composer button { border:none; background:#e2536b; color:#10120f; width:42px; height:42px; border-radius:50%; font-size:18px; cursor:pointer; flex-shrink:0; }
-  form#composer button:disabled { opacity:.5; }
-
-  a { color:#e2536b; }
-  :focus-visible { outline:2px solid #e2536b; outline-offset:2px; }
+  form#composer { display: flex; align-items: center; gap: 8px; padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); width: 100%; max-width: 720px; margin: 0 auto; box-sizing: border-box; }
+  form#composer .field-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 4px 4px 18px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  form#composer .field-wrap:focus-within { border-color: var(--crimson); box-shadow: 0 0 0 4px rgba(200, 30, 58, .12); }
+  form#composer input { flex: 1; border: none; background: transparent; color: var(--ink); font: inherit; font-size: 15px; padding: 10px 0; outline: none; }
+  form#composer input::placeholder { color: var(--ink-soft); }
+  form#composer button {
+    border: none;
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-deep));
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .12s ease, opacity .12s ease;
+  }
+  form#composer button:hover:not(:disabled) { transform: scale(1.06); }
+  form#composer button:disabled { opacity: .5; }
 
   @media (max-width: 480px) {
-    .msg { max-width:90%; }
+    .msg { max-width: 88%; }
+    .card { padding: 32px 22px 26px; border-radius: 24px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
   }
 </style>
 </head>
 <body>
 
+<svg style="display:none" aria-hidden="true">
+  <symbol id="madrono-mark" viewBox="0 0 48 48">
+    <rect x="21.5" y="29" width="5" height="11" rx="2.5" fill="currentColor" opacity=".85"/>
+    <circle cx="17" cy="20" r="10.5" fill="currentColor"/>
+    <circle cx="31" cy="20" r="10.5" fill="currentColor"/>
+    <circle cx="24" cy="13.5" r="11.5" fill="currentColor"/>
+    <circle cx="15.5" cy="16.5" r="2.3" fill="var(--gold)"/>
+    <circle cx="32" cy="15.5" r="2.3" fill="var(--gold)"/>
+    <circle cx="24" cy="9" r="2.3" fill="var(--gold)"/>
+  </symbol>
+</svg>
+
+<div class="blob blob-a" aria-hidden="true"></div>
+<div class="blob blob-b" aria-hidden="true"></div>
+
   <section id="login">
     <div class="card">
-      <h1>🌳 Madroño</h1>
-      <p class="sub">Plataforma de inteligencia urbana de Madrid.<br>Chatea con el asistente sobre tráfico, aire, ruido y movilidad reales.</p>
+      <span class="mark"><svg><use href="#madrono-mark"/></svg></span>
+      <h1>Madroño</h1>
+      <p class="sub"><strong>Inteligencia urbana de Madrid</strong>, en una conversación.<br>Tráfico, aire, ruido y movilidad — con datos abiertos reales.</p>
       <form id="login-form">
         <div class="field">
           <label for="u">Usuario</label>
@@ -71,28 +306,38 @@
           <input id="p" type="password" autocomplete="current-password" required>
         </div>
         <button class="primary" type="submit" id="login-btn">Entrar</button>
-        <div class="err" id="login-err"></div>
+        <div class="alert" id="login-err"></div>
       </form>
-      <p class="hint">Acceso de demostración — <a href="https://madrono-ucm.github.io/madronoTFM/" target="_blank" rel="noopener">ver el mapa animado del grafo</a></p>
+      <p class="hint">Acceso de demostración — <a href="https://madrono-ucm.github.io/madronoTFM/" target="_blank" rel="noopener">ver el mapa animado del grafo →</a></p>
     </div>
   </section>
 
   <section id="chat-screen">
-    <header class="bar">
-      <div class="brand">🌳 Madroño<small>asistente de datos urbanos de Madrid</small></div>
-      <button class="logout" id="logout-btn">Salir</button>
-    </header>
+    <div class="header-bar-wrap">
+      <header class="bar">
+        <span class="mark"><svg><use href="#madrono-mark"/></svg></span>
+        <div class="brand">
+          <span class="brand-word">Madroño</span>
+          <span class="tagline">Asistente de datos urbanos de Madrid</span>
+        </div>
+        <button class="logout" id="logout-btn">Salir</button>
+      </header>
+    </div>
     <div id="msgs"></div>
     <div class="suggestions" id="suggestions">
-      <button data-q="¿Cómo está el tráfico cerca de Atocha?">Tráfico en Atocha</button>
-      <button data-q="¿Cómo está la calidad del aire en Retiro?">Aire en Retiro</button>
-      <button data-q="¿Cuál es la mejor hora para pasear por Sol hoy?">Mejor hora en Sol</button>
-      <button data-q="Recomiéndame una ruta saludable de Sol a Atocha">Ruta saludable</button>
+      <button data-q="¿Cómo está el tráfico cerca de Atocha?">🚗 Tráfico en Atocha</button>
+      <button data-q="¿Cómo está la calidad del aire en Retiro?">🌬️ Aire en Retiro</button>
+      <button data-q="¿Cuál es la mejor hora para pasear por Sol hoy?">☀️ Mejor hora en Sol</button>
+      <button data-q="Recomiéndame una ruta saludable de Sol a Atocha">🌳 Ruta saludable</button>
     </div>
-    <form id="composer">
-      <input id="input" type="text" placeholder="Escribe tu pregunta sobre Madrid..." autocomplete="off">
-      <button type="submit" aria-label="Enviar">➤</button>
-    </form>
+    <div class="composer-bar">
+      <form id="composer">
+        <div class="field-wrap">
+          <input id="input" type="text" placeholder="Escribe tu pregunta sobre Madrid..." autocomplete="off">
+        </div>
+        <button type="submit" aria-label="Enviar">➤</button>
+      </form>
+    </div>
   </section>
 
 <script>
