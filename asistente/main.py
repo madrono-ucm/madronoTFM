@@ -28,6 +28,7 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mcp.server.transport_security import TransportSecuritySettings
 
 from asistente.mcp_agent.server import mcp
 from asistente.routers import (
@@ -51,7 +52,33 @@ from asistente.routers import (
 
 
 def create_app() -> FastAPI:
-    mcp_app = mcp.streamable_http_app()
+    # `streamable_http_app()` sin argumentos activa por defecto (SDK `mcp`,
+    # ver `mcp.server.lowlevel.server.Server.streamable_http_app`) protección
+    # DNS-rebinding restringida a `host="127.0.0.1"` -- cualquier `Host` real
+    # (la IP pública o `35-42-164-183.nip.io`, ver FIL_63/FIL_62) recibe
+    # `421 Misdirected Request` del propio SDK MCP, antes incluso de llegar al
+    # código de este proyecto. Bug real encontrado probando un cliente MCP de
+    # verdad contra la instancia pública (`mcp.client.streamable_http`) --
+    # `mcp.list_tools()` en proceso (usado por `asistente/chat.py`) y los
+    # tests con streams en memoria (`test_mcp_transport.py`) no pasan por esta
+    # comprobación, por eso quedó sin detectar hasta ahora. Se declara
+    # explícitamente el host público real como permitido.
+    mcp_app = mcp.streamable_http_app(
+        transport_security=TransportSecuritySettings(
+            allowed_hosts=[
+                "35-42-164-183.nip.io",
+                "35-42-164-183.nip.io:*",
+                "127.0.0.1:*",
+                "localhost:*",
+            ],
+            allowed_origins=[
+                "https://35-42-164-183.nip.io",
+                "https://d2obcdu8duk47f.cloudfront.net",
+                "http://127.0.0.1:*",
+                "http://localhost:*",
+            ],
+        )
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
