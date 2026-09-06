@@ -109,6 +109,12 @@ class MapaArtefactosTests(unittest.TestCase):
         for marca in ("ColumnLayer", "nodeElev", "usaBarras", 'class="rp"',
                       'id="resumen"', "function resumen()", 'id="rs-city"', 'id="rs-distr"'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_49)")
+        # FIL_61: las columnas van en px (en metros eran ~1 px = invisibles) y
+        # elegir "barras"/"auto" inclina la cámara para que se vean en volumen.
+        col = self.html.split("new ColumnLayer(", 1)[1].split("}));", 1)[0]
+        self.assertIn('radiusUnits:"pixels"', col)
+        self.assertNotIn('radiusUnits:"meters"', col)
+        self.assertIn("map.getPitch() < 5) setPitch", self.html)
 
     def test_meta_tex_es_el_grafo_completo(self):
         # FIL_49: la capa "textura" pasa a ser TODAS las aristas del grafo

@@ -358,10 +358,13 @@ function layers(){
   // perfil o de escala (lineal<->bandas) recolorea los nodos aunque metric no cambie
   const trig = [state.day,state.hour,state.metric,state.hz,state.ghost,state.perfil,state.escala];
   if(usaBarras())
-    L.push(new ColumnLayer({id:"nodes", data:idxs, pickable:true, diskResolution:6,
-      radius:40, radiusUnits:"meters", extruded:true, elevationScale:24,
+    // Columnas de ancho fijo en píxeles (en metros, 40 m ≈ 1 px a zoom de
+    // ciudad → invisibles). Altura = "gravedad" 0..100 escalada a metros;
+    // `material:false` para que el color plano = el valor, sin depender de
+    // una luz que no está montada.
+    L.push(new ColumnLayer({id:"nodes", data:idxs, pickable:true, diskResolution:12,
+      radius:5, radiusUnits:"pixels", extruded:true, elevationScale:35, material:false,
       getPosition:i=>META.coords[i], getElevation:nodeElev, getFillColor:nodeColor,
-      material:{ambient:0.6, diffuse:0.5, shininess:20},
       updateTriggers:{getFillColor:trig, getElevation:trig}, onClick:onNode}));
   else
     L.push(new ScatterplotLayer({id:"nodes", data:idxs, pickable:true,
@@ -651,9 +654,13 @@ function mkControls(){
   document.getElementById("tab-a").onclick=()=>{ state.tab="a"; syncTabs(); render(); };
 
   document.querySelectorAll(".rp").forEach(b=>b.onclick=()=>{ state.repr=b.dataset.r;
-    document.querySelectorAll(".rp").forEach(x=>x.classList.remove("on")); b.classList.add("on"); render(); });
+    document.querySelectorAll(".rp").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+    // "barras" y "auto" no dicen nada con la cámara plana: inclínala.
+    if((b.dataset.r==="barras" || b.dataset.r==="auto") && map.getPitch() < 5) setPitch(45);
+    else render();
+  });
   document.getElementById("v2d").onclick=()=>setPitch(0);
-  document.getElementById("v3d").onclick=()=>setPitch(40);
+  document.getElementById("v3d").onclick=()=>setPitch(45);
   document.getElementById("fit").onclick=fitBounds;
   document.getElementById("clean").onclick=e=>{
     state.clean=!state.clean;
