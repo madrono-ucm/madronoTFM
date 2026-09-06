@@ -121,10 +121,10 @@
     <div class="row" aria-label="Basemap vectorial (opcional)">
       <span class="muted">basemap:</span>
       <select id="basemap" aria-label="Basemap vectorial">
-        <option value="ninguno">ninguno</option>
+        <option value="voyager">Carto Voyager (calles)</option>
         <option value="positron">Carto Positron (claro)</option>
         <option value="dark-matter">Carto Dark Matter (oscuro)</option>
-        <option value="voyager">Carto Voyager (calles)</option>
+        <option value="ninguno">ninguno (sin tiles)</option>
       </select>
     </div>
     <label class="chk"><input type="checkbox" id="l-distr" checked> nombres de distrito</label>
@@ -188,26 +188,28 @@
 // `WX` (meteo) se cargan de tres JSON al final del fichero; `state` guarda lo
 // que el usuario elige con los controles; `render()` reconstruye las capas de
 // deck.gl y los paneles a partir de `state` cada vez que algo cambia.
-const {DeckGL, ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, WebMercatorViewport} = deck;
-let META, DATA, WX, RUTAS, dgl, selNode = null;
+const {ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, MapboxOverlay} = deck;
+let META, DATA, WX, RUTAS, map, overlay, selNode = null;
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
   layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false},
-  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"ninguno",
+  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"voyager",
 };
 
-// Basemap vectorial opcional. "ninguno" es un estilo vacío (transparente, el
-// aspecto plano por defecto); el resto son estilos Carto que no necesitan
-// token. Solo se descargan tiles si se elige uno distinto de "ninguno".
-const HAS_MAPLIBRE = typeof maplibregl !== "undefined";
+// El mapa base es una instancia de maplibre-gl (dueña de la cámara) y los
+// nodos/arcos van encima como un MapboxOverlay de deck.gl, para que siempre
+// queden anclados a la misma proyección y el pitch 3D funcione de forma
+// nativa. Estilos Carto sin token; "ninguno" es un estilo vacío
+// (transparente) para el modo sin tiles / capturas offline.
 const BASEMAP_VACIO = {version:8, sources:{}, layers:[]};
 const BASEMAPS = {
-  ninguno: BASEMAP_VACIO,
+  voyager: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
   positron: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
   "dark-matter": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-  voyager: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
+  ninguno: BASEMAP_VACIO,
 };
+const estiloBase = () => BASEMAPS[state.basemap] || BASEMAP_VACIO;
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
 const scale = (v, lo, hi) => clamp01((v-lo)/(hi-lo));
@@ -363,7 +365,8 @@ function layers(){
   if(selNode!=null)
     L.push(new ScatterplotLayer({id:"sel", data:[selNode], getPosition:i=>META.coords[i],
       getRadius:nodeRmin()*3, radiusUnits:"pixels", stroked:true, filled:false,
-      getLineColor:[255,255,255,235], lineWidthMinPixels:2}));
+      getLineColor:[255,255,255,235], lineWidthMinPixels:2,
+      updateTriggers:{getRadius:[state.view.zoom]}}));   // el aro escala con el zoom, como los nodos
   if(state.layers.parques){
     L.push(new ScatterplotLayer({id:"pq-dot", data:META.parques_geojson.features,
       getPosition:f=>f.geometry.coordinates, getRadius:5, radiusMinPixels:4, radiusMaxPixels:9,
@@ -487,7 +490,8 @@ function tooltip({object, layer}){
 }
 
 function render(){
-  dgl.setProps({layers: layers(), viewState: state.view});
+  // La cámara la lleva maplibre; aquí solo se reconstruyen las capas.
+  overlay.setProps({layers: layers()});
   const md = metDef(state.metric);
   const bandas = state.escala==="bandas" && !state.ghost && (META.umbrales[md.banda||state.metric]);
   document.getElementById("metlabel").textContent = state.ghost
@@ -589,11 +593,8 @@ function routeInfo(){
 }
 
 function fitBounds(){
-  const {width, height} = dgl.deck || {width:innerWidth, height:innerHeight};
-  const vp = new WebMercatorViewport({width:innerWidth, height:innerHeight});
-  const {longitude, latitude, zoom} = vp.fitBounds(META.bbox, {padding:60});
-  state.view = {...state.view, longitude, latitude, zoom};
-  render();
+  // META.bbox = [[oeste, sur], [este, norte]] — el formato que espera maplibre.
+  map.fitBounds(META.bbox, {padding:60, duration:0});
 }
 
 function mkControls(){
@@ -657,14 +658,14 @@ function mkControls(){
   setChk("l-parques","parques"); setChk("l-tex","tex");
 
   const bmSel = document.getElementById("basemap");
-  if(!HAS_MAPLIBRE){
-    bmSel.disabled = true;
-    bmSel.title = "maplibre-gl no se pudo cargar; el mapa sigue funcionando sin basemap";
-  } else {
-    bmSel.value = state.basemap;
-    bmSel.onchange = ()=>{ state.basemap = bmSel.value;
-      dgl.setProps({mapStyle: BASEMAPS[state.basemap] || BASEMAP_VACIO}); };
-  }
+  bmSel.value = state.basemap;
+  bmSel.onchange = ()=>{
+    state.basemap = bmSel.value;
+    // El MapboxOverlay es un control del mapa, así que sobrevive al cambio de
+    // estilo y las capas siguen ancladas; se repintan al terminar de cargar.
+    map.setStyle(estiloBase());
+    map.once("styledata", render);
+  };
 
   // ruta: 2 desplegables (origen·destino  ×  perfil)
   if(RUTAS && RUTAS.rutas.length){
@@ -686,9 +687,13 @@ function mkControls(){
     document.getElementById("r-perfil").disabled = true;
   }
 }
-function setPitch(p){ state.view = {...state.view, pitch:p, bearing:p?state.view.bearing:0};
+function setPitch(p){
   document.getElementById("v2d").classList.toggle("on", p===0);
-  document.getElementById("v3d").classList.toggle("on", p!==0); render(); }
+  document.getElementById("v3d").classList.toggle("on", p!==0);
+  // La cámara la lleva maplibre; el evento "move" sincroniza state.view y
+  // dispara render(), así que "auto" pasa a barras cuando el pitch sube.
+  map.easeTo({pitch:p, bearing:p ? map.getBearing() : 0, duration:300});
+}
 function tick(){ if(!state.playing) return;
   state.hour=(state.hour+1)%24; document.getElementById("hour").value=state.hour; render();
   setTimeout(tick, 650); }
@@ -700,17 +705,33 @@ Promise.all([
   fetch("./rutas.json").then(r=>r.ok?r.json():null).catch(()=>null),
 ]).then(([m,d,w,ru])=>{
   META=m; DATA=d; WX=w; RUTAS=ru; state.day=m.dias[0];
-  dgl = new DeckGL({container:"map", controller:true, viewState:state.view,
-    ...(HAS_MAPLIBRE ? {map: maplibregl, mapStyle: BASEMAPS[state.basemap] || BASEMAP_VACIO} : {}),
-    onViewStateChange:e=>{ state.view=e.viewState; dgl.setProps({viewState:state.view});
-      // re-render props que dependen del zoom/pitch (radio de nodo, opacidad de
-      // etiquetas, puntos<->barras en "auto") sin recalcular en cada frame
-      if(!render._raf) render._raf = requestAnimationFrame(()=>{ render._raf = 0; render(); }); },
-    getTooltip:tooltip, layers:[]});
+  if(typeof maplibregl === "undefined") throw new Error("maplibre-gl no se pudo cargar (CDN)");
+
+  const v = state.view;
+  map = new maplibregl.Map({
+    container:"map", style: estiloBase(),
+    center:[v.longitude, v.latitude], zoom:v.zoom, pitch:v.pitch, bearing:v.bearing,
+    attributionControl:{compact:true}, dragRotate:true,
+  });
+  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), "bottom-right");
+
+  overlay = new MapboxOverlay({interleaved:false, layers:[], getTooltip:tooltip});
+  map.addControl(overlay);
+
+  // maplibre es la fuente de verdad de la cámara: cada "move" refresca
+  // state.view (radio de nodo, opacidad de etiquetas, puntos<->barras en
+  // "auto" y el aro de selección lo leen) y repinta, como mucho 1 vez/frame.
+  map.on("move", ()=>{
+    const c = map.getCenter();
+    state.view = {longitude:c.lng, latitude:c.lat, zoom:map.getZoom(),
+                  pitch:map.getPitch(), bearing:map.getBearing()};
+    if(!render._raf) render._raf = requestAnimationFrame(()=>{ render._raf = 0; render(); });
+  });
+
   mkControls(); syncTabs();
-  if(META.bbox) fitBounds(); else render();
+  map.on("load", ()=>{ if(META.bbox) fitBounds(); render(); });
 }).catch(e=>{ document.getElementById("map").innerHTML =
-  "<p style='color:#ccc;font:14px system-ui;padding:24px'>No se pudieron cargar los datos. "
+  "<p style='color:#ccc;font:14px system-ui;padding:24px'>No se pudo montar el mapa. "
   +"Sirve la carpeta con <code>python -m http.server -d viz/mapa</code>.<br>"+e+"</p>"; });
 </script>
 </body>
