@@ -45,10 +45,14 @@ class MapaArtefactosTests(unittest.TestCase):
             algun = next(iter(self.wx[dia].values()))
             self.assertIn("temp_c", algun)
 
-    def test_html_autonomo_salvo_deckgl(self):
-        self.assertIn("deck.gl@", self.html)  # única dependencia externa
+    def test_html_dependencias_externas(self):
+        # deck.gl + maplibre-gl por CDN; nada más.
+        self.assertIn("deck.gl@", self.html)
+        self.assertIn("maplibre-gl@", self.html)
         self.assertIn('fetch("./meta.json")', self.html)
-        self.assertNotIn("mapbox", self.html.lower())  # sin tiles/token
+        # basemaps Carto, sin token ni tiles de Mapbox de pago.
+        self.assertNotIn("api.mapbox.com", self.html.lower())
+        self.assertNotIn("access_token", self.html.lower())
         self.assertIn("<title>", self.html)
 
     def test_capas_ricas_presentes(self):
@@ -87,7 +91,7 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertTrue(any("Casa de Campo" in n for n in pq))
 
     def test_html_legibilidad(self):
-        for marca in ("TextLayer", "WebMercatorViewport", "getTooltip", "fitBounds",
+        for marca in ("TextLayer", "getTooltip", "fitBounds",
                       'id="v2d"', 'id="v3d"', 'id="fit"', 'id="l-ejes"', 'id="l-parques"',
                       'id="r-od"', 'id="r-perfil"', "<details", "titulo-sub",
                       'characterSet:"auto"', "focus-visible", 'lang="es"'):
@@ -142,16 +146,16 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertIn("md = metDef(m)", resumen)
         self.assertNotIn("META.metricas[m]", resumen)
 
-    # --- FIL_50: basemap vectorial opcional ---
-    def test_html_basemap_opcional(self):
+    # --- FIL_50 / FIL_61: mapa base maplibre + deck.gl como MapboxOverlay ---
+    def test_html_basemap(self):
         for marca in ("maplibre-gl.js", "maplibre-gl.css", 'id="basemap"',
-                      "HAS_MAPLIBRE", "BASEMAPS", "cartocdn.com",
-                      'typeof maplibregl !== "undefined"'):
-            self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_50)")
-        # arranca en "ninguno" y degrada si maplibre no carga
-        self.assertIn('basemap:"ninguno"', self.html.replace(" ", ""))
-        self.assertIn("bmSel.disabled = true", self.html)
-        # el selector ofrece ninguno + 3 estilos Carto
+                      "BASEMAPS", "cartocdn.com", "new maplibregl.Map",
+                      "MapboxOverlay", "map.setStyle(estiloBase())",
+                      'map.easeTo({pitch'):
+            self.assertIn(marca, self.html, f"falta {marca} en el HTML")
+        # el basemap por defecto es Carto Voyager (calles)
+        self.assertIn('basemap:"voyager"', self.html.replace(" ", ""))
+        # el selector ofrece las 3 opciones Carto + "ninguno"
         opciones = self.html.split('id="basemap"', 1)[1].split("</select>", 1)[0]
         for v in ('value="ninguno"', 'value="positron"', 'value="dark-matter"',
                   'value="voyager"'):

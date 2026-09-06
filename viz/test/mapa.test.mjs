@@ -70,15 +70,6 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
     }
   }
   win.deck = {
-    DeckGL: class {
-      constructor(p) {
-        this.props = p || {};
-        this.deck = { width: 1200, height: 800 };
-      }
-      setProps(p) {
-        Object.assign(this.props, p);
-      }
-    },
     ScatterplotLayer: LayerStub,
     ColumnLayer: LayerStub,
     LineLayer: LayerStub,
@@ -86,13 +77,33 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
     GeoJsonLayer: LayerStub,
     PathLayer: LayerStub,
     TextLayer: LayerStub,
-    WebMercatorViewport: class {
-      fitBounds() {
-        return { longitude: -3.7, latitude: 40.43, zoom: 11 };
-      }
+    // deck.gl como control del mapa (sin WebGL): solo hay que guardar props.
+    MapboxOverlay: class {
+      constructor(p) { this.props = p || {}; }
+      setProps(p) { Object.assign(this.props, p); }
+      onAdd() { return win.document.createElement("div"); }
+      onRemove() {}
     },
   };
-  win.maplibregl = {};
+  // maplibre-gl no arranca sin WebGL: se simula la parte de la API que usa la
+  // página (dueña de la cámara). `easeTo`/`fitBounds` disparan "move", que es
+  // como la página se entera de que la cámara cambió.
+  class MapStub {
+    constructor(o) { this._o = o || {}; this._h = {}; this._z = o?.zoom ?? 10.6; this._p = o?.pitch ?? 0; this._b = o?.bearing ?? 0; }
+    addControl() { return this; }
+    on(ev, cb) { (this._h[ev] = this._h[ev] || []).push(cb); if (ev === "load") setTimeout(cb, 0); return this; }
+    once(ev, cb) { setTimeout(cb, 0); return this; }
+    off() { return this; }
+    _fire(ev) { (this._h[ev] || []).forEach((cb) => cb()); }
+    getCenter() { return { lng: -3.7, lat: 40.43 }; }
+    getZoom() { return this._z; }
+    getPitch() { return this._p; }
+    getBearing() { return this._b; }
+    setStyle() { setTimeout(() => this._fire("styledata"), 0); return this; }
+    fitBounds() { this._fire("move"); return this; }
+    easeTo(o) { if (o?.pitch != null) this._p = o.pitch; if (o?.bearing != null) this._b = o.bearing; this._fire("move"); return this; }
+  }
+  win.maplibregl = { Map: MapStub, NavigationControl: class {} };
   win.fetch = (url) => {
     const key = String(url).replace("./", "");
     return key in files
