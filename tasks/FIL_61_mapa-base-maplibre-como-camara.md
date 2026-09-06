@@ -91,3 +91,20 @@ El usuario reportó que cambiar de basemap seguía roto. Tres causas, las tres c
 
 El test funcional (`FIL_56`) ahora recorre las 4 opciones de basemap.
 `tests/` 16 + `npm test` 3/3 verde.
+
+## Follow-up (2026-09-06 b) — las barras no se veían
+
+Causas:
+
+1. **`radius:40, radiusUnits:"meters"`** en el `ColumnLayer` → a zoom de
+   ciudad 40 m ≈ 1 px, las columnas eran invisibles (los puntos usan
+   `radiusMinPixels`, las columnas no tenían nada equivalente). Ahora
+   `radius:5, radiusUnits:"pixels"` → ancho fijo en pantalla.
+2. **`material:{...}` sin `LightingEffect` montado** → riesgo de columnas
+   negras. Ahora `material:false`: el color plano = el valor.
+3. **Elegir "barras (3D)" no inclinaba la cámara** → columnas extruidas
+   vistas en planta = hexágonos planos. Ahora elegir `barras` o `auto`
+   con pitch < 5 hace `setPitch(45)`. `elevationScale` 24 → 35 para más
+   volumen. `v3d` también pasa a 45°.
+
+Test: `radiusUnits:"pixels"` obligatorio (no `"meters"`) + el auto-tilt.
