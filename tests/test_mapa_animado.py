@@ -150,7 +150,7 @@ class MapaArtefactosTests(unittest.TestCase):
     def test_html_basemap(self):
         for marca in ("maplibre-gl.js", "maplibre-gl.css", 'id="basemap"',
                       "BASEMAPS", "cartocdn.com", "new maplibregl.Map",
-                      "MapboxOverlay", "map.setStyle(estiloBase())",
+                      "MapboxOverlay", "map.setStyle(estiloBase(), {diff:false})",
                       'map.easeTo({pitch'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML")
         # el basemap por defecto es Carto Voyager (calles)

@@ -200,16 +200,27 @@ let state = {
 // El mapa base es una instancia de maplibre-gl (dueña de la cámara) y los
 // nodos/arcos van encima como un MapboxOverlay de deck.gl, para que siempre
 // queden anclados a la misma proyección y el pitch 3D funcione de forma
-// nativa. Estilos Carto sin token; "ninguno" es un estilo vacío
-// (transparente) para el modo sin tiles / capturas offline.
-const BASEMAP_VACIO = {version:8, sources:{}, layers:[]};
+// nativa. Estilos Carto sin token.
+//
+// "ninguno" = modo sin tiles: un estilo con SOLO una capa `background`
+// oscura. No puede ser un estilo vacío de verdad: sin ninguna capa que
+// pintar, maplibre deja de emitir "render" y el MapboxOverlay (que se
+// engancha a ese bucle) dejaría de dibujar los nodos. Se genera fresco
+// cada vez porque `setStyle` puede mutar el objeto.
+const BASEMAP_VACIO = () => ({
+  version: 8, sources: {},
+  layers: [{id:"fondo", type:"background", paint:{"background-color":"#0a0e14"}}],
+});
 const BASEMAPS = {
   voyager: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
   positron: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
   "dark-matter": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
   ninguno: BASEMAP_VACIO,
 };
-const estiloBase = () => BASEMAPS[state.basemap] || BASEMAP_VACIO;
+const estiloBase = () => {
+  const s = BASEMAPS[state.basemap] || BASEMAP_VACIO;
+  return typeof s === "function" ? s() : s;
+};
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
 const scale = (v, lo, hi) => clamp01((v-lo)/(hi-lo));
@@ -661,10 +672,20 @@ function mkControls(){
   bmSel.value = state.basemap;
   bmSel.onchange = ()=>{
     state.basemap = bmSel.value;
-    // El MapboxOverlay es un control del mapa, así que sobrevive al cambio de
-    // estilo y las capas siguen ancladas; se repintan al terminar de cargar.
-    map.setStyle(estiloBase());
-    map.once("styledata", render);
+    // `setStyle` recarga por completo el estilo (`diff:false` — el diff
+    // falla entre estilos muy distintos, Carto <-> "ninguno"). El overlay
+    // de deck.gl se recrea de cero cuando el nuevo estilo está listo: es lo
+    // más robusto frente a que el canvas del overlay se desligue del bucle
+    // de render al cambiar el estilo.
+    map.removeControl(overlay);
+    map.setStyle(estiloBase(), {diff:false});
+    const rehacer = ()=>{
+      if(!map.isStyleLoaded()){ map.once("styledata", rehacer); return; }
+      overlay = new MapboxOverlay({interleaved:false, layers:[], getTooltip:tooltip});
+      map.addControl(overlay);
+      render();
+    };
+    map.once("styledata", rehacer);
   };
 
   // ruta: 2 desplegables (origen·destino  ×  perfil)

@@ -72,3 +72,22 @@ sigue disponible = estilo vacío transparente (deja ver el degradado del
   `MapboxOverlay`; los 51 controles → 0 excepciones. `node --check` OK.
 - **Pendiente**: pasada en navegador real (estilo `VIC_32`) para confirmar
   el anclaje visual y el 3D — jsdom no tiene WebGL.
+
+## Follow-up (2026-09-06) — cambiar de basemap fallaba
+
+El usuario reportó que cambiar de basemap seguía roto. Tres causas, las tres corregidas:
+
+1. **`"ninguno"` era un estilo sin ninguna capa** → maplibre deja de emitir
+   `render` y el `MapboxOverlay` (enganchado a ese bucle) dejaba de dibujar
+   los nodos. Ahora `"ninguno"` lleva una capa `background` oscura
+   (`#0a0e14`), así que el bucle de render nunca se para.
+2. **`BASEMAP_VACIO` era un objeto compartido** que `setStyle` puede mutar →
+   ahora es una fábrica (`() => ({...})`) que devuelve uno nuevo cada vez.
+3. **`setStyle` en modo diff** falla entre estilos muy distintos (Carto ↔
+   "ninguno"). Ahora `map.setStyle(estiloBase(), {diff:false})` +
+   **recrear el overlay** (`removeControl` → `setStyle` → al `styledata`
+   con `isStyleLoaded`: `new MapboxOverlay(...)` + `addControl` + `render`)
+   — lo más robusto frente a que el canvas del overlay se desligue.
+
+El test funcional (`FIL_56`) ahora recorre las 4 opciones de basemap.
+`tests/` 16 + `npm test` 3/3 verde.
