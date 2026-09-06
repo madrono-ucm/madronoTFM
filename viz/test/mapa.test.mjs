@@ -91,6 +91,7 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
   class MapStub {
     constructor(o) { this._o = o || {}; this._h = {}; this._z = o?.zoom ?? 10.6; this._p = o?.pitch ?? 0; this._b = o?.bearing ?? 0; }
     addControl() { return this; }
+    removeControl() { return this; }
     on(ev, cb) { (this._h[ev] = this._h[ev] || []).push(cb); if (ev === "load") setTimeout(cb, 0); return this; }
     once(ev, cb) { setTimeout(cb, 0); return this; }
     off() { return this; }
@@ -99,6 +100,7 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
     getZoom() { return this._z; }
     getPitch() { return this._p; }
     getBearing() { return this._b; }
+    isStyleLoaded() { return true; }
     setStyle() { setTimeout(() => this._fire("styledata"), 0); return this; }
     fitBounds() { this._fire("move"); return this; }
     easeTo(o) { if (o?.pitch != null) this._p = o.pitch; if (o?.bearing != null) this._b = o.bearing; this._fire("move"); return this; }
@@ -138,6 +140,10 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
   click($("fit"));
   click($("clean"));
   click($("clean"));
+  for (const opt of [...$("basemap").options].map((o) => o.value)) { // voyager/positron/dark-matter/ninguno
+    $("basemap").value = opt;
+    fire($("basemap"), "change");
+  }
   ["l-distr", "l-hitos", "l-ejes", "l-parques", "l-tex", "l-idw"].forEach((id) => {
     $(id).checked = !$(id).checked;
     fire($(id), "change");
