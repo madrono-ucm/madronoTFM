@@ -185,12 +185,24 @@ def _ejecutar_tool(nombre: str, args: dict) -> Any:
     return resultado
 
 
+def _extraer_tool_calls(msg) -> list:
+    return list(getattr(msg, "tool_calls", None) or [])
+
+
+_MAX_RONDAS_TOOL = 4
+
+
 def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
-    """Un turno de chat. `historial` es la lista de mensajes previa (formato
-    Groq/OpenAI: `{"role": ..., "content": ...}`), vacía en el primer turno.
-    Devuelve `{"respuesta": str, "historial": list[dict]}` -- el `historial`
-    devuelto se le pasa tal cual al siguiente turno (el front no necesita
-    entender su estructura interna, solo guardarlo y reenviarlo)."""
+    """Un turno de chat como bucle acotado de tool-calling (formato
+    Groq/OpenAI). `historial` es la lista de mensajes previa (vacía en el
+    primer turno); se devuelve `{"respuesta": str, "historial": list[dict]}`
+    y el `historial` devuelto se reenvía tal cual al siguiente turno.
+
+    El bucle (hasta `_MAX_RONDAS_TOOL` rondas con herramientas + 1 ronda
+    final en prosa) tolera que el modelo alucine un nombre de tool
+    (`_ejecutar_tool` devuelve un error que el modelo puede corregir) o
+    intente llamar una tool en la ronda de redacción (400
+    `tool_use_failed` de Groq -> se fuerza prosa)."""
     client = _cliente()
     tools = _tools_para_groq()
 
@@ -198,61 +210,62 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
     messages.extend(historial or [])
     messages.append({"role": "user", "content": mensaje})
 
-    try:
-        resp = _completar(
-            client, model=_MODEL, messages=messages, tools=tools, tool_choice="auto",
-            max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2,
-        )
-    except Exception as exc:  # noqa: BLE001 - degradación elegante (429/5xx de Groq)
-        logger.warning("fallo llamando a Groq: %s", exc)
-        return {
-            "respuesta": "No he podido consultar el modelo ahora mismo (límite de peticiones o fallo temporal de Groq). Prueba de nuevo en un momento.",
-            "historial": historial or [],
-        }
+    def _degradado(msg_err: str):
+        base = messages if len(messages) > 2 else (historial or [])
+        return {"respuesta": msg_err, "historial": base}
 
-    msg = resp.choices[0].message
-    tool_calls = msg.tool_calls or []
+    for ronda in range(_MAX_RONDAS_TOOL + 1):
+        ultima = ronda == _MAX_RONDAS_TOOL
+        kw = dict(model=_MODEL, messages=messages,
+                  max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2)
+        if not ultima:
+            kw["tools"] = tools
+            kw["tool_choice"] = "auto"
 
-    if not tool_calls:
-        messages.append({"role": "assistant", "content": msg.content})
-        return {"respuesta": msg.content, "historial": messages}
-
-    messages.append(
-        {
-            "role": "assistant",
-            "content": msg.content,
-            "tool_calls": [
-                {
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
-                }
-                for tc in tool_calls
-            ],
-        }
-    )
-    for tc in tool_calls:
         try:
-            args = json.loads(tc.function.arguments or "{}")
-        except json.JSONDecodeError:
-            args = {}
-        resultado = _ejecutar_tool(tc.function.name, args)
-        messages.append(
-            {
-                "role": "tool",
-                "tool_call_id": tc.id,
+            resp = _completar(client, **kw)
+        except Exception as exc:  # noqa: BLE001
+            estado = getattr(exc, "status_code", None) or getattr(
+                getattr(exc, "response", None), "status_code", None)
+            if estado == 400 and "tool" in str(exc).lower() and not ultima:
+                logger.info("tool_use_failed en ronda %d -> forzar prosa", ronda)
+                messages.append({"role": "system",
+                                 "content": "Responde ahora en prosa, sin llamar más herramientas."})
+                try:
+                    resp = _completar(client, model=_MODEL, messages=messages,
+                                      max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2)
+                except Exception as exc2:  # noqa: BLE001
+                    logger.warning("fallo redactando (fallback prosa): %s", exc2)
+                    return _degradado("He consultado los datos pero no he podido redactar la respuesta (fallo del modelo).")
+            else:
+                logger.warning("fallo llamando al LLM (ronda %d): %s", ronda, exc)
+                return _degradado("No he podido consultar el modelo ahora mismo (límite de peticiones o fallo temporal). Prueba de nuevo en un momento.")
+
+        msg = resp.choices[0].message
+        tcs = _extraer_tool_calls(msg)
+
+        if not tcs or ultima:
+            texto = msg.content or "He consultado los datos, pero el modelo no ha devuelto texto."
+            messages.append({"role": "assistant", "content": texto})
+            return {"respuesta": texto, "historial": messages}
+
+        messages.append({
+            "role": "assistant", "content": msg.content,
+            "tool_calls": [
+                {"id": tc.id, "type": "function",
+                 "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                for tc in tcs
+            ],
+        })
+        for tc in tcs:
+            try:
+                args = json.loads(tc.function.arguments or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            resultado = _ejecutar_tool(tc.function.name, args)
+            messages.append({
+                "role": "tool", "tool_call_id": tc.id,
                 "content": json.dumps(resultado, ensure_ascii=False, default=str),
-            }
-        )
+            })
 
-    try:
-        resp2 = _completar(
-            client, model=_MODEL, messages=messages, max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2,
-        )
-        respuesta = resp2.choices[0].message.content
-    except Exception as exc:  # noqa: BLE001 - degradación elegante
-        logger.warning("fallo redactando la respuesta final: %s", exc)
-        respuesta = "He consultado los datos pero no he podido redactar la respuesta (fallo temporal de Groq)."
-
-    messages.append({"role": "assistant", "content": respuesta})
-    return {"respuesta": respuesta, "historial": messages}
+    return _degradado("No he podido completar la consulta.")  # inalcanzable en la práctica
