@@ -26,8 +26,11 @@ from __future__ import annotations
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import AsyncIterator
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from mcp.server.transport_security import TransportSecuritySettings
 
 from asistente.mcp_agent.server import mcp
@@ -135,6 +138,13 @@ def create_app() -> FastAPI:
     app.include_router(opciones_movilidad.router)
     app.include_router(chat.router)
     app.mount("/mcp-server", mcp_app)
+    # El mapa animado (`viz/mapa/`) servido desde el propio asistente: así su
+    # panel de chat llama a `/chat` en el mismo origen (sin `?api=`, sin CORS).
+    # FIL_69/FIL_70. Solo si la carpeta existe (no en un despliegue que no la
+    # vendorice).
+    _mapa = Path(__file__).resolve().parents[1] / "viz" / "mapa"
+    if _mapa.is_dir():
+        app.mount("/mapa", StaticFiles(directory=str(_mapa), html=True), name="mapa")
     return app
 
 
