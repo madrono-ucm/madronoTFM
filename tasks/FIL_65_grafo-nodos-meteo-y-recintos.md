@@ -29,14 +29,25 @@ target: "2026-09-14"
   `fetch_recintos_eventos_silver()` → **145 recintos** (Ciudad Real Madrid,
   Gran Teatro CaixaBank Príncipe Pío, Coliseum, parques, polideportivos…).
 
-**Pendiente (gated, requiere OK humano):**
-1. `python -m grafo.exportar_grafo` (necesita AWS) → regenerar
-   `grafo/_data/grafo_urbano.json.gz` con los dos labels nuevos, y volver a
-   correr `FIL_52`/`FIL_64` para que los recojan.
-2. `python -m grafo.cargar_grafo` contra la instancia AuraDB real — escribe
-   en la instancia que leen el mapa publicado y el asistente público, 20–50
-   min (tier Free), histórico de `SessionExpired` (`FIL_08`). Ventana
-   tranquila + `git pull` + verificación post-carga de los counts nuevos.
+**Hecho también (2026-09-09):**
+- `python -m grafo.exportar_grafo` → `grafo/_data/grafo_urbano.json.gz`
+  regenerado con `meteo=25` / `recinto=145` (sin avisos). `FIL_52`/`FIL_64`
+  re-ejecutados sobre él (resiliencia estable; Spearman STGNN↔grado
+  PROXIMO_A 0,34→0,64 p 0,0095). Suite completa verde: 1110 passed.
+
+**Pendiente (gated — el clasificador de auto-mode bloquea la escritura a
+Neo4j desde sesión no interactiva, y también bloquea auto-añadir la
+allow-rule):**
+- `python -m grafo.cargar_grafo` contra la instancia AuraDB real — escribe
+  en la instancia que leen el mapa publicado y el asistente público, 20–50
+  min (tier Free), histórico de `SessionExpired` (`FIL_08`). Lo lanza
+  Filippos desde una shell interactiva (comando exacto en el hilo de la
+  sesión) o tras añadir `Bash(python3 -m grafo.cargar_grafo)` a
+  `.claude/settings.local.json`. `MERGE` idempotente: no borra los ~24
+  puntos de tráfico que ya no entran por la ventana, solo añade meteo +
+  recintos + sus `UBICADO_EN`/`PROXIMO_A`. Verificación post-carga:
+  `MATCH (e:EstacionMedida {tipo:'meteo'}) RETURN count(*)` → 25 ·
+  `MATCH (l:Lugar {tipo:'recinto'}) RETURN count(*)` → ~145.
 
 ## Motivación
 
