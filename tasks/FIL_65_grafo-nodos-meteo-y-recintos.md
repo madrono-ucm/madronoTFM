@@ -2,13 +2,26 @@
 kind: fil
 title: "Cerrar huecos medallion→grafo: nodos :EstacionMedida{meteo} y :Lugar{recinto} desde Gold/Silver"
 owner: Filippos (interactive)
-status: in_review
+status: done
+resolved_at: "2026-09-09"
 allow_infra_apply: false
 created_at: "2026-09-09"
 depends_on: [FIL_08]
 milestone: "M7"
 target: "2026-09-14"
 ---
+
+## Cierre (2026-09-09)
+
+Carga real ejecutada contra la instancia AuraDB (`5c111cec`), 8,8 min, rc=0.
+Estado post-carga verificado:
+- **9.806 nodos / 76.001 relaciones** (antes 9.633 / 72.310).
+- `:EstacionMedida {tipo:'meteo'}` = **25** — 25/25 con `UBICADO_EN`, 24/25
+  con `PROXIMO_A` (1 estación periférica a >300 m de cualquier otro nodo).
+- `:Lugar {tipo:'recinto'}` = **145** — 142/145 con `PROXIMO_A`.
+`MERGE` idempotente: los ~24 puntos de tráfico fuera de la ventana de 14
+días siguen presentes (4705). Suite completa verde (1110). CI de #248 en
+verde salvo un flake transitorio de apt en el runner (ver hilo).
 
 ## Progreso (2026-09-09) — código listo y verificado en vivo; falta la carga
 
