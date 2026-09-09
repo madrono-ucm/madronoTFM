@@ -434,6 +434,14 @@ class MejorHoraZona(BaseModel):
 class EstacionProxima(BaseModel):
     id: str
     distancia_m: int
+    nombre: str | None = None
+    # atributos estáticos que FIL_66 cargó en el nodo, presentes según el
+    # tipo de estación (contaminantes/altitud para aire, magnitudes/altitud
+    # para meteo, subárea para tráfico).
+    contaminantes: list[str] = Field(default_factory=list)
+    magnitudes: list[str] = Field(default_factory=list)
+    altitud_m: int | None = None
+    subarea: str | None = None
 
 
 class TransporteAlcanzable(BaseModel):
@@ -465,4 +473,5 @@ class ContextoUrbano(BaseModel):
     estaciones_1_salto: dict[str, list[EstacionProxima]] = Field(default_factory=dict)
     lugares_cercanos_2_saltos: dict[str, list[dict]] = Field(default_factory=dict)
     transporte: TransporteAlcanzable | None = None
+    lineas_cercanas: list[dict] = Field(default_factory=list)
     fuente_grafo: str | None = None
