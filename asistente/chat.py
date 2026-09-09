@@ -24,6 +24,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from typing import Any
 
 from groq import Groq
@@ -33,15 +34,29 @@ from asistente.mcp_agent.server import mcp
 
 logger = logging.getLogger(__name__)
 
-# `llama-3.3-70b-versatile` (elegido en `FIL_62`) ya no está en el
-# catálogo de Groq en el momento de implementar esto (verificado en vivo
-# con `client.models.list()`) -- el catálogo gratuito de Groq rota. Se usa
-# `openai/gpt-oss-120b` (activo hoy, tool-calling real, dentro del tier
-# gratuito: 30 RPM / 1.000 RPD / 8K TPM / 200K TPD según la investigación
-# de `FIL_62`) -- mismo criterio de "el modelo concreto no importa mucho".
-_MODEL = "openai/gpt-oss-120b"
+# Modelo por defecto: `openai/gpt-oss-120b` en Groq (tool-calling real, tier
+# gratuito 30 RPM / 1.000 RPD / 8K TPM / 200K TPD -- `FIL_62`). El límite de
+# 8K TPM es el que provoca 429s cuando el `tools=[...]` + los resultados
+# pesan; ver `_TOOLS_CHAT` (subconjunto) y `_completar` (reintento).
+# Proveedor del LLM, configurable por entorno (FIL_70): el SDK de Groq es
+# OpenAI-compatible, así que apuntar `LLM_BASE_URL` a Cerebras / Together /
+# vLLM / Ollama (`http://host:11434/v1`) + `LLM_MODEL` + `LLM_API_KEY` cambia
+# de proveedor sin tocar código. Sin definir -> Groq (tier gratuito).
+_MODEL = os.environ.get("LLM_MODEL", "openai/gpt-oss-120b")
+_LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or None
 _MAX_TOKENS_RESPUESTA = 700
+_MAX_REINTENTOS_LLM = 3
+_ESTADOS_REINTENTABLES = {408, 409, 429, 500, 502, 503, 504, 529}
 _SSM_PARAMETER = "/madrono-tfm/dev/secrets/groq-api-key"
+
+# El chat solo expone un subconjunto de las 15 tools MCP: las conversacionales
+# y graph-first. Fuera las `*_prevista*` / `afluencia_*` / `opciones_movilidad`
+# (esquemas grandes, dominio de nicho, datos congelados) -- así el `tools=[...]`
+# ocupa ~la mitad de tokens y se aleja del límite TPM del tier gratuito.
+_TOOLS_CHAT = frozenset({
+    "calidad_aire", "trafico_cercano", "consulta_grafo", "contexto_urbano",
+    "ruta_saludable", "mejor_hora_zona", "eventos_cercanos", "disponibilidad_aparcamiento",
+})
 
 _SYSTEM_PROMPT = (
     "Eres Madroño, el asistente de una plataforma de datos abiertos de "
@@ -79,10 +94,11 @@ _tools_schema: "list[dict] | None" = None
 
 
 def _leer_api_key() -> str:
-    """Prioridad: `GROQ_API_KEY` en el entorno (tests/desarrollo local) ->
-    SSM SecureString (producción, misma EC2/rol que ya lee el resto de
-    secretos del proyecto -- ver `ingesta/capturas/secretos.py`)."""
-    env = os.environ.get("GROQ_API_KEY")
+    """Prioridad: `LLM_API_KEY` / `GROQ_API_KEY` en el entorno (tests /
+    desarrollo local / proveedor alternativo) -> SSM SecureString
+    (producción, misma EC2/rol que lee el resto de secretos -- ver
+    `ingesta/capturas/secretos.py`)."""
+    env = os.environ.get("LLM_API_KEY") or os.environ.get("GROQ_API_KEY")
     if env:
         return env
     import boto3
@@ -95,8 +111,29 @@ def _leer_api_key() -> str:
 def _cliente() -> Groq:
     global _client
     if _client is None:
-        _client = Groq(api_key=_leer_api_key())
+        # `Groq` acepta `base_url` (cliente httpx OpenAI-compatible); con
+        # `None` usa el endpoint de Groq.
+        _client = Groq(api_key=_leer_api_key(), base_url=_LLM_BASE_URL)
     return _client
+
+
+def _completar(client: Groq, **kwargs):
+    """`chat.completions.create` con reintento ante 429 / 5xx / timeout
+    (backoff exponencial corto). Un error no reintentable (400, auth...) se
+    propaga en el primer intento."""
+    for intento in range(_MAX_REINTENTOS_LLM):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except Exception as exc:  # noqa: BLE001
+            estado = getattr(exc, "status_code", None) or getattr(
+                getattr(exc, "response", None), "status_code", None
+            )
+            if intento == _MAX_REINTENTOS_LLM - 1 or (
+                estado is not None and estado not in _ESTADOS_REINTENTABLES
+            ):
+                raise
+            logger.info("reintento %d de la llamada al LLM (%s)", intento + 1, exc)
+            time.sleep(1.2 * (2 ** intento))
 
 
 def _tools_para_groq() -> "list[dict]":
@@ -114,6 +151,8 @@ def _tools_para_groq() -> "list[dict]":
     listado = asyncio.run(_listar())
     out = []
     for t in listado:
+        if t.name not in _TOOLS_CHAT:
+            continue
         out.append(
             {
                 "type": "function",
@@ -160,8 +199,8 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
     messages.append({"role": "user", "content": mensaje})
 
     try:
-        resp = client.chat.completions.create(
-            model=_MODEL, messages=messages, tools=tools, tool_choice="auto",
+        resp = _completar(
+            client, model=_MODEL, messages=messages, tools=tools, tool_choice="auto",
             max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2,
         )
     except Exception as exc:  # noqa: BLE001 - degradación elegante (429/5xx de Groq)
@@ -207,8 +246,8 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
         )
 
     try:
-        resp2 = client.chat.completions.create(
-            model=_MODEL, messages=messages, max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2,
+        resp2 = _completar(
+            client, model=_MODEL, messages=messages, max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2,
         )
         respuesta = resp2.choices[0].message.content
     except Exception as exc:  # noqa: BLE001 - degradación elegante
