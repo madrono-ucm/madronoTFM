@@ -209,6 +209,28 @@ prioridad; si se hace, servir sobre todo CAMS (`fecha_validez` + µg/m³ por
 contaminante, sí es utilizable) y etiquetar la respuesta como
 "último forecast disponible (pipeline congelado)".
 
-**Siguiente:** Parte 2B opción 1 (librería de consultas parametrizadas
-sobre el grafo, en `neo4j_client.py`) + Parte 3 #1 (alimentar `viz/mapa`
-desde `grafo_urbano.json.gz`) + Parte 3 #4 (overlay de resiliencia).
+**Parte 2B opción 1 (librería de consultas parametrizadas + tool
+`consulta_grafo`) — hecho:**
+- `asistente/neo4j_client.py`: 6 constructores nuevos —
+  `vecindario_de_lugar_query` (todo a `radio_m`, con contaminantes/
+  magnitudes/subárea/capacidades), `estaciones_meteo_cerca_query`,
+  `recintos_cerca_query`, `aparcamientos_cerca_query`,
+  `bicimad_cerca_query`, `lineas_que_pasan_por_query`,
+  `paradas_de_linea_query` (+ `estaciones_calidad_aire_que_miden_query` del
+  Paso 1).
+- **Herramienta MCP nº 15 `consulta_grafo`** (`asistente/mcp_agent/tools.py`
+  `_PLANTILLAS_GRAFO`): 8 plantillas de **solo lectura** elegidas por
+  nombre (no Cypher libre). Contrato `FIL_15`: plantilla desconocida /
+  parámetros que falten / Neo4j caído → `disponible=false` + `motivo` +
+  `plantillas_disponibles`, nunca excepción. Modelo `ConsultaGrafo`;
+  registrada en `server.py`; router `GET /consulta-grafo`.
+- Tests: `test_consulta_grafo.py` nuevo + `test_neo4j_client.py` +7;
+  `test_mcp_tools` / `test_mcp_transport` actualizados a 15 tools. Suite
+  `asistente/` + `grafo/` verde (310).
+- Verificado en vivo: `consulta_grafo(plantilla="bicimad_cerca",
+  lugar="Sol")` → "33 - Puerta del Sol" `anclajes_totales=43` a 23 m;
+  `plantilla="paradas_de_linea", linea="6", modo="metro"` → 28 paradas con
+  coords; `meteo_cerca`/`recintos_cerca` OK.
+
+**Siguiente:** Parte 3 #1 (alimentar `viz/mapa` desde `grafo_urbano.json.gz`)
++ Parte 3 #4 (overlay de resiliencia) + Parte 3 #6 (pestaña Bloom).

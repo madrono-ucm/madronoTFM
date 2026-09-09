@@ -77,7 +77,7 @@ mcp = MCPServer(
     instructions=_INSTRUCCIONES,
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
-        "(memoria del TFM, apartados 5.2 y 6.7). 14 tools con lógica real: "
+        "(memoria del TFM, apartados 5.2 y 6.7). 15 tools con lógica real: "
         "`calidad_aire` / `disponibilidad_aparcamiento` leen Gold vía Athena; "
         "`trafico_cercano` / `afluencia_estimada` / `eventos_cercanos` / "
         "`opciones_movilidad` cruzan el grafo urbano en Neo4j; "
@@ -94,7 +94,7 @@ mcp = MCPServer(
     ),
 )
 
-# Las 14 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX /
+# Las 15 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX /
 # Dijkstra o barrido sobre un grafo vendorizado):
 # `read_only_hint=True`. `open_world_hint=True` porque consultan datos vivos
 # externos. Son la señal estándar de "es seguro llamar a esto" para el cliente.
@@ -115,6 +115,7 @@ _TOOLS = (
     (tools.eventos_cercanos, "Eventos cercanos"),
     (tools.ruta_saludable, "Ruta saludable entre dos lugares"),
     (tools.contexto_urbano, "Contexto urbano multi-salto de un lugar"),
+    (tools.consulta_grafo, "Consulta parametrizada del grafo urbano (Neo4j)"),
     (tools.mejor_hora_zona, "Mejor hora del día para una zona"),
 )
 
