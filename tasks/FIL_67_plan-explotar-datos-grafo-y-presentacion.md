@@ -232,5 +232,23 @@ contaminante, sí es utilizable) y etiquetar la respuesta como
   `plantilla="paradas_de_linea", linea="6", modo="metro"` → 28 paradas con
   coords; `meteo_cerca`/`recintos_cerca` OK.
 
-**Siguiente:** Parte 3 #1 (alimentar `viz/mapa` desde `grafo_urbano.json.gz`)
-+ Parte 3 #4 (overlay de resiliencia) + Parte 3 #6 (pestaña Bloom).
+**Parte 3 #2 (explorador del grafo real) — hecho, sin tocar el mapa animado:**
+- `viz/build_grafo_explorador.py` → `viz/grafo_explorador.html` — página
+  autónoma (un HTML, `file://` OK) con maplibre-gl que pinta el grafo REAL
+  de Neo4j: 9.624 nodos de los 5 labels (meteo/recintos incluidos), 3.947
+  tramos `CONECTADO_CON`, capas conmutables por tipo, y clic en un nodo →
+  panel con atributos de FIL_66 (`contaminantes`/`magnitudes`/`altitud`/
+  `subarea`/capacidades), barrio/distrito reales, líneas de transporte y
+  vecindario `PROXIMO_A` (dibujado al vuelo). Offline desde
+  `grafo/_data/grafo_urbano.json.gz`; **cero cambios en `viz/mapa/` / app
+  web / gh-pages**.
+- Tests `tests/test_grafo_explorador.py` (4). `viz/README.md` actualizado.
+
+Decisión: **no** reescribir la fuente de datos del mapa animado
+(`build_mapa_animado.py`, deliverable fusionado y en vivo) a estas alturas
+del calendario — el explorador autónomo cubre "ver el grafo real" con riesgo
+nulo. Parte 3 #1 (mapa animado desde el grafo real) y #4 (overlay de
+resiliencia sobre él) quedan como mejora post-entrega.
+
+**QA:** ver `VIC_34`–`VIC_38` (grafo, `consulta_grafo`, analítica de
+resiliencia, consistencia 15 tools, integración en memoria).
