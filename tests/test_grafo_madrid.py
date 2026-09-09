@@ -67,6 +67,19 @@ class ConstruirTests(unittest.TestCase):
         self.assertEqual(total, self.g["n_nodos"])
         self.assertNotIn("sin_distrito", self.g["distrito_a_nodos"])
 
+    def test_capa_grafo_real_desde_neo4j(self):  # exp/mapa-grafo-real (FIL_67 Parte 3 #1)
+        gr = self.g.get("grafo_real", {})
+        # el .gz está commiteado -> debe traer meteo (FIL_65) y cobertura de
+        # contaminantes (FIL_66); si algún día falta el artefacto, es {}.
+        if not gr:
+            self.skipTest("sin grafo/_data/grafo_urbano.json.gz")
+        self.assertGreaterEqual(len(gr["estaciones_meteo"]), 20)
+        self.assertGreaterEqual(len(gr["recintos"]), 100)
+        m = gr["estaciones_meteo"][0]
+        self.assertEqual(set(m) >= {"id", "nombre", "lat", "lon", "magnitudes"}, True)
+        # aire_contaminantes: dict station_id -> lista no vacía
+        self.assertTrue(all(v for v in gr["aire_contaminantes"].values()))
+
 
 class ArtefactoTests(unittest.TestCase):
     def test_artefacto_versionado_al_dia(self):

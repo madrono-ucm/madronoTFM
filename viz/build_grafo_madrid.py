@@ -131,6 +131,44 @@ def _estaciones_ruido(features):
     return out
 
 
+_GRAFO_REAL_GZ = _RAIZ / "grafo" / "_data" / "grafo_urbano.json.gz"
+
+
+def _capa_grafo_real() -> dict:
+    """EXPERIMENTAL (rama `exp/mapa-grafo-real`): capas del grafo **real** de
+    Neo4j que el mapa animado no tenía — estaciones meteo y recintos de
+    eventos (`FIL_65`) y la cobertura de contaminantes por estación de aire
+    (`FIL_66`). Se lee de `grafo/_data/grafo_urbano.json.gz` (reconstrucción
+    offline del grafo de Neo4j); `{}` si falta el artefacto."""
+    if not _GRAFO_REAL_GZ.exists():
+        return {}
+    import gzip
+
+    with gzip.open(_GRAFO_REAL_GZ, "rt", encoding="utf-8") as fh:
+        g = json.load(fh)
+
+    def _pt(n):
+        u = n.get("ubicacion") or {}
+        return None if u.get("lat") is None else (round(u["lat"], 6), round(u["lon"], 6))
+
+    meteo, recintos = [], []
+    for n in g["nodos"]["EstacionMedida"]:
+        p = _pt(n)
+        if n.get("tipo") == "meteo" and p:
+            meteo.append({"id": n["id"], "nombre": n.get("nombre"), "lat": p[0], "lon": p[1],
+                          "magnitudes": n.get("magnitudes", []), "altitud_m": n.get("altitud_m")})
+    for n in g["nodos"]["Lugar"]:
+        p = _pt(n)
+        if n.get("tipo") == "recinto" and p:
+            recintos.append({"id": n["id"], "nombre": n.get("nombre"), "lat": p[0], "lon": p[1]})
+    aire_cont = {
+        n["id"].split(":", 1)[1]: n["contaminantes"]
+        for n in g["nodos"]["EstacionMedida"]
+        if n.get("tipo") == "calidad_aire" and n.get("contaminantes")
+    }
+    return {"estaciones_meteo": meteo, "recintos": recintos, "aire_contaminantes": aire_cont}
+
+
 def construir() -> dict:
     meta = json.loads((_MODELOS / "stgnn_trafico.meta.json").read_text(encoding="utf-8"))
     meta_aire = json.loads((_MODELOS / "stgnn_calidad_aire.meta.json").read_text(encoding="utf-8"))
@@ -158,6 +196,7 @@ def construir() -> dict:
         "importancia_aristas": meta["importancia_aristas"],
         "estaciones_aire": _estaciones_aire(meta_aire, node_coords),
         "estaciones_ruido": _estaciones_ruido(features),
+        "grafo_real": _capa_grafo_real(),  # EXPERIMENTAL exp/mapa-grafo-real
         "distrito_a_nodos": distrito_a_nodos,
         "distrito_id_a_nombre": id_a_nombre,
         "distritos_geojson": "viz/assets/distritos_madrid.geojson",

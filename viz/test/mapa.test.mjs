@@ -144,7 +144,8 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
     $("basemap").value = opt;
     fire($("basemap"), "change");
   }
-  ["l-distr", "l-hitos", "l-ejes", "l-parques", "l-tex", "l-idw"].forEach((id) => {
+  ["l-distr", "l-hitos", "l-ejes", "l-parques", "l-tex", "l-idw",
+   "l-meteo", "l-recintos"].forEach((id) => {  // exp/mapa-grafo-real
     $(id).checked = !$(id).checked;
     fire($(id), "change");
   });

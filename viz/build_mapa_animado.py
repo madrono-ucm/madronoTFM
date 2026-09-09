@@ -200,9 +200,21 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
         "salud": {"cortes": [60, 70, 80, 90], "bandas": ["muy baja", "baja", "media", "buena", "muy buena"]},
     }
 
+    # EXPERIMENTAL (rama exp/mapa-grafo-real): capas del grafo REAL de Neo4j
+    # (meteo + recintos de FIL_65, cobertura de contaminantes de FIL_66).
+    gr = _GRAFO.get("grafo_real", {})
+    meteo = [{"pos": [round(m["lon"], 5), round(m["lat"], 5)], "nombre": m.get("nombre") or m["id"],
+              "mag": m.get("magnitudes", []), "alt": m.get("altitud_m")}
+             for m in gr.get("estaciones_meteo", [])]
+    recintos = [{"pos": [round(r["lon"], 5), round(r["lat"], 5)], "nombre": r.get("nombre") or r["id"]}
+                for r in gr.get("recintos", [])]
+
     return {
         "generado": pd.Timestamp.utcnow().isoformat(timespec="seconds"),
         "n_nodos": len(node_ids),
+        "meteo": meteo,
+        "recintos": recintos,
+        "aire_contaminantes": gr.get("aire_contaminantes", {}),
         "dias": dias,
         "dow": {d: pd.Timestamp(d).day_name() for d in dias},
         "coords": coords,
@@ -460,6 +472,8 @@ _TEMPLATE = r"""<!doctype html>
     <label class="chk"><input type="checkbox" id="l-ejes"> ejes (M-30, Castellana… · contexto)</label>
     <label class="chk"><input type="checkbox" id="l-parques"> parques grandes</label>
     <label class="chk"><input type="checkbox" id="l-tex"> textura del grafo (aristas)</label>
+    <label class="chk"><input type="checkbox" id="l-meteo"> estaciones meteo (grafo Neo4j)</label>
+    <label class="chk"><input type="checkbox" id="l-recintos"> recintos de eventos (grafo Neo4j)</label>
   </details>
 
   <details>
@@ -521,7 +535,7 @@ let META, DATA, WX, RUTAS, map, overlay, selNode = null;
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
-  layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false},
+  layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false, meteo:false, recintos:false},
   clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"voyager",
 };
 
@@ -735,6 +749,21 @@ function layers(){
       characterSet:"auto", fontSettings:{sdf:true}, outlineWidth:3, outlineColor:[0,0,0,220],
       getTextAnchor:"middle", getAlignmentBaseline:"top"}));
   }
+  // EXPERIMENTAL (exp/mapa-grafo-real): capas del grafo real de Neo4j.
+  if(state.layers.meteo && META.meteo && META.meteo.length){
+    L.push(new ScatterplotLayer({id:"gr-meteo", data:META.meteo, pickable:true,
+      getPosition:d=>d.pos, getRadius:6, radiusMinPixels:4, radiusMaxPixels:10,
+      getFillColor:[118,183,178,235], stroked:true, getLineColor:[10,30,28,200], lineWidthMinPixels:1}));
+    if(!state.clean)
+      L.push(new TextLayer({id:"gr-meteo-tx", data:META.meteo, getPosition:d=>d.pos,
+        getText:d=>d.nombre, getSize:10, getColor:[190,235,230,235], getPixelOffset:[0,-11],
+        fontFamily:"system-ui", characterSet:"auto", fontSettings:{sdf:true}, outlineWidth:3,
+        outlineColor:[0,0,0,220], getTextAnchor:"middle", getAlignmentBaseline:"bottom"}));
+  }
+  if(state.layers.recintos && META.recintos && META.recintos.length)
+    L.push(new ScatterplotLayer({id:"gr-recintos", data:META.recintos, pickable:true,
+      getPosition:d=>d.pos, getRadius:4, radiusMinPixels:3, radiusMaxPixels:8,
+      getFillColor:[182,153,45,225], stroked:true, getLineColor:[30,25,8,200], lineWidthMinPixels:1}));
   L.push(...routeLayers());
   return L;
 }
@@ -1002,6 +1031,7 @@ function mkControls(){
     el.onchange=()=>{ state.layers[key]=el.checked; render(); }; };
   setChk("l-distr","distr"); setChk("l-hitos","hitos"); setChk("l-ejes","ejes");
   setChk("l-parques","parques"); setChk("l-tex","tex");
+  setChk("l-meteo","meteo"); setChk("l-recintos","recintos");
 
   const bmSel = document.getElementById("basemap");
   bmSel.value = state.basemap;
