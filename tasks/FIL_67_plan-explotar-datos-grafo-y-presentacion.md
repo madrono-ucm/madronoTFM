@@ -298,3 +298,22 @@ resiliencia, consistencia 15 tools, integración en memoria).
   15 aristas STGNN (`trafico:5412↔trafico:5768` w=1.0), 683 puntos de
   articulación. Menú y panel renderizan (screenshot headless).
 - Tests actualizados; `<script>` válido (`node --check`).
+
+**Parte 3 #2 (v4) — tema oscuro + fix render + ruta entre 2 puntos — hecho:**
+- Tema oscuro en todos los paneles + basemap dark-matter; columna izquierda
+  en flex (`#izq`) para que `#capas` no tape los controles.
+- Fix del render de nodos: `["number",["get","r"],1]` dentro de un `["*"]`
+  rompía la capa en MapLibre → interpolate plano + capa `nodos-hi` aparte.
+  Verificado con Playwright: 9.625 nodos pintados, 0 errores.
+- `window.onerror`/`onunhandledrejection` → banner `#err`. Reintento de
+  `/data` 4× en cliente + botón "Reintentar"; `_leer()` reintenta 3× en el
+  router.
+- **Ruta entre 2 puntos**: `GET /grafo/explorador/ruta?a&b&modo=` —
+  `proximo` (`apoc.algo.dijkstra` sobre `PROXIMO_A`) / `transporte`
+  (`shortestPath` sobre `CONECTADO_CON` + modo/línea). UI: clic origen →
+  clic destino → dibuja la ruta + panel (metros/saltos o tramos/líneas).
+  Verificado: POI→recinto 3.294 m / 15 saltos; metro→metro 25 tramos /
+  línea "metro 1".
+
+**Siguiente:** `FIL_68` — chatbot (Groq + MCP) dentro del explorador con eco
+visual en el mapa.
