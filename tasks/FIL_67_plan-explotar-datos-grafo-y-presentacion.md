@@ -41,7 +41,7 @@ valores recientes → ML para la previsión → componer respuesta.
 | 3 | **Meteo como vecino de primera clase** — meteo ya está en el grafo; alimentar `meteo_*` en `contexto_urbano` y que el join exógeno del STGNN sea graph-native. | meteo Gold + grafo | S | FIL_67c |
 | 4 | **Herramienta `prevision_ciudad`** — previsión CAMS de aire de ciudad + previsión AEMET por municipio no tienen sitio hoy. Una herramienta, sin grafo, cierra las tablas de previsión. | CAMS + AEMET Gold | S | FIL_67d |
 | 5 | **Nodos `:Linea` + `PARA_EN`** — "líneas entre A y B", "qué líneas paran en X", "menos transbordos". El dato ya está en `CONECTADO_CON.linea`. | grafo | M | FIL_67e |
-| 6 | **Eventos graph-native** — `eventos_cercanos` atraviesa `PROXIMO_A` hasta `:Lugar{recinto}` en vez de haversine Python sobre Silver. | eventos + grafo | S | FIL_67f |
+| 6 | **Recintos en el grafo para consulta directa + mapa.** ~~Reescribir `eventos_cercanos`~~ — revisado: esa tool ya resuelve el lugar vía el grafo (`resolver_lugar_query`) y solo el filtro final de distancia es Python; reescribirla a `PROXIMO_A → :Lugar{recinto}` **descartaría** eventos en recintos sin nodo (calles, sitios puntuales) con poco valor a cambio. El valor de los 145 `:Lugar{recinto}` es que ya son consultables por `grafo/consulta.py` / constructores nuevos y pintables en el mapa (Parte 3 #1). Bajar prioridad. | eventos + grafo | S | FIL_67f |
 | 7 | **Agregados por `subarea`** — "tráfico en mi zona" sin geo-math; también la unidad de cluster natural del STGNN. | tráfico Gold + grafo | M | FIL_67g |
 | 8 | **`:ZonaAviso` (3) → Distrito** — avisos meteo atravesables. Valor bajo, barato; solo si el demo quiere alertas. | aemet_avisos | S | FIL_67h |
 
@@ -164,6 +164,15 @@ rellena. `schema.cypher` actualizado.
 
 Suite `grafo/` + `asistente/` verde (298).
 
-**Siguiente en el Paso 1:** recargar el grafo (para `nombre` + los ~292
-puntos de tráfico sin `subarea`), luego Parte 1 #4 (`prevision_ciudad`) y #6
-(eventos graph-native).
+**Recarga hecha** (2026-09-09, 9,4 min, rc=0): `nombre` ahora poblado en las
+162 estaciones con nombre en Gold (aforos 83 / ruido 31 / meteo 25 /
+calidad_aire 23); tráfico sigue sin nombre (Gold no lo trae). Demo:
+`grafo/consulta.py "MATCH (e:EstacionMedida {tipo:'calidad_aire'}) RETURN
+e.nombre, e.contaminantes"` → "Casa de Campo: NO,NO2,NOx,O3,PM10,PM2.5".
+
+**Cerrado el Paso 1** (2A + #1 + fix de `nombre`). CI de #248 en verde.
+
+**Siguiente (Paso 2):** Parte 1 #4 (`prevision_ciudad` — herramienta MCP
+nueva sobre CAMS + AEMET Gold, sin grafo; router + registro + tests + pasada
+de `standards-reviewer`) y Parte 2B opción 1 (librería de consultas
+parametrizadas) + Parte 3 #1 (mapa desde el grafo real).
