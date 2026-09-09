@@ -129,6 +129,13 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
   win.document.querySelectorAll(".hz").forEach(click); // 4 horizontes
   win.document.querySelectorAll(".day").forEach(click); // 3 días
   win.document.querySelectorAll(".rp").forEach(click); // puntos / auto / barras
+  win.document.querySelectorAll("#hist-caps button").forEach(click); // recorrido guiado: los 6 capítulos
+  click($("hist-prev"));
+  click($("hist-next"));
+  click($("hist-auto")); // arranca la animación…
+  click($("hist-auto")); // …y la para, para no dejar timers colgando
+  win.document.querySelectorAll("#chat-sug button").forEach(click); // sugerencias del chat (fetch mockeado -> falla, degrada)
+  click($("chat-send"));
   click($("ghost"));
   click($("ghost"));
   $("hour").value = "23";

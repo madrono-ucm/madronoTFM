@@ -79,9 +79,12 @@ class MapaArtefactosTests(unittest.TestCase):
             lon, lat = c["pos"]
             self.assertTrue(-4 < lon < -3 and 40 < lat < 41)
             self.assertTrue(c["nombre"])
-        self.assertEqual(len(self.meta["hitos"]), 14)
+        # `hitos` = las referencias de `viz/rutas.py::LUGARES` (17 tras FIL_69:
+        # +Callao, Gran Vía, Gregorio Marañón para las rutas céntricas).
+        self.assertEqual(len(self.meta["hitos"]), 17)
         nombres = {h["nombre"] for h in self.meta["hitos"]}
         self.assertIn("Plaza Elíptica", nombres)
+        self.assertIn("Callao", nombres)
         (a, b), (c, d) = self.meta["bbox"]
         self.assertTrue(a < c and b < d)
         self.assertGreaterEqual(len(self.meta["ejes_geojson"]["features"]), 5)

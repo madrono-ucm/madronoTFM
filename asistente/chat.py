@@ -24,6 +24,8 @@ import asyncio
 import json
 import logging
 import os
+import re
+import time
 from typing import Any
 
 from groq import Groq
@@ -33,15 +35,34 @@ from asistente.mcp_agent.server import mcp
 
 logger = logging.getLogger(__name__)
 
-# `llama-3.3-70b-versatile` (elegido en `FIL_62`) ya no está en el
-# catálogo de Groq en el momento de implementar esto (verificado en vivo
-# con `client.models.list()`) -- el catálogo gratuito de Groq rota. Se usa
-# `openai/gpt-oss-120b` (activo hoy, tool-calling real, dentro del tier
-# gratuito: 30 RPM / 1.000 RPD / 8K TPM / 200K TPD según la investigación
-# de `FIL_62`) -- mismo criterio de "el modelo concreto no importa mucho".
-_MODEL = "openai/gpt-oss-120b"
+# Modelo por defecto: `qwen/qwen3.8-27b` en Groq (tier gratuito). Se eligió
+# sobre `openai/gpt-oss-120b` porque este último, en pruebas en vivo (FIL_70),
+# alucinaba nombres de tool e intentaba llamar herramientas en la ronda de
+# redacción -> `400 tool_use_failed` y respuestas vacías. Qwen3 sigue el
+# bucle de tool-calling de forma estable. Sigue con el límite de 8K TPM de
+# Groq gratuito; ver `_TOOLS_CHAT` (subconjunto) y `_completar` (reintento).
+#
+# Proveedor configurable por entorno (FIL_70): apunta `LLM_BASE_URL` a otro
+# endpoint OpenAI-compatible + `LLM_MODEL` + `LLM_API_KEY`, sin tocar código.
+# Alternativas gratuitas con mejor tool-calling: Google Gemini
+# (`https://generativelanguage.googleapis.com/v1beta/openai/`,
+# `gemini-2.0-flash` -- tier gratuito generoso), OpenRouter modelos `:free`,
+# o vLLM/Ollama propios. Cerebras NO tiene tier gratuito.
+_MODEL = os.environ.get("LLM_MODEL", "qwen/qwen3.8-27b")
+_LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or None
 _MAX_TOKENS_RESPUESTA = 700
+_MAX_REINTENTOS_LLM = 3
+_ESTADOS_REINTENTABLES = {408, 409, 429, 500, 502, 503, 504, 529}
 _SSM_PARAMETER = "/madrono-tfm/dev/secrets/groq-api-key"
+
+# El chat solo expone un subconjunto de las 15 tools MCP: las conversacionales
+# y graph-first. Fuera las `*_prevista*` / `afluencia_*` / `opciones_movilidad`
+# (esquemas grandes, dominio de nicho, datos congelados) -- así el `tools=[...]`
+# ocupa ~la mitad de tokens y se aleja del límite TPM del tier gratuito.
+_TOOLS_CHAT = frozenset({
+    "calidad_aire", "trafico_cercano", "consulta_grafo", "contexto_urbano",
+    "ruta_saludable", "mejor_hora_zona", "eventos_cercanos", "disponibilidad_aparcamiento",
+})
 
 _SYSTEM_PROMPT = (
     "Eres Madroño, el asistente de una plataforma de datos abiertos de "
@@ -72,6 +93,12 @@ _DESCRIPCIONES = {
     "ruta_saludable": "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.",
     "contexto_urbano": "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.",
     "mejor_hora_zona": "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).",
+    "consulta_grafo": (
+        "Consulta de solo lectura al grafo urbano de Neo4j mediante plantillas "
+        "predefinidas (`plantilla`): estaciones de aire que miden un "
+        "contaminante cerca de un lugar, paradas/lineas de transporte, "
+        "aparcamientos, BiciMAD, vecindario de un lugar, etc."
+    ),
 }
 
 _client: "Groq | None" = None
@@ -79,10 +106,11 @@ _tools_schema: "list[dict] | None" = None
 
 
 def _leer_api_key() -> str:
-    """Prioridad: `GROQ_API_KEY` en el entorno (tests/desarrollo local) ->
-    SSM SecureString (producción, misma EC2/rol que ya lee el resto de
-    secretos del proyecto -- ver `ingesta/capturas/secretos.py`)."""
-    env = os.environ.get("GROQ_API_KEY")
+    """Prioridad: `LLM_API_KEY` / `GROQ_API_KEY` en el entorno (tests /
+    desarrollo local / proveedor alternativo) -> SSM SecureString
+    (producción, misma EC2/rol que lee el resto de secretos -- ver
+    `ingesta/capturas/secretos.py`)."""
+    env = os.environ.get("LLM_API_KEY") or os.environ.get("GROQ_API_KEY")
     if env:
         return env
     import boto3
@@ -92,11 +120,45 @@ def _leer_api_key() -> str:
     return resp["Parameter"]["Value"]
 
 
-def _cliente() -> Groq:
+def _cliente():
+    """Cliente de chat. Por defecto el SDK de Groq. Si se define
+    `LLM_BASE_URL` y `openai` está instalado, se usa `openai.OpenAI`
+    (transporte OpenAI-compatible más estándar para proveedores no-Groq como
+    Gemini/OpenRouter); si `openai` no está, se cae al SDK de Groq con
+    `base_url` (funciona con la mayoría de endpoints compatibles)."""
     global _client
-    if _client is None:
-        _client = Groq(api_key=_leer_api_key())
+    if _client is not None:
+        return _client
+    key = _leer_api_key()
+    if _LLM_BASE_URL:
+        try:
+            from openai import OpenAI
+
+            _client = OpenAI(api_key=key, base_url=_LLM_BASE_URL)
+            return _client
+        except ImportError:
+            logger.info("`openai` no instalado; uso el SDK de Groq con base_url=%s", _LLM_BASE_URL)
+    _client = Groq(api_key=key, base_url=_LLM_BASE_URL)
     return _client
+
+
+def _completar(client, **kwargs):
+    """`chat.completions.create` con reintento ante 429 / 5xx / timeout
+    (backoff exponencial corto). Un error no reintentable (400, auth...) se
+    propaga en el primer intento."""
+    for intento in range(_MAX_REINTENTOS_LLM):
+        try:
+            return client.chat.completions.create(**kwargs)
+        except Exception as exc:  # noqa: BLE001
+            estado = getattr(exc, "status_code", None) or getattr(
+                getattr(exc, "response", None), "status_code", None
+            )
+            if intento == _MAX_REINTENTOS_LLM - 1 or (
+                estado is not None and estado not in _ESTADOS_REINTENTABLES
+            ):
+                raise
+            logger.info("reintento %d de la llamada al LLM (%s)", intento + 1, exc)
+            time.sleep(1.2 * (2 ** intento))
 
 
 def _tools_para_groq() -> "list[dict]":
@@ -114,6 +176,8 @@ def _tools_para_groq() -> "list[dict]":
     listado = asyncio.run(_listar())
     out = []
     for t in listado:
+        if t.name not in _TOOLS_CHAT:
+            continue
         out.append(
             {
                 "type": "function",
@@ -134,7 +198,7 @@ def _ejecutar_tool(nombre: str, args: dict) -> Any:
     error se convierte en un mensaje de error para que Groq lo explique,
     mismo criterio de degradación elegante que el resto de `asistente/`."""
     fn = getattr(tools_module, nombre, None)
-    if fn is None or nombre not in _DESCRIPCIONES:
+    if fn is None or nombre not in _TOOLS_CHAT:
         return {"error": f"herramienta desconocida: {nombre!r}"}
     try:
         resultado = fn(**args)
@@ -146,12 +210,33 @@ def _ejecutar_tool(nombre: str, args: dict) -> Any:
     return resultado
 
 
+def _extraer_tool_calls(msg) -> list:
+    return list(getattr(msg, "tool_calls", None) or [])
+
+
+_THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL | re.IGNORECASE)
+
+
+def _sin_think(texto):
+    """Quita bloques `<think>...</think>` (algunos modelos de razonamiento
+    los filtran a la salida). `None` -> `None`."""
+    return _THINK_RE.sub("", texto).strip() if texto else texto
+
+
+_MAX_RONDAS_TOOL = 4
+
+
 def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
-    """Un turno de chat. `historial` es la lista de mensajes previa (formato
-    Groq/OpenAI: `{"role": ..., "content": ...}`), vacía en el primer turno.
-    Devuelve `{"respuesta": str, "historial": list[dict]}` -- el `historial`
-    devuelto se le pasa tal cual al siguiente turno (el front no necesita
-    entender su estructura interna, solo guardarlo y reenviarlo)."""
+    """Un turno de chat como bucle acotado de tool-calling (formato
+    Groq/OpenAI). `historial` es la lista de mensajes previa (vacía en el
+    primer turno); se devuelve `{"respuesta": str, "historial": list[dict]}`
+    y el `historial` devuelto se reenvía tal cual al siguiente turno.
+
+    El bucle (hasta `_MAX_RONDAS_TOOL` rondas con herramientas + 1 ronda
+    final en prosa) tolera que el modelo alucine un nombre de tool
+    (`_ejecutar_tool` devuelve un error que el modelo puede corregir) o
+    intente llamar una tool en la ronda de redacción (400
+    `tool_use_failed` de Groq -> se fuerza prosa)."""
     client = _cliente()
     tools = _tools_para_groq()
 
@@ -159,61 +244,62 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
     messages.extend(historial or [])
     messages.append({"role": "user", "content": mensaje})
 
-    try:
-        resp = client.chat.completions.create(
-            model=_MODEL, messages=messages, tools=tools, tool_choice="auto",
-            max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2,
-        )
-    except Exception as exc:  # noqa: BLE001 - degradación elegante (429/5xx de Groq)
-        logger.warning("fallo llamando a Groq: %s", exc)
-        return {
-            "respuesta": "No he podido consultar el modelo ahora mismo (límite de peticiones o fallo temporal de Groq). Prueba de nuevo en un momento.",
-            "historial": historial or [],
-        }
+    def _degradado(msg_err: str):
+        base = messages if len(messages) > 2 else (historial or [])
+        return {"respuesta": msg_err, "historial": base}
 
-    msg = resp.choices[0].message
-    tool_calls = msg.tool_calls or []
+    for ronda in range(_MAX_RONDAS_TOOL + 1):
+        ultima = ronda == _MAX_RONDAS_TOOL
+        kw = dict(model=_MODEL, messages=messages,
+                  max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2)
+        if not ultima:
+            kw["tools"] = tools
+            kw["tool_choice"] = "auto"
 
-    if not tool_calls:
-        messages.append({"role": "assistant", "content": msg.content})
-        return {"respuesta": msg.content, "historial": messages}
-
-    messages.append(
-        {
-            "role": "assistant",
-            "content": msg.content,
-            "tool_calls": [
-                {
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
-                }
-                for tc in tool_calls
-            ],
-        }
-    )
-    for tc in tool_calls:
         try:
-            args = json.loads(tc.function.arguments or "{}")
-        except json.JSONDecodeError:
-            args = {}
-        resultado = _ejecutar_tool(tc.function.name, args)
-        messages.append(
-            {
-                "role": "tool",
-                "tool_call_id": tc.id,
+            resp = _completar(client, **kw)
+        except Exception as exc:  # noqa: BLE001
+            estado = getattr(exc, "status_code", None) or getattr(
+                getattr(exc, "response", None), "status_code", None)
+            if estado == 400 and "tool" in str(exc).lower() and not ultima:
+                logger.info("tool_use_failed en ronda %d -> forzar prosa", ronda)
+                messages.append({"role": "system",
+                                 "content": "Responde ahora en prosa, sin llamar más herramientas."})
+                try:
+                    resp = _completar(client, model=_MODEL, messages=messages,
+                                      max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2)
+                except Exception as exc2:  # noqa: BLE001
+                    logger.warning("fallo redactando (fallback prosa): %s", exc2)
+                    return _degradado("He consultado los datos pero no he podido redactar la respuesta (fallo del modelo).")
+            else:
+                logger.warning("fallo llamando al LLM (ronda %d): %s", ronda, exc)
+                return _degradado("No he podido consultar el modelo ahora mismo (límite de peticiones o fallo temporal). Prueba de nuevo en un momento.")
+
+        msg = resp.choices[0].message
+        tcs = _extraer_tool_calls(msg)
+
+        if not tcs or ultima:
+            texto = _sin_think(msg.content) or "He consultado los datos, pero el modelo no ha devuelto texto."
+            messages.append({"role": "assistant", "content": texto})
+            return {"respuesta": texto, "historial": messages}
+
+        messages.append({
+            "role": "assistant", "content": msg.content,
+            "tool_calls": [
+                {"id": tc.id, "type": "function",
+                 "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                for tc in tcs
+            ],
+        })
+        for tc in tcs:
+            try:
+                args = json.loads(tc.function.arguments or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            resultado = _ejecutar_tool(tc.function.name, args)
+            messages.append({
+                "role": "tool", "tool_call_id": tc.id,
                 "content": json.dumps(resultado, ensure_ascii=False, default=str),
-            }
-        )
+            })
 
-    try:
-        resp2 = client.chat.completions.create(
-            model=_MODEL, messages=messages, max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2,
-        )
-        respuesta = resp2.choices[0].message.content
-    except Exception as exc:  # noqa: BLE001 - degradación elegante
-        logger.warning("fallo redactando la respuesta final: %s", exc)
-        respuesta = "He consultado los datos pero no he podido redactar la respuesta (fallo temporal de Groq)."
-
-    messages.append({"role": "assistant", "content": respuesta})
-    return {"respuesta": respuesta, "historial": messages}
+    return _degradado("No he podido completar la consulta.")  # inalcanzable en la práctica

@@ -64,6 +64,9 @@ def construir() -> dict:
         + nodos.estaciones_medida_from_aforos_peatones_bicicletas_gold(
             _try("est_aforos", extract.fetch_estaciones_aforos_peatones_bicicletas, avisos)
         )
+        + nodos.estaciones_medida_from_meteo_gold(  # FIL_65
+            _try("est_meteo", extract.fetch_estaciones_meteo, avisos)
+        )
     )
 
     rutas_crtm = list(_try("rutas_crtm", extract.fetch_paradas_crtm_bronze, avisos))
@@ -78,6 +81,9 @@ def construir() -> dict:
         + nodos.lugares_from_parques_bronze(_try("parques_bronze", extract.fetch_parques_bronze, avisos))
         + nodos.lugares_from_aparcamientos_gold(_try("aparcamientos", extract.fetch_lugares_aparcamientos, avisos))
         + nodos.lugares_from_cartelera_cines_gold(_try("cines", extract.fetch_lugares_cartelera_cines, avisos))
+        + nodos.lugares_from_recinto_evento(  # FIL_65
+            _try("recintos_eventos", extract.fetch_recintos_eventos_silver, avisos)
+        )
     )
     lugares = nodos.enrich_lugares_con_osm(
         lugares, _try("osm_pois_sample", extract.fetch_osm_pois_sample, avisos)

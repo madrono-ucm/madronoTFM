@@ -12,7 +12,11 @@ Produce, en `modelado/evaluation/artifacts/`:
 - `grafo_stats.json` — componentes, grado, cobertura de sensores por distrito.
 - `grafo_stgnn_vs_conectividad.json` — ¿las aristas influyentes del STGNN
   caen sobre sensores de alta conectividad en el grafo?
+- `grafo_resiliencia.json` — (`FIL_64`) puntos de articulación, puentes por
+  línea, descomposición k-core y curva de robustez frente a ataque dirigido
+  vs. fallo aleatorio sobre `CONECTADO_CON`.
 - `grafo_analitica.png` — figura resumen.
+- `grafo_resiliencia.png` — (`FIL_64`) curva de robustez + articulación + k-core.
 
 Cero AWS, cero Neo4j. `networkx` sobre el artefacto reconstruido.
 """
@@ -161,6 +165,184 @@ def comunidades_vs_barrios(g: dict, G_prox: nx.Graph) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# FIL_64 — resiliencia estructural de la red de transporte (CONECTADO_CON).
+# ---------------------------------------------------------------------------
+
+def _componente_mayor(G: nx.Graph) -> nx.Graph:
+    return G.subgraph(max(nx.connected_components(G), key=len)).copy()
+
+
+def _frac_componente_mayor(G: nx.Graph, n_ref: int) -> float:
+    """Tamaño de la componente conexa mayor de `G` como fracción de `n_ref`
+    (el nº de nodos de la red intacta). 0.0 si `G` se queda sin nodos."""
+    if G.number_of_nodes() == 0:
+        return 0.0
+    return len(max(nx.connected_components(G), key=len)) / n_ref
+
+
+def puntos_de_articulacion(G_conn: nx.Graph, nombres: "dict[str, str] | None" = None,
+                           top: int = 20) -> "list[dict]":
+    """Paradas cuya eliminación desconecta la red: para cada punto de
+    articulación de la componente mayor de `CONECTADO_CON`, cuántas
+    componentes quedan al quitarlo y qué fracción de la red sobrevive en el
+    fragmento mayor. Ordenado por daño (fragmento mayor más pequeño primero).
+    """
+    nombres = nombres or {}
+    H = _componente_mayor(G_conn)
+    n = H.number_of_nodes()
+    filas = []
+    for nodo in nx.articulation_points(H):
+        sub = H.copy()
+        sub.remove_node(nodo)
+        comps = sorted((len(c) for c in nx.connected_components(sub)), reverse=True)
+        filas.append({
+            "parada": nombres.get(nodo, nodo),
+            "modo": H.nodes[nodo].get("tipo"),
+            "grado": H.degree(nodo),
+            "componentes_tras_quitar": len(comps),
+            "frac_red_en_fragmento_mayor": round(comps[0] / n, 4) if comps else 0.0,
+            "nodos_desgajados": n - 1 - (comps[0] if comps else 0),
+        })
+    filas.sort(key=lambda d: d["frac_red_en_fragmento_mayor"])
+    return filas[:top]
+
+
+def puentes_por_linea(G_conn: nx.Graph) -> dict:
+    """Puentes (aristas sin ruta alternativa) de la componente mayor,
+    agregados por `(modo, linea)`: un tramo puente significa que ese par de
+    paradas consecutivas no tiene redundancia — si se corta, la línea se
+    parte. `frac_puentes` alto ⇒ línea "en cadena", sin mallado."""
+    H = _componente_mayor(G_conn)
+    puentes = list(nx.bridges(H))
+    total_por_linea: Counter = Counter()
+    puentes_por_linea: Counter = Counter()
+    for u, v, data in H.edges(data=True):
+        clave = (data.get("modo"), data.get("linea"))
+        total_por_linea[clave] += 1
+    for u, v in puentes:
+        data = H.get_edge_data(u, v)
+        puentes_por_linea[(data.get("modo"), data.get("linea"))] += 1
+    filas = [
+        {"modo": modo, "linea": linea, "tramos": total_por_linea[(modo, linea)],
+         "tramos_puente": puentes_por_linea[(modo, linea)],
+         "frac_puentes": round(puentes_por_linea[(modo, linea)] / total_por_linea[(modo, linea)], 3)}
+        for (modo, linea) in total_por_linea
+    ]
+    filas.sort(key=lambda d: (-d["frac_puentes"], -d["tramos"]))
+    return {
+        "n_puentes": len(puentes),
+        "n_aristas": H.number_of_edges(),
+        "frac_aristas_puente": round(len(puentes) / H.number_of_edges(), 3),
+        "lineas_sin_redundancia": [f for f in filas if f["frac_puentes"] == 1.0][:15],
+        "por_linea_top": filas[:15],
+    }
+
+
+def kcore_resumen(G_conn: nx.Graph) -> dict:
+    """Descomposición k-core de la componente mayor: el "núcleo" (k-core
+    máximo) frente a la periferia colgante. `nx.core_number` requiere el
+    grafo sin bucles."""
+    H = _componente_mayor(G_conn)
+    H.remove_edges_from(nx.selfloop_edges(H))
+    core = nx.core_number(H)
+    kmax = max(core.values())
+    nucleo = [n for n, k in core.items() if k == kmax]
+    return {
+        "k_max": kmax,
+        "n_en_nucleo": len(nucleo),
+        "frac_en_nucleo": round(len(nucleo) / H.number_of_nodes(), 4),
+        "distribucion_coreness": dict(sorted(Counter(core.values()).items())),
+        "modos_en_nucleo": dict(Counter(H.nodes[n].get("tipo") for n in nucleo)),
+    }
+
+
+def curva_robustez(G_conn: nx.Graph, frac_max: float = 0.10, recalc_cada: int = 25,
+                   reps_aleatorio: int = 5, seed: int = 42) -> dict:
+    """Curva de fragmentación de `CONECTADO_CON` bajo dos regímenes de fallo:
+
+    - **dirigido**: quita iterativamente la parada de mayor intermediación,
+      recalculando betweenness cada `recalc_cada` bajas sobre el grafo que
+      va quedando (recalcular en cada baja es O(V·E) por paso — inviable a
+      esta escala; recalcular por lotes es la aproximación estándar).
+    - **aleatorio**: quita nodos al azar; media de `reps_aleatorio` corridas.
+
+    Devuelve, para cada régimen, la lista de `(frac_eliminada,
+    frac_componente_mayor)`.
+    """
+    import random
+
+    H0 = _componente_mayor(G_conn)
+    n0 = H0.number_of_nodes()
+    n_quitar = max(1, int(n0 * frac_max))
+
+    # --- ataque dirigido ---
+    H = H0.copy()
+    dirig = [(0.0, 1.0)]
+    ranking: list = []
+    for i in range(n_quitar):
+        if H.number_of_nodes() <= 1:
+            break
+        if not ranking or i % recalc_cada == 0:
+            bet = nx.betweenness_centrality(H, normalized=True, seed=seed)
+            ranking = [x for x, _ in sorted(bet.items(), key=lambda kv: -kv[1])]
+        objetivo = next((x for x in ranking if x in H), None)
+        if objetivo is None:
+            break
+        H.remove_node(objetivo)
+        ranking.remove(objetivo)
+        dirig.append(((i + 1) / n0, round(_frac_componente_mayor(H, n0), 4)))
+
+    # --- fallo aleatorio (media de varias corridas) ---
+    acumulado = [0.0] * (n_quitar + 1)
+    rng = random.Random(seed)
+    for _ in range(reps_aleatorio):
+        H = H0.copy()
+        orden = list(H0.nodes())
+        rng.shuffle(orden)
+        acumulado[0] += 1.0
+        for i, nodo in enumerate(orden[:n_quitar], start=1):
+            H.remove_node(nodo)
+            acumulado[i] += _frac_componente_mayor(H, n0)
+    aleat = [(i / n0, round(acumulado[i] / reps_aleatorio, 4)) for i in range(n_quitar + 1)]
+
+    # resumen: cuánto cae el fragmento mayor al 5 % de bajas
+    def _en(curva, frac):
+        for f, v in curva:
+            if f >= frac:
+                return v
+        return curva[-1][1]
+
+    return {
+        "n_nodos_componente_mayor": n0,
+        "frac_eliminada_max": round(n_quitar / n0, 4),
+        "dirigido": dirig,
+        "aleatorio": aleat,
+        "frag_mayor_al_5pct": {"dirigido": _en(dirig, 0.05), "aleatorio": _en(aleat, 0.05)},
+    }
+
+
+def resiliencia_transporte(G_conn: nx.Graph, nombres: "dict[str, str] | None" = None) -> dict:
+    """Agrega los cuatro análisis de resiliencia de `FIL_64` en un dict."""
+    art = puntos_de_articulacion(G_conn, nombres)
+    return {
+        "_nota": (
+            "CONECTADO_CON modela UN viaje representativo por línea (el primero en "
+            "direction_id='0', ver grafo/relaciones.py::conectado_con), no la red "
+            "operada completa: sin ramales ni servicios paralelos, la red resultante "
+            "es intrínsecamente poco mallada (k_max bajo, muchos puentes). Los "
+            "hallazgos valen para el grafo tal como se ha modelado — sirven para "
+            "razonar sobre estructura y sobre el propio modelo, no como diagnóstico "
+            "operativo de la EMT/Metro reales."
+        ),
+        "n_puntos_articulacion": len(list(nx.articulation_points(_componente_mayor(G_conn)))),
+        "puntos_articulacion_top": art,
+        "puentes": puentes_por_linea(G_conn),
+        "kcore": kcore_resumen(G_conn),
+        "robustez": curva_robustez(G_conn),
+    }
+
+
+# ---------------------------------------------------------------------------
 
 def stgnn_vs_conectividad(g: dict, G_prox: nx.Graph) -> dict:
     from scipy.stats import spearmanr
@@ -264,6 +446,43 @@ def _figura(cent: pd.DataFrame, com: dict, stats: dict, path: Path):
     plt.close(fig)
 
 
+def _figura_resiliencia(res: dict, path: Path):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(1, 3, figsize=(15, 4.2), constrained_layout=True)
+
+    rob = res["robustez"]
+    dx = [f * 100 for f, _ in rob["dirigido"]]
+    dy = [v for _, v in rob["dirigido"]]
+    ax_ = [f * 100 for f, _ in rob["aleatorio"]]
+    ay = [v for _, v in rob["aleatorio"]]
+    ax[0].plot(dx, dy, color="#d1495b", lw=2, label="ataque dirigido (betweenness)")
+    ax[0].plot(ax_, ay, color="#3d6ce0", lw=2, ls="--", label="fallo aleatorio (media)")
+    ax[0].set_xlabel("% de paradas eliminadas")
+    ax[0].set_ylabel("fragmento mayor / red intacta")
+    ax[0].set_title("Curva de robustez de CONECTADO_CON")
+    ax[0].legend(fontsize=8)
+    ax[0].grid(alpha=0.25)
+
+    art = res["puntos_articulacion_top"][:12][::-1]
+    ax[1].barh(range(len(art)), [a["nodos_desgajados"] for a in art], color="#edae49")
+    ax[1].set_yticks(range(len(art)))
+    ax[1].set_yticklabels([f"{a['parada'][:22]} ({a['modo']})" for a in art], fontsize=7)
+    ax[1].set_title("Puntos de articulación — nodos desgajados")
+
+    kc = res["kcore"]["distribucion_coreness"]
+    ax[2].bar([str(k) for k in kc], list(kc.values()), color="#66a182")
+    ax[2].set_xlabel("coreness (k)")
+    ax[2].set_ylabel("nº de paradas")
+    ax[2].set_title(f"Descomposición k-core (k_max={res['kcore']['k_max']})")
+
+    fig.suptitle("Madroño — resiliencia de la red de transporte real (FIL_64)", fontsize=13)
+    fig.savefig(path, dpi=120)
+    plt.close(fig)
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     g = cargar()
@@ -274,13 +493,16 @@ def main() -> int:
     com = comunidades_vs_barrios(g, G_prox)
     svc = stgnn_vs_conectividad(g, G_prox)
     stats = estadisticos(g, G_prox, G_conn)
+    res = resiliencia_transporte(G_conn, nombres)
 
     _ART.mkdir(parents=True, exist_ok=True)
     cent.to_csv(_ART / "grafo_centralidad_transporte.csv", index=False)
     (_ART / "grafo_comunidades.json").write_text(json.dumps(com, indent=1, ensure_ascii=False), encoding="utf-8")
     (_ART / "grafo_stgnn_vs_conectividad.json").write_text(json.dumps(svc, indent=1, ensure_ascii=False), encoding="utf-8")
     (_ART / "grafo_stats.json").write_text(json.dumps(stats, indent=1, ensure_ascii=False), encoding="utf-8")
+    (_ART / "grafo_resiliencia.json").write_text(json.dumps(res, indent=1, ensure_ascii=False), encoding="utf-8")
     _figura(cent, com, stats, _ART / "grafo_analitica.png")
+    _figura_resiliencia(res, _ART / "grafo_resiliencia.png")
 
     print("\n== centralidad transporte (top-8) ==")
     print(cent.head(8).to_string(index=False))
@@ -289,6 +511,12 @@ def main() -> int:
           f"ARI {com['ARI']} · NMI {com['NMI']} · modularidad {com['modularidad']}")
     print("\n== STGNN vs conectividad ==")
     print(f"  Spearman(importancia, grado PROXIMO_A) = {svc.get('spearman_importancia_vs_grado_proximo_a')}")
+    print("\n== resiliencia (FIL_64) ==")
+    print(f"  {res['n_puntos_articulacion']} puntos de articulación · "
+          f"{res['puentes']['n_puentes']} puentes ({res['puentes']['frac_aristas_puente']*100:.0f}% de las aristas) · "
+          f"k_max={res['kcore']['k_max']} ({res['kcore']['n_en_nucleo']} paradas en el núcleo)")
+    print(f"  fragmento mayor al 5% de bajas — dirigido {res['robustez']['frag_mayor_al_5pct']['dirigido']} "
+          f"vs aleatorio {res['robustez']['frag_mayor_al_5pct']['aleatorio']}")
     print("\nartefactos en", _ART)
     return 0
 

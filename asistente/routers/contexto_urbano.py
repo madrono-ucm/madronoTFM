@@ -37,13 +37,15 @@ def consultar_contexto_urbano(lugar: str) -> RespuestaAsistente:
     tipos_est = ", ".join(f"{k} ({len(v)})" for k, v in r.estaciones_1_salto.items()) or "ninguna"
     n_lug = sum(len(v) for v in r.lugares_cercanos_2_saltos.values())
     t = r.transporte
+    lineas = ", ".join(f"{d['modo']} {d['linea']}" for d in r.lineas_cercanas[:6])
     explicacion = (
         f"«{r.lugar}» ({r.tipo}) está en el barrio {r.barrio}, distrito {r.distrito}. "
         f"A 1 salto de `PROXIMO_A`: {n_est} estaciones de medida — {tipos_est}. "
-        f"A ≤2 saltos: {n_lug} lugares (parques/aparcamientos/POIs). "
+        f"A ≤2 saltos: {n_lug} lugares (parques/aparcamientos/recintos/POIs). "
         + (f"Desde la parada «{t.parada_ancla}» se alcanzan {t.alcanzables_2_saltos} paradas "
-           f"a ≤2 saltos de `CONECTADO_CON` (p. ej. {', '.join(t.ejemplos[:4])})." if t and t.parada_ancla
-           else "Sin parada de transporte cercana en el grafo.")
+           f"a ≤2 saltos de `CONECTADO_CON`" if t and t.parada_ancla
+           else "Sin parada de transporte cercana en el grafo")
+        + (f"; líneas cerca: {lineas}." if lineas else ".")
         + " Consulta multi-salto del grafo urbano reconstruido (memoria §6)."
     )
     return RespuestaAsistente(

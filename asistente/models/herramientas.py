@@ -434,6 +434,14 @@ class MejorHoraZona(BaseModel):
 class EstacionProxima(BaseModel):
     id: str
     distancia_m: int
+    nombre: str | None = None
+    # atributos estáticos que FIL_66 cargó en el nodo, presentes según el
+    # tipo de estación (contaminantes/altitud para aire, magnitudes/altitud
+    # para meteo, subárea para tráfico).
+    contaminantes: list[str] = Field(default_factory=list)
+    magnitudes: list[str] = Field(default_factory=list)
+    altitud_m: int | None = None
+    subarea: str | None = None
 
 
 class TransporteAlcanzable(BaseModel):
@@ -465,4 +473,29 @@ class ContextoUrbano(BaseModel):
     estaciones_1_salto: dict[str, list[EstacionProxima]] = Field(default_factory=dict)
     lugares_cercanos_2_saltos: dict[str, list[dict]] = Field(default_factory=dict)
     transporte: TransporteAlcanzable | None = None
+    lineas_cercanas: list[dict] = Field(default_factory=list)
     fuente_grafo: str | None = None
+
+
+class ConsultaGrafo(BaseModel):
+    """Resultado de `consulta_grafo` (`FIL_67`): una plantilla de consulta
+    de **solo lectura** contra el grafo urbano real de Neo4j, elegida por
+    nombre y con parámetros. Da acceso flexible a los nodos y atributos que
+    cargaron `FIL_65` (meteo, recintos) y `FIL_66` (contaminantes que mide
+    cada estación de aire, capacidades, subárea) sin una `tool` por
+    intención.
+
+    Contrato de degradación (`FIL_15`): si Neo4j no responde, la plantilla no
+    existe, o faltan parámetros obligatorios, se devuelve `disponible=false`
+    + `motivo`, nunca una excepción. `filas` son los registros tal cual los
+    devuelve Cypher (claves según la plantilla).
+    """
+
+    plantilla: str
+    parametros: dict = Field(default_factory=dict)
+    disponible: bool = False
+    motivo: str | None = None
+    n_filas: int = 0
+    filas: list[dict] = Field(default_factory=list)
+    plantillas_disponibles: list[str] = Field(default_factory=list)
+    fuente_grafo: str = "Neo4j — grafo urbano real (nodos + PROXIMO_A/CONECTADO_CON)"
