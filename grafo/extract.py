@@ -202,6 +202,21 @@ def _nest_location(row: dict) -> dict:
     return result
 
 
+def _split_csv(row: dict, *keys: str) -> dict:
+    """Convierte in situ las columnas `keys` de `row` de un CSV
+    (`array_join(array_agg(...), ',')` en el SQL) a `list[str]` ordenada y
+    sin vacíos; `[]` si la columna venía vacía o `None` (FIL_66). Athena
+    devuelve `array_join` como texto plano, no como array tipado -- mismo
+    motivo que `_cast_athena_value` para los numéricos."""
+    result = dict(row)
+    for key in keys:
+        if key not in result:
+            continue
+        raw = result.get(key)
+        result[key] = [p for p in (raw.split(",") if raw else []) if p]
+    return result
+
+
 # ---------------------------------------------------------------------------
 # :EstacionMedida -- Gold de trafico / calidad_aire / ruido.
 # ---------------------------------------------------------------------------
@@ -212,6 +227,7 @@ def fetch_estaciones_trafico(athena_client=None) -> "list[dict]":
     `_RECENT_WINDOW_DAYS` días), listo para `nodos.estaciones_medida_from_trafico_gold`."""
     sql = f"""
         SELECT point_id,
+               max_by(subarea, date) AS subarea,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM trafico_por_punto_hora
@@ -223,9 +239,13 @@ def fetch_estaciones_trafico(athena_client=None) -> "list[dict]":
 
 
 def fetch_estaciones_calidad_aire(athena_client=None) -> "list[dict]":
+    """`contaminantes` (FIL_66): la lista de contaminantes que la estación
+    mide de hecho -- cada estación mide un subconjunto distinto, así que sin
+    esto no se puede pedir "la más cercana que mida O₃"."""
     sql = f"""
         SELECT station_id,
                max_by(station_name, date) AS station_name,
+               array_join(array_sort(array_agg(DISTINCT pollutant)), ',') AS contaminantes,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM calidad_aire_por_estacion_contaminante_hora
@@ -233,13 +253,14 @@ def fetch_estaciones_calidad_aire(athena_client=None) -> "list[dict]":
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
-    return [_nest_location(row) for row in rows]
+    return [_split_csv(_nest_location(row), "contaminantes") for row in rows]
 
 
 def fetch_estaciones_ruido(athena_client=None) -> "list[dict]":
     sql = f"""
         SELECT station_id,
                max_by(station_name, date) AS station_name,
+               max_by(altitude_m, date) AS altitude_m,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM ruido_por_estacion_periodo_fecha
@@ -266,13 +287,15 @@ def fetch_estaciones_meteo(athena_client=None) -> "list[dict]":
     sql = """
         SELECT station_id,
                max_by(station_name, date) AS station_name,
+               array_join(array_sort(array_agg(DISTINCT magnitude)), ',') AS magnitudes,
+               max_by(altitude_m, date) AS altitude_m,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM meteorologia_por_estacion_magnitud_hora
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
-    return [_nest_location(row) for row in rows]
+    return [_split_csv(_nest_location(row), "magnitudes") for row in rows]
 
 
 def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dict]":
@@ -311,13 +334,14 @@ def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dic
         SELECT station_id,
                max_by(address, date) AS address,
                max_by(district, date) AS district,
+               array_join(array_sort(array_agg(DISTINCT mode)), ',') AS modos,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM aforos_peatones_bicicletas_por_estacion_modo_hora
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
-    return [_nest_location(row) for row in rows]
+    return [_split_csv(_nest_location(row), "modos") for row in rows]
 
 
 # ---------------------------------------------------------------------------
@@ -342,6 +366,7 @@ def fetch_paradas_bicimad(athena_client=None) -> "list[dict]":
     sql = f"""
         SELECT station_id,
                max_by(name, date) AS name,
+               max_by(docks_total, date) AS docks_total,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM bicimad_por_estacion_hora
@@ -362,6 +387,7 @@ def fetch_lugares_aparcamientos(athena_client=None) -> "list[dict]":
     sql = f"""
         SELECT parking_id,
                max_by(name, date) AS name,
+               max_by(total_spaces, date) AS total_spaces,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM aparcamientos_por_parking_hora

@@ -29,6 +29,7 @@ from grafo.nodos import (
     distritos_from_bronze,
     enrich_lugar_con_osm,
     enrich_lugares_con_osm,
+    _with_optional,
     estacion_medida_from_aforos_peatones_bicicletas_gold,
     estacion_medida_from_calidad_aire_gold,
     estacion_medida_from_meteo_gold,
@@ -174,8 +175,13 @@ class EstacionMedidaTests(unittest.TestCase):
                 "fuente": "trafico",
                 "nombre": None,
                 "ubicacion": {"lat": 40.4, "lon": -3.7},
+                "subarea": "M30",  # FIL_66
             },
         )
+
+    def test_from_trafico_gold_sin_subarea(self):  # FIL_66
+        rec = {k: v for k, v in _trafico_gold_record("1009").items() if k != "subarea"}
+        self.assertNotIn("subarea", estacion_medida_from_trafico_gold(rec))
 
     def test_from_calidad_aire_gold(self):
         node = estacion_medida_from_calidad_aire_gold(_calidad_aire_gold_record("28079004"))
@@ -555,6 +561,65 @@ class DedupeNodesTests(unittest.TestCase):
             ]
         )
         self.assertEqual(nodes, [{"id": "a", "v": 1}, {"id": "b", "v": 3}])
+
+
+class Fil66AtributosEstaticosTests(unittest.TestCase):
+    """FIL_66 — atributos estáticos de Gold subidos al nodo, presentes solo
+    cuando la fuente los reporta."""
+
+    def test_with_optional_omite_none_y_vacio(self):
+        base = _with_optional({"id": "x"}, a=1, b=None, c=[], d=["z"], e=0)
+        self.assertEqual(base, {"id": "x", "a": 1, "d": ["z"], "e": 0})
+
+    def test_calidad_aire_contaminantes(self):
+        node = estacion_medida_from_calidad_aire_gold(
+            {"station_id": "28079008", "station_name": "Escuelas Aguirre",
+             "location": {"lat": 40.42, "lon": -3.68},
+             "contaminantes": ["NO2", "O3", "PM10"]}
+        )
+        self.assertEqual(node["contaminantes"], ["NO2", "O3", "PM10"])
+
+    def test_calidad_aire_sin_contaminantes_no_lleva_clave(self):
+        node = estacion_medida_from_calidad_aire_gold(
+            {"station_id": "28079011", "location": {"lat": 40.4, "lon": -3.7}, "contaminantes": []}
+        )
+        self.assertNotIn("contaminantes", node)
+
+    def test_meteo_magnitudes_y_altitud(self):
+        node = estacion_medida_from_meteo_gold(
+            {"station_id": "28079004", "station_name": "Retiro",
+             "location": {"lat": 40.41, "lon": -3.68},
+             "magnitudes": ["81", "83", "89"], "altitude_m": 667}
+        )
+        self.assertEqual(node["magnitudes"], ["81", "83", "89"])
+        self.assertEqual(node["altitud_m"], 667)
+
+    def test_ruido_altitud(self):
+        node = estacion_medida_from_ruido_gold(
+            {"station_id": "RF-01", "location": {"lat": 40.4, "lon": -3.7}, "altitude_m": 655}
+        )
+        self.assertEqual(node["altitud_m"], 655)
+
+    def test_aforos_modos(self):
+        node = estacion_medida_from_aforos_peatones_bicicletas_gold(
+            {"station_id": "PERM_PEA01", "address": "Calle X",
+             "location": {"lat": 40.4, "lon": -3.7}, "modos": ["peatones"]}
+        )
+        self.assertEqual(node["modos"], ["peatones"])
+
+    def test_bicimad_anclajes(self):
+        node = parada_transporte_from_bicimad_gold(
+            {"station_id": "1406", "name": "Sol", "location": {"lat": 40.41, "lon": -3.70},
+             "docks_total": 24}
+        )
+        self.assertEqual(node["anclajes_totales"], 24)
+
+    def test_aparcamiento_plazas(self):
+        node = lugar_from_aparcamientos_gold(
+            {"parking_id": "APK001", "name": "Plaza Mayor",
+             "location": {"lat": 40.41, "lon": -3.70}, "total_spaces": 300}
+        )
+        self.assertEqual(node["plazas_totales"], 300)
 
 
 if __name__ == "__main__":

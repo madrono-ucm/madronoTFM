@@ -71,6 +71,8 @@ FOR (b:Barrio) ON (b.distrito_codigo);
 // (string, valor del tag amenity/shop/tourism/leisure de OSM que matcheó),
 // osm_opening_hours (string, tag opening_hours de OSM tal cual, formato
 // libre de la fuente, sin parsear).
+// Propiedad opcional (FIL_66): plazas_totales (int, tipo="aparcamiento") --
+// capacidad del aparcamiento, de `aparcamientos_por_parking_hora.total_spaces`.
 // ----------------------------------------------------------------------------
 CREATE CONSTRAINT lugar_id_unique IF NOT EXISTS
 FOR (l:Lugar) REQUIRE l.id IS UNIQUE;
@@ -95,6 +97,16 @@ FOR (l:Lugar) ON (l.ubicacion);
 // tipo (string: "trafico" | "calidad_aire" | "ruido" |
 // "aforos_peatones_bicicletas" | "meteo"), fuente (string), ubicacion
 // (Point, WGS84).
+// Propiedades opcionales (FIL_66, atributos estáticos que ya trae Gold; solo
+// presentes si la fuente las reporta, mismo criterio que `osm_*` en :Lugar):
+//   contaminantes ([string], tipo="calidad_aire") -- contaminantes que la
+//     estación mide de hecho (p. ej. ["NO2","NOx","O3"]); cada estación mide
+//     un subconjunto distinto.
+//   magnitudes ([string], tipo="meteo") -- magnitudes meteo medidas.
+//   altitud_m (int, tipo="meteo" | "ruido").
+//   subarea (string, tipo="trafico") -- zona de gestión de tráfico (~315).
+//   modos ([string], tipo="aforos_peatones_bicicletas") -- ["peatones"] y/o
+//     ["bicicletas"].
 // ----------------------------------------------------------------------------
 CREATE CONSTRAINT estacion_medida_id_unique IF NOT EXISTS
 FOR (e:EstacionMedida) REQUIRE e.id IS UNIQUE;
@@ -115,6 +127,9 @@ FOR (e:EstacionMedida) ON (e.ubicacion);
 // Propiedades esperadas: id (string, "<fuente>:<id_origen>", único),
 // tipo (string: "emt" | "bicimad" | "metro" | "cercanias" | ...),
 // fuente (string), ubicacion (Point, WGS84).
+// Propiedades opcionales (FIL_66): anclajes_totales (int, tipo="bicimad") --
+// capacidad de la estación (nº de anclajes), de `bicimad_por_estacion_hora
+// .docks_total`.
 // ----------------------------------------------------------------------------
 CREATE CONSTRAINT parada_transporte_id_unique IF NOT EXISTS
 FOR (p:ParadaTransporte) REQUIRE p.id IS UNIQUE;
