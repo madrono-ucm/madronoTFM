@@ -172,7 +172,43 @@ e.nombre, e.contaminantes"` → "Casa de Campo: NO,NO2,NOx,O3,PM10,PM2.5".
 
 **Cerrado el Paso 1** (2A + #1 + fix de `nombre`). CI de #248 en verde.
 
-**Siguiente (Paso 2):** Parte 1 #4 (`prevision_ciudad` — herramienta MCP
-nueva sobre CAMS + AEMET Gold, sin grafo; router + registro + tests + pasada
-de `standards-reviewer`) y Parte 2B opción 1 (librería de consultas
-parametrizadas) + Parte 3 #1 (mapa desde el grafo real).
+## Progreso — Paso 2 (2026-09-09)
+
+**Parte 1 #3 (meteo como vecino de primera clase) + exponer FIL_66 en
+`contexto_urbano` — hecho:**
+- `asistente/modelos/grafo_urbano.json.gz` re-sincronizado desde
+  `grafo/_data/` (tenía la copia de 31/8, sin meteo/recintos/atributos).
+- `asistente/contexto_urbano.py`: `_cargar` captura los atributos estáticos
+  (`contaminantes`, `magnitudes`, `altitud_m`, `anclajes_totales`,
+  `plazas_totales`, `subarea`) y el `linea`/`modo` de cada arista
+  `CONECTADO_CON`. `contexto()`:
+  - `estaciones_1_salto` incluye ahora **`meteo`** + arrastra el atributo
+    estático de cada estación + su `nombre` (FIL_67).
+  - `lugares_cercanos_2_saltos` incluye **`recinto`** + `plazas_totales` en
+    aparcamientos.
+  - campo nuevo **`lineas_cercanas`** = líneas de transporte que pasan por
+    la vecindad de `CONECTADO_CON` (≤2 saltos de la parada ancla).
+- Modelos `EstacionProxima` (+`nombre`/`contaminantes`/`magnitudes`/
+  `altitud_m`/`subarea`) y `ContextoUrbano` (+`lineas_cercanas`); router y
+  wrapper MCP cableados; docstring de la tool actualizado.
+- Verificado en vivo: `contexto_urbano("Sol")` → estación de aire "Plaza
+  del Carmen" con `contaminantes=[CO,NO,NO2,NOx,O3,SO2]`, meteo "Plaza del
+  Carmen" `magnitudes=[humidity_pct,temperature_c] altitud_m=660`, tráfico
+  `subarea=110007`, `lineas_cercanas=[metro 2]`, recintos "Teatro Eslava"…,
+  aparcamientos con `plazas_totales`.
+- Tests `test_contexto_urbano.py` +1 (`test_enriquecimiento_fil65_fil66`).
+  Suite `asistente/` + `grafo/` verde (299).
+
+**Nota sobre Parte 1 #4 (`prevision_ciudad`):** revisado el dato real —
+`aemet_prevision_por_municipio_leadtime` NO es una previsión puntual sino un
+**promedio histórico por leadtime** sobre la ventana recogida (4 filas: 1
+municipio × leadtime 0-3; `avg_temperature_max_c` etc.), y ambas tablas
+(CAMS + AEMET) están congeladas (datos hasta ~2026-08-30). Valor bajo para
+una herramienta "previsión de ciudad" con ese shape y esa frescura. Bajar
+prioridad; si se hace, servir sobre todo CAMS (`fecha_validez` + µg/m³ por
+contaminante, sí es utilizable) y etiquetar la respuesta como
+"último forecast disponible (pipeline congelado)".
+
+**Siguiente:** Parte 2B opción 1 (librería de consultas parametrizadas
+sobre el grafo, en `neo4j_client.py`) + Parte 3 #1 (alimentar `viz/mapa`
+desde `grafo_urbano.json.gz`) + Parte 3 #4 (overlay de resiliencia).

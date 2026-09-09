@@ -46,7 +46,13 @@ def _cargar(artefacto: Path = _ARTEFACTO):
     with gzip.open(artefacto, "rt", encoding="utf-8") as fh:
         g = json.load(fh)
 
-    tipo, nombre, pos = {}, {}, {}
+    tipo, nombre, pos, attrs = {}, {}, {}, {}
+    # atributos estáticos que FIL_66 subió a los nodos y que esta tool
+    # expone tal cual (cobertura de contaminantes, magnitudes meteo,
+    # capacidades, subárea): se guardan en un dict aparte para no ensuciar
+    # el resto del estado.
+    _ATTR_KEYS = ("contaminantes", "magnitudes", "altitud_m", "anclajes_totales",
+                  "plazas_totales", "subarea")
     for lab, ns in g["nodos"].items():
         for n in ns:
             nid = n.get("id")
@@ -57,6 +63,9 @@ def _cargar(artefacto: Path = _ARTEFACTO):
             u = n.get("ubicacion")
             if u and u.get("lat") is not None:
                 pos[nid] = (u["lat"], u["lon"])
+            extra = {k: n[k] for k in _ATTR_KEYS if n.get(k) not in (None, [])}
+            if extra:
+                attrs[nid] = extra
 
     adj_prox: "dict[str, list]" = defaultdict(list)
     for r in g["relaciones"]["PROXIMO_A"]:
@@ -66,12 +75,17 @@ def _cargar(artefacto: Path = _ARTEFACTO):
 
     adj_conn: "dict[str, list]" = defaultdict(list)
     par_pos = {}
+    lineas_de_parada: "dict[str, set]" = defaultdict(set)  # pid -> {(modo, linea)}
     for r in g["relaciones"]["CONECTADO_CON"]:
         o, dd = r["origen"], r["destino"]
         oid = o["id"] if isinstance(o, dict) else o
         did = dd["id"] if isinstance(dd, dict) else dd
         adj_conn[oid].append(did)
         adj_conn[did].append(oid)
+        modo, linea = r.get("modo"), r.get("linea")
+        if linea:
+            lineas_de_parada[oid].add((modo, linea))
+            lineas_de_parada[did].add((modo, linea))
         for e, eid in ((o, oid), (dd, did)):
             if isinstance(e, dict):
                 nombre.setdefault(eid, e.get("nombre"))
@@ -87,8 +101,8 @@ def _cargar(artefacto: Path = _ARTEFACTO):
     lugares = [n for n in g["nodos"]["Lugar"] if n.get("nombre")]
 
     st = {
-        "tipo": tipo, "nombre": nombre, "pos": pos, "par_pos": par_pos,
-        "adj_prox": adj_prox, "adj_conn": adj_conn,
+        "tipo": tipo, "nombre": nombre, "pos": pos, "par_pos": par_pos, "attrs": attrs,
+        "adj_prox": adj_prox, "adj_conn": adj_conn, "lineas_de_parada": lineas_de_parada,
         "barrio_de": barrio_de, "barrio_nombre": barrio_nombre,
         "barrio_distrito": barrio_distrito, "distrito_nombre": distrito_nombre,
         "lugares": lugares,
@@ -143,29 +157,36 @@ def contexto(lugar: str, *, artefacto: Path = _ARTEFACTO) -> dict:
     barrio = st["barrio_nombre"].get(bcod)
     distrito = st["distrito_nombre"].get(st["barrio_distrito"].get(bcod))
 
-    # estaciones de medida a 1 salto
+    # estaciones de medida a 1 salto (incluye meteo desde FIL_65; cada
+    # estación arrastra sus atributos estáticos de FIL_66: `contaminantes`
+    # para aire, `magnitudes`/`altitud_m` para meteo, `subarea` para tráfico).
     est = defaultdict(list)
     for v, d in st["adj_prox"].get(lid, []):
         tp = st["tipo"].get(v, "")
-        if tp in ("trafico", "calidad_aire", "ruido", "aforos_peatones_bicicletas"):
-            est[tp].append({"id": v, "distancia_m": d})
+        if tp in ("trafico", "calidad_aire", "ruido", "aforos_peatones_bicicletas", "meteo"):
+            fila = {"id": v, "distancia_m": d, "nombre": st["nombre"].get(v)}
+            fila.update(st["attrs"].get(v, {}))
+            est[tp].append(fila)
     for tp in est:
         est[tp].sort(key=lambda x: x["distancia_m"])
 
-    # otros :Lugar a <=2 saltos de PROXIMO_A
+    # otros :Lugar a <=2 saltos de PROXIMO_A (incluye recinto de eventos, FIL_65)
     d2 = _bfs(st["adj_prox"], lid, 2)
     lug_cerca = defaultdict(list)
     for v, saltos in d2.items():
         if v == lid:
             continue
         tp = st["tipo"].get(v, "")
-        if tp in ("parque", "aparcamiento", "cine", "poi_turistico"):
-            lug_cerca[tp].append({"nombre": st["nombre"].get(v), "saltos": saltos})
+        if tp in ("parque", "aparcamiento", "cine", "poi_turistico", "recinto"):
+            fila = {"nombre": st["nombre"].get(v), "saltos": saltos}
+            fila.update(st["attrs"].get(v, {}))  # p. ej. plazas_totales en aparcamiento
+            lug_cerca[tp].append(fila)
     for tp in lug_cerca:
         lug_cerca[tp].sort(key=lambda x: x["saltos"])
 
     # transporte alcanzable a <=2 saltos de CONECTADO_CON desde la parada más cercana
     transporte = {"parada_ancla": None, "alcanzables_2_saltos": 0, "ejemplos": []}
+    lineas_cercanas: "list[dict]" = []
     if lid in st["pos"]:
         ancla = _parada_mas_cercana(st, *st["pos"][lid])
         if ancla:
@@ -176,6 +197,14 @@ def contexto(lugar: str, *, artefacto: Path = _ARTEFACTO) -> dict:
                 "alcanzables_2_saltos": len(dc) - 1,
                 "ejemplos": nombres[:8],
             }
+            # líneas que pasan por la parada ancla y sus vecinas directas
+            pares = set()
+            for k in dc:
+                pares |= st["lineas_de_parada"].get(k, set())
+            lineas_cercanas = sorted(
+                ({"modo": m, "linea": ln} for (m, ln) in pares),
+                key=lambda x: (x["modo"] or "", x["linea"]),
+            )[:20]
 
     return {
         "lugar": nombre,
@@ -186,6 +215,7 @@ def contexto(lugar: str, *, artefacto: Path = _ARTEFACTO) -> dict:
         "estaciones_1_salto": {k: v for k, v in est.items()},
         "lugares_cercanos_2_saltos": {k: v[:6] for k, v in lug_cerca.items()},
         "transporte": transporte,
+        "lineas_cercanas": lineas_cercanas,
         "fuente_grafo": "grafo_urbano.json.gz (FIL_51 — reconstrucción del grafo de Neo4j)",
     }
 

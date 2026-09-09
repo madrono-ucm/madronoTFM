@@ -2186,15 +2186,19 @@ def contexto_urbano(lugar: str) -> ContextoUrbano:
     (`asistente/modelos/grafo_urbano.json.gz`, `FIL_51`): resuelve `lugar`
     por texto contra los `:Lugar`, da el **barrio y distrito por la
     jerarquia real** (`UBICADO_EN`->`Barrio` `PERTENECE_A`->`Distrito`), las
-    **estaciones de medida a 1 salto** de `PROXIMO_A` por tipo, otros
-    **`:Lugar` a <=2 saltos** de `PROXIMO_A`, y las **paradas de transporte
-    alcanzables a <=2 saltos de `CONECTADO_CON`** desde la parada mas
-    cercana. Sin artefacto o sin lugar reconocido -> `disponible=false` +
-    `motivo` (con ejemplos), nunca excepcion.
+    **estaciones de medida a 1 salto** de `PROXIMO_A` por tipo (incluida
+    meteo; cada estacion con sus atributos estaticos de FIL_66 --
+    contaminantes que mide, magnitudes, altitud, subarea), otros **`:Lugar`
+    a <=2 saltos** de `PROXIMO_A` (parques, aparcamientos con su capacidad,
+    recintos de eventos, POIs), las **paradas de transporte alcanzables a
+    <=2 saltos de `CONECTADO_CON`** desde la parada mas cercana y las
+    **lineas** que pasan por esa vecindad. Sin artefacto o sin lugar
+    reconocido -> `disponible=false` + `motivo` (con ejemplos), nunca
+    excepcion.
 
     Args:
         lugar: Nombre (parcial) de un lugar de Madrid (POI, parque,
-            aparcamiento, cine). Se resuelve por coincidencia de texto.
+            aparcamiento, cine, recinto). Se resuelve por coincidencia de texto.
     """
     if not _ctx.disponible():
         return ContextoUrbano(lugar_consultado=lugar,
@@ -2214,6 +2218,7 @@ def contexto_urbano(lugar: str) -> ContextoUrbano:
         },
         lugares_cercanos_2_saltos=r["lugares_cercanos_2_saltos"],
         transporte=TransporteAlcanzable(**r["transporte"]),
+        lineas_cercanas=r.get("lineas_cercanas", []),
         fuente_grafo=r["fuente_grafo"],
     )
 

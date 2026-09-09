@@ -30,6 +30,21 @@ class ToolTests(unittest.TestCase):
         self.assertIsNotNone(r.transporte)
         self.assertGreater(r.transporte.alcanzables_2_saltos, 0)
 
+    def test_enriquecimiento_fil65_fil66(self):
+        # meteo entre las estaciones a 1 salto (FIL_65); atributos estáticos
+        # (contaminantes/magnitudes/altitud) y líneas cercanas (FIL_66/67).
+        r = tools.contexto_urbano("Sol")
+        self.assertTrue(r.disponible)
+        self.assertIn("meteo", r.estaciones_1_salto)
+        aire = r.estaciones_1_salto.get("calidad_aire", [])
+        self.assertTrue(aire and aire[0].contaminantes, "la estación de aire debe traer su lista de contaminantes")
+        self.assertTrue(any(e.nombre for lst in r.estaciones_1_salto.values() for e in lst),
+                        "las estaciones con nombre en Gold deben traerlo (FIL_67)")
+        self.assertTrue(r.lineas_cercanas, "debe haber al menos una línea de transporte cerca de Sol")
+        for d in r.lineas_cercanas:
+            self.assertIn("linea", d)
+            self.assertIn("modo", d)
+
     def test_lugar_desconocido_degrada(self):
         r = tools.contexto_urbano("Chihuahua Norte 42")
         self.assertFalse(r.disponible)
