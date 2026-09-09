@@ -1,4 +1,5 @@
 {
+ "_nota": "CONECTADO_CON modela UN viaje representativo por línea (el primero en direction_id='0', ver grafo/relaciones.py::conectado_con), no la red operada completa: sin ramales ni servicios paralelos, la red resultante es intrínsecamente poco mallada (k_max bajo, muchos puentes). Los hallazgos valen para el grafo tal como se ha modelado — sirven para razonar sobre estructura y sobre el propio modelo, no como diagnóstico operativo de la EMT/Metro reales.",
  "n_puntos_articulacion": 683,
  "puntos_articulacion_top": [
   {
