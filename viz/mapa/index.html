@@ -155,7 +155,7 @@
   </details>
   <details id="g-chat">
     <summary>💬 Preguntar a los datos (asistente)</summary>
-    <div class="muted" style="margin:2px 0 4px">Lenguaje natural → el asistente (Groq + 15 herramientas
+    <div class="muted" style="margin:2px 0 4px">Lenguaje natural → el asistente (LLM + herramientas
       MCP sobre el grafo y Gold) responde. P. ej. «¿qué estación de aire cerca de Retiro mide O₃?».</div>
     <div class="row" id="chat-sug"></div>
     <div id="chat-hilo" style="max-height:180px;overflow:auto;margin:4px 0;font-size:12px"></div>
@@ -699,7 +699,7 @@ function mkHistoria(){
   };
 }
 
-// ---- Chat con el asistente (Groq + herramientas MCP sobre grafo/Gold) -------
+// ---- Chat con el asistente (LLM + herramientas MCP sobre grafo/Gold) -------
 // La página es estática (gh-pages); apunta al asistente desplegado. Se puede
 // sobrescribir con ?api=<url>; servida desde el propio asistente, "" (mismo
 // origen) ya funciona.

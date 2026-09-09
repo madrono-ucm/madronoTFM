@@ -36,6 +36,27 @@ class SubconjuntoToolsTests(unittest.TestCase):
         for t in esquema:
             self.assertIn("properties", t["function"]["parameters"])
 
+    def test_toda_tool_del_chat_es_ejecutable(self):
+        # regresión FIL_70: `consulta_grafo` estaba en `_TOOLS_CHAT` (se
+        # ofrecía al modelo) pero `_ejecutar_tool` la rechazaba por no estar
+        # en `_DESCRIPCIONES` -> "herramienta desconocida" en bucle.
+        import asistente.mcp_agent.tools as tm
+
+        for nombre in chat._TOOLS_CHAT:
+            self.assertTrue(callable(getattr(tm, nombre, None)), nombre)
+
+        with patch.object(tm, "consulta_grafo", lambda **kw: {"ok": True}):
+            r = chat._ejecutar_tool("consulta_grafo", {"plantilla": "x", "lugar": "y"})
+        self.assertEqual(r, {"ok": True})
+        r2 = chat._ejecutar_tool("tool_que_no_existe", {})
+        self.assertIn("desconocida", r2["error"])
+
+    def test_sin_think_quita_bloques_de_razonamiento(self):
+        self.assertEqual(chat._sin_think("<think>uhm</think>Hola"), "Hola")
+        self.assertEqual(chat._sin_think("<THINK>a\nb</THINK>  R"), "R")
+        self.assertEqual(chat._sin_think("sin think"), "sin think")
+        self.assertIsNone(chat._sin_think(None))
+
 
 class CompletarReintentoTests(unittest.TestCase):
     class _FakeClient:

@@ -24,6 +24,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
 from typing import Any
 
@@ -34,15 +35,20 @@ from asistente.mcp_agent.server import mcp
 
 logger = logging.getLogger(__name__)
 
-# Modelo por defecto: `openai/gpt-oss-120b` en Groq (tool-calling real, tier
-# gratuito 30 RPM / 1.000 RPD / 8K TPM / 200K TPD -- `FIL_62`). El límite de
-# 8K TPM es el que provoca 429s cuando el `tools=[...]` + los resultados
-# pesan; ver `_TOOLS_CHAT` (subconjunto) y `_completar` (reintento).
-# Proveedor del LLM, configurable por entorno (FIL_70): el SDK de Groq es
-# OpenAI-compatible, así que apuntar `LLM_BASE_URL` a Cerebras / Together /
-# vLLM / Ollama (`http://host:11434/v1`) + `LLM_MODEL` + `LLM_API_KEY` cambia
-# de proveedor sin tocar código. Sin definir -> Groq (tier gratuito).
-_MODEL = os.environ.get("LLM_MODEL", "openai/gpt-oss-120b")
+# Modelo por defecto: `qwen/qwen3.8-27b` en Groq (tier gratuito). Se eligió
+# sobre `openai/gpt-oss-120b` porque este último, en pruebas en vivo (FIL_70),
+# alucinaba nombres de tool e intentaba llamar herramientas en la ronda de
+# redacción -> `400 tool_use_failed` y respuestas vacías. Qwen3 sigue el
+# bucle de tool-calling de forma estable. Sigue con el límite de 8K TPM de
+# Groq gratuito; ver `_TOOLS_CHAT` (subconjunto) y `_completar` (reintento).
+#
+# Proveedor configurable por entorno (FIL_70): apunta `LLM_BASE_URL` a otro
+# endpoint OpenAI-compatible + `LLM_MODEL` + `LLM_API_KEY`, sin tocar código.
+# Alternativas gratuitas con mejor tool-calling: Google Gemini
+# (`https://generativelanguage.googleapis.com/v1beta/openai/`,
+# `gemini-2.0-flash` -- tier gratuito generoso), OpenRouter modelos `:free`,
+# o vLLM/Ollama propios. Cerebras NO tiene tier gratuito.
+_MODEL = os.environ.get("LLM_MODEL", "qwen/qwen3.8-27b")
 _LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or None
 _MAX_TOKENS_RESPUESTA = 700
 _MAX_REINTENTOS_LLM = 3
@@ -87,6 +93,12 @@ _DESCRIPCIONES = {
     "ruta_saludable": "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.",
     "contexto_urbano": "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.",
     "mejor_hora_zona": "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).",
+    "consulta_grafo": (
+        "Consulta de solo lectura al grafo urbano de Neo4j mediante plantillas "
+        "predefinidas (`plantilla`): estaciones de aire que miden un "
+        "contaminante cerca de un lugar, paradas/lineas de transporte, "
+        "aparcamientos, BiciMAD, vecindario de un lugar, etc."
+    ),
 }
 
 _client: "Groq | None" = None
@@ -108,16 +120,29 @@ def _leer_api_key() -> str:
     return resp["Parameter"]["Value"]
 
 
-def _cliente() -> Groq:
+def _cliente():
+    """Cliente de chat. Por defecto el SDK de Groq. Si se define
+    `LLM_BASE_URL` y `openai` está instalado, se usa `openai.OpenAI`
+    (transporte OpenAI-compatible más estándar para proveedores no-Groq como
+    Gemini/OpenRouter); si `openai` no está, se cae al SDK de Groq con
+    `base_url` (funciona con la mayoría de endpoints compatibles)."""
     global _client
-    if _client is None:
-        # `Groq` acepta `base_url` (cliente httpx OpenAI-compatible); con
-        # `None` usa el endpoint de Groq.
-        _client = Groq(api_key=_leer_api_key(), base_url=_LLM_BASE_URL)
+    if _client is not None:
+        return _client
+    key = _leer_api_key()
+    if _LLM_BASE_URL:
+        try:
+            from openai import OpenAI
+
+            _client = OpenAI(api_key=key, base_url=_LLM_BASE_URL)
+            return _client
+        except ImportError:
+            logger.info("`openai` no instalado; uso el SDK de Groq con base_url=%s", _LLM_BASE_URL)
+    _client = Groq(api_key=key, base_url=_LLM_BASE_URL)
     return _client
 
 
-def _completar(client: Groq, **kwargs):
+def _completar(client, **kwargs):
     """`chat.completions.create` con reintento ante 429 / 5xx / timeout
     (backoff exponencial corto). Un error no reintentable (400, auth...) se
     propaga en el primer intento."""
@@ -173,7 +198,7 @@ def _ejecutar_tool(nombre: str, args: dict) -> Any:
     error se convierte en un mensaje de error para que Groq lo explique,
     mismo criterio de degradación elegante que el resto de `asistente/`."""
     fn = getattr(tools_module, nombre, None)
-    if fn is None or nombre not in _DESCRIPCIONES:
+    if fn is None or nombre not in _TOOLS_CHAT:
         return {"error": f"herramienta desconocida: {nombre!r}"}
     try:
         resultado = fn(**args)
@@ -187,6 +212,15 @@ def _ejecutar_tool(nombre: str, args: dict) -> Any:
 
 def _extraer_tool_calls(msg) -> list:
     return list(getattr(msg, "tool_calls", None) or [])
+
+
+_THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL | re.IGNORECASE)
+
+
+def _sin_think(texto):
+    """Quita bloques `<think>...</think>` (algunos modelos de razonamiento
+    los filtran a la salida). `None` -> `None`."""
+    return _THINK_RE.sub("", texto).strip() if texto else texto
 
 
 _MAX_RONDAS_TOOL = 4
@@ -245,7 +279,7 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
         tcs = _extraer_tool_calls(msg)
 
         if not tcs or ultima:
-            texto = msg.content or "He consultado los datos, pero el modelo no ha devuelto texto."
+            texto = _sin_think(msg.content) or "He consultado los datos, pero el modelo no ha devuelto texto."
             messages.append({"role": "assistant", "content": texto})
             return {"respuesta": texto, "historial": messages}
 
