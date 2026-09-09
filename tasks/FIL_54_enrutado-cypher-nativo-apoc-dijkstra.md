@@ -2,11 +2,44 @@
 kind: fil
 title: "Enrutado saludable nativo en Neo4j (apoc.algo.dijkstra) en vez de dos reimplementaciones Python paralelas"
 owner: propuesto por Claude (QA), sin asignar
-status: framing
+status: ready
 allow_infra_apply: false
 created_at: "2026-08-31"
 depends_on: [FIL_37, FIL_43, FIL_51]
 ---
+
+## Actualización 2026-09-09 — verificado EN VIVO contra la instancia real
+
+Las suposiciones de este ticket estaban verificadas solo contra
+documentación. Ahora se han comprobado contra la instancia AuraDB real
+(`5c111cec`) desde una sesión con acceso de lectura:
+
+- **`apoc.algo.dijkstra` responde en vivo.** Prueba real:
+  `MATCH (a:Lugar {…'retiro'…}), (b:Lugar {…'sol'…})
+   CALL apoc.algo.dijkstra(a, b, 'PROXIMO_A', 'distancia_m') YIELD path, weight
+   RETURN weight, length(path)` → `weight ≈ 2336.36`, 11 saltos. APOC Core
+  **2026.08.0** completo e in-DBMS (605 procedimientos apoc+gds listados).
+- **GDS ("Aura Graph Analytics") también está**, pero *versionless* y por
+  sesión: `gds.graph.project` falla pidiendo `sessionId` / parámetros de
+  `gds.session.getOrCreate(sessionName, memory, ttl, cloudLocation)`. Es GDS
+  serverless efímero — sirve para análisis por lotes (encaja con `FIL_52`/
+  `FIL_64`), no para servir enrutado por petición. Confirma lo que este
+  ticket ya suponía: para enrutado en vivo, **APOC, no GDS**.
+- **La restricción de fondo se mantiene**: `weightPropertyName` es una
+  propiedad de relación **almacenada**, no una expresión. Sigue haciendo
+  falta el paso de materialización de coste por `(perfil, hora)` descrito
+  abajo. `PROXIMO_A` ya tiene `distancia_m` almacenada (ruta "más corta"
+  funciona hoy sin materializar nada); lo que falta es el coste de
+  *exposición* por perfil/hora.
+
+`status: framing` → **`ready`**: el encuadre está cerrado y verificado.
+Sigue **sin ser urgente** para la entrega del 17/9 (el enrutado Python
+actual funciona y tiene el bug de `FIL_43` corregido) — pero ya no hay
+incógnitas técnicas que investigar, solo la decisión de si se implementa
+antes o después de entregar. Si se implementa: empezar por el paso de
+materialización (batch que escribe `coste_<perfil>_h<HH>` en las aristas de
+enrutado de los 3 días curados), luego migrar `viz/rutas.py` y
+`asistente/ruta_saludable.py` a una única llamada vía driver.
 
 ## Nota de renumeración
 

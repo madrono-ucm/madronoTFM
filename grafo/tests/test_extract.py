@@ -208,6 +208,54 @@ class FetchGoldNodeSourcesTests(unittest.TestCase):
             ],
         )
 
+    def test_fetch_estaciones_meteo(self):  # FIL_65
+        columns = [
+            _column("station_id", "varchar"),
+            _column("station_name", "varchar"),
+            _column("lat", "double"),
+            _column("lon", "double"),
+        ]
+        rows = [_row("28079004", "Retiro", "40.4141", "-3.6828")]
+        client = FakeAthenaClient(columns, rows)
+
+        result = extract.fetch_estaciones_meteo(athena_client=client)
+
+        self.assertEqual(
+            result,
+            [{"station_id": "28079004", "station_name": "Retiro",
+              "location": {"lat": 40.4141, "lon": -3.6828}}],
+        )
+        # sin filtro de ventana reciente (tabla pequeña, pipeline puede estar congelado)
+        sql = client.start_query_execution_calls[0]["QueryString"]
+        self.assertNotIn("current_date", sql)
+        self.assertEqual(
+            client.start_query_execution_calls[0]["QueryExecutionContext"]["Database"],
+            extract.GOLD_DATABASE,
+        )
+
+    def test_fetch_recintos_eventos_silver(self):  # FIL_65
+        columns = [
+            _column("venue_name", "varchar"),
+            _column("lat", "double"),
+            _column("lon", "double"),
+            _column("district", "varchar"),
+        ]
+        rows = [_row("Teatro Circo Price", "40.4059", "-3.6968", "Arganzuela")]
+        client = FakeAthenaClient(columns, rows)
+
+        result = extract.fetch_recintos_eventos_silver(athena_client=client)
+
+        self.assertEqual(
+            result,
+            [{"venue_name": "Teatro Circo Price", "district": "Arganzuela",
+              "location": {"lat": 40.4059, "lon": -3.6968}}],
+        )
+        # lee de Silver, no de Gold
+        self.assertEqual(
+            client.start_query_execution_calls[0]["QueryExecutionContext"]["Database"],
+            extract.SILVER_DATABASE,
+        )
+
     def test_fetch_estaciones_aforos_peatones_bicicletas(self):
         columns = [
             _column("station_id", "varchar"),
