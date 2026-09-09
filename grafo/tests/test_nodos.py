@@ -31,18 +31,22 @@ from grafo.nodos import (
     enrich_lugares_con_osm,
     estacion_medida_from_aforos_peatones_bicicletas_gold,
     estacion_medida_from_calidad_aire_gold,
+    estacion_medida_from_meteo_gold,
     estacion_medida_from_ruido_gold,
     estacion_medida_from_trafico_gold,
     estaciones_medida_from_aforos_peatones_bicicletas_gold,
     estaciones_medida_from_calidad_aire_gold,
+    estaciones_medida_from_meteo_gold,
     estaciones_medida_from_ruido_gold,
     estaciones_medida_from_trafico_gold,
     lugar_from_aparcamientos_gold,
     lugar_from_cartelera_cines_gold,
     lugar_from_parque_bronze,
     lugar_from_poi_bronze,
+    lugar_from_recinto_evento,
     lugares_from_parques_bronze,
     lugares_from_poi_bronze,
+    lugares_from_recinto_evento,
     parada_transporte_from_bicimad_gold,
     parada_transporte_from_transporte_publico_emt_gold,
     paradas_transporte_from_crtm_bronze,
@@ -124,6 +128,20 @@ def _ruido_gold_record(station_id):
         "avg_laeq_db": 63.0,
         "location": {"lat": 40.41, "lon": -3.70, "srid": "EPSG:4326"},
         "processed_at": "2026-08-15T13:00:00+00:00",
+    }
+
+
+def _meteo_gold_record(station_id, magnitude="83"):
+    """Registro de `meteorologia_por_estacion_magnitud_hora` (Gold) ya
+    pasado por `extract._nest_location` (lat/lon planas -> `location`)."""
+    return {
+        "schema_version": 1,
+        "station_id": station_id,
+        "station_name": "Retiro",
+        "magnitude": magnitude,
+        "hour": 12,
+        "avg_value": 24.1,
+        "location": {"lat": 40.4141, "lon": -3.6828},
     }
 
 
@@ -228,6 +246,32 @@ class EstacionMedidaTests(unittest.TestCase):
         nodes = estaciones_medida_from_aforos_peatones_bicicletas_gold(records)
         self.assertEqual(len(nodes), 1)
         self.assertEqual(nodes[0]["id"], "aforos_peatones_bicicletas:PERM_PEA01")
+
+    def test_from_meteo_gold(self):  # FIL_65
+        node = estacion_medida_from_meteo_gold(_meteo_gold_record("28079004"))
+        self.assertEqual(
+            node,
+            {
+                "id": "meteorologia:28079004",
+                "tipo": "meteo",
+                "fuente": "meteorologia",
+                "nombre": "Retiro",
+                "ubicacion": {"lat": 40.4141, "lon": -3.6828},
+            },
+        )
+
+    def test_from_meteo_gold_sin_station_id_es_none(self):  # FIL_65
+        self.assertIsNone(estacion_medida_from_meteo_gold({**_meteo_gold_record("x"), "station_id": None}))
+
+    def test_dedup_por_magnitud_meteo(self):  # FIL_65
+        # Gold trae una fila por (estación, magnitud, hora); un nodo por estación.
+        records = [
+            _meteo_gold_record("28079004", magnitude="83"),
+            _meteo_gold_record("28079004", magnitude="86"),
+        ]
+        nodes = estaciones_medida_from_meteo_gold(records)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["id"], "meteorologia:28079004")
 
 
 def _emt_gold_record(stop_id, line="203"):
@@ -397,6 +441,36 @@ class LugarTests(unittest.TestCase):
                 "ubicacion": None,
             },
         )
+
+    def test_from_recinto_evento(self):  # FIL_65
+        node = lugar_from_recinto_evento(
+            {"venue_name": "Teatro Circo Price", "district": "Arganzuela",
+             "location": {"lat": 40.4059, "lon": -3.6968}}
+        )
+        self.assertEqual(
+            node,
+            {
+                "id": "agenda_eventos:teatro-circo-price",
+                "nombre": "Teatro Circo Price",
+                "tipo": "recinto",
+                "fuente": "agenda_eventos",
+                "ubicacion": {"lat": 40.4059, "lon": -3.6968},
+            },
+        )
+
+    def test_from_recinto_evento_sin_nombre_o_sin_coords_es_none(self):  # FIL_65
+        self.assertIsNone(lugar_from_recinto_evento({"venue_name": "", "location": {"lat": 40.4, "lon": -3.7}}))
+        self.assertIsNone(lugar_from_recinto_evento({"venue_name": "Sala X", "location": {"lat": None, "lon": None}}))
+
+    def test_recinto_evento_slug_acentos_y_dedup(self):  # FIL_65
+        # varios eventos comparten recinto (mismo nombre, acentos/mayúsculas)
+        records = [
+            {"venue_name": "Estadió Metropolitano", "location": {"lat": 40.436, "lon": -3.599}},
+            {"venue_name": "ESTADIÓ METROPOLITANO", "location": {"lat": 40.436, "lon": -3.599}},
+        ]
+        nodes = lugares_from_recinto_evento(records)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["id"], "agenda_eventos:estadio-metropolitano")
 
 
 class EnrichLugaresConOsmTests(unittest.TestCase):

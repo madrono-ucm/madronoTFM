@@ -195,6 +195,34 @@ def estaciones_medida_from_aforos_peatones_bicicletas_gold(records: "Iterable[di
     return dedupe_nodes(estacion_medida_from_aforos_peatones_bicicletas_gold(r) for r in records)
 
 
+def estacion_medida_from_meteo_gold(record: dict) -> Optional[dict]:
+    """`:EstacionMedida` de tipo `"meteo"` desde un registro de
+    `meteorologia_por_estacion_magnitud_hora` (Gold, FIL_65). Mismo contrato
+    que `..._from_ruido_gold`/`..._from_calidad_aire_gold`: `station_id` es
+    la clave de negocio, `station_name` el nombre legible.
+
+    Las estaciones meteo son puntos fijos de medida con lat/lon igual que
+    tráfico/ruido/aire -- hasta FIL_65 la meteo solo llegaba al sistema como
+    un join haversine en `modelado/features/exogenas.py`, sin ser nodo del
+    grafo ni vecina `PROXIMO_A` del resto de sensores. `altitude_m` (presente
+    en Gold) **no** se guarda: `infra/neo4j/schema/schema.cypher` no declara
+    altitud para `:EstacionMedida` y ninguna consulta la usa."""
+    station_id = record.get("station_id")
+    if not station_id:
+        return None
+    return {
+        "id": f"meteorologia:{station_id}",
+        "tipo": "meteo",
+        "fuente": "meteorologia",
+        "nombre": record.get("station_name"),
+        "ubicacion": _location(record),
+    }
+
+
+def estaciones_medida_from_meteo_gold(records: "Iterable[dict]") -> "list[dict]":
+    return dedupe_nodes(estacion_medida_from_meteo_gold(r) for r in records)
+
+
 # ---------------------------------------------------------------------------
 # :ParadaTransporte -- desde Gold de `transporte_publico_emt`, `bicimad`, y
 # Bronze de `crtm_red_transporte_madrid` (sin Silver/Gold).
@@ -368,6 +396,57 @@ def lugares_from_aparcamientos_gold(records: "Iterable[dict]") -> "list[dict]":
 
 def lugares_from_cartelera_cines_gold(records: "Iterable[dict]") -> "list[dict]":
     return dedupe_nodes(lugar_from_cartelera_cines_gold(r) for r in records)
+
+
+def _slug_recinto(nombre: str) -> str:
+    """`venue_name` -> identificador estable en minúsculas, sin acentos ni
+    signos (mismo criterio de normalización que
+    `asistente/mejor_hora_zona.py::_normaliza`). `agenda_eventos` (Silver) no
+    trae un `venue_id`, así que el nombre normalizado es la clave de negocio
+    del recinto."""
+    import re
+    import unicodedata
+
+    t = unicodedata.normalize("NFKD", nombre or "").encode("ascii", "ignore").decode("ascii")
+    t = re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")
+    return t
+
+
+def lugar_from_recinto_evento(record: dict) -> Optional[dict]:
+    """`:Lugar` de tipo `"recinto"` desde un registro de **Silver**
+    `agenda_eventos` (FIL_65). El recinto (`venue_name` + lat/lon) es una
+    entidad estable; el evento en sí (con ventana temporal) NO se modela como
+    nodo -- sigue viviendo en Silver/Athena, lo consume `eventos_cercanos`.
+
+    Se lee de Silver, no de Gold: la Gold (`agenda_eventos_por_categoria_
+    distrito_fecha`) agrega por categoría/distrito/fecha y no conserva
+    `venue_name` ni lat/lon por recinto (ver el docstring de
+    `asistente/neo4j_client.py::resolver_lugar_query`).
+
+    Devuelve `None` si falta el nombre del recinto o las coordenadas -- un
+    `:Lugar` sin identidad o sin `ubicacion` no aporta nada al grafo (no
+    entraría en `UBICADO_EN`/`PROXIMO_A`). El `schema.cypher` ya
+    anticipaba el `tipo` `"recinto"` (para `agenda_grandes_recintos_madrid`);
+    aquí la `fuente` es `agenda_eventos`."""
+    venue = (record.get("venue_name") or "").strip()
+    ubicacion = _location(record)
+    if not venue or ubicacion is None:
+        return None
+    return {
+        "id": f"agenda_eventos:{_slug_recinto(venue)}",
+        "nombre": venue,
+        "tipo": "recinto",
+        "fuente": "agenda_eventos",
+        "ubicacion": ubicacion,
+    }
+
+
+def lugares_from_recinto_evento(records: "Iterable[dict]") -> "list[dict]":
+    """Deduplica por `id` (varios eventos comparten recinto). Si un mismo
+    `venue_name` aparece con coordenadas ligeramente distintas entre eventos,
+    se conserva el primero visto (criterio de `dedupe_nodes`) -- suficiente
+    para una relación de proximidad con umbral de 300 m."""
+    return dedupe_nodes(lugar_from_recinto_evento(r) for r in records)
 
 
 # ---------------------------------------------------------------------------

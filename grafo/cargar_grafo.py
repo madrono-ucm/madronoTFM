@@ -44,6 +44,7 @@ def cargar_grafo(loader: Neo4jLoader) -> None:
         + nodos.estaciones_medida_from_aforos_peatones_bicicletas_gold(
             extract.fetch_estaciones_aforos_peatones_bicicletas()
         )
+        + nodos.estaciones_medida_from_meteo_gold(extract.fetch_estaciones_meteo())  # FIL_65
     )
     loader.load_estaciones_medida(estaciones_medida)
 
@@ -60,6 +61,7 @@ def cargar_grafo(loader: Neo4jLoader) -> None:
         + nodos.lugares_from_parques_bronze(extract.fetch_parques_bronze())
         + nodos.lugares_from_aparcamientos_gold(extract.fetch_lugares_aparcamientos())
         + nodos.lugares_from_cartelera_cines_gold(extract.fetch_lugares_cartelera_cines())
+        + nodos.lugares_from_recinto_evento(extract.fetch_recintos_eventos_silver())  # FIL_65
     )
     # Enriquecimiento con POIs de OpenStreetMap (tarea 083): añade
     # osm_id/osm_amenity/osm_opening_hours a los :Lugar que tengan un POI de
