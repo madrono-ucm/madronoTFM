@@ -112,6 +112,32 @@ class RouterTests(unittest.TestCase):
         self.assertGreaterEqual(len(a["stgnn_aristas_influyentes"]), 10)
         self.assertIn("n_puntos_articulacion", a["resiliencia"])
 
+    def test_ruta_proximo_y_transporte(self):
+        _RP = [{"metros": 812.4, "saltos": 3,
+                "nodos": [{"id": "a", "tipo": "poi_turistico", "nombre": "A", "lat": 40.41, "lon": -3.70},
+                          {"id": "m", "tipo": "trafico", "nombre": None, "lat": 40.42, "lon": -3.70},
+                          {"id": "b", "tipo": "recinto", "nombre": "B", "lat": 40.43, "lon": -3.70}]}]
+        _RT = [{"saltos": 2,
+                "nodos": [{"id": "p1", "tipo": "metro", "nombre": "Sol", "lat": 40.41, "lon": -3.70},
+                          {"id": "p2", "tipo": "metro", "nombre": "GV", "lat": 40.42, "lon": -3.70}],
+                "tramos": [{"modo": "metro", "linea": "1"}]}]
+
+        def _run(query, params, **kw):
+            return _RT if "shortestPath" in query else _RP
+
+        with patch("asistente.routers.grafo_explorador.run_neo4j_query", side_effect=_run):
+            r1 = self.client.get("/grafo/explorador/ruta", params={"a": "a", "b": "b"})
+            r2 = self.client.get("/grafo/explorador/ruta", params={"a": "p1", "b": "p2", "modo": "transporte"})
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r1.json()["metros"], 812)
+        self.assertEqual(len(r1.json()["nodos"]), 3)
+        self.assertEqual(r2.json()["lineas"], ["metro 1"])
+
+    def test_ruta_sin_camino_da_404(self):
+        with patch("asistente.routers.grafo_explorador.run_neo4j_query", return_value=[]):
+            r = self.client.get("/grafo/explorador/ruta", params={"a": "x", "b": "y"})
+        self.assertEqual(r.status_code, 404)
+
     def test_ui_sirve_el_html_o_500(self):
         r = self.client.get("/grafo/explorador")
         # el HTML live se genera con `python -m viz.build_grafo_explorador --live`

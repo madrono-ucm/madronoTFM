@@ -362,6 +362,36 @@ def vecindario_grafo_query(nodo_id: str, radio_m: float) -> "tuple[str, dict]":
     return query, {"nodo_id": nodo_id, "radio_m": radio_m}
 
 
+_RUTA_NODOS = (
+    "[n IN nodes(p) | {id:n.id, tipo:n.tipo, nombre:n.nombre, "
+    "lat:n.ubicacion.latitude, lon:n.ubicacion.longitude}]"
+)
+
+
+def ruta_proximo_query(a_id: str, b_id: str) -> "tuple[str, dict]":
+    """Camino mínimo ponderado entre dos nodos por `PROXIMO_A` (peso
+    `distancia_m`) con `apoc.algo.dijkstra` — la "capacidad de enrutado del
+    grafo DB" servida directa desde Neo4j (verificado en vivo, FIL_67)."""
+    query = (
+        "MATCH (a {id:$a_id}), (b {id:$b_id}) "
+        "CALL apoc.algo.dijkstra(a, b, 'PROXIMO_A', 'distancia_m') YIELD path AS p, weight "
+        f"RETURN weight AS metros, length(p) AS saltos, {_RUTA_NODOS} AS nodos"
+    )
+    return query, {"a_id": a_id, "b_id": b_id}
+
+
+def ruta_transporte_query(a_id: str, b_id: str) -> "tuple[str, dict]":
+    """Camino con menos saltos entre dos paradas por `CONECTADO_CON`
+    (`shortestPath`), con el modo/línea de cada tramo."""
+    query = (
+        "MATCH (a:ParadaTransporte {id:$a_id}), (b:ParadaTransporte {id:$b_id}) "
+        "MATCH p = shortestPath((a)-[:CONECTADO_CON*..40]-(b)) "
+        f"RETURN length(p) AS saltos, {_RUTA_NODOS} AS nodos, "
+        "[r IN relationships(p) | {modo:r.modo, linea:r.linea}] AS tramos"
+    )
+    return query, {"a_id": a_id, "b_id": b_id}
+
+
 def cobertura_aire_query() -> "tuple[str, dict]":
     """Por cada `:EstacionMedida {tipo:'trafico'}`, si tiene o no una estación
     de calidad del aire a <=300 m por `PROXIMO_A` — hallazgo del TFM: solo 23

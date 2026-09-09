@@ -26,6 +26,8 @@ from asistente.neo4j_client import (
     cobertura_aire_query,
     grafo_explorador_conectado_con_query,
     grafo_explorador_nodos_query,
+    ruta_proximo_query,
+    ruta_transporte_query,
     run_neo4j_query,
     sensores_por_distrito_query,
     vecindario_grafo_query,
@@ -197,6 +199,42 @@ def analisis() -> dict:
         }
         _analisis_cache["t"] = ahora
     return _analisis_cache["data"]
+
+
+@router.get("/grafo/explorador/ruta")
+def ruta(
+    a: str = Query(description="id del nodo origen."),
+    b: str = Query(description="id del nodo destino."),
+    modo: str = Query(default="proximo", description="'proximo' (PROXIMO_A ponderado, apoc.algo.dijkstra) o 'transporte' (CONECTADO_CON, shortestPath)."),
+) -> dict:
+    """Camino entre dos nodos del grafo — la capacidad de enrutado servida
+    directa desde Neo4j. `404` si no hay ruta; `503` si Neo4j no responde."""
+    if modo == "transporte":
+        q, p = ruta_transporte_query(a, b)
+    else:
+        modo = "proximo"
+        q, p = ruta_proximo_query(a, b)
+    try:
+        filas = _leer(q, p)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(503, f"Neo4j no disponible: {type(exc).__name__}: {exc}")
+    if not filas or not filas[0].get("nodos"):
+        raise HTTPException(404, f"sin ruta {modo} entre «{a}» y «{b}»")
+    f = filas[0]
+    nodos = [
+        {**{k: n.get(k) for k in ("id", "tipo", "nombre")},
+         "lat": round(n["lat"], 6) if n.get("lat") is not None else None,
+         "lon": round(n["lon"], 6) if n.get("lon") is not None else None}
+        for n in f["nodos"]
+    ]
+    out = {"modo": modo, "a": a, "b": b, "saltos": f["saltos"], "nodos": nodos}
+    if modo == "proximo":
+        out["metros"] = round(f["metros"])
+    else:
+        tramos = f.get("tramos") or []
+        out["tramos"] = tramos
+        out["lineas"] = sorted({f"{t.get('modo') or '?'} {t.get('linea')}" for t in tramos if t.get("linea")})
+    return out
 
 
 @router.get("/grafo/explorador/vecindario")
