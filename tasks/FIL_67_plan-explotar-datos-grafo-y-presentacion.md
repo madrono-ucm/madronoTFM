@@ -271,3 +271,30 @@ resiliencia, consistencia 15 tools, integración en memoria).
   (bicimad/emt/ruido/trafico).
 - El `grafo_explorador.html` autónomo (grafo embebido) se mantiene para uso
   `file://` sin backend.
+
+**Parte 3 #2 (v3) — menú + análisis del TFM sobre el grafo — hecho:**
+- Menú `Vista / análisis` (select) con 6 vistas que re-colorean/anotan el
+  grafo:
+  1. **Explorar** — color por tipo (defecto).
+  2. **Aire · cobertura** — estaciones de tráfico verde/rojo según tengan o
+     no una estación de aire a ≤300 m. Panel: **4.525 / 4.705 (96 %)** sin
+     aire cerca (solo 23 estaciones de aire para toda la ciudad).
+  3. **Aire · qué mide cada estación (FIL_66)** — estaciones de aire azul si
+     miden O₃, rojo si no.
+  4. **Sensores por distrito (§7)** — tabla distrito × total/tráfico/aire;
+     el sesgo (Fuencarral 544 vs Vicálvaro 62).
+  5. **Transporte · resiliencia (FIL_64)** — 683 puntos de articulación
+     resaltados (casados por nombre→`:ParadaTransporte`), + nº de puentes,
+     k-core, curva de robustez y el caveat `_nota`.
+  6. **Modelo STGNN · aristas influyentes (ML_05)** — las 15 conexiones más
+     influyentes como arcos con grosor ∝ importancia.
+- `GET /grafo/explorador/analisis` (cacheado 10 min): cobertura de aire y
+  sensores/distrito **en vivo desde Neo4j**
+  (`cobertura_aire_query`/`sensores_por_distrito_query`), + aristas STGNN de
+  `stgnn_trafico.meta.json`, + resiliencia de `grafo_resiliencia.json`
+  (FIL_64). En modo embebido, cobertura y distrito se derivan en el cliente
+  de `PROX`/`N`. Fallo de Neo4j → 503.
+- Verificado en vivo: `/analisis` → cobertura 4525/4705, 21 distritos,
+  15 aristas STGNN (`trafico:5412↔trafico:5768` w=1.0), 683 puntos de
+  articulación. Menú y panel renderizan (screenshot headless).
+- Tests actualizados; `<script>` válido (`node --check`).

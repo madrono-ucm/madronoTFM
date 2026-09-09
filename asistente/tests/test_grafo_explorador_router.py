@@ -88,6 +88,30 @@ class RouterTests(unittest.TestCase):
         self.assertEqual(r.status_code, 503)
         self.assertIn("Neo4j", r.json()["detail"])
 
+    def test_analisis_ensambla_cobertura_y_ficheros(self):
+        ge._analisis_cache["data"] = None
+        ge._analisis_cache["t"] = 0.0
+        _COB = [{"id": "trafico:1", "con_aire": True}, {"id": "trafico:2", "con_aire": False}]
+        _DIST = [{"distrito": "Centro", "n": 40, "trafico": 30, "aire": 3}]
+
+        def _run(query, params, **kw):
+            if "calidad_aire" in query and "EXISTS" in query:
+                return _COB
+            if "PERTENECE_A" in query:
+                return _DIST
+            return []
+
+        with patch("asistente.routers.grafo_explorador.run_neo4j_query", side_effect=_run):
+            r = self.client.get("/grafo/explorador/analisis")
+        self.assertEqual(r.status_code, 200)
+        a = r.json()
+        self.assertEqual(a["cobertura_aire"]["sin_aire_cerca"], 1)
+        self.assertEqual(a["cobertura_aire"]["ids_con_aire"], ["trafico:1"])
+        self.assertEqual(a["sensores_por_distrito"][0]["distrito"], "Centro")
+        # los ficheros vendorizados existen -> deben venir poblados
+        self.assertGreaterEqual(len(a["stgnn_aristas_influyentes"]), 10)
+        self.assertIn("n_puntos_articulacion", a["resiliencia"])
+
     def test_ui_sirve_el_html_o_500(self):
         r = self.client.get("/grafo/explorador")
         # el HTML live se genera con `python -m viz.build_grafo_explorador --live`

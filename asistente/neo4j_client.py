@@ -362,6 +362,31 @@ def vecindario_grafo_query(nodo_id: str, radio_m: float) -> "tuple[str, dict]":
     return query, {"nodo_id": nodo_id, "radio_m": radio_m}
 
 
+def cobertura_aire_query() -> "tuple[str, dict]":
+    """Por cada `:EstacionMedida {tipo:'trafico'}`, si tiene o no una estación
+    de calidad del aire a <=300 m por `PROXIMO_A` — hallazgo del TFM: solo 23
+    estaciones de aire para toda la ciudad (`FIL_66` / §7)."""
+    query = (
+        "MATCH (t:EstacionMedida {tipo:'trafico'}) "
+        "RETURN t.id AS id, "
+        "EXISTS { (t)-[:PROXIMO_A]-(:EstacionMedida {tipo:'calidad_aire'}) } AS con_aire"
+    )
+    return query, {}
+
+
+def sensores_por_distrito_query() -> "tuple[str, dict]":
+    """Nº de `:EstacionMedida` por distrito (vía `UBICADO_EN`→`PERTENECE_A`) —
+    el sesgo de cobertura por distrito que la memoria declara en §7."""
+    query = (
+        "MATCH (d:Distrito)<-[:PERTENECE_A]-(:Barrio)<-[:UBICADO_EN]-(e:EstacionMedida) "
+        "RETURN d.nombre AS distrito, count(e) AS n, "
+        "count(CASE e.tipo WHEN 'trafico' THEN 1 END) AS trafico, "
+        "count(CASE e.tipo WHEN 'calidad_aire' THEN 1 END) AS aire "
+        "ORDER BY n DESC"
+    )
+    return query, {}
+
+
 @lru_cache
 def _driver_from_env():
     from neo4j import GraphDatabase  # import perezoso, ver docstring del módulo
