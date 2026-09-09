@@ -59,6 +59,17 @@
 <div class="panel" id="titulo">Madrid · previsión sobre el grafo<small id="titulo-sub">—</small></div>
 
 <div class="panel" id="controls">
+  <details open id="g-historia">
+    <summary>📖 Historia · recorrido guiado</summary>
+    <div class="muted" id="hist-texto" style="margin:2px 0 6px">Elige un capítulo: el mapa se
+      pone en el estado que ilustra cada hallazgo del TFM.</div>
+    <div class="row" id="hist-caps"></div>
+    <div class="row" style="margin-top:4px">
+      <button id="hist-prev" aria-label="Capítulo anterior">◀</button>
+      <button id="hist-auto" aria-label="Reproducir el capítulo">▶ animar</button>
+      <button id="hist-next" aria-label="Capítulo siguiente">▶</button>
+    </div>
+  </details>
   <details open>
     <summary>⏱ Tiempo</summary>
     <div class="row" id="days"></div>
@@ -141,6 +152,18 @@
     </div>
     <div class="row"><select id="r-perfil" aria-label="Perfil"></select></div>
     <div class="muted" id="routeinfo" style="margin-top:2px"></div>
+  </details>
+  <details id="g-chat">
+    <summary>💬 Preguntar a los datos (asistente)</summary>
+    <div class="muted" style="margin:2px 0 4px">Lenguaje natural → el asistente (Groq + 15 herramientas
+      MCP sobre el grafo y Gold) responde. P. ej. «¿qué estación de aire cerca de Retiro mide O₃?».</div>
+    <div class="row" id="chat-sug"></div>
+    <div id="chat-hilo" style="max-height:180px;overflow:auto;margin:4px 0;font-size:12px"></div>
+    <div class="row">
+      <input id="chat-in" placeholder="pregunta…" style="flex:1;background:#2a3340;color:#e8edf2;border:1px solid #3a4756;border-radius:6px;padding:4px 8px">
+      <button id="chat-send">enviar</button>
+    </div>
+    <div class="muted" id="chat-estado"></div>
   </details>
 </div>
 
@@ -611,6 +634,118 @@ function fitBounds(){
   map.fitBounds(META.bbox, {padding:60, duration:0});
 }
 
+// ---- Recorrido guiado (storytelling): cada capítulo pone el mapa en el
+//      estado que ilustra un hallazgo del TFM ------------------------------
+function rutaIdx(o,d,perfil){
+  return RUTAS ? RUTAS.rutas.findIndex(r=>r.origen===o && r.destino===d && r.perfil===perfil) : -1;
+}
+function setEstado(p){
+  Object.assign(state, p);
+  document.querySelectorAll(".day").forEach(x=>x.classList.toggle("on", x.textContent.startsWith(state.day.slice(5))));
+  document.querySelectorAll(".met").forEach(x=>x.classList.toggle("on", x.dataset.m===state.metric));
+  document.querySelectorAll(".hz").forEach(x=>x.classList.toggle("on", x.dataset.h===state.hz));
+  document.querySelectorAll(".es").forEach(x=>x.classList.toggle("on", x.dataset.e===state.escala));
+  document.querySelectorAll(".pf").forEach(x=>x.classList.toggle("on", x.dataset.p===state.perfil));
+  const gh = document.getElementById("ghost"); if(gh) gh.classList.toggle("on", state.ghost);
+  const hr = document.getElementById("hour"); if(hr) hr.value = state.hour;
+  const odSel = document.getElementById("r-od"), pSel = document.getElementById("r-perfil");
+  if(RUTAS && state.route>=0 && RUTAS.rutas[state.route]){
+    const R = RUTAS.rutas[state.route];
+    const ods = [...new Set(RUTAS.rutas.map(r=>r.origen+" → "+r.destino))];
+    odSel.value = ods.indexOf(R.origen+" → "+R.destino); pSel.value = R.perfil;
+  } else if(odSel){ odSel.value = -1; }
+  render();
+}
+const CAPITULOS = [
+  {t:"1 · El modelo mejora la persistencia",
+   d:"STGNN de grafo (ML_05): la previsión bate a repetir el valor actual en los 3 horizontes, y el margen crece con h. «modelo vs persistencia» activado — verde = el modelo acierta más que la inercia.",
+   a:()=>setEstado({metric:"trafico", ghost:true, hz:"h3", route:-1, clean:false})},
+  {t:"2 · El aire depende de la hora",
+   d:"Dosis de O₃ (media 8 h, % de la guía OMS), escala por bandas OMS/UE. Sube a media tarde. Pulsa «▶ animar» para recorrer las 24 h.",
+   a:()=>setEstado({metric:"dosis_o3", ghost:false, escala:"bandas", hour:16, route:-1})},
+  {t:"3 · Laborable vs domingo",
+   d:"El mismo O₃ en domingo (08-23): sin la punta de tráfico laboral, el patrón del aire cambia. Compara con el capítulo 2 (miércoles).",
+   a:()=>setEstado({metric:"dosis_o3", day:"2026-08-23", escala:"bandas", hour:16, route:-1})},
+  {t:"4 · Ruta saludable vs rápida",
+   d:"Sol → Atocha, perfil ciclista: la ruta verde (saludable) evita ~27 % de exposición ponderada frente a la gris (la más corta) a las 8:00.",
+   a:()=>setEstado({route:rutaIdx("Sol","Atocha","ciclista"), perfil:"ciclista", metric:"salud_perfil", ghost:false, hour:8})},
+  {t:"5 · La ruta cambia con quién eres",
+   d:"La misma Sol → Atocha con perfil general: otros pesos de NO₂/O₃/ruido/tráfico → otro camino y otra reducción. El mapa colorea por «salud (perfil)».",
+   a:()=>setEstado({route:rutaIdx("Sol","Atocha","general"), perfil:"general", metric:"salud_perfil"})},
+  {t:"6 · Hallazgos del grafo real (Neo4j)",
+   d:"Fuera de este mapa, en el grafo de Neo4j: 683 puntos de articulación en la red de transporte · el 96 % de los sensores de tráfico no tienen estación de aire a ≤300 m · Fuencarral 544 sensores vs Vicálvaro 62. Explóralo en «grafo_explorador.html» / <code>/grafo/explorador</code>.",
+   a:()=>setEstado({metric:"salud", ghost:false, route:-1})},
+];
+let histIdx = -1;
+function irCapitulo(i){
+  histIdx = ((i % CAPITULOS.length) + CAPITULOS.length) % CAPITULOS.length;
+  const c = CAPITULOS[histIdx];
+  document.querySelectorAll("#hist-caps button").forEach(b=>b.classList.toggle("on", +b.dataset.i===histIdx));
+  document.getElementById("hist-texto").innerHTML = "<b>"+c.t+"</b><br>"+c.d;
+  c.a();
+}
+function mkHistoria(){
+  const wrap = document.getElementById("hist-caps");
+  CAPITULOS.forEach((c,i)=>{ const b=document.createElement("button");
+    b.textContent = String(i+1); b.title = c.t; b.dataset.i = i;
+    b.onclick = ()=>irCapitulo(i); wrap.appendChild(b); });
+  document.getElementById("hist-prev").onclick = ()=>irCapitulo(histIdx-1);
+  document.getElementById("hist-next").onclick = ()=>irCapitulo(histIdx+1);
+  document.getElementById("hist-auto").onclick = ()=>{
+    state.playing = !state.playing;
+    document.getElementById("hist-auto").classList.toggle("on", state.playing);
+    const pb = document.getElementById("play"); if(pb) pb.classList.toggle("on", state.playing);
+    if(state.playing) tick();
+  };
+}
+
+// ---- Chat con el asistente (Groq + herramientas MCP sobre grafo/Gold) -------
+// La página es estática (gh-pages); apunta al asistente desplegado. Se puede
+// sobrescribir con ?api=<url>; servida desde el propio asistente, "" (mismo
+// origen) ya funciona.
+const API_BASE = new URLSearchParams(location.search).get("api")
+  || (location.hostname.endsWith("github.io") ? "https://35-42-164-183.nip.io" : "");
+const CHAT_SUG = [
+  "¿Qué estación de aire cerca de Retiro mide O₃?",
+  "Ruta saludable de Sol a Atocha para perfil asma",
+  "¿Cómo está el tráfico cerca de Atocha ahora?",
+  "Mejor hora hoy en Chamberí para alguien con asma",
+];
+let chatHist = [];
+function chatMsg(rol, txt){
+  const d = document.createElement("div"); d.style.margin = "3px 0";
+  d.innerHTML = "<b style='color:#9fb0c0'>"+(rol==="user"?"tú":"asistente")+":</b> "
+    + String(txt).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  const h = document.getElementById("chat-hilo"); h.appendChild(d); h.scrollTop = 1e9;
+}
+async function chatEnviar(){
+  const inp = document.getElementById("chat-in"), est = document.getElementById("chat-estado");
+  const q = inp.value.trim(); if(!q) return;
+  inp.value = ""; chatMsg("user", q); est.textContent = "pensando…";
+  document.getElementById("chat-send").disabled = true;
+  try{
+    const r = await fetch(API_BASE + "/chat", {method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({mensaje:q, historial:chatHist})});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j = await r.json();
+    chatHist = j.historial || [];
+    chatMsg("bot", j.respuesta || "(sin respuesta)");
+  }catch(err){
+    chatMsg("bot", "no se pudo consultar el asistente ("+err+")."
+      + (API_BASE ? "" : " Sirve esta página desde el asistente o añade ?api=<url>."));
+  }
+  est.textContent = ""; document.getElementById("chat-send").disabled = false;
+}
+function mkChat(){
+  const sug = document.getElementById("chat-sug");
+  CHAT_SUG.forEach(s=>{ const b=document.createElement("button");
+    b.textContent = s.length>26 ? s.slice(0,24)+"…" : s; b.title = s; b.style.fontSize = "10.5px";
+    b.onclick = ()=>{ document.getElementById("chat-in").value = s; chatEnviar(); };
+    sug.appendChild(b); });
+  document.getElementById("chat-send").onclick = chatEnviar;
+  document.getElementById("chat-in").addEventListener("keydown", e=>{ if(e.key==="Enter") chatEnviar(); });
+}
+
 function mkControls(){
   const dd = document.getElementById("days");
   META.dias.forEach((d,k)=>{ const b=document.createElement("button");
@@ -756,7 +891,7 @@ Promise.all([
     if(!render._raf) render._raf = requestAnimationFrame(()=>{ render._raf = 0; render(); });
   });
 
-  mkControls(); syncTabs();
+  mkControls(); mkHistoria(); mkChat(); syncTabs();
   map.on("load", ()=>{ if(META.bbox) fitBounds(); render(); });
 }).catch(e=>{ document.getElementById("map").innerHTML =
   "<p style='color:#ccc;font:14px system-ui;padding:24px'>No se pudo montar el mapa. "

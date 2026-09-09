@@ -56,6 +56,9 @@ LUGARES = {
     "Plaza Castilla": (40.4669, -3.6884),
     "Legazpi": (40.3911, -3.6952),
     "Ventas": (40.4319, -3.6636),
+    "Callao": (40.4200, -3.7058),
+    "Gran Vía": (40.4203, -3.7019),
+    "Gregorio Marañón": (40.4380, -3.6906),  # eje Castellana
 }
 
 # Cada perfil es un vector de pesos por señal: `dist` en km, el resto sobre
@@ -252,7 +255,13 @@ def pareto(dia: str, hora: int) -> "list[dict]":
 def main() -> int:
     dias = sorted(pd.read_parquet(_PARQUET)["day"].unique().tolist())
     dia = dias[-1]  # miércoles cargado
-    ejemplos = [("Atocha", "Moncloa"), ("Plaza Elíptica", "Cibeles"), ("Legazpi", "Bernabéu")]
+    ejemplos = [
+        ("Callao", "Retiro"),              # céntrico, del centro al parque
+        ("Cibeles", "Plaza Castilla"),     # eje Castellana completo
+        ("Sol", "Atocha"),                 # corto y reconocible
+        ("Atocha", "Moncloa"),             # travesía larga (contraste)
+        ("Plaza Elíptica", "Cibeles"),
+    ]
     out = {"dia": dia, "generado": pd.Timestamp.utcnow().isoformat(timespec="seconds"), "rutas": []}
     for o, d in ejemplos:
         for perfil in ("general", "ciclista"):
