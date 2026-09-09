@@ -252,3 +252,22 @@ resiliencia sobre él) quedan como mejora post-entrega.
 
 **QA:** ver `VIC_34`–`VIC_38` (grafo, `consulta_grafo`, analítica de
 resiliencia, consistencia 15 tools, integración en memoria).
+
+**Parte 3 #2 (v2) — explorador EN VIVO — hecho:**
+- `viz/build_grafo_explorador.py --live` → `viz/grafo_explorador_live.html`
+  (~9 KB, sin grafo embebido): pide el grafo a la app del asistente.
+- `asistente/routers/grafo_explorador.py`: `GET /grafo/explorador` (HTML),
+  `GET /grafo/explorador/data` (nodos + `CONECTADO_CON` + líneas, leído de
+  Neo4j, cacheado 10 min), `GET /grafo/explorador/vecindario?id=` (vecinos
+  `PROXIMO_A` de un nodo, al hacer clic). Fallo de Neo4j → 503 legible.
+- `asistente/neo4j_client.py`: `grafo_explorador_nodos_query`,
+  `grafo_explorador_conectado_con_query`, `vecindario_grafo_query`.
+- Montado en `asistente/main.py`. Tests
+  `asistente/tests/test_grafo_explorador_router.py` +
+  `tests/test_grafo_explorador.py` (variante live).
+- **Verificado en vivo** contra Neo4j real vía `TestClient`: `/data` →
+  9.651 nodos / 3.947 tramos / 3.375 con líneas en 5,2 s (luego cache);
+  `/vecindario` de una estación de aire → 10 vecinos
+  (bicimad/emt/ruido/trafico).
+- El `grafo_explorador.html` autónomo (grafo embebido) se mantiene para uso
+  `file://` sin backend.

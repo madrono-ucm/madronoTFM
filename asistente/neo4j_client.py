@@ -310,6 +310,58 @@ def paradas_de_linea_query(linea: str, modo: str) -> "tuple[str, dict]":
     return query, {"linea": linea, "modo": modo}
 
 
+# ---------------------------------------------------------------------------
+# Explorador del grafo en vivo (FIL_67 Parte 3): tres consultas de solo
+# lectura que alimentan `viz/grafo_explorador.html` desde Neo4j en directo
+# en vez de un snapshot estático.
+# ---------------------------------------------------------------------------
+
+
+def grafo_explorador_nodos_query() -> "tuple[str, dict]":
+    """Todos los nodos geolocalizados (`:EstacionMedida` / `:ParadaTransporte`
+    / `:Lugar`) con sus atributos estáticos (FIL_66) y su barrio/distrito
+    reales (`UBICADO_EN`→`PERTENECE_A`)."""
+    query = (
+        "MATCH (n) "
+        "WHERE (n:EstacionMedida OR n:ParadaTransporte OR n:Lugar) AND n.ubicacion IS NOT NULL "
+        "OPTIONAL MATCH (n)-[:UBICADO_EN]->(b:Barrio)-[:PERTENECE_A]->(d:Distrito) "
+        "RETURN labels(n)[0] AS label, n.id AS id, n.tipo AS tipo, n.nombre AS nombre, "
+        "n.ubicacion.latitude AS lat, n.ubicacion.longitude AS lon, "
+        "b.nombre AS barrio, d.nombre AS distrito, "
+        "n.contaminantes AS contaminantes, n.magnitudes AS magnitudes, "
+        "n.altitud_m AS altitud_m, n.subarea AS subarea, "
+        "n.anclajes_totales AS anclajes_totales, n.plazas_totales AS plazas_totales"
+    )
+    return query, {}
+
+
+def grafo_explorador_conectado_con_query() -> "tuple[str, dict]":
+    """Aristas `CONECTADO_CON` (esqueleto de transporte) como pares de `id` +
+    `modo`/`linea`. Dirigidas; el consumidor las pliega a no dirigidas."""
+    query = (
+        "MATCH (a:ParadaTransporte)-[r:CONECTADO_CON]->(b:ParadaTransporte) "
+        "RETURN a.id AS a, b.id AS b, r.modo AS modo, r.linea AS linea"
+    )
+    return query, {}
+
+
+def vecindario_grafo_query(nodo_id: str, radio_m: float) -> "tuple[str, dict]":
+    """Vecinos `PROXIMO_A` de un nodo (por `id`) dentro de `radio_m`, con sus
+    atributos — lo que el explorador pide al hacer clic en un nodo."""
+    query = (
+        "MATCH (n {id: $nodo_id})-[r:PROXIMO_A]-(v) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN labels(v)[0] AS label, v.id AS id, v.tipo AS tipo, v.nombre AS nombre, "
+        "v.ubicacion.latitude AS lat, v.ubicacion.longitude AS lon, "
+        "v.contaminantes AS contaminantes, v.magnitudes AS magnitudes, "
+        "v.altitud_m AS altitud_m, v.subarea AS subarea, "
+        "v.anclajes_totales AS anclajes_totales, v.plazas_totales AS plazas_totales, "
+        "r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nodo_id": nodo_id, "radio_m": radio_m}
+
+
 @lru_cache
 def _driver_from_env():
     from neo4j import GraphDatabase  # import perezoso, ver docstring del módulo

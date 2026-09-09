@@ -77,18 +77,27 @@ class ConstruirArtefactoTests(unittest.TestCase):
     def test_html_valido_con_datos_embebidos(self):
         html = construir()
         self.assertTrue(html.startswith("<!doctype html>"))
-        self.assertNotIn("__DATA__", html)
-        self.assertNotIn("__COLORES__", html)
-        m = re.search(r"const G = (\{.*?\});\nconst COLORES", html, re.S)
+        for ph in ("__DATA__", "__COLORES__", "__LIVE__", "__ENDPOINT__"):
+            self.assertNotIn(ph, html)
+        self.assertIn("const LIVE = false;", html)
+        m = re.search(r"let G = (\{.*?\});\nlet N", html, re.S)
         self.assertIsNotNone(m)
         d = json.loads(m.group(1))
         self.assertGreater(len(d["nodos"]), 5000)
         self.assertIn("prox", d)
         self.assertIn("conn", d)
-        # al menos una estación meteo (FIL_65) y un recinto embebidos
         tipos = {n["tipo"] for n in d["nodos"].values()}
-        self.assertIn("meteo", tipos)
+        self.assertIn("meteo", tipos)  # FIL_65
         self.assertIn("recinto", tipos)
+
+    def test_variante_live_sin_datos_embebidos(self):  # FIL_67 Parte 3 (live)
+        html = construir(live=True, endpoint="/grafo/explorador")
+        self.assertIn("const LIVE = true;", html)
+        self.assertIn('const ENDPOINT = "/grafo/explorador";', html)
+        self.assertIn("let G = {};", html)  # nada embebido
+        self.assertIn('fetch(ENDPOINT + "/data")', html)
+        self.assertIn('fetch(ENDPOINT + "/vecindario?id="', html)
+        self.assertLess(len(html), 40_000, "la variante live no debe llevar el grafo embebido")
 
 
 if __name__ == "__main__":
