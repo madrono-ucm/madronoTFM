@@ -1,0 +1,169 @@
+---
+kind: fil
+title: "Plan maestro: explotar todos los datos vía el grafo, consultar Neo4j directamente y reforzar la capa de presentación"
+owner: Filippos (interactive)
+status: in_progress
+allow_infra_apply: false
+created_at: "2026-09-09"
+depends_on: [FIL_52, FIL_53, FIL_54, FIL_64, FIL_65, FIL_66]
+milestone: "M7"
+target: "2026-09-16"
+---
+
+## Punto de partida (2026-09-09)
+
+| Activo | Estado |
+|---|---|
+| **Grafo Neo4j** (AuraDB `5c111cec`) | 9.806 nodos / 5 labels / 4 relaciones. Ya incluye meteo (25), recintos de eventos (145) y atributos estáticos de Gold (`contaminantes`, `magnitudes`, `altitud_m`, `subarea`, `modos`, `anclajes_totales`, `plazas_totales`). **APOC 2026.08 completo in-DBMS** (`apoc.algo.dijkstra` verificado en vivo) + **Aura Graph Analytics** (GDS por sesión). |
+| **15 tablas Gold** | tráfico, aire (11 contaminantes), ruido, meteo, bicimad, aparcamiento, eventos, cines, social, afluencia derivada + 3 de previsión (CAMS ciudad, AEMET municipio, avisos AEMET). Pipeline congelado desde ~2026-08-30. |
+| **ML** | 4 forecasters LightGBM ONNX + 2 STGNN (tráfico, aire) con importancia de aristas. |
+| **Asistente** | 14 herramientas MCP; **solo 6 constructores Cypher fijos** en `asistente/neo4j_client.py` (matching `toLower CONTAINS`). |
+| **Mapa** (`viz/mapa`) | se construye desde **JSON estático**, de **otro grafo** — el `coords-knn8` del STGNN, no Neo4j. Hay dos grafos en el proyecto. |
+| **Web** | `web/index.html` landing + chat → `/chat` del asistente (Groq) → herramientas MCP. |
+
+**Hueco principal:** el grafo real apenas se expone. El mapa lo ignora; el
+asistente lo toca con 6 consultas预escritas.
+
+**Modelo mental (para la memoria):** el grafo responde *"dónde y qué hay
+cerca"*; Gold/Athena responde *"qué valor, en el tiempo"*; el ML responde
+*"qué valor tendrá"*. Toda pregunta se descompone: resolver lugar →
+traversal del grafo para hallar entidades/sensores relevantes → Athena para
+valores recientes → ML para la previsión → componer respuesta.
+
+---
+
+## Parte 1 — Explotar todos los puntos de datos
+
+| # | Acción | Usa | Esfuerzo | Ticket |
+|---|---|---|---|---|
+| 1 | **Consultas de aire por contaminante** — "la estación más cercana que mide de hecho O₃/PM2.5". Cablear `contaminantes` (FIL_66) en `neo4j_client.py` + herramienta `calidad_aire`. | aire Gold + grafo | S | FIL_67a |
+| 2 | **Movilidad con capacidad** — `anclajes_totales` (bicimad), `plazas_totales` (aparcamiento) en `opciones_movilidad` / `disponibilidad_aparcamiento` (la ocupación % necesita la capacidad). | bicimad/aparc. Gold + grafo | S | FIL_67b |
+| 3 | **Meteo como vecino de primera clase** — meteo ya está en el grafo; alimentar `meteo_*` en `contexto_urbano` y que el join exógeno del STGNN sea graph-native. | meteo Gold + grafo | S | FIL_67c |
+| 4 | **Herramienta `prevision_ciudad`** — previsión CAMS de aire de ciudad + previsión AEMET por municipio no tienen sitio hoy. Una herramienta, sin grafo, cierra las tablas de previsión. | CAMS + AEMET Gold | S | FIL_67d |
+| 5 | **Nodos `:Linea` + `PARA_EN`** — "líneas entre A y B", "qué líneas paran en X", "menos transbordos". El dato ya está en `CONECTADO_CON.linea`. | grafo | M | FIL_67e |
+| 6 | **Eventos graph-native** — `eventos_cercanos` atraviesa `PROXIMO_A` hasta `:Lugar{recinto}` en vez de haversine Python sobre Silver. | eventos + grafo | S | FIL_67f |
+| 7 | **Agregados por `subarea`** — "tráfico en mi zona" sin geo-math; también la unidad de cluster natural del STGNN. | tráfico Gold + grafo | M | FIL_67g |
+| 8 | **`:ZonaAviso` (3) → Distrito** — avisos meteo atravesables. Valor bajo, barato; solo si el demo quiere alertas. | aemet_avisos | S | FIL_67h |
+
+**No merece la pena:** `bluesky` (sin geo); reingesta de `aforos` (fuente
+muerta 2024-06-30); `transporte_publico_emt` multi-parada (eso es FIL_07,
+funcionalidad de asistente, no dato de grafo).
+
+---
+
+## Parte 2 — Consultar Neo4j directamente
+
+### A. Para dev (hoy, ~1 h) — FIL_67i
+
+- **Arreglar el `NEO4J_DATABASE` por defecto**: `"neo4j"` → `None` (usa la
+  home database del DBMS, que en Aura ES la real) en
+  `asistente/neo4j_client.py`, `grafo/cargar_grafo.py`,
+  `grafo/cypher.py::Neo4jLoader`. Hoy falla con `DatabaseNotFound` si no se
+  pasa el nombre explícito.
+- **`grafo/consulta.py`** — CLI de solo lectura (~40 líneas): lee creds de
+  SSM, `session(default_access_mode=READ)`, imprime filas.
+  `python -m grafo.consulta "MATCH (e:EstacionMedida) RETURN e.tipo, count(*)"`.
+- Alternativa interactiva: consola de Aura / Neo4j Browser / Bloom con las
+  creds de SSM.
+
+### B. Para el asistente — FIL_67j (elegir una vía)
+
+1. **Librería de consultas parametrizadas (recomendada, bajo riesgo).**
+   `neo4j_client.py` pasa de 6 a ~20 plantillas nombradas, cada una
+   `def …_query(**params) -> (cypher, params)`: "sensores de tipo T cerca
+   del lugar P", "ruta A→B perfil P" (vía `apoc.algo.dijkstra`), "líneas que
+   paran en S", "distritos ordenados por <señal> la última semana",
+   "vecindario del grafo de P a profundidad D". El LLM elige plantilla +
+   rellena params — mismo perfil de riesgo que el tool-calling actual.
+2. **NL→Cypher con esquema.** Dar a Groq el contrato de `schema.cypher` +
+   `CALL db.schema.visualization` + 8-10 ejemplos few-shot; escribe Cypher;
+   ejecutar en solo lectura con `access_mode=READ`, timeout de sentencia y
+   un guard que rechace `CREATE|MERGE|DELETE|SET|REMOVE|CALL .*\.(create|
+   write|delete)`. Herramienta MCP `consulta_grafo`. Techo más alto, el
+   guard tiene que ser estricto.
+3. **Herramientas analíticas APOC/GDS.** `ruta_grafo` llamando
+   `apoc.algo.dijkstra` server-side (retira las 2 reimplementaciones Python
+   de Dijkstra — esto es FIL_54, ya desbloqueado). Un `analisis_grafo` sobre
+   `gds.session` para centralidad/comunidad bajo demanda (ojo: provisionar
+   sesión tiene suelo de coste).
+
+Además: endpoint de solo lectura `GET /grafo/consulta` en la API del
+asistente para que la web y el mapa toquen el grafo directamente.
+
+### C. Endurecimiento (antes de nada de cara al usuario) — FIL_67k
+
+- Credenciales **rol lector** de Aura para la vía de consulta (separadas de
+  las del loader).
+- Timeout de sentencia + `access_mode=READ` + conciencia del límite de
+  conexiones (Aura Free).
+- Solo parámetros, nunca Cypher interpolado con strings.
+
+---
+
+## Parte 3 — Capa de presentación
+
+El cambio de más impacto: **que el mapa muestre el grafo real.**
+
+| # | Mejora | Notas | Ticket |
+|---|---|---|---|
+| 1 | **Alimentar `viz/mapa` desde `grafo_urbano.json.gz`** (o lectura Neo4j en tiempo de build) en vez del `coords-knn8` del STGNN. Habilita capas nuevas: estaciones meteo, recintos, capacidad bicimad, cobertura de contaminantes, coropleta por `subarea`. Unifica los "dos grafos". | M | FIL_67l |
+| 2 | **Panel "Explorar" en la web** — clic en un lugar → renderiza su vecindario de grafo: todos los sensores cercanos por tipo, su barrio/distrito, recintos/parques cerca, líneas en las paradas próximas. Es `contexto_urbano` hecho visual. | necesita `GET /grafo/consulta` | FIL_67m |
+| 3 | **Capa de ruta en vivo** — ruta saludable dibujada desde una llamada `apoc.algo.dijkstra` server-side, no un JSON precalculado. | depende de FIL_54 | FIL_67n |
+| 4 | **Overlay de resiliencia** (FIL_64) — puntos de articulación / puentes de la red de transporte como capa conmutable del mapa. Visual fuerte para la defensa. | dato ya calculado (`grafo_resiliencia.json`) | FIL_67o |
+| 5 | **Procedencia en el chat** — cuando el asistente responde "aire cerca de Retiro", mostrar qué estación usó y el camino `PROXIMO_A`, como mini-grafo bajo la burbuja. | ata el grafo a cada respuesta | FIL_67p |
+| 6 | **Pestaña "grafo en crudo"** — embeber Neo4j Bloom / Browser (Aura), creds de rol lector. | mínimo esfuerzo, enseña la cosa real | FIL_67q |
+
+---
+
+## Secuenciación sugerida (deadline 2026-09-17)
+
+1. **Ahora:** Parte 2A (acceso dev) + Parte 1 #1, #4, #6 (cableado pequeño y
+   de alto valor con dato ya cargado).
+2. **Siguiente:** Parte 2B opción 1 (librería parametrizada) + Parte 3 #1
+   (mapa desde el grafo real) + #4 (overlay de resiliencia).
+3. **Si hay tiempo:** FIL_54 (`apoc.algo.dijkstra` como herramienta) → Parte
+   3 #3; Parte 1 #5 (`:Linea`); Parte 3 #2/#5 (panel explorar + procedencia).
+4. **Pulido de defensa:** Parte 3 #6 (pestaña Bloom); capítulo de grafo de
+   la memoria con los hallazgos de FIL_52/64.
+
+## Restricciones
+
+- Python puro en `grafo/`. `allow_infra_apply: false`. La única escritura a
+  Neo4j es la (re)carga; todo lo demás es solo lectura.
+- Las creds de la instancia siguen en SSM (`/madrono-tfm/dev/secrets/
+  neo4j-*`); el nombre real de la base es `5c111cec`, no `neo4j`.
+
+---
+
+## Progreso — Paso 1 (2026-09-09)
+
+**Parte 2A (acceso dev) — hecho:**
+- `NEO4J_DATABASE` por defecto `"neo4j"` → `None` (home DB) en
+  `asistente/neo4j_client.py`, `grafo/cargar_grafo.py`,
+  `grafo/cypher.py::Neo4jLoader`. Ya no hace falta pasar el nombre real.
+- **`grafo/consulta.py`** — CLI de solo lectura (creds de env o SSM,
+  `session(default_access_mode='READ')`, guard anti-escritura). Probado en
+  vivo: `python -m grafo.consulta "MATCH (e:EstacionMedida) RETURN e.tipo,
+  count(*)"` sin `NEO4J_DATABASE` funciona.
+- Tests: `grafo/tests/test_consulta.py` (guard + parseo SSM).
+
+**Parte 1 #1 (aire por contaminante) — constructor listo:**
+- `asistente/neo4j_client.py::estaciones_calidad_aire_que_miden_query(lugar,
+  contaminante, radio_m)` — filtra `PROXIMO_A` a estaciones con
+  `toUpper($contaminante) IN e.contaminantes`. Test en
+  `asistente/tests/test_neo4j_client.py`. **Pendiente:** cablearlo en la
+  herramienta `calidad_aire` (`asistente/mcp_agent/tools.py`) cuando se pida
+  un contaminante concreto.
+
+**Extra (utilizar todo): `nombre` de estación ahora se persiste.**
+`estacion_medida_query` / `parada_transporte_query` guardaban
+`tipo`/`fuente`/`ubicacion` pero **no** `nombre`, así que `e.nombre` era
+siempre `null` para calidad_aire/ruido/meteo pese a que `grafo.nodos` lo
+construye. Corregido (`SET n.nombre = $nombre`); la próxima recarga lo
+rellena. `schema.cypher` actualizado.
+
+Suite `grafo/` + `asistente/` verde (298).
+
+**Siguiente en el Paso 1:** recargar el grafo (para `nombre` + los ~292
+puntos de tráfico sin `subarea`), luego Parte 1 #4 (`prevision_ciudad`) y #6
+(eventos graph-native).

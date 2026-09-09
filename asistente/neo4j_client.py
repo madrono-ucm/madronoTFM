@@ -16,7 +16,8 @@ mismo patrón que `grafo/tests/test_cypher.py`); solo `run_neo4j_query` (con
 `driver=None`, el caso real) necesita `neo4j` instalado.
 
 Credenciales leídas de `NEO4J_URI`/`NEO4J_USERNAME`/`NEO4J_PASSWORD`
-(`NEO4J_DATABASE`, opcional, por defecto `"neo4j"`) -- este módulo no las
+(`NEO4J_DATABASE`, opcional; sin definir usa la home database del DBMS --
+en AuraDB la base real no se llama `"neo4j"`, FIL_67) -- este módulo no las
 obtiene de SSM directamente, eso es responsabilidad de quien arranca el
 proceso (mismo patrón que `grafo/cargar_grafo.py::main()`).
 """
@@ -94,6 +95,32 @@ def lugares_proximos_a_estaciones_calidad_aire_query(nombre_lugar: str, radio_m:
         "ORDER BY distancia_m"
     )
     return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def estaciones_calidad_aire_que_miden_query(
+    nombre_lugar: str, contaminante: str, radio_m: float
+) -> "tuple[str, dict]":
+    """Como `lugares_proximos_a_estaciones_calidad_aire_query` pero filtra a
+    las estaciones que **de hecho miden** `contaminante` (FIL_66 cargó la
+    lista `e.contaminantes` en cada nodo; cada estación mide un subconjunto
+    distinto -- p. ej. muchas no tienen O₃). Sin este filtro, la estación
+    más cercana puede no servir para el contaminante pedido.
+
+    `contaminante` se compara en mayúsculas contra los códigos de Gold
+    (`"NO2"`, `"O3"`, `"PM10"`, `"PM2.5"`, ...). Si `e.contaminantes` no
+    existe en el nodo (grafo cargado antes de FIL_66), la condición
+    `contaminante IN e.contaminantes` es falsa y la estación se descarta --
+    recargar el grafo para que vuelva a estar disponible."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(e:EstacionMedida {tipo: 'calidad_aire'}) "
+        "WHERE r.distancia_m <= $radio_m AND toUpper($contaminante) IN e.contaminantes "
+        "RETURN l.id AS lugar_id, l.nombre AS lugar_nombre, "
+        "e.id AS estacion_id, e.contaminantes AS contaminantes, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "contaminante": contaminante, "radio_m": radio_m}
 
 
 def lugares_proximos_a_paradas_bicimad_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
@@ -187,7 +214,12 @@ def run_neo4j_query(query: str, params: dict, *, driver=None, database: Optional
     `asistente/athena.py::run_athena_query`.
     """
     driver = driver or _driver_from_env()
-    database = database or os.environ.get("NEO4J_DATABASE", "neo4j")
+    # `NEO4J_DATABASE` sin definir -> `None`, no el literal "neo4j": en AuraDB
+    # la base real NO se llama "neo4j" (es el subdominio de la instancia, p. ej.
+    # "5c111cec"), y `session(database="neo4j")` falla con `DatabaseNotFound`.
+    # Con `database=None` el driver usa la *home database* del DBMS, que en
+    # Aura es siempre la correcta (FIL_67).
+    database = database or os.environ.get("NEO4J_DATABASE") or None
 
     with driver.session(database=database) as session:
         result = session.run(query, params)

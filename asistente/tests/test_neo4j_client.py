@@ -7,7 +7,11 @@ from __future__ import annotations
 
 import unittest
 
-from asistente.neo4j_client import lugares_proximos_a_estaciones_trafico_query, run_neo4j_query
+from asistente.neo4j_client import (
+    estaciones_calidad_aire_que_miden_query,
+    lugares_proximos_a_estaciones_trafico_query,
+    run_neo4j_query,
+)
 
 
 class LugaresProximosQueryTests(unittest.TestCase):
@@ -27,6 +31,14 @@ class LugaresProximosQueryTests(unittest.TestCase):
         query, _ = lugares_proximos_a_estaciones_trafico_query("Sol", 500.0)
         self.assertNotIn("-[r:PROXIMO_A]->", query)
         self.assertNotIn("<-[r:PROXIMO_A]-", query)
+
+    def test_calidad_aire_que_miden_filtra_por_contaminante(self):  # FIL_67 / FIL_66
+        query, params = estaciones_calidad_aire_que_miden_query("Retiro", "o3", 400.0)
+        self.assertIn("(e:EstacionMedida {tipo: 'calidad_aire'})", query)
+        self.assertIn("toUpper($contaminante) IN e.contaminantes", query)
+        self.assertIn("e.contaminantes AS contaminantes", query)
+        self.assertEqual(params, {"nombre_lugar": "Retiro", "contaminante": "o3", "radio_m": 400.0})
+        self.assertNotIn("-[r:PROXIMO_A]->", query)
 
 
 class _FakeResult:

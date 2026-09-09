@@ -50,11 +50,19 @@ class UbicacionQueryTests(unittest.TestCase):
         self.assertIn("MERGE (n:EstacionMedida {id: $id})", query)
         self.assertIn("point({latitude: $lat, longitude: $lon", query)
         self.assertIn("n += $extra", query)
+        self.assertIn("n.nombre = $nombre", query)  # FIL_67: el nombre sí se persiste
         self.assertEqual(
             params,
-            {"id": "trafico:1009", "tipo": "trafico", "fuente": "trafico",
+            {"id": "trafico:1009", "tipo": "trafico", "fuente": "trafico", "nombre": None,
              "extra": {}, "lat": 40.4, "lon": -3.7},
         )
+
+    def test_estacion_medida_query_persiste_nombre(self):  # FIL_67
+        _, params = estacion_medida_query(
+            {"id": "calidad_aire:28079008", "tipo": "calidad_aire", "fuente": "calidad_aire",
+             "nombre": "Escuelas Aguirre", "ubicacion": {"lat": 40.42, "lon": -3.68}}
+        )
+        self.assertEqual(params["nombre"], "Escuelas Aguirre")
 
     def test_estacion_medida_query_sin_ubicacion_manda_lat_lon_none(self):
         # Sin ubicacion, el CASE de la query conserva el valor existente en
