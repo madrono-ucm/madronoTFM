@@ -49,9 +49,11 @@ class UbicacionQueryTests(unittest.TestCase):
         )
         self.assertIn("MERGE (n:EstacionMedida {id: $id})", query)
         self.assertIn("point({latitude: $lat, longitude: $lon", query)
+        self.assertIn("n += $extra", query)
         self.assertEqual(
             params,
-            {"id": "trafico:1009", "tipo": "trafico", "fuente": "trafico", "lat": 40.4, "lon": -3.7},
+            {"id": "trafico:1009", "tipo": "trafico", "fuente": "trafico",
+             "extra": {}, "lat": 40.4, "lon": -3.7},
         )
 
     def test_estacion_medida_query_sin_ubicacion_manda_lat_lon_none(self):
@@ -90,6 +92,33 @@ class UbicacionQueryTests(unittest.TestCase):
         self.assertIn("MERGE (n:Lugar {id: $id})", query)
         self.assertIn("n.nombre = $nombre", query)
         self.assertEqual(params["nombre"], "Friedenskirche")
+
+    def test_extra_props_reenvia_atributos_estaticos(self):  # FIL_66
+        query, params = estacion_medida_query(
+            {"id": "calidad_aire:28079008", "tipo": "calidad_aire", "fuente": "calidad_aire",
+             "nombre": "Escuelas Aguirre", "ubicacion": {"lat": 40.42, "lon": -3.68},
+             "contaminantes": ["NO2", "O3"], "altitud_m": 667}
+        )
+        self.assertIn("n += $extra", query)
+        # `nombre` es clave núcleo (no viaja en `extra`); los estáticos sí
+        self.assertEqual(params["extra"], {"contaminantes": ["NO2", "O3"], "altitud_m": 667})
+
+    def test_extra_props_omite_none_y_claves_nucleo(self):  # FIL_66
+        self.assertEqual(
+            cypher._extra_props(
+                {"id": "x", "tipo": "t", "fuente": "f", "nombre": "n", "ubicacion": {},
+                 "osm_id": "abc", "subarea": "M30", "altitud_m": None}
+            ),
+            {"subarea": "M30"},
+        )
+
+    def test_lugar_query_extra_props(self):  # FIL_66
+        _, params = lugar_query(
+            {"id": "aparcamientos:APK1", "nombre": "X", "tipo": "aparcamiento",
+             "fuente": "aparcamientos", "ubicacion": {"lat": 40.4, "lon": -3.7},
+             "plazas_totales": 300}
+        )
+        self.assertEqual(params["extra"], {"plazas_totales": 300})
 
 
 class PerteneceAQueryTests(unittest.TestCase):

@@ -47,6 +47,17 @@ def _location(record: dict) -> Optional[dict]:
     return {"lat": lat, "lon": lon}
 
 
+def _with_optional(base: dict, **extras) -> dict:
+    """Añade a `base` solo los `extras` con valor informativo (no `None`, no
+    lista vacía) -- FIL_66. Un `:EstacionMedida`/`:Lugar` sin el atributo en
+    Gold no lleva la clave (mismo criterio que `osm_*` en
+    `enrich_lugar_con_osm`), en vez de una propiedad `null` de más."""
+    for key, value in extras.items():
+        if value is not None and value != []:
+            base[key] = value
+    return base
+
+
 def dedupe_nodes(nodes: "Iterable[Optional[dict]]") -> "list[dict]":
     """Deduplica una secuencia de nodos (algunos posiblemente `None`) por
     `id`/`codigo` (la que esté presente), conservando el primero visto.
@@ -124,39 +135,48 @@ def estacion_medida_from_trafico_gold(record: dict) -> Optional[dict]:
     point_id = record.get("point_id")
     if not point_id:
         return None
-    return {
-        "id": f"trafico:{point_id}",
-        "tipo": "trafico",
-        "fuente": "trafico",
-        "nombre": None,  # Gold de trafico no trae un nombre legible del punto.
-        "ubicacion": _location(record),
-    }
+    return _with_optional(
+        {
+            "id": f"trafico:{point_id}",
+            "tipo": "trafico",
+            "fuente": "trafico",
+            "nombre": None,  # Gold de trafico no trae un nombre legible del punto.
+            "ubicacion": _location(record),
+        },
+        subarea=record.get("subarea"),  # FIL_66: zona de gestión de tráfico (~315)
+    )
 
 
 def estacion_medida_from_calidad_aire_gold(record: dict) -> Optional[dict]:
     station_id = record.get("station_id")
     if not station_id:
         return None
-    return {
-        "id": f"calidad_aire:{station_id}",
-        "tipo": "calidad_aire",
-        "fuente": "calidad_aire",
-        "nombre": record.get("station_name"),
-        "ubicacion": _location(record),
-    }
+    return _with_optional(
+        {
+            "id": f"calidad_aire:{station_id}",
+            "tipo": "calidad_aire",
+            "fuente": "calidad_aire",
+            "nombre": record.get("station_name"),
+            "ubicacion": _location(record),
+        },
+        contaminantes=record.get("contaminantes"),  # FIL_66: qué mide de hecho
+    )
 
 
 def estacion_medida_from_ruido_gold(record: dict) -> Optional[dict]:
     station_id = record.get("station_id")
     if not station_id:
         return None
-    return {
-        "id": f"ruido:{station_id}",
-        "tipo": "ruido",
-        "fuente": "ruido",
-        "nombre": record.get("station_name"),
-        "ubicacion": _location(record),
-    }
+    return _with_optional(
+        {
+            "id": f"ruido:{station_id}",
+            "tipo": "ruido",
+            "fuente": "ruido",
+            "nombre": record.get("station_name"),
+            "ubicacion": _location(record),
+        },
+        altitud_m=record.get("altitude_m"),  # FIL_66
+    )
 
 
 def estaciones_medida_from_trafico_gold(records: "Iterable[dict]") -> "list[dict]":
@@ -182,13 +202,16 @@ def estacion_medida_from_aforos_peatones_bicicletas_gold(record: dict) -> Option
     station_id = record.get("station_id")
     if not station_id:
         return None
-    return {
-        "id": f"aforos_peatones_bicicletas:{station_id}",
-        "tipo": "aforos_peatones_bicicletas",
-        "fuente": "aforos_peatones_bicicletas",
-        "nombre": record.get("address") or record.get("district"),
-        "ubicacion": _location(record),
-    }
+    return _with_optional(
+        {
+            "id": f"aforos_peatones_bicicletas:{station_id}",
+            "tipo": "aforos_peatones_bicicletas",
+            "fuente": "aforos_peatones_bicicletas",
+            "nombre": record.get("address") or record.get("district"),
+            "ubicacion": _location(record),
+        },
+        modos=record.get("modos"),  # FIL_66: peatones / bicicletas
+    )
 
 
 def estaciones_medida_from_aforos_peatones_bicicletas_gold(records: "Iterable[dict]") -> "list[dict]":
@@ -210,13 +233,17 @@ def estacion_medida_from_meteo_gold(record: dict) -> Optional[dict]:
     station_id = record.get("station_id")
     if not station_id:
         return None
-    return {
-        "id": f"meteorologia:{station_id}",
-        "tipo": "meteo",
-        "fuente": "meteorologia",
-        "nombre": record.get("station_name"),
-        "ubicacion": _location(record),
-    }
+    return _with_optional(
+        {
+            "id": f"meteorologia:{station_id}",
+            "tipo": "meteo",
+            "fuente": "meteorologia",
+            "nombre": record.get("station_name"),
+            "ubicacion": _location(record),
+        },
+        magnitudes=record.get("magnitudes"),  # FIL_66: qué magnitudes mide
+        altitud_m=record.get("altitude_m"),
+    )
 
 
 def estaciones_medida_from_meteo_gold(records: "Iterable[dict]") -> "list[dict]":
@@ -253,13 +280,16 @@ def parada_transporte_from_bicimad_gold(record: dict) -> Optional[dict]:
     station_id = record.get("station_id")
     if not station_id:
         return None
-    return {
-        "id": f"bicimad:{station_id}",
-        "tipo": "bicimad",
-        "fuente": "bicimad",
-        "nombre": record.get("name"),
-        "ubicacion": _location(record),
-    }
+    return _with_optional(
+        {
+            "id": f"bicimad:{station_id}",
+            "tipo": "bicimad",
+            "fuente": "bicimad",
+            "nombre": record.get("name"),
+            "ubicacion": _location(record),
+        },
+        anclajes_totales=record.get("docks_total"),  # FIL_66: capacidad de la estación
+    )
 
 
 def paradas_transporte_from_crtm_route_bronze(record: dict) -> "list[dict]":
@@ -356,13 +386,16 @@ def lugar_from_aparcamientos_gold(record: dict) -> Optional[dict]:
     parking_id = record.get("parking_id")
     if not parking_id:
         return None
-    return {
-        "id": f"aparcamientos:{parking_id}",
-        "nombre": record.get("name"),
-        "tipo": "aparcamiento",
-        "fuente": "aparcamientos",
-        "ubicacion": _location(record),
-    }
+    return _with_optional(
+        {
+            "id": f"aparcamientos:{parking_id}",
+            "nombre": record.get("name"),
+            "tipo": "aparcamiento",
+            "fuente": "aparcamientos",
+            "ubicacion": _location(record),
+        },
+        plazas_totales=record.get("total_spaces"),  # FIL_66: capacidad
+    )
 
 
 def lugar_from_cartelera_cines_gold(record: dict) -> Optional[dict]:
