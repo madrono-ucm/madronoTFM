@@ -117,11 +117,22 @@ _TEMPLATE = """<!doctype html>
   @media (prefers-color-scheme:dark){#panel{background:#1b1b1beedd;color:#eee}}
   #panel h1{font-size:15px;margin:0 0 4px}
   #panel .sub{color:#888;font-size:12px;margin-bottom:10px}
-  #capas{position:absolute;top:12px;left:12px;background:#fffe;border-radius:10px;
-    box-shadow:0 2px 16px #0003;padding:10px 12px;font-size:12px;max-width:200px}
-  @media (prefers-color-scheme:dark){#capas{background:#1b1b1beedd;color:#eee}}
+  .box{position:absolute;left:12px;background:#fffe;border-radius:10px;
+    box-shadow:0 2px 16px #0003;padding:10px 12px;font-size:12px;max-width:250px}
+  @media (prefers-color-scheme:dark){.box{background:#1b1b1beedd;color:#eee}}
+  #menu{top:12px}
+  #capas{top:150px;max-width:200px}
+  #analisis{bottom:12px;max-width:320px;max-height:46%;overflow:auto}
+  #menu select{width:100%;margin:6px 0 4px;padding:4px;border-radius:6px}
+  #menu .desc{color:#888;font-size:11px}
   #capas label{display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer}
   #capas .sw{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
+  #analisis h2{font-size:13px;margin:0 0 4px}
+  #analisis .big{font-size:22px;font-weight:600;line-height:1.1}
+  #analisis table{border-collapse:collapse;width:100%;font-size:11px;margin-top:4px}
+  #analisis td{padding:1px 5px 1px 0;border-bottom:1px solid #8882}
+  #analisis td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+  #analisis .nota{color:#999;font-size:10.5px;margin-top:6px;font-style:italic}
   .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:6px 0}
   .kv b{color:#888;font-weight:500}
   .tag{display:inline-block;background:#8883;border-radius:6px;padding:1px 6px;margin:1px 2px 1px 0;font-size:12px}
@@ -130,7 +141,20 @@ _TEMPLATE = """<!doctype html>
   .neigh b{color:#888}
 </style></head><body>
 <div id="map"></div>
-<div id="capas"></div>
+<div id="menu" class="box">
+  <b>Vista / análisis</b>
+  <select id="vista">
+    <option value="explorar">Explorar (color por tipo)</option>
+    <option value="aire_cobertura">Aire · cobertura de las estaciones de tráfico</option>
+    <option value="aire_o3">Aire · qué estaciones miden O₃ (FIL_66)</option>
+    <option value="sensores_distrito">Sensores por distrito (sesgo §7)</option>
+    <option value="resiliencia">Transporte · resiliencia (FIL_64)</option>
+    <option value="stgnn">Modelo STGNN · aristas influyentes (ML_05)</option>
+  </select>
+  <div class="desc" id="vista-desc"></div>
+</div>
+<div id="capas" class="box"></div>
+<div id="analisis" class="box" hidden></div>
 <div id="panel">
   <h1>Grafo urbano de Madrid</h1>
   <div class="sub" id="meta">cargando…</div>
@@ -145,6 +169,8 @@ const COLORES = __COLORES__, DEFECTO = "__DEFECTO__";
 let G = __DATA__;
 let N = G.nodos || {}, PROX = G.prox || {}, CONN = G.conn || [], LINEAS = G.lineas_de || {};
 let tipos = [], activos = new Set();
+let ANALISIS = null, vista = "explorar";
+const DIM = "#c9c9c9";
 
 const map = new maplibregl.Map({
   container:"map", style:"https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
@@ -152,11 +178,32 @@ const map = new maplibregl.Map({
 });
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
+function colorNodo(n){
+  if(vista==="aire_cobertura"){
+    if(n.tipo==="trafico") return (ANALISIS&&ANALISIS._conAire&&ANALISIS._conAire.has(n.id)) ? "#4bbf73" : "#d1495b";
+    if(n.tipo==="calidad_aire") return "#1b4965";
+    return DIM;
+  }
+  if(vista==="aire_o3"){
+    if(n.tipo!=="calidad_aire") return DIM;
+    return (n.attrs&&n.attrs.contaminantes&&n.attrs.contaminantes.includes("O3")) ? "#4e79a7" : "#d1495b";
+  }
+  if(vista==="sensores_distrito")
+    return (n.label==="EstacionMedida") ? (COLORES[n.tipo]||DEFECTO) : DIM;
+  if(vista==="resiliencia")
+    return (ANALISIS&&ANALISIS._artIds&&ANALISIS._artIds.has(n.id)) ? "#edae49" : DIM;
+  if(vista==="stgnn")
+    return (ANALISIS&&ANALISIS._stgnnIds&&ANALISIS._stgnnIds.has(n.id)) ? "#e15759" : DIM;
+  return COLORES[n.tipo]||DEFECTO;
+}
 function nodosFC(){
+  const soloAnalisis = vista!=="explorar";
+  const destacado = n=> (vista==="resiliencia" && ANALISIS && ANALISIS._artIds && ANALISIS._artIds.has(n.id))
+    || (vista==="stgnn" && ANALISIS && ANALISIS._stgnnIds && ANALISIS._stgnnIds.has(n.id));
   return {type:"FeatureCollection", features:Object.values(N)
-    .filter(n=>activos.has(n.tipo) && n.lat!=null)
+    .filter(n=>n.lat!=null && (soloAnalisis || activos.has(n.tipo)))
     .map(n=>({type:"Feature", geometry:{type:"Point", coordinates:[n.lon,n.lat]},
-      properties:{id:n.id, tipo:n.tipo, color:COLORES[n.tipo]||DEFECTO}}))};
+      properties:{id:n.id, tipo:n.tipo, color:colorNodo(n), r:destacado(n)?2.2:1}}))};
 }
 function connFC(){
   return {type:"FeatureCollection", features:CONN.map(e=>{
@@ -186,9 +233,12 @@ map.on("load", async ()=>{
   map.addSource("prox-sel", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
   map.addLayer({id:"prox-sel", type:"line", source:"prox-sel",
     paint:{"line-color":"#d1495b","line-width":1.6,"line-opacity":0.8}});
+  map.addSource("stgnn", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
+  map.addLayer({id:"stgnn", type:"line", source:"stgnn",
+    paint:{"line-color":"#e15759","line-width":["+",1,["*",6,["get","w"]]],"line-opacity":0.85}});
   map.addSource("nodos", {type:"geojson", data:nodosFC()});
   map.addLayer({id:"nodos", type:"circle", source:"nodos",
-    paint:{"circle-radius":["interpolate",["linear"],["zoom"],10,2.2,15,5.5],
+    paint:{"circle-radius":["*",["get","r"],["interpolate",["linear"],["zoom"],10,2.2,15,5.5]],
       "circle-color":["get","color"],"circle-stroke-width":0.6,"circle-stroke-color":"#fff8"}});
   map.addLayer({id:"nodo-sel", type:"circle", source:"nodos",
     filter:["==","id",""], paint:{"circle-radius":9,"circle-color":"#0000","circle-stroke-width":2.5,"circle-stroke-color":"#d1495b"}});
@@ -196,6 +246,9 @@ map.on("load", async ()=>{
   map.on("click","nodos", e=>seleccionar(e.features[0].properties.id));
   map.on("mouseenter","nodos", ()=>map.getCanvas().style.cursor="pointer");
   map.on("mouseleave","nodos", ()=>map.getCanvas().style.cursor="");
+
+  cargarAnalisis();  // en paralelo; no bloquea el render
+  document.getElementById("vista").addEventListener("change", e=>aplicarVista(e.target.value));
 
   const src = LIVE ? "Neo4j en vivo" : "snapshot grafo_urbano.json.gz";
   document.getElementById("meta").textContent =
@@ -219,6 +272,134 @@ function construirCapas(){
 }
 
 function esc(s){return (s==null?"":String(s)).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function fmt(n){return (n==null)?"—":Number(n).toLocaleString("es");}
+
+// ---- Análisis del TFM proyectados sobre el grafo -----------------------------
+
+async function cargarAnalisis(){
+  if(LIVE){
+    try{
+      const r = await fetch(ENDPOINT + "/analisis");
+      if(r.ok) ANALISIS = await r.json();
+    }catch(e){ ANALISIS = null; }
+  }
+  if(!ANALISIS){  // modo embebido / sin backend: lo que se puede derivar aquí
+    ANALISIS = derivarAnalisisLocal();
+  }
+  prepararAnalisis();
+}
+
+function derivarAnalisisLocal(){
+  // cobertura de aire y sensores por distrito se pueden calcular con PROX + N
+  const aire = new Set(Object.values(N).filter(n=>n.tipo==="calidad_aire").map(n=>n.id));
+  const traf = Object.values(N).filter(n=>n.tipo==="trafico");
+  const conAire = traf.filter(t=>(PROX[t.id]||[]).some(([vid])=>aire.has(vid))).map(t=>t.id);
+  const porDist = {};
+  for(const n of Object.values(N)) if(n.label==="EstacionMedida" && n.distrito){
+    (porDist[n.distrito] ||= {distrito:n.distrito,n:0,trafico:0,aire:0});
+    porDist[n.distrito].n++; if(n.tipo==="trafico") porDist[n.distrito].trafico++;
+    if(n.tipo==="calidad_aire") porDist[n.distrito].aire++;
+  }
+  return {
+    cobertura_aire:{trafico_total:traf.length, con_aire_cerca:conAire.length,
+      sin_aire_cerca:traf.length-conAire.length, ids_con_aire:conAire},
+    sensores_por_distrito:Object.values(porDist).sort((a,b)=>b.n-a.n),
+    stgnn_aristas_influyentes:[], resiliencia:{}, _local:true,
+  };
+}
+
+function prepararAnalisis(){
+  const A = ANALISIS;
+  A._conAire = new Set((A.cobertura_aire&&A.cobertura_aire.ids_con_aire)||[]);
+  A._stgnnIds = new Set();
+  for(const e of A.stgnn_aristas_influyentes||[]) (e.ids||[]).forEach(id=>A._stgnnIds.add(id));
+  // resiliencia: casar el nombre de parada -> id de :ParadaTransporte
+  const porNombre = {};
+  for(const n of Object.values(N)) if(n.label==="ParadaTransporte" && n.nombre)
+    porNombre[n.nombre.toLowerCase()] = n.id;
+  A._artIds = new Set();
+  for(const p of (A.resiliencia&&A.resiliencia.puntos_articulacion)||[]){
+    const id = porNombre[(p.parada||"").toLowerCase()];
+    if(id){ p._id = id; A._artIds.add(id); }
+  }
+  aplicarVista(vista);
+}
+
+function refrescarNodos(){
+  if(map.getSource("nodos")) map.getSource("nodos").setData(nodosFC());
+}
+
+function aplicarVista(v){
+  vista = v;
+  document.getElementById("capas").hidden = (v!=="explorar");
+  const stgnnFC = {type:"FeatureCollection", features:(v==="stgnn"&&ANALISIS?ANALISIS.stgnn_aristas_influyentes:[])
+    .map(e=>({type:"Feature", geometry:{type:"LineString", coordinates:[e.a,e.b]}, properties:{w:e.w}}))};
+  if(map.getSource("stgnn")) map.getSource("stgnn").setData(stgnnFC);
+  refrescarNodos();
+  panelAnalisis(v);
+}
+
+function panelAnalisis(v){
+  const box = document.getElementById("analisis"), desc = document.getElementById("vista-desc");
+  const A = ANALISIS || {};
+  const DESC = {
+    explorar:"Nodos por tipo. Clic en uno → sus atributos y su vecindario PROXIMO_A.",
+    aire_cobertura:"Estaciones de tráfico coloreadas según tengan (verde) o no (rojo) una estación de calidad del aire a ≤300 m.",
+    aire_o3:"Estaciones de calidad del aire: azul si miden O₃, rojo si no. Cada estación mide un subconjunto distinto (FIL_66).",
+    sensores_distrito:"Nº de estaciones de medida por distrito — el sesgo de cobertura que la memoria declara en §7.",
+    resiliencia:"Puntos de articulación de la red de transporte (CONECTADO_CON): paradas cuya caída la parte en dos (FIL_64).",
+    stgnn:"Las 15 conexiones que el STGNN de tráfico marca como más influyentes (importancia de arista, ML_05).",
+  };
+  desc.textContent = DESC[v] || "";
+  if(v==="explorar"){ box.hidden = true; return; }
+  box.hidden = false;
+  let h = "";
+  if(v==="aire_cobertura" && A.cobertura_aire){
+    const c = A.cobertura_aire;
+    h = `<h2>Cobertura de calidad del aire</h2>
+      <div class="big">${fmt(c.sin_aire_cerca)} / ${fmt(c.trafico_total)}</div>
+      estaciones de tráfico <b>sin</b> ninguna estación de aire a ≤300 m
+      (${(100*c.sin_aire_cerca/c.trafico_total).toFixed(0)} %). Solo hay
+      ${fmt(Object.values(N).filter(n=>n.tipo==="calidad_aire").length)} estaciones de aire para toda la ciudad.`;
+  } else if(v==="aire_o3"){
+    const air = Object.values(N).filter(n=>n.tipo==="calidad_aire");
+    const o3 = air.filter(n=>n.attrs&&n.attrs.contaminantes&&n.attrs.contaminantes.includes("O3"));
+    h = `<h2>¿Qué mide cada estación de aire?</h2>
+      <div class="big">${o3.length} / ${air.length}</div>
+      estaciones de calidad del aire miden O₃. El resto solo NOx/PM — pedir "aire cerca de X"
+      puede devolver una estación que no mide el contaminante que importa.`;
+  } else if(v==="sensores_distrito"){
+    const rows = (A.sensores_por_distrito||[]).map(d=>
+      `<tr><td>${esc(d.distrito)}</td><td>${fmt(d.n)}</td><td>${fmt(d.trafico)}</td><td>${fmt(d.aire)}</td></tr>`).join("");
+    h = `<h2>Sensores por distrito</h2><table>
+      <tr><td><b>distrito</b></td><td><b>total</b></td><td><b>tráf.</b></td><td><b>aire</b></td></tr>${rows}</table>`;
+  } else if(v==="resiliencia" && A.resiliencia){
+    const R = A.resiliencia;
+    const rows = (R.puntos_articulacion||[]).slice(0,12).map(p=>
+      `<tr><td>${esc(p.parada)}</td><td>${esc(p.modo||"")}</td><td>${fmt(p.nodos_desgajados)}</td></tr>`).join("");
+    h = `<h2>Resiliencia del transporte (FIL_64)</h2>
+      <div class="big">${fmt(R.n_puntos_articulacion)}</div> puntos de articulación ·
+      ${fmt(R.puentes&&R.puentes.n_puentes)} puentes (${((R.puentes&&R.puentes.frac_aristas_puente||0)*100).toFixed(0)} % de las aristas) ·
+      k-core máx ${fmt(R.kcore&&R.kcore.k_max)}.
+      Al 5 % de bajas dirigidas el fragmento mayor cae a
+      ${R.robustez_5pct?Math.round(R.robustez_5pct.dirigido*100):"—"} % (vs
+      ${R.robustez_5pct?Math.round(R.robustez_5pct.aleatorio*100):"—"} % aleatorio).
+      <table><tr><td><b>parada</b></td><td><b>modo</b></td><td><b>desgaja</b></td></tr>${rows}</table>
+      ${R.nota?`<div class="nota">${esc(R.nota)}</div>`:""}`;
+  } else if(v==="stgnn"){
+    const es = (A.stgnn_aristas_influyentes||[]);
+    const rows = es.slice(0,12).map(e=>{
+      const na = N[e.ids[0]], nb = N[e.ids[1]];
+      return `<tr><td>${esc((na&&na.nombre)||e.ids[0].split(":").pop())} ↔ ${esc((nb&&nb.nombre)||e.ids[1].split(":").pop())}</td><td>${e.w.toFixed(2)}</td></tr>`;
+    }).join("");
+    h = es.length
+      ? `<h2>STGNN · aristas influyentes (ML_05)</h2>
+         Grosor ∝ importancia relativa que el modelo asigna a la conexión entre dos
+         puntos de tráfico. <table><tr><td><b>conexión</b></td><td><b>peso</b></td></tr>${rows}</table>`
+      : `<h2>STGNN · aristas influyentes</h2><span class="muted">disponible solo en modo live (necesita stgnn_trafico.meta.json)</span>`;
+  }
+  box.innerHTML = h;
+}
 
 async function vecinosDe(id){
   if(!LIVE) return (PROX[id]||[]).map(([vid,d])=>({id:vid, distancia_m:d, nodo:N[vid]}));
