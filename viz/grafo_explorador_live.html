@@ -1,107 +1,4 @@
-"""Construye el explorador del grafo urbano **real** de Neo4j (FIL_67 Parte 3).
-
-Dos variantes de la misma página:
-
-    python -m viz.build_grafo_explorador          # -> viz/grafo_explorador.html
-                                                  #    (autónoma: grafo embebido de grafo_urbano.json.gz)
-    python -m viz.build_grafo_explorador --live   # -> viz/grafo_explorador_live.html
-                                                  #    (pide el grafo a /grafo/explorador/{data,vecindario}
-                                                  #    del asistente, que lee Neo4j en vivo)
-
-A diferencia del mapa animado (`viz/mapa/`, grafo `coords-knn8` del STGNN),
-pinta el grafo tal cual está en Neo4j: 5 labels — meteo y recintos de
-`FIL_65` incluidos —, atributos por entidad de `FIL_66` (contaminantes que
-mide cada estación de aire, capacidades, subárea, altitud) y las relaciones
-`PROXIMO_A` / `CONECTADO_CON`. Clic en un nodo → panel con sus atributos, su
-barrio/distrito reales y su vecindario `PROXIMO_A`.
-"""
-
-from __future__ import annotations
-
-import gzip
-import json
-import sys
-from pathlib import Path
-
-_RAIZ = Path(__file__).resolve().parents[1]
-_GRAFO = _RAIZ / "grafo" / "_data" / "grafo_urbano.json.gz"
-_DIR = Path(__file__).resolve().parent
-
-_COLORES = {
-    "trafico": "#e15759", "calidad_aire": "#4e79a7", "ruido": "#f28e2b",
-    "meteo": "#76b7b2", "aforos_peatones_bicicletas": "#b07aa1",
-    "bicimad": "#59a14f", "emt": "#9c755f", "metro": "#edc948",
-    "metro_ligero": "#bab0ac", "cercanias": "#ff9da7",
-    "poi_turistico": "#8cd17d", "parque": "#59a14f", "aparcamiento": "#a0cbe8",
-    "cine": "#d37295", "recinto": "#b6992d",
-}
-_DEFECTO = "#888888"
-
-
-def _compactar(g: dict) -> dict:
-    """De `grafo_urbano.json.gz` a la forma mínima que necesita la página."""
-    barrio_nombre = {b["codigo"]: b["nombre"] for b in g["nodos"]["Barrio"]}
-    barrio_distrito = {b["codigo"]: b["distrito_codigo"] for b in g["nodos"]["Barrio"]}
-    distrito_nombre = {d["codigo"]: d["nombre"] for d in g["nodos"]["Distrito"]}
-    barrio_de = {r["nodo_id"]: r["barrio_codigo"] for r in g["relaciones"]["UBICADO_EN"]}
-
-    _ATTR = ("contaminantes", "magnitudes", "altitud_m", "subarea",
-             "anclajes_totales", "plazas_totales")
-    nodos = {}
-    for lab, ns in g["nodos"].items():
-        if lab in ("Distrito", "Barrio"):
-            continue
-        for n in ns:
-            u = n.get("ubicacion") or {}
-            if u.get("lat") is None:
-                continue
-            nid = n["id"]
-            bcod = barrio_de.get(nid)
-            attrs = {k: n[k] for k in _ATTR if n.get(k) not in (None, [])}
-            nodos[nid] = {
-                "id": nid, "label": lab, "tipo": n.get("tipo") or lab,
-                "nombre": n.get("nombre"), "lat": round(u["lat"], 6), "lon": round(u["lon"], 6),
-                "barrio": barrio_nombre.get(bcod),
-                "distrito": distrito_nombre.get(barrio_distrito.get(bcod)),
-                "attrs": attrs,
-            }
-
-    prox: "dict[str, list]" = {}
-    for r in g["relaciones"]["PROXIMO_A"]:
-        a, b, d = r["origen_id"], r["destino_id"], round(r["distancia_m"])
-        if a in nodos and b in nodos:
-            prox.setdefault(a, []).append([b, d])
-            prox.setdefault(b, []).append([a, d])
-
-    conn, lineas_de, vistos = [], {}, set()
-    for r in g["relaciones"]["CONECTADO_CON"]:
-        o = r["origen"] if isinstance(r["origen"], dict) else {"id": r["origen"]}
-        de = r["destino"] if isinstance(r["destino"], dict) else {"id": r["destino"]}
-        oid, did = o["id"], de["id"]
-        modo, linea = r.get("modo"), r.get("linea")
-        for e in (o, de):
-            u = e.get("ubicacion") or {}
-            if e["id"] not in nodos and u.get("lat") is not None:
-                nodos[e["id"]] = {
-                    "id": e["id"], "label": "ParadaTransporte", "tipo": e.get("tipo") or "parada",
-                    "nombre": e.get("nombre"), "lat": round(u["lat"], 6), "lon": round(u["lon"], 6),
-                    "barrio": None, "distrito": None, "attrs": {},
-                }
-        if linea:
-            lineas_de.setdefault(oid, set()).add((modo, linea))
-            lineas_de.setdefault(did, set()).add((modo, linea))
-        key = tuple(sorted((oid, did)))
-        if key in vistos or oid not in nodos or did not in nodos:
-            continue
-        vistos.add(key)
-        conn.append({"a": oid, "b": did, "modo": modo})
-
-    lineas_de = {k: sorted(f"{m or '?'} {ln}" for (m, ln) in v) for k, v in lineas_de.items()}
-    return {"nodos": nodos, "prox": prox, "conn": conn, "lineas_de": lineas_de,
-            "meta": g.get("_meta", {})}
-
-
-_TEMPLATE = """<!doctype html>
+<!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Grafo urbano de Madrid — explorador</title>
@@ -139,10 +36,10 @@ _TEMPLATE = """<!doctype html>
 </div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
-const LIVE = __LIVE__;
-const ENDPOINT = "__ENDPOINT__";
-const COLORES = __COLORES__, DEFECTO = "__DEFECTO__";
-let G = __DATA__;
+const LIVE = true;
+const ENDPOINT = "/grafo/explorador";
+const COLORES = {"trafico": "#e15759", "calidad_aire": "#4e79a7", "ruido": "#f28e2b", "meteo": "#76b7b2", "aforos_peatones_bicicletas": "#b07aa1", "bicimad": "#59a14f", "emt": "#9c755f", "metro": "#edc948", "metro_ligero": "#bab0ac", "cercanias": "#ff9da7", "poi_turistico": "#8cd17d", "parque": "#59a14f", "aparcamiento": "#a0cbe8", "cine": "#d37295", "recinto": "#b6992d"}, DEFECTO = "#888888";
+let G = {};
 let N = G.nodos || {}, PROX = G.prox || {}, CONN = G.conn || [], LINEAS = G.lineas_de || {};
 let tipos = [], activos = new Set();
 
@@ -270,33 +167,3 @@ async function seleccionar(id){
   det.innerHTML = h; det.classList.remove("muted");
 }
 </script></body></html>
-"""
-
-
-def construir(*, live: bool = False, endpoint: str = "/grafo/explorador") -> str:
-    if live:
-        datos = "{}"
-    else:
-        with gzip.open(_GRAFO, "rt", encoding="utf-8") as fh:
-            datos = json.dumps(_compactar(json.load(fh)), ensure_ascii=False, separators=(",", ":"))
-    return (
-        _TEMPLATE
-        .replace("__LIVE__", "true" if live else "false")
-        .replace("__ENDPOINT__", endpoint)
-        .replace("__DATA__", datos)
-        .replace("__COLORES__", json.dumps(_COLORES, ensure_ascii=False))
-        .replace("__DEFECTO__", _DEFECTO)
-    )
-
-
-def main(argv: "list[str] | None" = None) -> int:
-    argv = sys.argv[1:] if argv is None else argv
-    live = "--live" in argv
-    out = _DIR / ("grafo_explorador_live.html" if live else "grafo_explorador.html")
-    out.write_text(construir(live=live), encoding="utf-8")
-    print(f"{out}  ({out.stat().st_size / 1024:,.0f} KB){'  [live -> /grafo/explorador]' if live else ''}")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

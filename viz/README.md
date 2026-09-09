@@ -33,6 +33,20 @@ Se genera offline desde `grafo/_data/grafo_urbano.json.gz` (no toca
 `viz/mapa/` ni la app web). Es una vista distinta del mapa animado, que usa
 el grafo `coords-knn8` del STGNN, no el de Neo4j.
 
+### Variante *live* (`--live`)
+
+`python -m viz.build_grafo_explorador --live` genera
+`viz/grafo_explorador_live.html` (~9 KB): la misma página pero **sin el grafo
+embebido** — lo pide a la app del asistente, que lee Neo4j en vivo:
+
+- `GET /grafo/explorador`             → sirve este HTML
+- `GET /grafo/explorador/data`        → nodos + `CONECTADO_CON` + líneas (cacheado 10 min)
+- `GET /grafo/explorador/vecindario?id=<id>` → vecinos `PROXIMO_A` de un nodo, al hacer clic
+
+Router en `asistente/routers/grafo_explorador.py`; se monta en
+`asistente/main.py`. Con el asistente corriendo, abrir
+`http://<host>/grafo/explorador`.
+
 ## Ver el mapa
 
 **En vivo:** https://madrono-ucm.github.io/madronoTFM/ (rama `gh-pages`, `FIL_42`).
