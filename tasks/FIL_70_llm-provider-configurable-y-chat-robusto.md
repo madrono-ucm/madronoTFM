@@ -68,6 +68,7 @@ AWS, lock "zero new AWS").
 
 El panel de chat de `viz/mapa/` hace `POST {API_BASE}/chat`. Si se sirve el
 mapa con un `python -m http.server` plano, no existe `/chat` → 501. Hay que:
-- **servir el mapa desde el propio asistente**:  ->  con el chat en el mismo origen (hecho), o
+- **servir el mapa desde el propio asistente** (hecho): `app.mount("/mapa",
+  StaticFiles(...))` → `http://<host>/mapa/`, con el chat en el mismo origen, o
 - abrir `http://.../index.html?api=http://127.0.0.1:<puerto-asistente>`, o
 - en `gh-pages`, `API_BASE` ya apunta a la EC2 pública.
