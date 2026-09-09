@@ -213,20 +213,46 @@ function connFC(){
   }).filter(Boolean)};
 }
 
-map.on("load", async ()=>{
-  if(LIVE){
+async function traerDatos(reintentos=4){
+  let ultimo;
+  for(let i=0;i<reintentos;i++){
     try{
       const r = await fetch(ENDPOINT + "/data");
       if(!r.ok) throw new Error("HTTP " + r.status);
-      G = await r.json();
+      return await r.json();
+    }catch(err){ ultimo = err; await new Promise(s=>setTimeout(s, 1200*(i+1))); }
+  }
+  throw ultimo;
+}
+
+let arrancado = false;
+map.on("load", ()=>arrancar());
+
+async function arrancar(){
+  const meta = document.getElementById("meta");
+  if(LIVE){
+    meta.textContent = "cargando el grafo de Neo4j…";
+    try{
+      G = await traerDatos();
       N = G.nodos; CONN = G.conn; LINEAS = G.lineas_de || {};
     }catch(err){
-      document.getElementById("meta").textContent = "no se pudo cargar el grafo de Neo4j: " + err;
+      meta.innerHTML = "no se pudo cargar el grafo de Neo4j (" + esc(String(err)) +
+        "). <button id='reintentar'>Reintentar</button>";
+      document.getElementById("reintentar").onclick = ()=>arrancar();
       return;
     }
   }
   tipos = [...new Set(Object.values(N).map(n=>n.tipo))].sort();
   activos = new Set(tipos);
+
+  if(arrancado){  // reintento exitoso: repuebla las fuentes ya creadas
+    map.getSource("conn").setData(connFC());
+    refrescarNodos();
+    cargarAnalisis(); construirCapas();
+    meta.textContent = `${Object.keys(N).length.toLocaleString("es")} nodos · ${CONN.length.toLocaleString("es")} tramos CONECTADO_CON · Neo4j en vivo`;
+    return;
+  }
+  arrancado = true;
 
   map.addSource("conn", {type:"geojson", data:connFC()});
   map.addLayer({id:"conn", type:"line", source:"conn", paint:{"line-color":"#7773","line-width":1.1}});
@@ -254,7 +280,7 @@ map.on("load", async ()=>{
   document.getElementById("meta").textContent =
     `${Object.keys(N).length.toLocaleString("es")} nodos · ${CONN.length.toLocaleString("es")} tramos CONECTADO_CON · ${src}`;
   construirCapas();
-});
+}
 
 function construirCapas(){
   const box = document.getElementById("capas");

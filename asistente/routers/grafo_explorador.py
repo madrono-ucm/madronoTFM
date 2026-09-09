@@ -35,6 +35,21 @@ _RAIZ = Path(__file__).resolve().parents[2]
 _STGNN_META = _RAIZ / "asistente" / "modelos" / "stgnn_trafico.meta.json"
 _RESILIENCIA = _RAIZ / "modelado" / "evaluation" / "artifacts" / "grafo_resiliencia.json"
 
+
+def _leer(query: str, params: dict, *, intentos: int = 3) -> list:
+    """`run_neo4j_query` con reintento ante caídas transitorias de conexión a
+    AuraDB (`ConnectionResetError`, `defunct connection`... — vistas de forma
+    intermitente desde esta máquina). Backoff corto; a la última, propaga."""
+    for i in range(intentos):
+        try:
+            return run_neo4j_query(query, params)
+        except Exception:  # noqa: BLE001
+            if i == intentos - 1:
+                raise
+            time.sleep(0.4 * (2 ** i))
+    return []
+
+
 router = APIRouter(tags=["grafo-explorador"])
 
 _HTML = Path(__file__).resolve().parents[2] / "viz" / "grafo_explorador_live.html"
@@ -59,8 +74,8 @@ def _fila_a_nodo(fila: dict) -> dict:
 def _construir_data() -> dict:
     q_n, p_n = grafo_explorador_nodos_query()
     q_c, p_c = grafo_explorador_conectado_con_query()
-    filas_n = run_neo4j_query(q_n, p_n)
-    filas_c = run_neo4j_query(q_c, p_c)
+    filas_n = _leer(q_n, p_n)
+    filas_c = _leer(q_c, p_c)
 
     nodos = {}
     for fila in filas_n:
@@ -160,8 +175,8 @@ def analisis() -> dict:
         try:
             qa, pa = cobertura_aire_query()
             qd, pd = sensores_por_distrito_query()
-            filas_a = run_neo4j_query(qa, pa)
-            filas_d = run_neo4j_query(qd, pd)
+            filas_a = _leer(qa, pa)
+            filas_d = _leer(qd, pd)
         except Exception as exc:  # noqa: BLE001
             raise HTTPException(503, f"Neo4j no disponible: {type(exc).__name__}: {exc}")
         con = sum(1 for f in filas_a if f["con_aire"])
@@ -192,7 +207,7 @@ def vecindario(
     """Vecinos `PROXIMO_A` de un nodo, en vivo."""
     q, p = vecindario_grafo_query(id, radio_m)
     try:
-        filas = run_neo4j_query(q, p)
+        filas = _leer(q, p)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(503, f"Neo4j no disponible: {type(exc).__name__}: {exc}")
     vecinos = [
