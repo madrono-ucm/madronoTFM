@@ -96,7 +96,8 @@ FOR (l:Lugar) ON (l.ubicacion);
 // Propiedades esperadas: id (string, "<fuente>:<id_origen>", único),
 // tipo (string: "trafico" | "calidad_aire" | "ruido" |
 // "aforos_peatones_bicicletas" | "meteo"), fuente (string), ubicacion
-// (Point, WGS84).
+// (Point, WGS84), nombre (string | null -- nombre legible de la estación;
+// null para trafico/aforos, que no lo traen en Gold; FIL_67).
 // Propiedades opcionales (FIL_66, atributos estáticos que ya trae Gold; solo
 // presentes si la fuente las reporta, mismo criterio que `osm_*` en :Lugar):
 //   contaminantes ([string], tipo="calidad_aire") -- contaminantes que la
@@ -126,7 +127,8 @@ FOR (e:EstacionMedida) ON (e.ubicacion);
 // como un grafo navegable.
 // Propiedades esperadas: id (string, "<fuente>:<id_origen>", único),
 // tipo (string: "emt" | "bicimad" | "metro" | "cercanias" | ...),
-// fuente (string), ubicacion (Point, WGS84).
+// fuente (string), ubicacion (Point, WGS84), nombre (string | null --
+// null para paradas EMT de tiempo real, que no traen nombre; FIL_67).
 // Propiedades opcionales (FIL_66): anclajes_totales (int, tipo="bicimad") --
 // capacidad de la estación (nº de anclajes), de `bicimad_por_estacion_hora
 // .docks_total`.

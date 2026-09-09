@@ -104,14 +104,18 @@ def _extra_props(node: dict) -> dict:
 
 
 def estacion_medida_query(node: dict) -> "tuple[str, dict]":
+    # `nombre` sí se persiste (FIL_67): calidad_aire/ruido/meteo traen un
+    # nombre legible de estación en Gold y `grafo.nodos` ya lo construye --
+    # hasta ahora se descartaba aquí, dejando `e.nombre` siempre null.
     query = (
         "MERGE (n:EstacionMedida {id: $id}) "
-        "SET n.tipo = $tipo, n.fuente = $fuente, n += $extra, " + _UBICACION_SET
+        "SET n.tipo = $tipo, n.fuente = $fuente, n.nombre = $nombre, n += $extra, " + _UBICACION_SET
     )
     return query, {
         "id": node["id"],
         "tipo": node.get("tipo"),
         "fuente": node.get("fuente"),
+        "nombre": node.get("nombre"),
         "extra": _extra_props(node),
         **_ubicacion_params(node),
     }
@@ -120,12 +124,13 @@ def estacion_medida_query(node: dict) -> "tuple[str, dict]":
 def parada_transporte_query(node: dict) -> "tuple[str, dict]":
     query = (
         "MERGE (n:ParadaTransporte {id: $id}) "
-        "SET n.tipo = $tipo, n.fuente = $fuente, n += $extra, " + _UBICACION_SET
+        "SET n.tipo = $tipo, n.fuente = $fuente, n.nombre = $nombre, n += $extra, " + _UBICACION_SET
     )
     return query, {
         "id": node["id"],
         "tipo": node.get("tipo"),
         "fuente": node.get("fuente"),
+        "nombre": node.get("nombre"),
         "extra": _extra_props(node),
         **_ubicacion_params(node),
     }
@@ -284,11 +289,14 @@ class Neo4jLoader:
     bloqueado el alta manual de AuraDB Free, tarea 043).
     """
 
-    def __init__(self, uri: str, username: str, password: str, database: str = "neo4j"):
+    def __init__(self, uri: str, username: str, password: str, database: "str | None" = None):
         from neo4j import GraphDatabase  # import perezoso, ver docstring del módulo
 
         self._driver = GraphDatabase.driver(uri, auth=(username, password))
-        self._database = database
+        # `database=None` -> home database del DBMS. En AuraDB la base real no se
+        # llama "neo4j" (es el id de la instancia), así que un literal "neo4j"
+        # por defecto rompía con `DatabaseNotFound` (FIL_67).
+        self._database = database or None
         self._uri = uri
         self._auth = (username, password)
 
