@@ -107,40 +107,45 @@ _TEMPLATE = """<!doctype html>
 <title>Grafo urbano de Madrid — explorador</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
-  :root{color-scheme:light dark}
   *{box-sizing:border-box}
-  body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  #map{position:absolute;inset:0}
-  #panel{position:absolute;top:12px;right:12px;width:320px;max-height:calc(100% - 24px);
-    overflow:auto;background:#fffe;backdrop-filter:blur(4px);border-radius:10px;
-    box-shadow:0 2px 16px #0003;padding:14px 16px}
-  @media (prefers-color-scheme:dark){#panel{background:#1b1b1beedd;color:#eee}}
+  body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#e9e9ec}
+  #map{position:absolute;inset:0;background:#0d1117}
+  #izq{position:absolute;top:12px;left:12px;bottom:12px;width:280px;display:flex;
+    flex-direction:column;gap:10px;pointer-events:none;overflow:hidden}
+  #izq > .box{pointer-events:auto}
+  .box,#panel{background:rgba(22,24,29,.94);color:#e9e9ec;
+    border:1px solid rgba(255,255,255,.09);border-radius:10px;
+    box-shadow:0 4px 20px #0007;backdrop-filter:blur(3px)}
+  #panel{position:absolute;top:12px;right:12px;width:330px;max-height:calc(100% - 24px);overflow:auto;padding:14px 16px}
+  .box{padding:10px 12px;font-size:12px}
   #panel h1{font-size:15px;margin:0 0 4px}
-  #panel .sub{color:#888;font-size:12px;margin-bottom:10px}
-  .box{position:absolute;left:12px;background:#fffe;border-radius:10px;
-    box-shadow:0 2px 16px #0003;padding:10px 12px;font-size:12px;max-width:250px}
-  @media (prefers-color-scheme:dark){.box{background:#1b1b1beedd;color:#eee}}
-  #menu{top:12px}
-  #capas{top:150px;max-width:200px}
-  #analisis{bottom:12px;max-width:320px;max-height:46%;overflow:auto}
-  #menu select{width:100%;margin:6px 0 4px;padding:4px;border-radius:6px}
-  #menu .desc{color:#888;font-size:11px}
+  #panel .sub{color:#9aa0a6;font-size:12px;margin-bottom:10px}
+  #capas{overflow:auto;max-height:170px}
+  #analisis{overflow:auto;flex:1 1 auto;min-height:0}
+  #menu select, #menu button, #panel button{width:100%;margin:6px 0 4px;padding:5px 8px;border-radius:7px;
+    background:#2a2d36;color:#e9e9ec;border:1px solid rgba(255,255,255,.14);font:inherit;cursor:pointer}
+  #menu button.on{background:#3d6ce0;border-color:#3d6ce0}
+  #menu .desc{color:#9aa0a6;font-size:11px}
   #capas label{display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer}
   #capas .sw{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
   #analisis h2{font-size:13px;margin:0 0 4px}
   #analisis .big{font-size:22px;font-weight:600;line-height:1.1}
   #analisis table{border-collapse:collapse;width:100%;font-size:11px;margin-top:4px}
-  #analisis td{padding:1px 5px 1px 0;border-bottom:1px solid #8882}
+  #analisis td{padding:1px 5px 1px 0;border-bottom:1px solid rgba(255,255,255,.08)}
   #analisis td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
-  #analisis .nota{color:#999;font-size:10.5px;margin-top:6px;font-style:italic}
+  #analisis .nota{color:#8b8f96;font-size:10.5px;margin-top:6px;font-style:italic}
   .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:6px 0}
-  .kv b{color:#888;font-weight:500}
-  .tag{display:inline-block;background:#8883;border-radius:6px;padding:1px 6px;margin:1px 2px 1px 0;font-size:12px}
-  .muted{color:#999}
-  .neigh{margin-top:8px;border-top:1px solid #8883;padding-top:8px}
-  .neigh b{color:#888}
+  .kv b{color:#9aa0a6;font-weight:500}
+  .tag{display:inline-block;background:rgba(255,255,255,.13);border-radius:6px;padding:1px 6px;margin:1px 2px 1px 0;font-size:12px}
+  .muted{color:#8b8f96}
+  .neigh{margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px}
+  .neigh b{color:#9aa0a6}
+  #err{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:9;max-width:70%;
+    background:#5b1a1a;color:#ffdede;border:1px solid #a33;border-radius:8px;padding:6px 12px;font-size:12px;display:none}
 </style></head><body>
 <div id="map"></div>
+<div id="err"></div>
+<div id="izq">
 <div id="menu" class="box">
   <b>Vista / análisis</b>
   <select id="vista">
@@ -152,9 +157,19 @@ _TEMPLATE = """<!doctype html>
     <option value="stgnn">Modelo STGNN · aristas influyentes (ML_05)</option>
   </select>
   <div class="desc" id="vista-desc"></div>
+  <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
+    <b>Ruta entre 2 puntos</b>
+    <select id="ruta-modo">
+      <option value="proximo">a pie · PROXIMO_A ponderado (Dijkstra)</option>
+      <option value="transporte">transporte · CONECTADO_CON (menos saltos)</option>
+    </select>
+    <button id="ruta-toggle">Elegir origen y destino</button>
+    <div class="desc" id="ruta-estado"></div>
+  </div>
 </div>
 <div id="capas" class="box"></div>
 <div id="analisis" class="box" hidden></div>
+</div>
 <div id="panel">
   <h1>Grafo urbano de Madrid</h1>
   <div class="sub" id="meta">cargando…</div>
@@ -170,10 +185,19 @@ let G = __DATA__;
 let N = G.nodos || {}, PROX = G.prox || {}, CONN = G.conn || [], LINEAS = G.lineas_de || {};
 let tipos = [], activos = new Set();
 let ANALISIS = null, vista = "explorar";
-const DIM = "#c9c9c9";
+let ruta = {activa:false, a:null, b:null};
+const DIM = "#5f6672";
+
+function mostrarError(m){
+  const e = document.getElementById("err");
+  e.textContent = "⚠ " + m; e.style.display = "block";
+  console.error(m);
+}
+window.addEventListener("error", ev=>mostrarError((ev.error&&ev.error.stack)||ev.message));
+window.addEventListener("unhandledrejection", ev=>mostrarError("promesa: "+((ev.reason&&ev.reason.stack)||ev.reason)));
 
 const map = new maplibregl.Map({
-  container:"map", style:"https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+  container:"map", style:"https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
   center:[-3.703, 40.42], zoom:11, hash:true
 });
 map.addControl(new maplibregl.NavigationControl(), "bottom-right");
@@ -259,13 +283,23 @@ async function arrancar(){
   map.addSource("prox-sel", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
   map.addLayer({id:"prox-sel", type:"line", source:"prox-sel",
     paint:{"line-color":"#d1495b","line-width":1.6,"line-opacity":0.8}});
+  map.addSource("ruta", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
+  map.addLayer({id:"ruta", type:"line", source:"ruta",
+    paint:{"line-color":"#20c997","line-width":4,"line-opacity":0.95}});
+  map.addSource("ruta-ab", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
+  map.addLayer({id:"ruta-ab", type:"circle", source:"ruta-ab",
+    paint:{"circle-radius":7,"circle-color":"#20c997","circle-stroke-width":2,"circle-stroke-color":"#fff"}});
   map.addSource("stgnn", {type:"geojson", data:{type:"FeatureCollection",features:[]}});
   map.addLayer({id:"stgnn", type:"line", source:"stgnn",
     paint:{"line-color":"#e15759","line-width":["+",1,["*",6,["get","w"]]],"line-opacity":0.85}});
   map.addSource("nodos", {type:"geojson", data:nodosFC()});
   map.addLayer({id:"nodos", type:"circle", source:"nodos",
-    paint:{"circle-radius":["*",["get","r"],["interpolate",["linear"],["zoom"],10,2.2,15,5.5]],
-      "circle-color":["get","color"],"circle-stroke-width":0.6,"circle-stroke-color":"#fff8"}});
+    paint:{"circle-radius":["interpolate",["linear"],["zoom"],10,2.4,15,5.5],
+      "circle-color":["get","color"],"circle-stroke-width":0.5,"circle-stroke-color":"rgba(255,255,255,.35)"}});
+  map.addLayer({id:"nodos-hi", type:"circle", source:"nodos",
+    filter:[">",["get","r"],1],
+    paint:{"circle-radius":["interpolate",["linear"],["zoom"],10,5,15,11],
+      "circle-color":["get","color"],"circle-stroke-width":1.4,"circle-stroke-color":"#fff"}});
   map.addLayer({id:"nodo-sel", type:"circle", source:"nodos",
     filter:["==","id",""], paint:{"circle-radius":9,"circle-color":"#0000","circle-stroke-width":2.5,"circle-stroke-color":"#d1495b"}});
 
@@ -275,6 +309,8 @@ async function arrancar(){
 
   cargarAnalisis();  // en paralelo; no bloquea el render
   document.getElementById("vista").addEventListener("change", e=>aplicarVista(e.target.value));
+  document.getElementById("ruta-toggle").addEventListener("click", toggleRuta);
+  document.getElementById("ruta-modo").addEventListener("change", ()=>{ if(ruta.a&&ruta.b) calcularRuta(); });
 
   const src = LIVE ? "Neo4j en vivo" : "snapshot grafo_urbano.json.gz";
   document.getElementById("meta").textContent =
@@ -437,7 +473,55 @@ async function vecinosDe(id){
   }catch(err){ return []; }
 }
 
+// ---- Ruta entre 2 puntos (capacidad de enrutado del grafo DB) ---------------
+
+function toggleRuta(){
+  ruta.activa = !ruta.activa;
+  document.getElementById("ruta-toggle").classList.toggle("on", ruta.activa);
+  const est = document.getElementById("ruta-estado");
+  if(ruta.activa){ est.textContent = "clic en el nodo ORIGEN"; }
+  else { limpiarRuta(); est.textContent = ""; }
+}
+function limpiarRuta(){
+  ruta.a = ruta.b = null;
+  for(const s of ["ruta","ruta-ab"]) if(map.getSource(s)) map.getSource(s).setData({type:"FeatureCollection",features:[]});
+}
+function marcarAB(){
+  const pts = [ruta.a, ruta.b].filter(Boolean).filter(id=>N[id]&&N[id].lat!=null)
+    .map(id=>({type:"Feature", geometry:{type:"Point", coordinates:[N[id].lon,N[id].lat]}, properties:{}}));
+  map.getSource("ruta-ab").setData({type:"FeatureCollection", features:pts});
+}
+function rutaPick(id){
+  const est = document.getElementById("ruta-estado");
+  if(!N[id]){ return; }
+  if(!ruta.a || (ruta.a && ruta.b)){ ruta = {activa:true, a:id, b:null}; marcarAB();
+    est.textContent = "origen: " + (N[id].nombre||id.split(":").pop()) + " — clic en el DESTINO"; return; }
+  ruta.b = id; marcarAB(); est.textContent = "calculando…"; calcularRuta();
+}
+async function calcularRuta(){
+  const modo = document.getElementById("ruta-modo").value;
+  const est = document.getElementById("ruta-estado");
+  try{
+    const r = await fetch(ENDPOINT + "/ruta?a=" + encodeURIComponent(ruta.a) + "&b=" + encodeURIComponent(ruta.b) + "&modo=" + modo);
+    if(r.status === 404){ est.textContent = "sin ruta " + modo + " entre esos dos puntos";
+      map.getSource("ruta").setData({type:"FeatureCollection",features:[]}); return; }
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const coords = (j.nodos||[]).filter(n=>n.lat!=null).map(n=>[n.lon,n.lat]);
+    map.getSource("ruta").setData({type:"FeatureCollection", features:coords.length>1
+      ? [{type:"Feature", geometry:{type:"LineString", coordinates:coords}, properties:{}}] : []});
+    const na = N[j.a]&&N[j.a].nombre || j.a.split(":").pop(), nb = N[j.b]&&N[j.b].nombre || j.b.split(":").pop();
+    const detalle = j.modo==="proximo"
+      ? (fmt(j.metros) + " m · " + j.saltos + " saltos PROXIMO_A")
+      : (j.saltos + " tramos · " + ((j.lineas&&j.lineas.length)?("líneas: "+j.lineas.join(", ")):"sin línea"));
+    est.innerHTML = "<b>" + esc(na) + " → " + esc(nb) + "</b><br>" + detalle +
+      " · <button id='ruta-clear' style='width:auto;padding:2px 8px;margin:2px 0'>limpiar</button>";
+    document.getElementById("ruta-clear").onclick = ()=>{ limpiarRuta(); est.textContent = "clic en el nodo ORIGEN"; };
+  }catch(err){ est.textContent = "error al calcular la ruta: " + err; }
+}
+
 async function seleccionar(id){
+  if(ruta.activa){ return rutaPick(id); }
   const n = N[id]; if(!n) return;
   map.setFilter("nodo-sel", ["==","id",id]);
   document.getElementById("detalle").textContent = "cargando vecindario…";
