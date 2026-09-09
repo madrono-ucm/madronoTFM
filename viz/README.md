@@ -16,7 +16,36 @@ python -m viz.export_gold_slices     # (solo si hay AWS_PROFILE; ya hay un snaps
 python -m viz.build_grafo_madrid     # -> viz/grafo_madrid.json
 python -m viz.build_prevision_animada # -> viz/data/prevision_animada.parquet  (~1 min)
 python -m viz.build_mapa_animado     # -> viz/mapa/{index.html,data.json,...} + viz/mapa_frames.png
+python -m viz.build_grafo_explorador # -> viz/grafo_explorador.html  (grafo REAL de Neo4j, FIL_67)
 ```
+
+## `grafo_explorador.html` — el grafo real de Neo4j (FIL_67 Parte 3)
+
+Página **autónoma** (un solo HTML, funciona desde `file://`) que pinta el
+grafo tal cual está cargado en la instancia AuraDB: los 5 labels — incluidas
+las **estaciones meteo** y los **recintos de eventos** de `FIL_65` —, sus
+atributos por entidad de `FIL_66` (qué contaminantes mide cada estación de
+aire, capacidades, subárea, altitud) y las relaciones `PROXIMO_A` /
+`CONECTADO_CON`. Clic en un nodo → panel con sus atributos, su barrio/
+distrito reales (`UBICADO_EN`→`PERTENECE_A`) y su vecindario `PROXIMO_A`.
+
+Se genera offline desde `grafo/_data/grafo_urbano.json.gz` (no toca
+`viz/mapa/` ni la app web). Es una vista distinta del mapa animado, que usa
+el grafo `coords-knn8` del STGNN, no el de Neo4j.
+
+### Variante *live* (`--live`)
+
+`python -m viz.build_grafo_explorador --live` genera
+`viz/grafo_explorador_live.html` (~9 KB): la misma página pero **sin el grafo
+embebido** — lo pide a la app del asistente, que lee Neo4j en vivo:
+
+- `GET /grafo/explorador`             → sirve este HTML
+- `GET /grafo/explorador/data`        → nodos + `CONECTADO_CON` + líneas (cacheado 10 min)
+- `GET /grafo/explorador/vecindario?id=<id>` → vecinos `PROXIMO_A` de un nodo, al hacer clic
+
+Router en `asistente/routers/grafo_explorador.py`; se monta en
+`asistente/main.py`. Con el asistente corriendo, abrir
+`http://<host>/grafo/explorador`.
 
 ## Ver el mapa
 

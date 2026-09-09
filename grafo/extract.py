@@ -202,6 +202,21 @@ def _nest_location(row: dict) -> dict:
     return result
 
 
+def _split_csv(row: dict, *keys: str) -> dict:
+    """Convierte in situ las columnas `keys` de `row` de un CSV
+    (`array_join(array_agg(...), ',')` en el SQL) a `list[str]` ordenada y
+    sin vacíos; `[]` si la columna venía vacía o `None` (FIL_66). Athena
+    devuelve `array_join` como texto plano, no como array tipado -- mismo
+    motivo que `_cast_athena_value` para los numéricos."""
+    result = dict(row)
+    for key in keys:
+        if key not in result:
+            continue
+        raw = result.get(key)
+        result[key] = [p for p in (raw.split(",") if raw else []) if p]
+    return result
+
+
 # ---------------------------------------------------------------------------
 # :EstacionMedida -- Gold de trafico / calidad_aire / ruido.
 # ---------------------------------------------------------------------------
@@ -212,6 +227,7 @@ def fetch_estaciones_trafico(athena_client=None) -> "list[dict]":
     `_RECENT_WINDOW_DAYS` días), listo para `nodos.estaciones_medida_from_trafico_gold`."""
     sql = f"""
         SELECT point_id,
+               max_by(subarea, date) AS subarea,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM trafico_por_punto_hora
@@ -223,9 +239,13 @@ def fetch_estaciones_trafico(athena_client=None) -> "list[dict]":
 
 
 def fetch_estaciones_calidad_aire(athena_client=None) -> "list[dict]":
+    """`contaminantes` (FIL_66): la lista de contaminantes que la estación
+    mide de hecho -- cada estación mide un subconjunto distinto, así que sin
+    esto no se puede pedir "la más cercana que mida O₃"."""
     sql = f"""
         SELECT station_id,
                max_by(station_name, date) AS station_name,
+               array_join(array_sort(array_agg(DISTINCT pollutant)), ',') AS contaminantes,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM calidad_aire_por_estacion_contaminante_hora
@@ -233,13 +253,14 @@ def fetch_estaciones_calidad_aire(athena_client=None) -> "list[dict]":
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
-    return [_nest_location(row) for row in rows]
+    return [_split_csv(_nest_location(row), "contaminantes") for row in rows]
 
 
 def fetch_estaciones_ruido(athena_client=None) -> "list[dict]":
     sql = f"""
         SELECT station_id,
                max_by(station_name, date) AS station_name,
+               max_by(altitude_m, date) AS altitude_m,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM ruido_por_estacion_periodo_fecha
@@ -248,6 +269,33 @@ def fetch_estaciones_ruido(athena_client=None) -> "list[dict]":
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
     return [_nest_location(row) for row in rows]
+
+
+def fetch_estaciones_meteo(athena_client=None) -> "list[dict]":
+    """Un registro por `station_id` de `meteorologia_por_estacion_magnitud_hora`
+    (Gold) con su nombre y ubicación más recientes, listo para
+    `nodos.estaciones_medida_from_meteo_gold` (FIL_65).
+
+    **Sin `_recent_date_filter()`**, mismo criterio que
+    `fetch_estaciones_aforos_peatones_bicicletas`: la tabla es pequeña (unas
+    decenas de estaciones × magnitudes × horas), el `GROUP BY station_id`
+    con `max_by(col, date)` se queda con la última ubicación conocida por
+    estación escaneándola entera, y así la consulta es robusta aunque el
+    pipeline esté congelado y `current_date - 14 días` caiga fuera de la
+    ventana con datos. `station_id` ya es único por estación (red de AEMET +
+    red municipal usan identificadores propios)."""
+    sql = """
+        SELECT station_id,
+               max_by(station_name, date) AS station_name,
+               array_join(array_sort(array_agg(DISTINCT magnitude)), ',') AS magnitudes,
+               max_by(altitude_m, date) AS altitude_m,
+               max_by(lat, date) AS lat,
+               max_by(lon, date) AS lon
+        FROM meteorologia_por_estacion_magnitud_hora
+        GROUP BY station_id
+    """
+    rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    return [_split_csv(_nest_location(row), "magnitudes") for row in rows]
 
 
 def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dict]":
@@ -286,13 +334,14 @@ def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dic
         SELECT station_id,
                max_by(address, date) AS address,
                max_by(district, date) AS district,
+               array_join(array_sort(array_agg(DISTINCT mode)), ',') AS modos,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM aforos_peatones_bicicletas_por_estacion_modo_hora
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
-    return [_nest_location(row) for row in rows]
+    return [_split_csv(_nest_location(row), "modos") for row in rows]
 
 
 # ---------------------------------------------------------------------------
@@ -317,6 +366,7 @@ def fetch_paradas_bicimad(athena_client=None) -> "list[dict]":
     sql = f"""
         SELECT station_id,
                max_by(name, date) AS name,
+               max_by(docks_total, date) AS docks_total,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM bicimad_por_estacion_hora
@@ -337,6 +387,7 @@ def fetch_lugares_aparcamientos(athena_client=None) -> "list[dict]":
     sql = f"""
         SELECT parking_id,
                max_by(name, date) AS name,
+               max_by(total_spaces, date) AS total_spaces,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM aparcamientos_por_parking_hora
@@ -363,6 +414,33 @@ def fetch_lugares_cartelera_cines(athena_client=None) -> "list[dict]":
         GROUP BY cinema_id
     """
     return run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+
+
+def fetch_recintos_eventos_silver(athena_client=None) -> "list[dict]":
+    """Recintos de eventos (`venue_name` + lat/lon) desde **Silver**
+    `agenda_eventos`, para `nodos.lugares_from_recinto_evento` (FIL_65).
+
+    Silver, no Gold: la Gold agrega por categoría/distrito/fecha y no
+    conserva `venue_name` ni coordenadas por recinto. Se agrega en el propio
+    Athena (`GROUP BY venue_name` + `max_by(..., processed_at)`) para
+    devolver un registro por recinto con su ubicación más reciente; se
+    descartan los eventos sin `venue_name` o sin coordenadas (no formarían un
+    `:Lugar` con identidad/ubicación). Sin filtro de ventana reciente: el
+    conjunto de recintos distintos es pequeño y la identidad del recinto no
+    caduca, así que escanear el histórico es correcto y barato (mismo
+    criterio que `fetch_estaciones_meteo`)."""
+    sql = """
+        SELECT venue_name,
+               max_by(lat, processed_at) AS lat,
+               max_by(lon, processed_at) AS lon,
+               max_by(district, processed_at) AS district
+        FROM agenda_eventos
+        WHERE venue_name IS NOT NULL AND venue_name <> ''
+          AND lat IS NOT NULL AND lon IS NOT NULL
+        GROUP BY venue_name
+    """
+    rows = run_athena_query(sql, SILVER_DATABASE, athena_client=athena_client)
+    return [_nest_location(row) for row in rows]
 
 
 # ---------------------------------------------------------------------------

@@ -38,6 +38,7 @@ from asistente.models.herramientas import (
     CalidadAirePrevista,
     CalidadAirePrevistaGrafo,
     CalidadAireZona,
+    ConsultaGrafo,
     DisponibilidadAparcamiento,
     EstacionCalidadAireCercana,
     EstacionRuidoCercana,
@@ -59,13 +60,21 @@ from asistente.models.herramientas import (
     VecinoGrafo,
 )
 from asistente.neo4j_client import (
+    aparcamientos_cerca_query,
+    bicimad_cerca_query,
+    estaciones_calidad_aire_que_miden_query,
+    estaciones_meteo_cerca_query,
+    lineas_que_pasan_por_query,
     lugares_proximos_a_estaciones_calidad_aire_query,
     lugares_proximos_a_estaciones_ruido_query,
     lugares_proximos_a_estaciones_trafico_query,
     lugares_proximos_a_paradas_bicimad_query,
     lugares_proximos_a_paradas_emt_query,
+    paradas_de_linea_query,
+    recintos_cerca_query,
     resolver_lugar_query,
     run_neo4j_query,
+    vecindario_de_lugar_query,
 )
 from asistente import prevision, prevision_grafo
 from asistente.timeutils import MADRID_TZ, now_madrid
@@ -2186,15 +2195,19 @@ def contexto_urbano(lugar: str) -> ContextoUrbano:
     (`asistente/modelos/grafo_urbano.json.gz`, `FIL_51`): resuelve `lugar`
     por texto contra los `:Lugar`, da el **barrio y distrito por la
     jerarquia real** (`UBICADO_EN`->`Barrio` `PERTENECE_A`->`Distrito`), las
-    **estaciones de medida a 1 salto** de `PROXIMO_A` por tipo, otros
-    **`:Lugar` a <=2 saltos** de `PROXIMO_A`, y las **paradas de transporte
-    alcanzables a <=2 saltos de `CONECTADO_CON`** desde la parada mas
-    cercana. Sin artefacto o sin lugar reconocido -> `disponible=false` +
-    `motivo` (con ejemplos), nunca excepcion.
+    **estaciones de medida a 1 salto** de `PROXIMO_A` por tipo (incluida
+    meteo; cada estacion con sus atributos estaticos de FIL_66 --
+    contaminantes que mide, magnitudes, altitud, subarea), otros **`:Lugar`
+    a <=2 saltos** de `PROXIMO_A` (parques, aparcamientos con su capacidad,
+    recintos de eventos, POIs), las **paradas de transporte alcanzables a
+    <=2 saltos de `CONECTADO_CON`** desde la parada mas cercana y las
+    **lineas** que pasan por esa vecindad. Sin artefacto o sin lugar
+    reconocido -> `disponible=false` + `motivo` (con ejemplos), nunca
+    excepcion.
 
     Args:
         lugar: Nombre (parcial) de un lugar de Madrid (POI, parque,
-            aparcamiento, cine). Se resuelve por coincidencia de texto.
+            aparcamiento, cine, recinto). Se resuelve por coincidencia de texto.
     """
     if not _ctx.disponible():
         return ContextoUrbano(lugar_consultado=lugar,
@@ -2214,8 +2227,150 @@ def contexto_urbano(lugar: str) -> ContextoUrbano:
         },
         lugares_cercanos_2_saltos=r["lugares_cercanos_2_saltos"],
         transporte=TransporteAlcanzable(**r["transporte"]),
+        lineas_cercanas=r.get("lineas_cercanas", []),
         fuente_grafo=r["fuente_grafo"],
     )
+
+
+# ---------------------------------------------------------------------------
+# consulta_grafo (FIL_67) -- plantillas de consulta de SOLO LECTURA contra el
+# grafo urbano real de Neo4j, elegidas por nombre. Da acceso flexible a los
+# nodos/atributos de FIL_65 (meteo, recintos) y FIL_66 (contaminantes que
+# mide cada estacion de aire, capacidades, subarea) sin una tool por
+# intencion. No acepta Cypher libre: solo un conjunto fijo de plantillas
+# parametrizadas (ver FIL_67 Parte 2B, opcion 1).
+# ---------------------------------------------------------------------------
+
+_PLANTILLAS_GRAFO: "dict[str, object]" = {
+    # nombre -> (builder, (params_requeridos...), doc corta)
+    "vecindario": (
+        lambda p: vecindario_de_lugar_query(p["lugar"], p["radio_m"]),
+        ("lugar",),
+        "Todo lo que hay a `radio_m` de `lugar` por PROXIMO_A (estaciones con "
+        "sus contaminantes/magnitudes/subarea, paradas, otros lugares).",
+    ),
+    "aire_que_mide": (
+        lambda p: estaciones_calidad_aire_que_miden_query(p["lugar"], p["contaminante"], p["radio_m"]),
+        ("lugar", "contaminante"),
+        "Estaciones de calidad del aire cerca de `lugar` que MIDEN `contaminante` "
+        "(NO2/O3/PM10/PM2.5/...).",
+    ),
+    "meteo_cerca": (
+        lambda p: estaciones_meteo_cerca_query(p["lugar"], p["radio_m"]),
+        ("lugar",),
+        "Estaciones meteo cerca de `lugar`, con magnitudes y altitud.",
+    ),
+    "recintos_cerca": (
+        lambda p: recintos_cerca_query(p["lugar"], p["radio_m"]),
+        ("lugar",),
+        "Recintos de eventos cerca de `lugar`.",
+    ),
+    "aparcamientos_cerca": (
+        lambda p: aparcamientos_cerca_query(p["lugar"], p["radio_m"]),
+        ("lugar",),
+        "Aparcamientos cerca de `lugar` con su capacidad (`plazas_totales`).",
+    ),
+    "bicimad_cerca": (
+        lambda p: bicimad_cerca_query(p["lugar"], p["radio_m"]),
+        ("lugar",),
+        "Estaciones BiciMAD cerca de `lugar` con su capacidad (`anclajes_totales`).",
+    ),
+    "lineas_de_parada": (
+        lambda p: lineas_que_pasan_por_query(p["estacion_id"]),
+        ("estacion_id",),
+        "Lineas de transporte que sirven una parada (`estacion_id` = id completo del nodo).",
+    ),
+    "paradas_de_linea": (
+        lambda p: paradas_de_linea_query(p["linea"], p["modo"]),
+        ("linea", "modo"),
+        "Todas las paradas de una linea (`linea` + `modo`: metro/emt/metro_ligero).",
+    ),
+}
+
+
+def _consulta_grafo_impl(
+    plantilla: str,
+    lugar: str,
+    radio_m: float,
+    contaminante: str,
+    estacion_id: str,
+    linea: str,
+    modo: str,
+    *,
+    neo4j_driver=None,
+) -> ConsultaGrafo:
+    disponibles = sorted(_PLANTILLAS_GRAFO)
+    base = dict(plantilla=plantilla, plantillas_disponibles=disponibles)
+    entrada = _PLANTILLAS_GRAFO.get(plantilla)
+    if entrada is None:
+        return ConsultaGrafo(**base, motivo=f"plantilla desconocida; usa una de {disponibles}")
+
+    builder, requeridos, _doc = entrada
+    params = {
+        "lugar": lugar, "radio_m": radio_m, "contaminante": contaminante,
+        "estacion_id": estacion_id, "linea": linea, "modo": modo,
+    }
+    faltan = [k for k in requeridos if not params.get(k)]
+    if faltan:
+        return ConsultaGrafo(**base, parametros={k: params[k] for k in requeridos},
+                             motivo=f"faltan parametros obligatorios para «{plantilla}»: {faltan}")
+
+    usados = {k: params[k] for k in requeridos}
+    try:
+        query, qparams = builder(params)
+        filas = run_neo4j_query(query, qparams, driver=neo4j_driver)
+    except Exception as exc:  # noqa: BLE001 - FIL_15: nunca excepcion hacia el cliente MCP
+        return ConsultaGrafo(**base, parametros=usados,
+                             motivo=f"fallo consultando Neo4j: {type(exc).__name__}: {exc}")
+
+    filas = [{k: v for k, v in f.items() if v is not None} for f in filas]
+    return ConsultaGrafo(**base, parametros=usados, disponible=True,
+                         n_filas=len(filas), filas=filas[:100])
+
+
+def consulta_grafo(
+    plantilla: str,
+    lugar: str = "",
+    radio_m: float = 300.0,
+    contaminante: str = "",
+    estacion_id: str = "",
+    linea: str = "",
+    modo: str = "",
+) -> ConsultaGrafo:
+    """Consulta de **solo lectura** al grafo urbano real de Neo4j mediante
+    **plantillas parametrizadas** (`FIL_67`). No ejecuta Cypher libre: se
+    elige `plantilla` de un conjunto fijo y se pasan sus parametros.
+
+    Da acceso a lo que cargaron `FIL_65` (estaciones meteo, recintos de
+    eventos) y `FIL_66` (que contaminantes mide de hecho cada estacion de
+    aire, capacidad de aparcamientos/BiciMAD, subarea de trafico, altitud) y
+    a la estructura de lineas de transporte (`CONECTADO_CON`), sin una `tool`
+    dedicada por intencion.
+
+    Plantillas (`plantilla=`):
+    - `vecindario` (req: `lugar`) — todo a `radio_m` por PROXIMO_A.
+    - `aire_que_mide` (req: `lugar`, `contaminante`) — estaciones de aire
+      cercanas que miden ese contaminante (`NO2`/`O3`/`PM10`/`PM2.5`/...).
+    - `meteo_cerca` (req: `lugar`) — estaciones meteo + magnitudes/altitud.
+    - `recintos_cerca` (req: `lugar`) — recintos de eventos cercanos.
+    - `aparcamientos_cerca` / `bicimad_cerca` (req: `lugar`) — con capacidad.
+    - `lineas_de_parada` (req: `estacion_id`) — lineas que sirven la parada.
+    - `paradas_de_linea` (req: `linea`, `modo`) — paradas de una linea.
+
+    Sin Neo4j, plantilla desconocida o parametros que falten →
+    `disponible=false` + `motivo` (+ `plantillas_disponibles`), nunca
+    excepcion (`FIL_15`). `radio_m` util maximo ~300 m (umbral con que se
+    cargo `PROXIMO_A`).
+
+    Args:
+        plantilla: nombre de la plantilla (ver arriba).
+        lugar: nombre parcial de un `:Lugar` (se resuelve por texto).
+        radio_m: radio de busqueda en metros (defecto 300).
+        contaminante: solo `aire_que_mide` — codigo de contaminante.
+        estacion_id: solo `lineas_de_parada` — id completo del nodo parada.
+        linea, modo: solo `paradas_de_linea`.
+    """
+    return _consulta_grafo_impl(plantilla, lugar, radio_m, contaminante, estacion_id, linea, modo)
 
 
 # ---------------------------------------------------------------------------

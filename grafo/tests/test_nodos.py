@@ -29,20 +29,25 @@ from grafo.nodos import (
     distritos_from_bronze,
     enrich_lugar_con_osm,
     enrich_lugares_con_osm,
+    _with_optional,
     estacion_medida_from_aforos_peatones_bicicletas_gold,
     estacion_medida_from_calidad_aire_gold,
+    estacion_medida_from_meteo_gold,
     estacion_medida_from_ruido_gold,
     estacion_medida_from_trafico_gold,
     estaciones_medida_from_aforos_peatones_bicicletas_gold,
     estaciones_medida_from_calidad_aire_gold,
+    estaciones_medida_from_meteo_gold,
     estaciones_medida_from_ruido_gold,
     estaciones_medida_from_trafico_gold,
     lugar_from_aparcamientos_gold,
     lugar_from_cartelera_cines_gold,
     lugar_from_parque_bronze,
     lugar_from_poi_bronze,
+    lugar_from_recinto_evento,
     lugares_from_parques_bronze,
     lugares_from_poi_bronze,
+    lugares_from_recinto_evento,
     parada_transporte_from_bicimad_gold,
     parada_transporte_from_transporte_publico_emt_gold,
     paradas_transporte_from_crtm_bronze,
@@ -127,6 +132,20 @@ def _ruido_gold_record(station_id):
     }
 
 
+def _meteo_gold_record(station_id, magnitude="83"):
+    """Registro de `meteorologia_por_estacion_magnitud_hora` (Gold) ya
+    pasado por `extract._nest_location` (lat/lon planas -> `location`)."""
+    return {
+        "schema_version": 1,
+        "station_id": station_id,
+        "station_name": "Retiro",
+        "magnitude": magnitude,
+        "hour": 12,
+        "avg_value": 24.1,
+        "location": {"lat": 40.4141, "lon": -3.6828},
+    }
+
+
 def _aforos_peatones_bicicletas_gold_record(station_id, mode="peatones"):
     return {
         "schema_version": 1,
@@ -156,8 +175,13 @@ class EstacionMedidaTests(unittest.TestCase):
                 "fuente": "trafico",
                 "nombre": None,
                 "ubicacion": {"lat": 40.4, "lon": -3.7},
+                "subarea": "M30",  # FIL_66
             },
         )
+
+    def test_from_trafico_gold_sin_subarea(self):  # FIL_66
+        rec = {k: v for k, v in _trafico_gold_record("1009").items() if k != "subarea"}
+        self.assertNotIn("subarea", estacion_medida_from_trafico_gold(rec))
 
     def test_from_calidad_aire_gold(self):
         node = estacion_medida_from_calidad_aire_gold(_calidad_aire_gold_record("28079004"))
@@ -228,6 +252,32 @@ class EstacionMedidaTests(unittest.TestCase):
         nodes = estaciones_medida_from_aforos_peatones_bicicletas_gold(records)
         self.assertEqual(len(nodes), 1)
         self.assertEqual(nodes[0]["id"], "aforos_peatones_bicicletas:PERM_PEA01")
+
+    def test_from_meteo_gold(self):  # FIL_65
+        node = estacion_medida_from_meteo_gold(_meteo_gold_record("28079004"))
+        self.assertEqual(
+            node,
+            {
+                "id": "meteorologia:28079004",
+                "tipo": "meteo",
+                "fuente": "meteorologia",
+                "nombre": "Retiro",
+                "ubicacion": {"lat": 40.4141, "lon": -3.6828},
+            },
+        )
+
+    def test_from_meteo_gold_sin_station_id_es_none(self):  # FIL_65
+        self.assertIsNone(estacion_medida_from_meteo_gold({**_meteo_gold_record("x"), "station_id": None}))
+
+    def test_dedup_por_magnitud_meteo(self):  # FIL_65
+        # Gold trae una fila por (estación, magnitud, hora); un nodo por estación.
+        records = [
+            _meteo_gold_record("28079004", magnitude="83"),
+            _meteo_gold_record("28079004", magnitude="86"),
+        ]
+        nodes = estaciones_medida_from_meteo_gold(records)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["id"], "meteorologia:28079004")
 
 
 def _emt_gold_record(stop_id, line="203"):
@@ -398,6 +448,36 @@ class LugarTests(unittest.TestCase):
             },
         )
 
+    def test_from_recinto_evento(self):  # FIL_65
+        node = lugar_from_recinto_evento(
+            {"venue_name": "Teatro Circo Price", "district": "Arganzuela",
+             "location": {"lat": 40.4059, "lon": -3.6968}}
+        )
+        self.assertEqual(
+            node,
+            {
+                "id": "agenda_eventos:teatro-circo-price",
+                "nombre": "Teatro Circo Price",
+                "tipo": "recinto",
+                "fuente": "agenda_eventos",
+                "ubicacion": {"lat": 40.4059, "lon": -3.6968},
+            },
+        )
+
+    def test_from_recinto_evento_sin_nombre_o_sin_coords_es_none(self):  # FIL_65
+        self.assertIsNone(lugar_from_recinto_evento({"venue_name": "", "location": {"lat": 40.4, "lon": -3.7}}))
+        self.assertIsNone(lugar_from_recinto_evento({"venue_name": "Sala X", "location": {"lat": None, "lon": None}}))
+
+    def test_recinto_evento_slug_acentos_y_dedup(self):  # FIL_65
+        # varios eventos comparten recinto (mismo nombre, acentos/mayúsculas)
+        records = [
+            {"venue_name": "Estadió Metropolitano", "location": {"lat": 40.436, "lon": -3.599}},
+            {"venue_name": "ESTADIÓ METROPOLITANO", "location": {"lat": 40.436, "lon": -3.599}},
+        ]
+        nodes = lugares_from_recinto_evento(records)
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["id"], "agenda_eventos:estadio-metropolitano")
+
 
 class EnrichLugaresConOsmTests(unittest.TestCase):
     """Usa la muestra real commiteada de POIs de OSM (captura real contra
@@ -481,6 +561,65 @@ class DedupeNodesTests(unittest.TestCase):
             ]
         )
         self.assertEqual(nodes, [{"id": "a", "v": 1}, {"id": "b", "v": 3}])
+
+
+class Fil66AtributosEstaticosTests(unittest.TestCase):
+    """FIL_66 — atributos estáticos de Gold subidos al nodo, presentes solo
+    cuando la fuente los reporta."""
+
+    def test_with_optional_omite_none_y_vacio(self):
+        base = _with_optional({"id": "x"}, a=1, b=None, c=[], d=["z"], e=0)
+        self.assertEqual(base, {"id": "x", "a": 1, "d": ["z"], "e": 0})
+
+    def test_calidad_aire_contaminantes(self):
+        node = estacion_medida_from_calidad_aire_gold(
+            {"station_id": "28079008", "station_name": "Escuelas Aguirre",
+             "location": {"lat": 40.42, "lon": -3.68},
+             "contaminantes": ["NO2", "O3", "PM10"]}
+        )
+        self.assertEqual(node["contaminantes"], ["NO2", "O3", "PM10"])
+
+    def test_calidad_aire_sin_contaminantes_no_lleva_clave(self):
+        node = estacion_medida_from_calidad_aire_gold(
+            {"station_id": "28079011", "location": {"lat": 40.4, "lon": -3.7}, "contaminantes": []}
+        )
+        self.assertNotIn("contaminantes", node)
+
+    def test_meteo_magnitudes_y_altitud(self):
+        node = estacion_medida_from_meteo_gold(
+            {"station_id": "28079004", "station_name": "Retiro",
+             "location": {"lat": 40.41, "lon": -3.68},
+             "magnitudes": ["81", "83", "89"], "altitude_m": 667}
+        )
+        self.assertEqual(node["magnitudes"], ["81", "83", "89"])
+        self.assertEqual(node["altitud_m"], 667)
+
+    def test_ruido_altitud(self):
+        node = estacion_medida_from_ruido_gold(
+            {"station_id": "RF-01", "location": {"lat": 40.4, "lon": -3.7}, "altitude_m": 655}
+        )
+        self.assertEqual(node["altitud_m"], 655)
+
+    def test_aforos_modos(self):
+        node = estacion_medida_from_aforos_peatones_bicicletas_gold(
+            {"station_id": "PERM_PEA01", "address": "Calle X",
+             "location": {"lat": 40.4, "lon": -3.7}, "modos": ["peatones"]}
+        )
+        self.assertEqual(node["modos"], ["peatones"])
+
+    def test_bicimad_anclajes(self):
+        node = parada_transporte_from_bicimad_gold(
+            {"station_id": "1406", "name": "Sol", "location": {"lat": 40.41, "lon": -3.70},
+             "docks_total": 24}
+        )
+        self.assertEqual(node["anclajes_totales"], 24)
+
+    def test_aparcamiento_plazas(self):
+        node = lugar_from_aparcamientos_gold(
+            {"parking_id": "APK001", "name": "Plaza Mayor",
+             "location": {"lat": 40.41, "lon": -3.70}, "total_spaces": 300}
+        )
+        self.assertEqual(node["plazas_totales"], 300)
 
 
 if __name__ == "__main__":

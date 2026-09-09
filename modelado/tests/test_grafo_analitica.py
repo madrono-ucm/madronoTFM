@@ -17,7 +17,12 @@ from modelado.grafo_analitica.analisis import (
     centralidad_transporte,
     comunidades_vs_barrios,
     construir_grafos,
+    curva_robustez,
+    kcore_resumen,
     nombres_transporte,
+    puentes_por_linea,
+    puntos_de_articulacion,
+    resiliencia_transporte,
 )
 
 _ART = Path(__file__).resolve().parents[2] / "modelado" / "evaluation" / "artifacts"
@@ -75,10 +80,72 @@ class FuncionesTests(unittest.TestCase):
             self.assertIn(k, c)
 
 
+class ResilienciaTests(unittest.TestCase):
+    """FIL_64. Grafo `CONECTADO_CON` sintético: dos "líneas" en cadena
+    (A-B-C-D y D-E-F) unidas por la parada D → D es punto de articulación y
+    cada tramo es un puente; más un triángulo C-C1-C2-C para que exista un
+    2-core no trivial."""
+
+    def _g(self):
+        def stop(i):
+            return {"id": f"crtm_red_transporte_madrid:{i}", "tipo": "metro",
+                    "ubicacion": {"lat": 40.4 + ord(i[-1]) / 10000, "lon": -3.7}}
+
+        tramos = [("A", "B", "1"), ("B", "C", "1"), ("C", "D", "1"),
+                  ("D", "E", "2"), ("E", "F", "2"),
+                  ("C", "C1", "3"), ("C1", "C2", "3"), ("C2", "C", "3")]
+        rels = [{"origen": stop(u), "destino": stop(v), "modo": "metro", "linea": ln}
+                for u, v, ln in tramos]
+        return {"nodos": {"Distrito": [], "Barrio": [], "EstacionMedida": [],
+                          "ParadaTransporte": [], "Lugar": []},
+                "relaciones": {"PERTENECE_A": [], "UBICADO_EN": [], "PROXIMO_A": [],
+                               "CONECTADO_CON": rels}}
+
+    def test_puntos_de_articulacion_detecta_D(self):
+        _, gc = construir_grafos(self._g())
+        art = puntos_de_articulacion(gc, top=10)
+        paradas = {a["parada"] for a in art}
+        self.assertIn("crtm_red_transporte_madrid:D", paradas)
+        for a in art:
+            self.assertGreaterEqual(a["componentes_tras_quitar"], 2)
+
+    def test_puentes_por_linea(self):
+        _, gc = construir_grafos(self._g())
+        p = puentes_por_linea(gc)
+        # los 3 tramos del triángulo (linea "3") NO son puentes; el resto sí
+        self.assertEqual(p["n_puentes"], 5)
+        lineas = {(f["modo"], f["linea"]): f for f in p["por_linea_top"]}
+        self.assertEqual(lineas[("metro", "3")]["tramos_puente"], 0)
+        self.assertEqual(lineas[("metro", "1")]["frac_puentes"], 1.0)
+
+    def test_kcore_resumen(self):
+        _, gc = construir_grafos(self._g())
+        kc = kcore_resumen(gc)
+        self.assertEqual(kc["k_max"], 2)  # el triángulo
+        self.assertGreaterEqual(kc["n_en_nucleo"], 3)
+
+    def test_curva_robustez_monotona_y_dirigido_peor(self):
+        _, gc = construir_grafos(self._g())
+        r = curva_robustez(gc, frac_max=0.5, recalc_cada=1, reps_aleatorio=3)
+        self.assertEqual(r["dirigido"][0], (0.0, 1.0))
+        fracs = [f for f, _ in r["dirigido"]]
+        self.assertEqual(fracs, sorted(fracs))
+        # el ataque dirigido nunca deja un fragmento mayor que el fallo aleatorio
+        self.assertLessEqual(r["frag_mayor_al_5pct"]["dirigido"],
+                             r["frag_mayor_al_5pct"]["aleatorio"] + 1e-9)
+
+    def test_resiliencia_transporte_agrega(self):
+        _, gc = construir_grafos(self._g())
+        res = resiliencia_transporte(gc)
+        for k in ("n_puntos_articulacion", "puntos_articulacion_top", "puentes", "kcore", "robustez"):
+            self.assertIn(k, res)
+
+
 class ArtefactosTests(unittest.TestCase):
     def test_artefactos_versionados(self):
         for f in ("grafo_centralidad_transporte.csv", "grafo_comunidades.json",
-                  "grafo_stats.json", "grafo_stgnn_vs_conectividad.json", "grafo_analitica.png"):
+                  "grafo_stats.json", "grafo_stgnn_vs_conectividad.json", "grafo_analitica.png",
+                  "grafo_resiliencia.json", "grafo_resiliencia.png"):
             p = _ART / f
             if not p.exists():
                 self.skipTest(f"falta {f} — corre `python -m modelado.grafo_analitica.analisis`")

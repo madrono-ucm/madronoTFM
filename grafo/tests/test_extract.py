@@ -208,6 +208,54 @@ class FetchGoldNodeSourcesTests(unittest.TestCase):
             ],
         )
 
+    def test_fetch_estaciones_meteo(self):  # FIL_65
+        columns = [
+            _column("station_id", "varchar"),
+            _column("station_name", "varchar"),
+            _column("lat", "double"),
+            _column("lon", "double"),
+        ]
+        rows = [_row("28079004", "Retiro", "40.4141", "-3.6828")]
+        client = FakeAthenaClient(columns, rows)
+
+        result = extract.fetch_estaciones_meteo(athena_client=client)
+
+        self.assertEqual(
+            result,
+            [{"station_id": "28079004", "station_name": "Retiro",
+              "location": {"lat": 40.4141, "lon": -3.6828}}],
+        )
+        # sin filtro de ventana reciente (tabla pequeña, pipeline puede estar congelado)
+        sql = client.start_query_execution_calls[0]["QueryString"]
+        self.assertNotIn("current_date", sql)
+        self.assertEqual(
+            client.start_query_execution_calls[0]["QueryExecutionContext"]["Database"],
+            extract.GOLD_DATABASE,
+        )
+
+    def test_fetch_recintos_eventos_silver(self):  # FIL_65
+        columns = [
+            _column("venue_name", "varchar"),
+            _column("lat", "double"),
+            _column("lon", "double"),
+            _column("district", "varchar"),
+        ]
+        rows = [_row("Teatro Circo Price", "40.4059", "-3.6968", "Arganzuela")]
+        client = FakeAthenaClient(columns, rows)
+
+        result = extract.fetch_recintos_eventos_silver(athena_client=client)
+
+        self.assertEqual(
+            result,
+            [{"venue_name": "Teatro Circo Price", "district": "Arganzuela",
+              "location": {"lat": 40.4059, "lon": -3.6968}}],
+        )
+        # lee de Silver, no de Gold
+        self.assertEqual(
+            client.start_query_execution_calls[0]["QueryExecutionContext"]["Database"],
+            extract.SILVER_DATABASE,
+        )
+
     def test_fetch_estaciones_aforos_peatones_bicicletas(self):
         columns = [
             _column("station_id", "varchar"),
@@ -264,6 +312,45 @@ class FetchGoldNodeSourcesTests(unittest.TestCase):
                 }
             ],
         )
+
+    def test_fetch_estaciones_calidad_aire_contaminantes_csv_a_lista(self):  # FIL_66
+        columns = [
+            _column("station_id", "varchar"), _column("station_name", "varchar"),
+            _column("contaminantes", "varchar"), _column("lat", "double"), _column("lon", "double"),
+        ]
+        rows = [_row("28079008", "Escuelas Aguirre", "NO2,NOx,O3,PM10", "40.4217", "-3.6824")]
+        result = extract.fetch_estaciones_calidad_aire(athena_client=FakeAthenaClient(columns, rows))
+        self.assertEqual(result[0]["contaminantes"], ["NO2", "NOx", "O3", "PM10"])
+
+    def test_fetch_estaciones_meteo_magnitudes_y_altitud(self):  # FIL_66
+        columns = [
+            _column("station_id", "varchar"), _column("station_name", "varchar"),
+            _column("magnitudes", "varchar"), _column("altitude_m", "integer"),
+            _column("lat", "double"), _column("lon", "double"),
+        ]
+        rows = [_row("28079004", "Retiro", "81,83,89", "667", "40.4141", "-3.6828")]
+        result = extract.fetch_estaciones_meteo(athena_client=FakeAthenaClient(columns, rows))
+        self.assertEqual(result[0]["magnitudes"], ["81", "83", "89"])
+        self.assertEqual(result[0]["altitude_m"], 667)
+
+    def test_fetch_estaciones_meteo_magnitudes_vacio(self):  # FIL_66
+        columns = [
+            _column("station_id", "varchar"), _column("station_name", "varchar"),
+            _column("magnitudes", "varchar"), _column("altitude_m", "integer"),
+            _column("lat", "double"), _column("lon", "double"),
+        ]
+        rows = [_row("28079004", "Retiro", None, None, "40.4141", "-3.6828")]
+        result = extract.fetch_estaciones_meteo(athena_client=FakeAthenaClient(columns, rows))
+        self.assertEqual(result[0]["magnitudes"], [])
+
+    def test_fetch_paradas_bicimad_docks_total(self):  # FIL_66
+        columns = [
+            _column("station_id", "varchar"), _column("name", "varchar"),
+            _column("docks_total", "integer"), _column("lat", "double"), _column("lon", "double"),
+        ]
+        rows = [_row("1411", "7 - Hortaleza, 75", "24", "40.4251906", "-3.6977715")]
+        result = extract.fetch_paradas_bicimad(athena_client=FakeAthenaClient(columns, rows))
+        self.assertEqual(result[0]["docks_total"], 24)
 
     def test_fetch_lugares_aparcamientos_gold_vacio_no_da_error(self):
         """Gold de `aparcamientos` está vacío a fecha de esta tarea (ver
