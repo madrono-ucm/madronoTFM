@@ -8,9 +8,16 @@ from __future__ import annotations
 import unittest
 
 from asistente.neo4j_client import (
+    aparcamientos_cerca_query,
+    bicimad_cerca_query,
     estaciones_calidad_aire_que_miden_query,
+    estaciones_meteo_cerca_query,
+    lineas_que_pasan_por_query,
     lugares_proximos_a_estaciones_trafico_query,
+    paradas_de_linea_query,
+    recintos_cerca_query,
     run_neo4j_query,
+    vecindario_de_lugar_query,
 )
 
 
@@ -39,6 +46,49 @@ class LugaresProximosQueryTests(unittest.TestCase):
         self.assertIn("e.contaminantes AS contaminantes", query)
         self.assertEqual(params, {"nombre_lugar": "Retiro", "contaminante": "o3", "radio_m": 400.0})
         self.assertNotIn("-[r:PROXIMO_A]->", query)
+
+
+class LibreriaConsultasFil67Tests(unittest.TestCase):
+    """FIL_67 Parte 2B — constructores parametrizados nuevos. Solo inspección
+    de la cadena, sin conexión."""
+
+    def test_vecindario_devuelve_atributos_de_fil66(self):
+        q, p = vecindario_de_lugar_query("Sol", 300.0)
+        for campo in ("contaminantes", "magnitudes", "subarea", "anclajes_totales", "plazas_totales"):
+            self.assertIn(f"v.{campo} AS {campo}", q)
+        self.assertIn("labels(v)[0] AS categoria", q)
+        self.assertEqual(p, {"nombre_lugar": "Sol", "radio_m": 300.0})
+        self.assertNotIn("-[r:PROXIMO_A]->", q)
+
+    def test_meteo_cerca(self):
+        q, p = estaciones_meteo_cerca_query("Retiro", 250.0)
+        self.assertIn("(e:EstacionMedida {tipo: 'meteo'})", q)
+        self.assertIn("e.magnitudes AS magnitudes", q)
+        self.assertEqual(p["radio_m"], 250.0)
+
+    def test_recintos_cerca(self):
+        q, _ = recintos_cerca_query("Retiro", 300.0)
+        self.assertIn("(v:Lugar {tipo: 'recinto'})", q)
+
+    def test_aparcamientos_y_bicimad_traen_capacidad(self):
+        qa, _ = aparcamientos_cerca_query("Sol", 300.0)
+        self.assertIn("v.plazas_totales AS plazas_totales", qa)
+        self.assertIn("(v:Lugar {tipo: 'aparcamiento'})", qa)
+        qb, _ = bicimad_cerca_query("Sol", 300.0)
+        self.assertIn("v.anclajes_totales AS anclajes_totales", qb)
+        self.assertIn("(v:ParadaTransporte {tipo: 'bicimad'})", qb)
+
+    def test_lineas_de_parada(self):
+        q, p = lineas_que_pasan_por_query("crtm_red_transporte_madrid:par_1")
+        self.assertIn("[r:CONECTADO_CON]", q)
+        self.assertIn("DISTINCT r.modo AS modo, r.linea AS linea", q)
+        self.assertEqual(p, {"estacion_id": "crtm_red_transporte_madrid:par_1"})
+
+    def test_paradas_de_linea(self):
+        q, p = paradas_de_linea_query("6", "metro")
+        self.assertIn("[r:CONECTADO_CON {linea: $linea}]", q)
+        self.assertIn("r.modo = $modo", q)
+        self.assertEqual(p, {"linea": "6", "modo": "metro"})
 
 
 class _FakeResult:

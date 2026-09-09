@@ -192,6 +192,124 @@ def resolver_lugar_query(nombre_lugar: str) -> "tuple[str, dict]":
     return query, {"nombre_lugar": nombre_lugar}
 
 
+# ---------------------------------------------------------------------------
+# Librería de consultas parametrizadas (FIL_67 Parte 2B). Mismo patrón que
+# los `lugares_proximos_a_*` de arriba: Python puro, testables por
+# inspección de la cadena; el `MATCH` de lugar usa `CONTAINS` case-insensitive
+# y el patrón `PROXIMO_A` es no dirigido. Explotan los nodos y atributos que
+# cargaron FIL_65 (meteo, recintos) y FIL_66 (contaminantes, capacidades,
+# subárea) y no tenían constructor.
+# ---------------------------------------------------------------------------
+
+
+def vecindario_de_lugar_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Todo lo que hay a `radio_m` de `nombre_lugar` por `PROXIMO_A`, en una
+    sola consulta: estaciones de medida (con su lista de contaminantes /
+    magnitudes / subárea), paradas de transporte y otros `:Lugar` (parques,
+    aparcamientos con capacidad, recintos, POIs). `categoria` = label del
+    nodo vecino; `subtipo` = su propiedad `tipo`."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(v) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN labels(v)[0] AS categoria, v.tipo AS subtipo, v.id AS id, "
+        "v.nombre AS nombre, r.distancia_m AS distancia_m, "
+        "v.contaminantes AS contaminantes, v.magnitudes AS magnitudes, "
+        "v.altitud_m AS altitud_m, v.subarea AS subarea, "
+        "v.anclajes_totales AS anclajes_totales, v.plazas_totales AS plazas_totales "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def estaciones_meteo_cerca_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Estaciones meteo (`:EstacionMedida {tipo:'meteo'}`, FIL_65) a `radio_m`
+    de `nombre_lugar`, con las magnitudes que miden y su altitud (FIL_66)."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(e:EstacionMedida {tipo: 'meteo'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN e.id AS estacion_id, e.nombre AS estacion_nombre, "
+        "e.magnitudes AS magnitudes, e.altitud_m AS altitud_m, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def recintos_cerca_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Recintos de eventos (`:Lugar {tipo:'recinto'}`, FIL_65) a `radio_m` de
+    `nombre_lugar` por `PROXIMO_A`."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(v:Lugar {tipo: 'recinto'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN v.id AS recinto_id, v.nombre AS recinto_nombre, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def aparcamientos_cerca_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Aparcamientos a `radio_m` de `nombre_lugar` con su capacidad
+    (`plazas_totales`, FIL_66)."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(v:Lugar {tipo: 'aparcamiento'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN v.id AS aparcamiento_id, v.nombre AS nombre, "
+        "v.plazas_totales AS plazas_totales, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def bicimad_cerca_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
+    """Estaciones BiciMAD a `radio_m` de `nombre_lugar` con su capacidad
+    (`anclajes_totales`, FIL_66)."""
+    query = (
+        "MATCH (l:Lugar) "
+        "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "MATCH (l)-[r:PROXIMO_A]-(v:ParadaTransporte {tipo: 'bicimad'}) "
+        "WHERE r.distancia_m <= $radio_m "
+        "RETURN v.id AS estacion_id, v.nombre AS nombre, "
+        "v.anclajes_totales AS anclajes_totales, r.distancia_m AS distancia_m "
+        "ORDER BY distancia_m"
+    )
+    return query, {"nombre_lugar": nombre_lugar, "radio_m": radio_m}
+
+
+def lineas_que_pasan_por_query(estacion_id: str) -> "tuple[str, dict]":
+    """Líneas de transporte que sirven una parada, desde las aristas
+    `CONECTADO_CON` (su propiedad `linea`/`modo`). `estacion_id` es el `id`
+    completo del nodo (`"crtm_red_transporte_madrid:<stop_id>"`)."""
+    query = (
+        "MATCH (p:ParadaTransporte {id: $estacion_id})-[r:CONECTADO_CON]-() "
+        "RETURN DISTINCT r.modo AS modo, r.linea AS linea "
+        "ORDER BY modo, linea"
+    )
+    return query, {"estacion_id": estacion_id}
+
+
+def paradas_de_linea_query(linea: str, modo: str) -> "tuple[str, dict]":
+    """Todas las paradas de una línea (`modo` + `linea` de `CONECTADO_CON`),
+    ordenadas por nombre. `modo` distingue líneas homónimas de redes
+    distintas (p. ej. metro "1" vs. bus "1")."""
+    query = (
+        "MATCH (a:ParadaTransporte)-[r:CONECTADO_CON {linea: $linea}]-(b:ParadaTransporte) "
+        "WHERE r.modo = $modo "
+        "WITH collect(DISTINCT a) + collect(DISTINCT b) AS ps "
+        "UNWIND ps AS p "
+        "RETURN DISTINCT p.id AS parada_id, p.nombre AS nombre, "
+        "p.ubicacion.latitude AS lat, p.ubicacion.longitude AS lon "
+        "ORDER BY nombre"
+    )
+    return query, {"linea": linea, "modo": modo}
+
+
 @lru_cache
 def _driver_from_env():
     from neo4j import GraphDatabase  # import perezoso, ver docstring del módulo
