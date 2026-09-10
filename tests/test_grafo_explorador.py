@@ -99,6 +99,23 @@ class ConstruirArtefactoTests(unittest.TestCase):
         self.assertIn('fetch(ENDPOINT + "/vecindario?id="', html)
         self.assertLess(len(html), 40_000, "la variante live no debe llevar el grafo embebido")
 
+    def test_estados_y_a11y_consistentes(self):  # FIL_75
+        html = construir(live=True, endpoint="/grafo/explorador")
+        # patrón único de estado cargando/vacío/error/ok
+        self.assertIn("function estado(el, tipo, opts)", html)
+        self.assertIn('estado(meta, "error"', html)   # carga del grafo
+        self.assertIn('estado(det, "error"', html)    # vecindario de un nodo
+        self.assertIn('estado(est, "error"', html)    # cálculo de ruta
+        self.assertIn('className = "reintentar"', html)
+        # el banner global ya no vuelca el stack en pantalla, solo a consola
+        self.assertNotIn('mostrarError((ev.error&&ev.error.stack)', html)
+        self.assertIn("Se ha producido un error inesperado.", html)
+        # a11y mínima
+        self.assertIn('<div id="err" role="alert">', html)
+        self.assertIn('id="meta" aria-live="polite"', html)
+        self.assertIn(":focus-visible", html)
+        self.assertNotIn('catch(err){ return []; }', html)  # vecinosDe ya no traga el error
+
 
 if __name__ == "__main__":
     unittest.main()
