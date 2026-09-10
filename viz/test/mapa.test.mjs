@@ -38,7 +38,7 @@ const pageScript = html.match(/<script>\n([\s\S]*?)<\/script>/)[1];
 // `MapboxOverlay.setProps` ejecuta de verdad los accessors de la capa de
 // nodos (color/altura) sobre una muestra de índices: así los tests ven un
 // `throw` dentro de `nodeColor`/`nodeElev` (que con el stub plano pasaba
-// desapercibido) y el coste O(n²) de FIL_88 si se pierde la memoización.
+// desapercibido) y el coste O(n²) de FIL_94 si se pierde la memoización.
 async function montar() {
   const vc = new VirtualConsole();
   const errors = [];
@@ -197,14 +197,14 @@ test("FIL_56 · disparar todos los controles no lanza ninguna excepción", async
   click($("play"));
 
   assert.deepEqual(errors.slice(before), [], "excepciones al disparar los controles");
-  // FIL_88: los accessors de la capa de nodos se ejecutaron de verdad
+  // FIL_94: los accessors de la capa de nodos se ejecutaron de verdad
   // (montar() los llama); si alguna combinación métrica/escala/repr/perfil
   // rompiera `nodeColor`/`nodeElev`, `render()` lo captaría y mostraría el
   // banner. No debe estar visible tras un recorrido sano.
   assert.equal($("err").style.display, "none", `#err visible: ${$("err").textContent}`);
 });
 
-test("FIL_88 · metricArr memoiza el vector de perfil/dosis (no O(n²) por render)", async () => {
+test("FIL_94 · metricArr memoiza el vector de perfil/dosis (no O(n²) por render)", async () => {
   const { win } = await montar();
   // salud (perfil): sin memo, `metricArr()` reconstruía el array 1798·2
   // veces por render. Con memo, dos llamadas seguidas con el mismo estado
@@ -219,7 +219,7 @@ test("FIL_88 · metricArr memoiza el vector de perfil/dosis (no O(n²) por rende
   assert.notEqual(win.metricArr(), antes, "la caché no se invalidó al cambiar de perfil");
 });
 
-test("FIL_88 · un throw dentro del render no congela el mapa (banner + recuperación)", async () => {
+test("FIL_94 · un throw dentro del render no congela el mapa (banner + recuperación)", async () => {
   const { win, $ } = await montar();
   const layersOk = win.layers;
   win.layers = () => { throw new Error("fallo simulado en layers()"); };
@@ -232,7 +232,7 @@ test("FIL_88 · un throw dentro del render no congela el mapa (banner + recupera
   assert.equal($("err").style.display, "none", "el banner no se ocultó tras recuperar");
 });
 
-test("FIL_88 · «bandas OMS·UE» tiñe de verdad las métricas de dosis", async () => {
+test("FIL_94 · «bandas OMS·UE» tiñe de verdad las métricas de dosis", async () => {
   const { win, $ } = await montar();
   win.document.querySelector('.met[data-m="dosis_o3"]').click();
   win.document.querySelector('.es[data-e="bandas"]').click();
@@ -240,7 +240,7 @@ test("FIL_88 · «bandas OMS·UE» tiñe de verdad las métricas de dosis", asyn
   assert.equal($("leg").style.display, "none", "la leyenda de degradado no se ocultó");
 });
 
-test("FIL_88 · los capítulos no se filtran estado entre sí (escala vuelve a lineal)", async () => {
+test("FIL_94 · los capítulos no se filtran estado entre sí (escala vuelve a lineal)", async () => {
   const { win } = await montar();
   const caps = win.document.querySelectorAll("#hist-caps button");
   caps[1].click(); // cap. 2: dosis_o3 + bandas
