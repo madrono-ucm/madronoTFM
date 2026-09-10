@@ -46,14 +46,14 @@ def metricas() -> "dict[str, int]":
     """Copia de los contadores de observabilidad del chat (FIL_73)."""
     return dict(_METRICAS)
 
-# Modelo por defecto: `llama-3.3-70b-versatile` en Groq (tier gratuito) --
-# rápido y sólido en tool-calling. Se probó `qwen/qwen3.8-27b`, que también
-# sigue el bucle de forma estable, pero **razona por defecto**: en el
-# despliegue se midieron respuestas de ~18 s por llamada al LLM (bloque
-# `<think>` largo, ver `llm_dur_ms` en el log, FIL_73) -> chat lento. Con
-# un modelo qwen configurado se le manda `reasoning_effort="none"` (ver
-# `_extra_kw`) para quitar ese sobrecoste. `openai/gpt-oss-120b` se
-# descartó antes (FIL_70: alucinaba nombres de tool en la ronda de prosa).
+# Modelo por defecto: `qwen/qwen3.8-27b` en Groq (tier gratuito). Es el que
+# sigue el bucle de tool-calling de forma estable (`openai/gpt-oss-120b`
+# alucinaba nombres de tool en la ronda de prosa, FIL_70). Por defecto
+# **razona**, y en el despliegue eso daba ~18 s por llamada (`<think>`
+# largo, ver `llm_dur_ms` en el log, FIL_73); `_extra_kw()` le manda
+# `reasoning_effort="none"` para que responda directo (~10x más rápido,
+# verificado contra la API). No se usa `llama-3.3-70b-versatile`: ya no
+# está disponible en la clave de Groq de este proyecto (`model_not_found`).
 #
 # Proveedor configurable por entorno (FIL_70): apunta `LLM_BASE_URL` a otro
 # endpoint OpenAI-compatible + `LLM_MODEL` + `LLM_API_KEY`, sin tocar código.
@@ -61,7 +61,7 @@ def metricas() -> "dict[str, int]":
 # (`https://generativelanguage.googleapis.com/v1beta/openai/`,
 # `gemini-2.0-flash` -- tier gratuito generoso), OpenRouter modelos `:free`,
 # o vLLM/Ollama propios. Cerebras NO tiene tier gratuito.
-_MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile")
+_MODEL = os.environ.get("LLM_MODEL", "qwen/qwen3.8-27b")
 _LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or None
 
 
