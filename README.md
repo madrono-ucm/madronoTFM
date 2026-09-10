@@ -173,7 +173,12 @@ bugs encontrados en el despliegue: `doc/FIL-63-app-web-m1-desplegada.md`,
 
 ## Mapa animado del grafo
 
-**En vivo: https://madrono-ucm.github.io/madronoTFM/**
+**En vivo: https://madrono-ucm.github.io/madronoTFM/** — con recorrido
+guiado de 6 capítulos y chat contra el asistente (`FIL_69`). El capítulo 6
+enlaza al **explorador del grafo en vivo**:
+`https://35-42-164-183.nip.io/grafo/explorador` (grafo real de Neo4j,
+~9.600 nodos, con su propio chat — `FIL_67`/`FIL_68`; usuario/contraseña de
+demo `demo`/`demo`).
 
 [`viz/`](viz/README.md) — el grafo de 1.798 nodos de tráfico sobre Madrid,
 animado hora a hora con la previsión de los STGNN de grafo (`trafico` +

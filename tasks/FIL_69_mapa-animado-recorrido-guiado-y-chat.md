@@ -2,7 +2,8 @@
 kind: fil
 title: "Mapa animado: recorrido guiado (storytelling), rutas céntricas y chat con el asistente (MCP)"
 owner: Filippos (interactive)
-status: in_review
+status: done
+resolved_at: "2026-09-10"
 allow_infra_apply: false
 created_at: "2026-09-09"
 depends_on: [FIL_34, FIL_37, FIL_62, FIL_64, FIL_66]
@@ -75,9 +76,14 @@ tocaron), opcional.
 - Playwright (Chromium real): capítulos cambian `state` y sincronizan los
   selects; ruta Sol→Atocha se dibuja; 0 errores de página.
 
-## Pendiente / notas
+## Resuelto (2026-09-10)
 
-- El chat necesita el asistente accesible desde el navegador; con la página
-  en `gh-pages` apunta a la EC2 (CORS `*` ya configurado, `FIL_62`).
-- `FIL_68` (eco visual del chat en el mapa) sigue abierto como mejora.
-- Refrescar `gh-pages` con el flujo de `FIL_42` para publicar el recorrido.
+Fusionado (PRs #249/#252, commits `2a54ffd` / `8dc7c50` en `main`) y
+publicado: la version en gh-pages ya trae los 6 capitulos + el chat
+(verificado en vivo: `CAPITULOS`, `mkHistoria`, `mkChat` presentes). El
+eco visual del chat en el mapa se cerro aparte en `FIL_68`. El chat
+apunta a la EC2 desde gh-pages (CORS `*`, `FIL_62`).
+
+Nota: la EC2 aun sirve un build anterior del asistente; el redespliegue
+(git pull + restart de `madrono-web.service`) recoge FIL_68/71/72/73/75.
+

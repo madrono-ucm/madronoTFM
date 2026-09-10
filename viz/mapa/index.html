@@ -818,6 +818,7 @@ const CAPITULOS = [
    a:()=>setEstado({metric:"dosis_o3", ghost:false, escala:"bandas", hour:16, route:-1})},
   {t:"3 · Laborable vs domingo",
    d:"El mismo O₃ en domingo (08-23): sin la punta de tráfico laboral, el patrón del aire cambia. Compara con el capítulo 2 (miércoles).",
+   // "2026-08-23" es uno de los DIAS_CURADOS (FIL_90); actualizar a mano si cambian
    a:()=>setEstado({metric:"dosis_o3", day:"2026-08-23", escala:"bandas", hour:16, route:-1})},
   {t:"4 · Ruta saludable vs rápida",
    d:"Sol → Atocha, perfil ciclista: la ruta verde (saludable) evita ~27 % de exposición ponderada frente a la gris (la más corta) a las 8:00.",
@@ -826,7 +827,7 @@ const CAPITULOS = [
    d:"La misma Sol → Atocha con perfil general: otros pesos de NO₂/O₃/ruido/tráfico → otro camino y otra reducción. El mapa colorea por «salud (perfil)».",
    a:()=>setEstado({route:rutaIdx("Sol","Atocha","general"), perfil:"general", metric:"salud_perfil"})},
   {t:"6 · Hallazgos del grafo real (Neo4j)",
-   d:"Fuera de este mapa, en el grafo de Neo4j: 683 puntos de articulación en la red de transporte · Louvain la parte en 54 comunidades (modularidad 0,93) frente a los 131 barrios administrativos · el 96 % de los sensores de tráfico no tienen estación de aire a ≤300 m · Fuencarral 544 sensores vs Vicálvaro 62. Explóralo en «grafo_explorador.html» / <code>/grafo/explorador</code>.",
+   d:"Fuera de este mapa, en el grafo de Neo4j: 683 puntos de articulación en la red de transporte · Louvain la parte en 54 comunidades (modularidad 0,93) frente a los 131 barrios administrativos · el 96 % de los sensores de tráfico no tienen estación de aire a ≤300 m · Fuencarral 544 sensores vs Vicálvaro 62. Explóralo en vivo: <a href=\"https://35-42-164-183.nip.io/grafo/explorador\" target=\"_blank\" rel=\"noopener\">explorador del grafo →</a> (usuario/contraseña de demo: demo / demo).",
    a:()=>setEstado({metric:"salud", ghost:false, route:-1})},
 ];
 let histIdx = -1;
