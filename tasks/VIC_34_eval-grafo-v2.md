@@ -78,3 +78,15 @@ regenerarlo antes de la entrega.
 
 Detalle completo, con las cifras finales del grafo para `VIC_38`, en
 [`doc/VIC-34-eval-grafo-v2.md`](../doc/VIC-34-eval-grafo-v2.md).
+
+## Adenda (2026-09-10, Claude) — superseded por la recarga de `FIL_89`
+
+Este ticket detectó (punto 3, `subarea`) el síntoma que `VIC_35`
+diagnosticó como causa raíz en `FIL_89` (ventana deslizante sobre
+`current_date`). Al aplicar el fix de `FIL_89` se repitió la carga real
+del grafo, y las cifras de arriba quedan ligeramente desactualizadas:
+9806→9812 nodos, 76002→76156 relaciones, `subarea` 4413/4705→4439/4705
+(el resto de atributos, sin cambio). Detalle completo de la recarga y de
+por qué `subarea` no llegó a 4705/4705 en
+[`tasks/FIL_89_grafo_extract_recent_date_filter_ventana_deslizante.md`](FIL_89_grafo_extract_recent_date_filter_ventana_deslizante.md).
+La memoria (`VIC_38`) ya se corrigió con las cifras nuevas.

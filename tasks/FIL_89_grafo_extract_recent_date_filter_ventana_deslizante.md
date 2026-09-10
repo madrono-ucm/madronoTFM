@@ -2,10 +2,72 @@
 kind: fil
 title: "grafo/extract.py: _recent_date_filter usa current_date real -> se queda sin datos ~13/9, antes de la entrega"
 owner: Claude (QA, VIC_35)
-status: pending
+status: done
 depends_on: [FIL_84]
 created_at: "2026-09-10"
 ---
+
+## Hecho (2026-09-10, Claude)
+
+Elegida la "alternativa más simple" del propio ticket sobre anclar a una
+fecha configurable: **se quitó el filtro de ventana reciente por completo**
+en las 7 funciones afectadas (`fetch_estaciones_trafico`,
+`fetch_estaciones_calidad_aire`, `fetch_estaciones_ruido`,
+`fetch_paradas_emt`, `fetch_paradas_bicimad`, `fetch_lugares_aparcamientos`,
+`fetch_lugares_cartelera_cines` — `fetch_recintos_eventos_silver`, la 8ª
+que citaba el ticket, ya no usaba el filtro, discrepancia menor del propio
+ticket con el código real). Mismo criterio que ya usaban
+`fetch_estaciones_meteo`/`fetch_recintos_eventos_silver` desde el
+principio: tablas pequeñas o moderadas (la mayor, `trafico_por_punto_hora`,
+del orden de 1,6M filas con la ingesta congelada), identidad de entidad
+que no caduca, escanear el histórico completo es correcto y barato — y,
+sobre todo, no depende de cuándo se ejecute la consulta, a diferencia de
+anclar a una fecha que alguien tendría que recordar mantener. Se eligió
+frente a la opción de anclaje porque el propio criterio de aceptación
+("no depende de cuándo se ejecuta la consulta") se cumple mejor sin
+ninguna variable de entorno que alguien pueda olvidar fijar. Se retiraron
+`_RECENT_WINDOW_DAYS` y `_recent_date_filter()` (sin usuarios tras el
+cambio) y se reescribió la sección del docstring del módulo que explicaba
+el criterio antiguo.
+
+**Verificación de código**: nuevo test `test_sin_ventana_reciente_ninguna_
+fetch_gold_depende_del_reloj` en `grafo/tests/test_extract.py` confirma,
+para las 7 funciones, que el SQL generado no contiene `current_date` ni
+`WHERE`. Suite `grafo/`: 133 passed, 1 skipped, 7 subtests.
+
+**Verificación end-to-end (recarga real del grafo)**: ejecutado
+`python -m grafo.cargar_grafo` contra la instancia AuraDB real (14,4 min,
+exit 0) para confirmar que el fix no rompe nada y refrescar las cifras que
+`VIC_34` había verificado el mismo día. Resultado, con consultas
+Cypher/Athena reales tras la recarga:
+
+| Cifra | `VIC_34` (con ventana) | Tras el fix (sin ventana) |
+|---|---|---|
+| Nodos totales | 9806 | 9812 |
+| Relaciones totales | 76002 | 76156 |
+| `contaminantes` (aire) | 23/23 | 23/23 (sin cambio) |
+| `magnitudes` (meteo) | 25/25 | 25/25 (sin cambio) |
+| `anclajes_totales` (bicimad) | 680/680 | 680/680 (sin cambio) |
+| `plazas_totales` (aparcamiento) | 22/26 | 22/26 (sin cambio — nulos reales en Gold) |
+| `subarea` (tráfico) | 4413/4705 | **4439/4705** |
+
+**Hallazgo real durante la verificación**: `subarea` solo subió 26 puntos
+(no los ~292 que se esperaba si el hueco fuera puramente de ventana).
+Investigado con una consulta Athena directa: los 266 puntos que siguen
+sin `subarea` **nunca la han reportado en ninguna de sus ~350 lecturas
+horarias desde el 15 de agosto** (verificado con `COUNT(subarea) = 0`
+agrupado por `point_id` sobre el histórico completo) — es una
+característica real de esos puntos en la fuente (probablemente no
+mapean a ninguna subárea de tráfico definida), no un artefacto de la
+ventana de 14 días como asumía el análisis original de `VIC_34`/`FIL_89`.
+Corregido el texto correspondiente en la memoria (`documents/Memoria_TFM
+FV.docx`, párrafo de §7.4 sobre los atributos de `FIL_66`) para reflejar
+la cifra y la causa real en vez de la asunción anterior.
+
+No se abre ticket nuevo por este hallazgo — es una nota de calidad de
+datos de bajo impacto (5,7% de los puntos de tráfico sin subárea, dato
+que no bloquea ninguna tool ni cambia ninguna conclusión de la memoria),
+ya documentada aquí y en la memoria.
 
 ## Contexto
 
