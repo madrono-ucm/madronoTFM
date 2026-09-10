@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timedelta
+from typing import Literal
 
 from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, sql_literal
 from asistente import contexto_urbano as _ctx
@@ -71,12 +72,14 @@ from asistente.neo4j_client import (
     estaciones_calidad_aire_que_miden_query,
     estaciones_meteo_cerca_query,
     lineas_que_pasan_por_query,
+    lugares_que_contienen_query,
     lugares_proximos_a_estaciones_calidad_aire_query,
     lugares_proximos_a_estaciones_ruido_query,
     lugares_proximos_a_estaciones_trafico_query,
     lugares_proximos_a_paradas_bicimad_query,
     lugares_proximos_a_paradas_emt_query,
     paradas_de_linea_query,
+    normalizar_contaminante,
     recintos_cerca_query,
     resolver_lugar_query,
     run_neo4j_query,
@@ -2491,11 +2494,17 @@ def _consulta_grafo_impl(
     base = dict(plantilla=plantilla, plantillas_disponibles=disponibles)
     entrada = _PLANTILLAS_GRAFO.get(plantilla)
     if entrada is None:
-        return ConsultaGrafo(**base, motivo=f"plantilla desconocida; usa una de {disponibles}")
+        return ConsultaGrafo(
+            **base,
+            motivo=f"plantilla «{plantilla}» desconocida; usa exactamente una de {disponibles}",
+        )
 
     builder, requeridos, _doc = entrada
+    # FIL_72: normaliza el contaminante ("ozono"/"O₃"/"8" -> "O3") antes de
+    # construir la query -- era la causa más habitual de 0 filas.
+    cont_norm = normalizar_contaminante(contaminante) if contaminante else ""
     params = {
-        "lugar": lugar, "radio_m": radio_m, "contaminante": contaminante,
+        "lugar": lugar, "radio_m": radio_m, "contaminante": cont_norm,
         "estacion_id": estacion_id, "linea": linea, "modo": modo,
     }
     faltan = [k for k in requeridos if not params.get(k)]
@@ -2504,20 +2513,55 @@ def _consulta_grafo_impl(
                              motivo=f"faltan parametros obligatorios para «{plantilla}»: {faltan}")
 
     usados = {k: params[k] for k in requeridos}
+    diag = {}
+    if "lugar" in requeridos:
+        diag["radio_m"] = radio_m
+    if "contaminante" in requeridos:
+        diag["contaminante_normalizado"] = cont_norm
     try:
         query, qparams = builder(params)
         filas = run_neo4j_query(query, qparams, driver=neo4j_driver)
     except Exception as exc:  # noqa: BLE001 - FIL_15: nunca excepcion hacia el cliente MCP
-        return ConsultaGrafo(**base, parametros=usados,
+        return ConsultaGrafo(**base, parametros=usados, **diag,
                              motivo=f"fallo consultando Neo4j: {type(exc).__name__}: {exc}")
 
     filas = [{k: v for k, v in f.items() if v is not None} for f in filas]
+
+    # FIL_72: 0 filas y la plantilla necesita `lugar` -> sonda de anclaje,
+    # para distinguir «el lugar no existe» de «no hay nada del tipo pedido
+    # cerca». No propaga excepción (mismo contrato).
+    if not filas and "lugar" in requeridos:
+        try:
+            q_l, p_l = lugares_que_contienen_query(lugar)
+            diag["lugares_candidatos"] = [
+                f.get("nombre") for f in run_neo4j_query(q_l, p_l, driver=neo4j_driver) if f.get("nombre")
+            ]
+        except Exception:  # noqa: BLE001
+            pass
+        pistas = []
+        if not diag.get("lugares_candidatos"):
+            pistas.append(f"ningún :Lugar contiene «{lugar}»")
+        if "contaminante" in requeridos:
+            pistas.append(f"contaminante normalizado a «{cont_norm}»")
+        pistas.append(f"radio {radio_m:.0f} m (PROXIMO_A no se cargó por encima de ~300 m)")
+        return ConsultaGrafo(**base, parametros=usados, disponible=True, n_filas=0,
+                             motivo="0 resultados — " + "; ".join(pistas), **diag)
+
     return ConsultaGrafo(**base, parametros=usados, disponible=True,
-                         n_filas=len(filas), filas=filas[:100])
+                         n_filas=len(filas), filas=filas[:100], **diag)
 
 
 def consulta_grafo(
-    plantilla: str,
+    plantilla: Literal[
+        "vecindario",
+        "aire_que_mide",
+        "meteo_cerca",
+        "recintos_cerca",
+        "aparcamientos_cerca",
+        "bicimad_cerca",
+        "lineas_de_parada",
+        "paradas_de_linea",
+    ],
     lugar: str = "",
     radio_m: float = 300.0,
     contaminante: str = "",
@@ -2550,11 +2594,19 @@ def consulta_grafo(
     excepcion (`FIL_15`). `radio_m` util maximo ~300 m (umbral con que se
     cargo `PROXIMO_A`).
 
+    `plantilla` es un `enum` cerrado (FIL_72): un valor inventado se rechaza
+    al instante con `plantillas_disponibles`. Cuando una plantilla `*_cerca`
+    da 0 filas, la respuesta incluye el `radio_m` usado, el `contaminante`
+    ya normalizado y los `lugares_candidatos` (`:Lugar` cuyo nombre contiene
+    el texto) para entender por qué.
+
     Args:
-        plantilla: nombre de la plantilla (ver arriba).
+        plantilla: una de las 8 (ver lista arriba); no acepta otros valores.
         lugar: nombre parcial de un `:Lugar` (se resuelve por texto).
-        radio_m: radio de busqueda en metros (defecto 300).
-        contaminante: solo `aire_que_mide` — codigo de contaminante.
+        radio_m: radio de busqueda en metros (defecto 300; por encima de
+            ~300 m no hay relaciones `PROXIMO_A` cargadas).
+        contaminante: solo `aire_que_mide` — «ozono»/«O₃»/«O3»/«8»/… se
+            normaliza al codigo de Gold («O3», «NO2», «PM10»…).
         estacion_id: solo `lineas_de_parada` — id completo del nodo parada.
         linea, modo: solo `paradas_de_linea`.
     """

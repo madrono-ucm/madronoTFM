@@ -25,8 +25,56 @@ proceso (mismo patrón que `grafo/cargar_grafo.py::main()`).
 from __future__ import annotations
 
 import os
+import unicodedata
 from functools import lru_cache
 from typing import Optional
+
+# FIL_72: `e.contaminantes` (FIL_66) usa los códigos de Gold ("NO2", "O3",
+# "PM10", "PM2.5", "SO2", "CO", "BEN"). El LLM y las personas escriben
+# "ozono", "O₃", "dióxido de nitrógeno", "partículas", el nº de magnitud…
+# Se normaliza antes de construir la query para que "¿qué estación cerca de
+# Retiro mide ozono?" no devuelva 0 filas.
+_CONTAMINANTE_ALIAS = {
+    "o3": "O3", "ozono": "O3", "o₃": "O3", "trioxigeno": "O3", "trioxígeno": "O3", "14": "O3",
+    "no2": "NO2", "dioxido de nitrogeno": "NO2", "dióxido de nitrógeno": "NO2",
+    "nitrogeno": "NO2", "nitrógeno": "NO2", "8": "NO2",
+    "pm10": "PM10", "particulas pm10": "PM10", "particulas": "PM10", "particulas gruesas": "PM10", "10": "PM10",
+    "pm2.5": "PM2.5", "pm25": "PM2.5", "pm2,5": "PM2.5", "particulas finas": "PM2.5", "9": "PM2.5",
+    "so2": "SO2", "dioxido de azufre": "SO2", "dióxido de azufre": "SO2", "azufre": "SO2", "1": "SO2",
+    "co": "CO", "monoxido de carbono": "CO", "monóxido de carbono": "CO", "6": "CO",
+    "ben": "BEN", "benceno": "BEN", "30": "BEN",
+    "nox": "NOX", "12": "NOX", "no": "NO", "7": "NO",
+}
+
+
+def normalizar_contaminante(valor: str) -> str:
+    """`"ozono"` / `"O₃"` / `"8"` → el código de Gold correspondiente
+    (`"O3"`, `"NO2"`…). Si no hay alias, devuelve el valor en mayúsculas y
+    sin acentos (ya podría ser un código válido — se deja pasar)."""
+    if not valor:
+        return ""
+    plano = (
+        unicodedata.normalize("NFKD", str(valor).strip().lower())
+        .encode("ascii", "ignore")
+        .decode()
+    )
+    if plano in _CONTAMINANTE_ALIAS:
+        return _CONTAMINANTE_ALIAS[plano]
+    # "o₃" -> tras NFKD queda "o3"; "pm2.5" se mantiene. Reintento por si el
+    # alias está sin el punto/coma.
+    return _CONTAMINANTE_ALIAS.get(plano.replace(" ", ""), plano.upper())
+
+
+def lugares_que_contienen_query(nombre_lugar: str) -> "tuple[str, dict]":
+    """Sonda de diagnóstico (FIL_72): los `:Lugar` cuyo nombre contiene el
+    texto pedido, sin seguir ninguna relación. Se usa cuando una plantilla
+    `*_cerca` devuelve 0 filas para distinguir «el lugar no existe» de «el
+    lugar existe pero no hay nada del tipo pedido dentro del radio»."""
+    query = (
+        "MATCH (l:Lugar) WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
+        "RETURN l.nombre AS nombre ORDER BY size(l.nombre) LIMIT 8"
+    )
+    return query, {"nombre_lugar": nombre_lugar}
 
 
 def lugares_proximos_a_estaciones_trafico_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
@@ -106,21 +154,31 @@ def estaciones_calidad_aire_que_miden_query(
     distinto -- p. ej. muchas no tienen O₃). Sin este filtro, la estación
     más cercana puede no servir para el contaminante pedido.
 
-    `contaminante` se compara en mayúsculas contra los códigos de Gold
-    (`"NO2"`, `"O3"`, `"PM10"`, `"PM2.5"`, ...). Si `e.contaminantes` no
-    existe en el nodo (grafo cargado antes de FIL_66), la condición
-    `contaminante IN e.contaminantes` es falsa y la estación se descarta --
-    recargar el grafo para que vuelva a estar disponible."""
+    `contaminante` se **normaliza** (`normalizar_contaminante`: "ozono"/"O₃"/
+    "8" → "O3", etc., FIL_72) al código de Gold antes de comparar contra
+    `e.contaminantes`. Si `e.contaminantes` no existe en el nodo (grafo
+    cargado antes de FIL_66), la condición `contaminante IN e.contaminantes`
+    es falsa y la estación se descarta -- recargar el grafo para que vuelva
+    a estar disponible.
+
+    Anclaje: parte del `:Lugar` cuyo nombre CONTIENE `nombre_lugar` (texto,
+    case-insensitive) y sigue `PROXIMO_A` **no dirigido** hasta la estación.
+    `radio_m` filtra `r.distancia_m`; por encima de ~300 m no hay relaciones
+    cargadas (umbral de la tarea 070), así que subir el radio no encuentra
+    más -- si da 0 filas, el problema suele ser el nombre del lugar o el
+    contaminante, no el radio (FIL_72)."""
+    cont = normalizar_contaminante(contaminante)
     query = (
         "MATCH (l:Lugar) "
         "WHERE toLower(l.nombre) CONTAINS toLower($nombre_lugar) "
         "MATCH (l)-[r:PROXIMO_A]-(e:EstacionMedida {tipo: 'calidad_aire'}) "
-        "WHERE r.distancia_m <= $radio_m AND toUpper($contaminante) IN e.contaminantes "
+        "WHERE r.distancia_m <= $radio_m AND $contaminante IN e.contaminantes "
         "RETURN l.id AS lugar_id, l.nombre AS lugar_nombre, "
-        "e.id AS estacion_id, e.contaminantes AS contaminantes, r.distancia_m AS distancia_m "
+        "e.id AS estacion_id, e.nombre AS estacion_nombre, "
+        "e.contaminantes AS contaminantes, r.distancia_m AS distancia_m "
         "ORDER BY distancia_m"
     )
-    return query, {"nombre_lugar": nombre_lugar, "contaminante": contaminante, "radio_m": radio_m}
+    return query, {"nombre_lugar": nombre_lugar, "contaminante": cont, "radio_m": radio_m}
 
 
 def lugares_proximos_a_paradas_bicimad_query(nombre_lugar: str, radio_m: float) -> "tuple[str, dict]":
