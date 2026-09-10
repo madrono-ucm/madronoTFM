@@ -18,12 +18,41 @@ from __future__ import annotations
 import heapq
 import json
 import math
+import unicodedata
 from pathlib import Path
 
 _ARTEFACTO = Path(__file__).resolve().parent / "modelos" / "grafo_ruta.json"
 _estado: "dict[str, object]" = {}
 _SENALES = ("traf", "no2", "o3", "noise")
 _HORAS = tuple(range(24))
+
+
+def _plano(s: str) -> str:
+    """minúsculas, sin acentos ni signos, para comparar nombres de lugar."""
+    s = unicodedata.normalize("NFKD", str(s).strip().lower()).encode("ascii", "ignore").decode()
+    return "".join(c for c in s if c.isalnum() or c == " ").strip()
+
+
+def resolver_lugar(texto: str, lugares: "list[str]") -> "str | None":
+    """Resuelve `texto` a uno de `lugares` de forma tolerante: exacto →
+    ignorando mayúsculas/acentos → el nombre que aparece contenido en el
+    texto (o viceversa) → prefijo de una sola palabra. `None` si nada casa
+    de forma inequívoca (0 candidatos, o >1 por 'contiene')."""
+    if not texto:
+        return None
+    if texto in lugares:
+        return texto
+    t = _plano(texto)
+    por_plano = {_plano(l): l for l in lugares}
+    if t in por_plano:
+        return por_plano[t]
+    contiene = [l for p, l in por_plano.items() if p and (p in t or t in p)]
+    if len(contiene) == 1:
+        return contiene[0]
+    pref = [l for p, l in por_plano.items() if p.split()[0] == t.split()[0]]
+    if len(pref) == 1:
+        return pref[0]
+    return None
 
 
 def disponible(*, artefacto: Path = _ARTEFACTO) -> bool:
@@ -150,10 +179,17 @@ def ruta(origen: str, destino: str, perfil: str = "general", *, dia: str, hora: 
     g = _cargar(_ARTEFACTO)
     if perfil not in g["perfiles"]:
         raise ValueError(f"perfil {perfil!r} no válido; usa {list(g['perfiles'])}")
-    if origen not in g["lugares"] or destino not in g["lugares"]:
+    nombres = sorted(g["lugares"])
+    o_nom = resolver_lugar(origen, nombres)
+    d_nom = resolver_lugar(destino, nombres)
+    faltan = [n for n, v in (("origen", o_nom), ("destino", d_nom)) if v is None]
+    if faltan:
+        malo = origen if o_nom is None else destino
         raise ValueError(
-            f"lugar no reconocido; opciones: {', '.join(sorted(g['lugares']))}"
+            f"no reconozco «{malo}» como {faltan[0]}. Solo puedo enrutar entre estos "
+            f"puntos de referencia: {', '.join(nombres)}"
         )
+    origen, destino = o_nom, d_nom
     if dia not in g["exposicion"] or not (0 <= hora <= 23):
         raise ValueError(f"día/hora fuera de rango; días: {g['dias']}, hora 0..23")
 

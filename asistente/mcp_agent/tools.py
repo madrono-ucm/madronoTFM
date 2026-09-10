@@ -2329,7 +2329,8 @@ def _ruta_saludable_impl(origen: str, destino: str, perfil: str, momento: "datet
         o3_medio=t["o3_medio"], noise_medio=t["noise_medio"],
     )
     return RutaSaludable(
-        **base, dia=dia, hora=hora, disponible=True,
+        **{**base, "origen": r["origen"], "destino": r["destino"]},
+        dia=dia, hora=hora, disponible=True,
         ruta_sana=tramo(r["ruta_sana"]), ruta_rapida=tramo(r["ruta_rapida"]),
         delta_distancia_pct=r["delta_distancia_pct"],
         reduccion_exposicion_pct=r["reduccion_exposicion_pct"],
