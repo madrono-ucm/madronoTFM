@@ -172,6 +172,13 @@ class ResilienciaTests(unittest.TestCase):
         self.assertLessEqual(r["frag_mayor_al_5pct"]["dirigido"],
                              r["frag_mayor_al_5pct"]["aleatorio"] + 1e-9)
 
+    def test_curva_robustez_documenta_el_sesgo_del_recalc_por_lotes(self):  # FIL_86
+        _, gc = construir_grafos(self._g())
+        r = curva_robustez(gc, frac_max=0.5, recalc_cada=3, reps_aleatorio=1)
+        self.assertIn("_nota_dirigido", r)
+        self.assertIn("3", r["_nota_dirigido"])  # cita el recalc_cada real usado
+        self.assertIn("FIL_86", r["_nota_dirigido"])
+
     def test_resiliencia_transporte_agrega(self):
         _, gc = construir_grafos(self._g())
         res = resiliencia_transporte(gc)

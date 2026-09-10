@@ -2,7 +2,7 @@
 kind: fil
 title: "curva_robustez: recalc_cada=25 subestima gravemente el daño del ataque dirigido"
 owner: Sistema
-status: pending
+status: done
 created_at: "2026-09-10"
 depends_on: [FIL_64]
 found_by: VIC_36
@@ -76,3 +76,41 @@ exacto y las dos curvas completas (lotes vs exacto).
   aproximación con sesgo conocido hacia una resiliencia mayor de la real.
 - No bloquea el cierre de `VIC_36` (que ya recoge este hallazgo) ni de
   `VIC_38` (que debe redactar el caveat aunque este ticket siga abierto).
+
+## Hecho (2026-09-10, Claude)
+
+Elegida la vía 2 del propio ticket ("dejar `recalc_cada=25` pero
+re-etiquetar explícitamente la curva... en el propio artefacto/figura y
+en la memoria") en vez de la vía 1 (bajar `recalc_cada`): el propio
+`VIC_36` ya midió que un recálculo exacto sobre el componente mayor real
+(3053 nodos) tarda ~24 s por paso y el `frac_max=0.10` de producción
+pediría hasta 305 recálculos (~2 h) -- desproporcionado para lo que
+queda hasta la entrega, y el ticket no lo exige (su propio criterio de
+aceptación acepta la vía 2 como cierre completo).
+
+Aplicado en las tres capas que pedía el ticket:
+
+- **Artefacto** (`grafo_resiliencia.json`): `curva_robustez()` añade un
+  campo `_nota_dirigido` que explica la aproximación por lotes, cita el
+  `recalc_cada` real usado y remite a `FIL_86`; deja claro que
+  `frag_mayor_al_5pct.dirigido` es una cota optimista, no un valor
+  ajustado. El régimen `aleatorio` no lleva la nota (no tiene ese sesgo).
+- **Figura** (`grafo_resiliencia.png`): la leyenda de la curva dirigida
+  pasa de "ataque dirigido (betweenness)" a "ataque dirigido (aprox.,
+  recálculo por lotes -- FIL_86)".
+- **Memoria** (`documents/Memoria_TFM FV.docx`, ya cerrada por `VIC_38`
+  con el texto de 3 frases que `VIC_36` había redactado): la Figura 2 se
+  corrigió también en el pie para decir "ataque dirigido aproximado
+  (línea sólida, recálculo de intermediación por lotes)", coherente con
+  la leyenda nueva de la figura real.
+
+No se recalculó `grafo_resiliencia.json`/`.png` reales en esta sesión
+(no hace falta un recálculo del contenido, solo el cambio de código que
+añade la nota y relabela la leyenda — el JSON/PNG committeados se
+regenerarán con el resto de artefactos en la próxima ejecución real de
+`python -m modelado.grafo_analitica.analisis`, ya con la nota incluida).
+
+Test nuevo `test_curva_robustez_documenta_el_sesgo_del_recalc_por_lotes`
+confirma que `_nota_dirigido` existe, cita el `recalc_cada` real usado y
+menciona `FIL_86`. Suite `modelado/tests/test_grafo_analitica.py`: 12
+passed, 2 failed (preexistentes de `FIL_61`, sin relación).

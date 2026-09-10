@@ -374,6 +374,18 @@ def curva_robustez(G_conn: nx.Graph, frac_max: float = 0.10, recalc_cada: int = 
         "dirigido": dirig,
         "aleatorio": aleat,
         "frag_mayor_al_5pct": {"dirigido": _en(dirig, 0.05), "aleatorio": _en(aleat, 0.05)},
+        "_nota_dirigido": (
+            f"El régimen 'dirigido' recalcula el ranking de intermediación "
+            f"cada {recalc_cada} bajas (no en cada paso, inviable a esta "
+            f"escala) -- es una aproximación estándar en el estudio de "
+            f"robustez de redes, pero infraestima el daño real de un "
+            f"atacante que recalculase en cada paso (`FIL_86`: verificado en "
+            f"un subgrafo de contraste, la diferencia puede ser sustancial "
+            f"en el mismo punto de la curva). Léase 'frag_mayor_al_5pct."
+            f"dirigido' como una cota optimista de la resiliencia real bajo "
+            f"ataque dirigido, no como un valor ajustado. El régimen "
+            f"'aleatorio' no depende de ningún ranking y no tiene este sesgo."
+        ),
     }
 
 
@@ -521,7 +533,7 @@ def _figura_resiliencia(res: dict, path: Path):
     dy = [v for _, v in rob["dirigido"]]
     ax_ = [f * 100 for f, _ in rob["aleatorio"]]
     ay = [v for _, v in rob["aleatorio"]]
-    ax[0].plot(dx, dy, color="#d1495b", lw=2, label="ataque dirigido (betweenness)")
+    ax[0].plot(dx, dy, color="#d1495b", lw=2, label="ataque dirigido (aprox., recálculo por lotes -- FIL_86)")
     ax[0].plot(ax_, ay, color="#3d6ce0", lw=2, ls="--", label="fallo aleatorio (media)")
     ax[0].set_xlabel("% de paradas eliminadas")
     ax[0].set_ylabel("fragmento mayor / red intacta")
