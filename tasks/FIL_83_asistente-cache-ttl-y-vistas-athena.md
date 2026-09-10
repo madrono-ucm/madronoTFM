@@ -2,7 +2,7 @@
 kind: fil
 title: "Asistente: caché TTL en las rutas calientes + vistas Athena para los joins repetidos"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-09-10"
 depends_on: [FIL_73]
@@ -36,14 +36,40 @@ TTL generoso es seguro.
    `v_contexto_lugar` (lugar × sensores) — reducen el escaneo de las tools a
    una sola vista. `asistente/athena.py` pasa a leer las vistas si existen,
    con fallback a las tablas.
-4. **`_recent_date_filter()`** configurable (`ASSISTANT_DATE_WINDOW_DAYS`,
-   por defecto 14) — para poder ampliarlo mientras el pipeline siga
-   congelado sin recompilar.
+## Hecho
+
+- **`asistente/cache.py`** — `@cacheado(ttl_s, maxsize)` TTL + LRU, clave =
+  repr normalizado de `(args, kwargs)` ignorando los clientes inyectables
+  (`athena_client`/`neo4j_driver`/`driver`). `ultimo_fue_hit()` (thread-local).
+- **Aplicado** a `athena.run_athena_query` (`ttl_s=1800`) y
+  `neo4j_client.run_neo4j_query` (`ttl_s=900`).
+- **Opt-in por entorno**: `ASSISTANT_CACHE_TTL` (segundos). **Por defecto
+  `0` = desactivada** — decisión deliberada, más segura que default-on: la
+  suite de tests no cambia de comportamiento y el despliegue la activa
+  (`ASSISTANT_CACHE_TTL=900`). El TTL efectivo es `min(ttl_s, env)`.
+- **Vistas Athena**: `infra/athena/vistas_asistente.sql`
+  (`v_calidad_aire_ultima_hora`, `v_trafico_ultima_hora`,
+  `v_meteo_ultima_hora`). DDL versionado, **sin aplicar**
+  (`allow_infra_apply:false`); instrucciones de `start-query-execution` en
+  la cabecera del fichero.
+- `asistente/tests/test_cache.py` (7): default off, hit dentro del TTL,
+  clave distingue args, cliente inyectable no forma parte de la clave,
+  expiración, cota LRU, TTL efectivo = mínimo.
+
+## No hecho / follow-up
+
+- **`X-Cache: hit|miss`** en los routers — `ultimo_fue_hit()` es
+  thread-local y refleja la ÚLTIMA llamada cacheada; una tool que hace
+  varias consultas (Athena + Neo4j) no tiene un "hit" único de request.
+  Cosmético; se deja para cuando haya un contador en el log de FIL_73.
+- **`ASSISTANT_DATE_WINDOW_DAYS`** — no aplica limpio: no hay un
+  `_recent_date_filter()` único, cada tool lleva su ventana (`date IN
+  ('ayer','hoy')`) en el SQL. Se descarta.
+- **Lectura de las vistas en `athena.py`** con fallback a la tabla — las
+  vistas hay que aplicarlas primero; hasta entonces las tools siguen
+  leyendo las tablas directamente (sin regresión).
 
 ## Verificación
 
-- `asistente/tests/test_cache.py`: 2.ª llamada no invoca la función real,
-  expira tras `ttl`, `ttl=0` desactiva, la clave distingue argumentos.
-- Bench antes/después (script en `scratchpad`, no versionado): p50 de
-  `/contexto-urbano` y `/calidad-aire` en llamadas repetidas.
-- Suite `asistente/` verde; sin cambios de contrato de las tools.
+- `asistente/tests/test_cache.py` verde; suite `asistente/` completa verde
+  (219) con la caché desactivada por defecto — sin cambios de contrato.

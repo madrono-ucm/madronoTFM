@@ -2,7 +2,7 @@
 kind: fil
 title: "MCP: tool de meteorología cercana + tool de avisos meteorológicos AEMET"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-09-10"
 depends_on: [FIL_65]

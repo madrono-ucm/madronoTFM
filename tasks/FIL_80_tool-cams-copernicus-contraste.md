@@ -2,7 +2,7 @@
 kind: fil
 title: "MCP: calidad del aire de Copernicus CAMS como referencia independiente + contraste con el modelo propio"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-09-10"
 depends_on: [FIL_79]

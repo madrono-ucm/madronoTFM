@@ -2,7 +2,7 @@
 kind: fil
 title: "Analítica de grafo: centralidad (PageRank) y comunidades (Louvain) de la red de transporte — artefacto cacheado"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-09-10"
 depends_on: [FIL_64]
@@ -41,6 +41,20 @@ Faltan dos análisis de valor:
 3. **Recorrido guiado del mapa**: una línea en el capítulo 6 (hallazgos del
    grafo) con el top-3 de centralidad y el nº de comunidades vs 21 distritos.
 4. Sin GDS, sin coste AWS nuevo, sin tocar Neo4j en caliente.
+
+## Hecho
+
+- `centralidad_transporte()` ya calculaba intermediación/cercanía/grado;
+  se le añadió **PageRank** (`nx.pagerank`).
+- **`resumen_centralidad(cent, com)`** → `grafo_centralidad.json`
+  (top-12 por PageRank y por intermediación + resumen de comunidades
+  Louvain: 54 comunidades, modularidad 0,93 vs 131 barrios). Reusa
+  `comunidades_vs_barrios` (ya existía). Todo `networkx` offline sobre
+  el snapshot — **cero GDS**, cero Neo4j en caliente.
+- `/grafo/explorador/analisis` incluye `centralidad` (`_centralidad()`
+  lee el artefacto). El capítulo 6 del recorrido guiado cita las 54
+  comunidades.
+- Louvain con `seed=42` (ya estaba) → artefacto determinista.
 
 ## Verificación
 
