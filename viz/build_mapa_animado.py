@@ -45,6 +45,8 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from asistente.umbrales import BANDAS_UGM3  # noqa: E402
+
 _VIZ = Path(__file__).resolve().parent
 _GRAFO = json.loads((_VIZ / "grafo_madrid.json").read_text(encoding="utf-8"))
 _PARQUET = _VIZ / "data" / "prevision_animada.parquet"
@@ -203,9 +205,9 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
     # Umbrales de NO₂/O₃ (µg/m³) e índice de salud: cada banda es "valor por
     # encima del corte i". Los nombres se muestran tal cual en la leyenda.
     umbrales = {
-        "no2": {"cortes": [25, 40, 100, 200],
+        "no2": {"cortes": BANDAS_UGM3["no2"],
                 "bandas": ["≤ guía OMS 24 h", "≤ límite anual UE", "elevado", "≥ límite horario UE", "muy alto"]},
-        "o3":  {"cortes": [100, 120, 180, 240],
+        "o3":  {"cortes": BANDAS_UGM3["o3"],
                 "bandas": ["≤ guía OMS 8 h", "≤ objetivo 8 h UE", "≥ umbral información UE", "≥ umbral alerta UE", "extremo"]},
         "salud": {"cortes": [60, 70, 80, 90], "bandas": ["muy baja", "baja", "media", "buena", "muy buena"]},
     }

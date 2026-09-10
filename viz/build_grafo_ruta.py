@@ -26,6 +26,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from viz.rutas import LUGARES, PERFILES  # noqa: E402
+from asistente.umbrales import LIMITE_REFERENCIA_UGM3  # noqa: E402
 
 _VIZ = Path(__file__).resolve().parent
 _GRAFO = json.loads((_VIZ / "grafo_madrid.json").read_text(encoding="utf-8"))
@@ -74,7 +75,12 @@ def construir() -> dict:
         "ruido_distrito": ruido,      # {distrito_id: LAeq_dB}
         "lugares": {k: [round(v[0], 5), round(v[1], 5)] for k, v in LUGARES.items()},
         "perfiles": PERFILES,
-        "norm": {"traf": 3.0, "no2": 200.0, "o3": 180.0, "noise": [45.0, 75.0]},
+        "norm": {
+            "traf": 3.0,
+            "no2": LIMITE_REFERENCIA_UGM3["NO2"],
+            "o3": LIMITE_REFERENCIA_UGM3["O3"],
+            "noise": [45.0, 75.0],
+        },
     }
 
 

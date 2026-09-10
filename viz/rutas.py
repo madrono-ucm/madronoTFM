@@ -33,6 +33,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from grafo.geo import haversine_m  # noqa: E402
+from asistente.umbrales import LIMITE_REFERENCIA_UGM3  # noqa: E402
 
 _VIZ = Path(__file__).resolve().parent
 _GRAFO = json.loads((_VIZ / "grafo_madrid.json").read_text(encoding="utf-8"))
@@ -79,7 +80,13 @@ PERFILES = {
 # Denominadores para normalizar cada señal a 0..1: un techo por señal, salvo
 # el ruido, que se escala entre (silencioso, ruidoso) en dB. El tráfico llega
 # multiplicado por 100 (nivel de servicio ~0-3 → ~0-300), como en el mapa.
-_NORM = {"traf": 300.0, "no2": 200.0, "o3": 180.0, "noise": (45.0, 75.0)}
+# NO2/O3 vienen de `asistente/umbrales.py` (fuente única, `FIL_87`).
+_NORM = {
+    "traf": 300.0,
+    "no2": LIMITE_REFERENCIA_UGM3["NO2"],
+    "o3": LIMITE_REFERENCIA_UGM3["O3"],
+    "noise": (45.0, 75.0),
+}
 
 
 def _grafo_nx() -> "tuple[nx.Graph, dict]":
