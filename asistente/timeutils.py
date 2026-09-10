@@ -25,6 +25,10 @@ MADRID_TZ = ZoneInfo("Europe/Madrid")
 # "ahora" (real) cae fuera de la ventana con datos.
 DIAS_CURADOS: tuple[str, ...] = ("2026-08-19", "2026-08-23", "2026-08-26")
 
+# Desde cuándo no entra Gold nuevo (schedulers Lambda + triggers Glue
+# DISABLED). Se usa para explicar un "sin datos" en vez de dejarlo mudo.
+PIPELINE_CONGELADO_DESDE = "2026-08-30"
+
 # Fecha de anclaje del asistente: si se define `ASSISTANT_ANCHOR_DATE`
 # (YYYY-MM-DD) en el entorno, las tools que no reciben un `momento` explícito
 # la usan como "hoy" en vez del reloj real -> devuelven datos reales de la
@@ -61,6 +65,26 @@ def ahora_o_ancla() -> datetime:
     if ancla is None:
         return ahora
     return ahora.replace(year=ancla.year, month=ancla.month, day=ancla.day)
+
+
+def motivo_sin_datos() -> str:
+    """Mensaje para un resultado vacío de una tool (FIL_73): distingue las
+    dos causas —zona sin cobertura o momento fuera de la ventana con
+    datos— en vez de dejar un `sin_datos` mudo. El `_SYSTEM_PROMPT` del chat
+    ya pide "si no hay datos, dilo": esto le da el material para decirlo
+    bien."""
+    ancla = fecha_ancla()
+    ventana = (
+        f"el día curado {ancla.isoformat()}"
+        if ancla is not None
+        else f"los días con datos ({' / '.join(DIAS_CURADOS)})"
+    )
+    return (
+        "sin datos: la zona puede no estar cubierta por la red de sensores, o "
+        f"el momento consultado cae fuera de {ventana} "
+        f"(la ingesta está pausada desde {PIPELINE_CONGELADO_DESDE}; sin "
+        "`momento` explícito el asistente se ancla a un día con datos reales)"
+    )
 
 
 def dia_curado_mas_cercano(d: "date | str") -> str:
