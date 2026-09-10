@@ -176,19 +176,19 @@ _TEMPLATE = """<!doctype html>
 <div id="menu" class="box">
   <b>Vista / análisis</b>
   <select id="vista">
-    <option value="explorar">Explorar (color por tipo)</option>
-    <option value="aire_cobertura">Aire · cobertura de las estaciones de tráfico</option>
-    <option value="aire_o3">Aire · qué estaciones miden O₃ (FIL_66)</option>
-    <option value="sensores_distrito">Sensores por distrito (sesgo §7)</option>
-    <option value="resiliencia">Transporte · resiliencia (FIL_64)</option>
-    <option value="stgnn">Modelo STGNN · aristas influyentes (ML_05)</option>
+    <option value="explorar">Explorar (color por tipo de nodo)</option>
+    <option value="aire_cobertura">¿Qué sensores de tráfico tienen aire cerca?</option>
+    <option value="aire_o3">¿Qué estaciones de aire miden O₃?</option>
+    <option value="sensores_distrito">Sensores por distrito</option>
+    <option value="resiliencia">Puntos críticos de la red de transporte</option>
+    <option value="stgnn">Conexiones que más pesan en el modelo de tráfico</option>
   </select>
   <div class="desc" id="vista-desc"></div>
   <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
     <b>Ruta entre 2 puntos</b>
     <select id="ruta-modo">
-      <option value="proximo">a pie · PROXIMO_A ponderado (Dijkstra)</option>
-      <option value="transporte">transporte · CONECTADO_CON (menos saltos)</option>
+      <option value="proximo">a pie (por cercanía entre nodos)</option>
+      <option value="transporte">en transporte (por líneas, menos transbordos)</option>
     </select>
     <button id="ruta-toggle">Elegir origen y destino</button>
     <div class="desc" id="ruta-estado"></div>
@@ -212,8 +212,8 @@ _TEMPLATE = """<!doctype html>
 <div id="panel">
   <h1>Grafo urbano de Madrid</h1>
   <div class="sub" id="meta" aria-live="polite" data-estado="cargando">cargando…</div>
-  <div id="detalle" class="muted" aria-live="polite">Haz clic en un nodo para ver sus atributos,
-  su barrio/distrito y su vecindario <code>PROXIMO_A</code>.</div>
+  <div id="detalle" class="muted" aria-live="polite">Haz clic en un nodo para ver sus datos,
+  su barrio y distrito reales, y qué tiene cerca.</div>
 </div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script>
@@ -443,7 +443,7 @@ async function arrancar(){
     map.getSource("conn").setData(connFC());
     refrescarNodos();
     cargarAnalisis(); construirCapas();
-    meta.textContent = `${Object.keys(N).length.toLocaleString("es")} nodos · ${CONN.length.toLocaleString("es")} tramos CONECTADO_CON · Neo4j en vivo`;
+    meta.textContent = `${Object.keys(N).length.toLocaleString("es")} nodos · ${CONN.length.toLocaleString("es")} conexiones de transporte · Neo4j en vivo`;
     return;
   }
   arrancado = true;
@@ -484,7 +484,7 @@ async function arrancar(){
 
   const src = LIVE ? "Neo4j en vivo" : "snapshot grafo_urbano.json.gz";
   document.getElementById("meta").textContent =
-    `${Object.keys(N).length.toLocaleString("es")} nodos · ${CONN.length.toLocaleString("es")} tramos CONECTADO_CON · ${src}`;
+    `${Object.keys(N).length.toLocaleString("es")} nodos · ${CONN.length.toLocaleString("es")} conexiones de transporte · ${src}`;
   construirCapas();
 }
 
@@ -575,12 +575,12 @@ function panelAnalisis(v){
   const box = document.getElementById("analisis"), desc = document.getElementById("vista-desc");
   const A = ANALISIS || {};
   const DESC = {
-    explorar:"Nodos por tipo. Clic en uno → sus atributos y su vecindario PROXIMO_A.",
-    aire_cobertura:"Estaciones de tráfico coloreadas según tengan (verde) o no (rojo) una estación de calidad del aire a ≤300 m.",
-    aire_o3:"Estaciones de calidad del aire: azul si miden O₃, rojo si no. Cada estación mide un subconjunto distinto (FIL_66).",
-    sensores_distrito:"Nº de estaciones de medida por distrito — el sesgo de cobertura que la memoria declara en §7.",
-    resiliencia:"Puntos de articulación de la red de transporte (CONECTADO_CON): paradas cuya caída la parte en dos (FIL_64).",
-    stgnn:"Las 15 conexiones que el STGNN de tráfico marca como más influyentes (importancia de arista, ML_05).",
+    explorar:"Cada nodo es un sensor, parada o lugar real. Haz clic en uno para ver sus datos y qué tiene cerca.",
+    aire_cobertura:"Sensores de tráfico en verde si tienen una estación de aire a menos de 300 m, en rojo si no.",
+    aire_o3:"Estaciones de aire en azul si miden O₃, en rojo si no. Cada una mide un conjunto distinto de contaminantes.",
+    sensores_distrito:"Cuántos sensores de medida hay en cada distrito. La cobertura es muy desigual.",
+    resiliencia:"Paradas cuya caída partiría la red de transporte en dos (en amarillo).",
+    stgnn:"Las 15 conexiones a las que el modelo de tráfico da más peso al predecir.",
   };
   desc.textContent = DESC[v] || "";
   if(v==="explorar"){ box.hidden = true; return; }
@@ -609,14 +609,12 @@ function panelAnalisis(v){
     const R = A.resiliencia;
     const rows = (R.puntos_articulacion||[]).slice(0,12).map(p=>
       `<tr><td>${esc(p.parada)}</td><td>${esc(p.modo||"")}</td><td>${fmt(p.nodos_desgajados)}</td></tr>`).join("");
-    h = `<h2>Resiliencia del transporte (FIL_64)</h2>
-      <div class="big">${fmt(R.n_puntos_articulacion)}</div> puntos de articulación ·
-      ${fmt(R.puentes&&R.puentes.n_puentes)} puentes (${((R.puentes&&R.puentes.frac_aristas_puente||0)*100).toFixed(0)} % de las aristas) ·
-      k-core máx ${fmt(R.kcore&&R.kcore.k_max)}.
-      Al 5 % de bajas dirigidas el fragmento mayor cae a
-      ${R.robustez_5pct?Math.round(R.robustez_5pct.dirigido*100):"—"} % (vs
-      ${R.robustez_5pct?Math.round(R.robustez_5pct.aleatorio*100):"—"} % aleatorio).
-      <table><tr><td><b>parada</b></td><td><b>modo</b></td><td><b>desgaja</b></td></tr>${rows}</table>
+    h = `<h2>Puntos críticos de la red de transporte</h2>
+      <div class="big">${fmt(R.n_puntos_articulacion)}</div> paradas cuya caída partiría la red ·
+      ${fmt(R.puentes&&R.puentes.n_puentes)} tramos sin alternativa (${((R.puentes&&R.puentes.frac_aristas_puente||0)*100).toFixed(0)} % del total).
+      Si caen a propósito el 5 % de las paradas mejor conectadas, la mayor parte de la red que sigue unida baja a
+      ${R.robustez_5pct?Math.round(R.robustez_5pct.dirigido*100):"—"} % (frente al ${R.robustez_5pct?Math.round(R.robustez_5pct.aleatorio*100):"—"} % si caen al azar).
+      <table><tr><td><b>parada</b></td><td><b>modo</b></td><td><b>aísla</b></td></tr>${rows}</table>
       ${R.nota?`<div class="nota">${esc(R.nota)}</div>`:""}`;
   } else if(v==="stgnn"){
     const es = (A.stgnn_aristas_influyentes||[]);
@@ -625,10 +623,9 @@ function panelAnalisis(v){
       return `<tr><td>${esc((na&&na.nombre)||e.ids[0].split(":").pop())} ↔ ${esc((nb&&nb.nombre)||e.ids[1].split(":").pop())}</td><td>${e.w.toFixed(2)}</td></tr>`;
     }).join("");
     h = es.length
-      ? `<h2>STGNN · aristas influyentes (ML_05)</h2>
-         Grosor ∝ importancia relativa que el modelo asigna a la conexión entre dos
-         puntos de tráfico. <table><tr><td><b>conexión</b></td><td><b>peso</b></td></tr>${rows}</table>`
-      : `<h2>STGNN · aristas influyentes</h2><span class="muted">disponible solo en modo live (necesita stgnn_trafico.meta.json)</span>`;
+      ? `<h2>Conexiones con más peso en el modelo</h2>
+         El grosor es la importancia que el modelo de tráfico da a la conexión entre dos puntos. <table><tr><td><b>conexión</b></td><td><b>peso</b></td></tr>${rows}</table>`
+      : `<h2>Conexiones con más peso en el modelo</h2><span class="muted">disponible solo con el backend en vivo</span>`;
   }
   box.innerHTML = h;
 }
@@ -680,8 +677,8 @@ async function calcularRuta(){
       ? [{type:"Feature", geometry:{type:"LineString", coordinates:coords}, properties:{}}] : []});
     const na = N[j.a]&&N[j.a].nombre || j.a.split(":").pop(), nb = N[j.b]&&N[j.b].nombre || j.b.split(":").pop();
     const detalle = j.modo==="proximo"
-      ? (fmt(j.metros) + " m · " + j.saltos + " saltos PROXIMO_A")
-      : (j.saltos + " tramos · " + ((j.lineas&&j.lineas.length)?("líneas: "+j.lineas.join(", ")):"sin línea"));
+      ? (fmt(j.metros) + " m · " + j.saltos + " tramos a pie")
+      : (j.saltos + " paradas · " + ((j.lineas&&j.lineas.length)?("líneas: "+j.lineas.join(", ")):"sin línea"));
     est.innerHTML = "<b>" + esc(na) + " → " + esc(nb) + "</b><br>" + detalle +
       " · <button id='ruta-clear' style='width:auto;padding:2px 8px;margin:2px 0'>limpiar</button>";
     document.getElementById("ruta-clear").onclick = ()=>{ limpiarRuta(); est.textContent = "clic en el nodo ORIGEN"; };
@@ -732,7 +729,7 @@ async function seleccionar(id){
   const ls = LINEAS[id];
   if(ls && ls.length) h += `<div class="kv"><b>líneas</b><span>${ls.map(x=>`<span class="tag">${esc(x)}</span>`).join("")}</span></div>`;
 
-  h += `<div class="neigh"><b>Vecindario PROXIMO_A</b> (${vecinos.length})`;
+  h += `<div class="neigh"><b>Qué hay cerca</b> (${vecinos.length})`;
   for(const t of Object.keys(porTipo).sort()){
     h += `<div class="kv"><b>${esc(t)}</b><span>${porTipo[t].slice(0,6).map(esc).join("<br>")}${porTipo[t].length>6?`<br>… +${porTipo[t].length-6}`:""}</span></div>`;
   }

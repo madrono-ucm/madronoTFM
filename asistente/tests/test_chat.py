@@ -146,6 +146,12 @@ class ProveedorConfigurableTests(unittest.TestCase):
         self.assertEqual(capturado.get("base_url"), "https://api.cerebras.ai/v1")
         chat._client = None
 
+    def test_extra_kw_desactiva_el_razonamiento_solo_para_qwen(self):
+        with patch("asistente.chat._MODEL", "llama-3.3-70b-versatile"):
+            self.assertEqual(chat._extra_kw(), {})
+        with patch("asistente.chat._MODEL", "qwen/qwen3.8-27b"):
+            self.assertEqual(chat._extra_kw(), {"reasoning_effort": "none"})
+
 
 class ObservabilidadTests(unittest.TestCase):
     """FIL_73: logging estructurado de tool-calls + latencia del LLM +
