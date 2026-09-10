@@ -48,7 +48,7 @@ def _endpoint_http(nombre: str) -> str:
 def bloque_tabla() -> str:
     """El Markdown que va entre los marcadores, terminado en salto de línea."""
     filas = "\n".join(
-        f"| `{fn.__name__}` | {_endpoint_http(fn.__name__)} | {titulo} |" for fn, titulo in TOOLS
+        f"| `{s.fn.__name__}` | {_endpoint_http(s.fn.__name__)} | {s.titulo} |" for s in TOOLS
     )
     return (
         f"**{len(TOOLS)} tools**, todas con lógica real (ninguna con "
