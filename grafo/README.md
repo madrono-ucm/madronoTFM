@@ -466,6 +466,24 @@ reales antes de detectarse y corregirse. **Aplicar `schema.cypher` es un
 prerrequisito real, no solo documental, antes de cualquier recarga
 completa.**
 
+## Consultar el grafo real desde la línea de comandos (`grafo/consulta.py`, `FIL_67`)
+
+Ayudante de solo lectura para inspeccionar la instancia AuraDB sin abrir la
+consola web: resuelve credenciales (env vars, o SSM con `--with-decryption`
+si no hay env vars, ver `infra/OPERACION.md`), abre una sesión Neo4j y
+rechaza cualquier sentencia con cláusula de escritura antes de enviarla
+(la sesión ya es de solo lectura; esto es una segunda red).
+
+```bash
+python -m grafo.consulta "MATCH (e:EstacionMedida) RETURN e.tipo, count(*) AS n ORDER BY n DESC"
+python -m grafo.consulta --json "MATCH (l:Lugar {tipo:'recinto'}) RETURN l.nombre LIMIT 5"
+```
+
+Uso previsto: desarrollo/depuración, no una vía de cara al usuario — para
+eso está la 15ª `tool` MCP `consulta_grafo` (`asistente/mcp_agent/tools.py`,
+8 plantillas parametrizadas de solo lectura sobre este mismo grafo, sin
+Cypher libre).
+
 ## Tests
 
 `grafo/tests/` (`python3 -m unittest discover -s grafo/tests -t .`, 89

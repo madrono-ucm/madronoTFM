@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Consistencia documental tras 14→15 tools MCP (consulta_grafo) y los nuevos endpoints"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-09-09"
 depends_on: [FIL_67]
 ---
@@ -40,3 +40,23 @@ routers nuevos (`GET /consulta-grafo`).
   etc. → 0 resultados obsoletos.
 - Tabla de `asistente/README.md` = 15 filas, con `consulta_grafo` descrita.
 - Cualquier doc desactualizado → PR de corrección (o `FIL_*` si es mayor).
+
+## Hecho (2026-09-10, Claude QA)
+
+Ejecutado contra el estado real de hoy (19 tools, no 15 — `FIL_79`-`82`
+aterrizaron entre la apertura del ticket y su ejecución). Corregido:
+diagrama mermaid y 2 frases de `README.md` raíz ("10"/"14" → 19); docstring
++ comentario de `asistente/chat.py` ("14"/"15" → 19); `asistente/README.md`
+tenía **"7 tools"** literal en la cabecera (más atrasado de lo que el
+ticket asumía) + lista de endpoints incompleta (11/19) — corregido a 19 y
+completados los 19 `GET /...` reales, verificados uno a uno contra el
+decorador de cada router; `grafo/consulta.py` no estaba documentado en
+ningún sitio — añadida una sección en `grafo/README.md` y una línea en
+`infra/OPERACION.md`; la `description` del `MCPServer` no nombraba
+`consulta_grafo` — añadida una frase. `test_mcp_tools`/`test_mcp_transport`
+ya estaban al día (0 cambios). Suite `test_mcp_tools.py`+`test_mcp_transport.py`
+verde (38 passed, 57 subtests). Sin bugs de comportamiento — ningún
+`FIL_*` nuevo. Dos hallazgos de bajo riesgo dejados sin tocar (narrativa
+introductoria de `asistente/README.md` sin cubrir las 12 tools nuevas;
+salida cacheada del notebook demo con "10 tools") — detalle y motivo en
+[`doc/VIC-37-eval-consistencia-15-tools.md`](../doc/VIC-37-eval-consistencia-15-tools.md).

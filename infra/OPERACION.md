@@ -388,6 +388,9 @@ aws s3api list-objects-v2 --bucket madrono-tfm-dev-bronze-222234418587 \
 
 # Athena (rápido, vía el helper de grafo/extract)
 python -c "import sys;sys.path.insert(0,'.');from grafo.extract import run_athena_query,GOLD_DATABASE;print(run_athena_query('SELECT count(*) n FROM <tabla>',GOLD_DATABASE))"
+
+# Neo4j (rápido, sin abrir la consola web — grafo/consulta.py, FIL_67, solo lectura)
+python -m grafo.consulta "MATCH (e:EstacionMedida) RETURN e.tipo, count(*) AS n ORDER BY n DESC"
 ```
 
 ## Trampas del entorno

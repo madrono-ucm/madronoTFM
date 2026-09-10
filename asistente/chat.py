@@ -1,4 +1,4 @@
-"""FIL_62/M2 — chat en lenguaje natural sobre las 14 tools de
+"""FIL_62/M2 — chat en lenguaje natural sobre las 19 tools de
 `asistente/mcp_agent/tools.py`, vía Groq (API compatible con OpenAI,
 `tool_use`; tier gratuito, ver `FIL_62` para el porqué de Groq frente a
 auto-hospedar un LLM en esta misma EC2).
@@ -55,7 +55,7 @@ _MAX_REINTENTOS_LLM = 3
 _ESTADOS_REINTENTABLES = {408, 409, 429, 500, 502, 503, 504, 529}
 _SSM_PARAMETER = "/madrono-tfm/dev/secrets/groq-api-key"
 
-# El chat solo expone un subconjunto de las 15 tools MCP: las conversacionales
+# El chat solo expone un subconjunto de las 19 tools MCP: las conversacionales
 # y graph-first. Fuera las `*_prevista*` / `afluencia_*` / `opciones_movilidad`
 # (esquemas grandes, dominio de nicho, datos congelados) -- así el `tools=[...]`
 # ocupa ~la mitad de tokens y se aleja del límite TPM del tier gratuito.
