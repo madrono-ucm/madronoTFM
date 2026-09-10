@@ -20,27 +20,41 @@
 <style>
   :root { color-scheme: light dark; }
   html,body { margin:0; height:100%; font-family:system-ui,Segoe UI,Roboto,sans-serif; }
-  #map { position:absolute; inset:0;
+  #map { position:absolute; inset:0; z-index:0;
     background:radial-gradient(ellipse 120% 90% at 50% 38%, #0e141c 0%, #070a0e 70%); }
-  .panel { position:absolute; background:rgba(20,24,30,.86); color:#e8edf2;
-    backdrop-filter:blur(4px); border-radius:10px; padding:10px 12px; font-size:13px; }
+  /* Todos los paneles por encima del lienzo del mapa (deck.gl pinta en un
+     canvas propio; sin este z-index los nodos podían taparlos). */
+  .panel { position:absolute; z-index:5; background:rgba(18,22,28,.95); color:#e8edf2;
+    backdrop-filter:blur(4px); border:1px solid #2c3644; border-radius:10px;
+    padding:10px 12px; font-size:13px; box-shadow:0 6px 24px rgba(0,0,0,.35); }
   #titulo { left:50%; top:10px; transform:translateX(-50%); padding:6px 16px; font-weight:650;
-    letter-spacing:.2px; text-align:center; }
+    letter-spacing:.2px; text-align:center; z-index:6; }
   #titulo small { display:block; font-weight:400; color:#9fb0c0; font-size:11px; margin-top:2px; }
-  #controls { left:12px; top:56px; width:272px; max-height:calc(100% - 200px); overflow:auto; }
+  /* Barra lateral de secciones: un botón por panel; el panel se muestra u
+     oculta al pulsarlo (una sección visible a la vez). */
+  #rail { left:12px; top:56px; z-index:7; display:flex; flex-direction:column; gap:3px;
+    padding:6px; }
+  #rail button { display:block; width:120px; text-align:left; font-size:12px; font-weight:600;
+    padding:6px 10px; background:transparent; border:1px solid transparent; color:#c8d4df; }
+  #rail button:hover { background:rgba(255,255,255,.05); }
+  #rail button.on { background:#3d6ce0; border-color:#3d6ce0; color:#fff; }
+  #controls { left:150px; top:56px; width:280px; max-height:calc(100% - 210px); overflow:auto; }
+  #controls.hidden { display:none; }
+  .sec { display:none; }
+  .sec.on { display:block; }
+  .sec > h3 { margin:0 0 8px; font-size:13px; font-weight:650; letter-spacing:.2px; color:#e8edf2; }
   #context  { right:12px; top:56px; width:250px; max-height:calc(100% - 200px); overflow:auto; }
+  @media (max-width:640px){
+    #rail { flex-direction:row; flex-wrap:wrap; width:min(94vw,340px); }
+    #rail button { width:auto; }
+    #controls { left:12px; top:150px; width:min(94vw,340px); }
+  }
   #resumen  { left:12px; right:12px; bottom:12px; padding:8px 12px; display:flex; gap:16px;
     align-items:stretch; font-variant-numeric:tabular-nums; }
   #resumen .blk { display:flex; flex-direction:column; gap:2px; }
   #resumen .blk.grow { flex:1; min-width:0; }
   #resumen svg { display:block; width:100%; }
   #resumen .hd { color:#9fb0c0; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; }
-  details { border:1px solid #2c3644; border-radius:8px; margin:6px 0; padding:2px 8px 8px; }
-  details[open] { background:rgba(255,255,255,.02); }
-  summary { cursor:pointer; font-weight:600; padding:6px 0; list-style:none; }
-  summary::-webkit-details-marker { display:none; }
-  summary::before { content:"▸ "; color:#9fb0c0; }
-  details[open] > summary::before { content:"▾ "; }
   .row { display:flex; gap:6px; align-items:center; margin:6px 0; flex-wrap:wrap; }
   button, select { background:#2a3340; color:#e8edf2; border:1px solid #3a4756; border-radius:6px;
     padding:4px 9px; cursor:pointer; font-size:12px; }
@@ -68,20 +82,30 @@
 
 <div class="panel" id="titulo">Madrid · previsión sobre el grafo<small id="titulo-sub">—</small></div>
 
+<nav class="panel" id="rail" aria-label="Secciones del panel de control">
+  <button data-sec="historia" class="on" aria-controls="controls">Historia</button>
+  <button data-sec="tiempo" aria-controls="controls">Tiempo</button>
+  <button data-sec="color" aria-controls="controls">Capa de color</button>
+  <button data-sec="salud" aria-controls="controls">Salud</button>
+  <button data-sec="vista" aria-controls="controls">Vista</button>
+  <button data-sec="ruta" aria-controls="controls">Ruta saludable</button>
+  <button data-sec="chat" aria-controls="controls">Asistente</button>
+</nav>
+
 <div class="panel" id="controls">
-  <details open id="g-historia">
-    <summary>📖 Historia · recorrido guiado</summary>
+  <section class="sec on" data-sec="historia" id="g-historia" aria-label="Historia · recorrido guiado">
+    <h3>Historia · recorrido guiado</h3>
     <div class="muted" id="hist-texto" style="margin:2px 0 6px">Elige un capítulo: el mapa se
       pone en el estado que ilustra cada hallazgo del TFM.</div>
     <div class="row" id="hist-caps"></div>
     <div class="row" style="margin-top:4px">
-      <button id="hist-prev" aria-label="Capítulo anterior">◀</button>
-      <button id="hist-auto" aria-label="Reproducir el capítulo">▶ animar</button>
-      <button id="hist-next" aria-label="Capítulo siguiente">▶</button>
+      <button id="hist-prev" aria-label="Capítulo anterior">Anterior</button>
+      <button id="hist-auto" aria-label="Reproducir el capítulo">Animar</button>
+      <button id="hist-next" aria-label="Capítulo siguiente">Siguiente</button>
     </div>
-  </details>
-  <details open>
-    <summary>⏱ Tiempo</summary>
+  </section>
+  <section class="sec" data-sec="tiempo" aria-label="Tiempo">
+    <h3>Tiempo</h3>
     <div class="row" id="days"></div>
     <div class="row">
       <button id="play" aria-label="Reproducir / pausar">▶︎</button>
@@ -94,10 +118,10 @@
       <button data-h="h3" class="hz">+3h</button>
       <button data-h="h6" class="hz">+6h</button>
     </div>
-  </details>
+  </section>
 
-  <details open>
-    <summary>🎨 Capa de color</summary>
+  <section class="sec" data-sec="color" aria-label="Capa de color">
+    <h3>Capa de color</h3>
     <div class="row" id="metrics"></div>
     <div class="row" aria-label="Escala de color">
       <span class="muted">escala:</span>
@@ -111,10 +135,10 @@
     <div class="row"><button id="ghost">modelo vs persistencia (E2)</button></div>
     <div class="muted" style="margin-top:4px">Arcos = 15 conexiones más influyentes del STGNN
       (importancia estática, grosor ∝ importancia, color animado por el tráfico). Clic en un nodo → detalle.</div>
-  </details>
+  </section>
 
-  <details>
-    <summary>♿ Salud · perfil de sensibilidad</summary>
+  <section class="sec" data-sec="salud" aria-label="Salud · perfil de sensibilidad">
+    <h3>Salud · perfil de sensibilidad</h3>
     <div class="row" id="perfiles"></div>
     <div class="muted" id="mejor-hora" style="margin-top:2px"></div>
     <label class="chk"><input type="checkbox" id="l-idw"> confianza de la interpolación de aire
@@ -124,10 +148,10 @@
     <div class="muted" style="margin-top:8px;border-top:1px solid #2c3644;padding-top:6px">
       Agregados por zona · datos abiertos, sin información personal · describe el aire y la hora,
       no señala barrios · <b>apoyo a la decisión, no consejo médico</b>.</div>
-  </details>
+  </section>
 
-  <details>
-    <summary>🧭 Vista</summary>
+  <section class="sec" data-sec="vista" aria-label="Vista">
+    <h3>Vista</h3>
     <div class="row">
       <button id="v2d" class="on">2D</button><button id="v3d">3D</button>
       <button id="fit">encajar a Madrid</button>
@@ -153,18 +177,19 @@
     <label class="chk"><input type="checkbox" id="l-ejes"> ejes (M-30, Castellana… · contexto)</label>
     <label class="chk"><input type="checkbox" id="l-parques"> parques grandes</label>
     <label class="chk"><input type="checkbox" id="l-tex"> textura del grafo (aristas)</label>
-  </details>
+  </section>
 
-  <details>
-    <summary>🚶 Ruta saludable (E3)</summary>
+  <section class="sec" data-sec="ruta" aria-label="Ruta saludable">
+    <h3>Ruta saludable (E3)</h3>
     <div class="row">
       <select id="r-od" aria-label="Origen y destino"><option value="-1">— sin ruta —</option></select>
     </div>
     <div class="row"><select id="r-perfil" aria-label="Perfil"></select></div>
     <div class="muted" id="routeinfo" style="margin-top:2px"></div>
-  </details>
-  <details id="g-chat">
-    <summary>💬 Preguntar a los datos (asistente)</summary>
+  </section>
+
+  <section class="sec" data-sec="chat" id="g-chat" aria-label="Asistente">
+    <h3>Preguntar a los datos</h3>
     <div class="muted" style="margin:2px 0 4px">Lenguaje natural → el asistente (LLM + herramientas
       MCP sobre el grafo y Gold) responde. P. ej. «¿qué estación de aire cerca de Retiro mide O₃?».</div>
     <div class="row" id="chat-sug"></div>
@@ -174,7 +199,7 @@
       <button id="chat-send">enviar</button>
     </div>
     <div class="muted" id="chat-estado"></div>
-  </details>
+  </section>
 </div>
 
 <div class="panel" id="context">
@@ -679,7 +704,7 @@ const CAPITULOS = [
    d:"STGNN de grafo (ML_05): la previsión bate a repetir el valor actual en los 3 horizontes, y el margen crece con h. «modelo vs persistencia» activado — verde = el modelo acierta más que la inercia.",
    a:()=>setEstado({metric:"trafico", ghost:true, hz:"h3", route:-1, clean:false})},
   {t:"2 · El aire depende de la hora",
-   d:"Dosis de O₃ (media 8 h, % de la guía OMS), escala por bandas OMS/UE. Sube a media tarde. Pulsa «▶ animar» para recorrer las 24 h.",
+   d:"Dosis de O₃ (media 8 h, % de la guía OMS), escala por bandas OMS/UE. Sube a media tarde. Pulsa «Animar» para recorrer las 24 h.",
    a:()=>setEstado({metric:"dosis_o3", ghost:false, escala:"bandas", hour:16, route:-1})},
   {t:"3 · Laborable vs domingo",
    d:"El mismo O₃ en domingo (08-23): sin la punta de tráfico laboral, el patrón del aire cambia. Compara con el capítulo 2 (miércoles).",
@@ -764,6 +789,30 @@ function mkChat(){
   document.getElementById("chat-in").addEventListener("keydown", e=>{ if(e.key==="Enter") chatEnviar(); });
 }
 
+// ---- Barra lateral de secciones -------------------------------------------
+// Un botón por sección; al pulsarlo se muestra su panel y se ocultan los
+// demás (una sección visible a la vez). Pulsar el botón activo lo cierra.
+function mkRail(){
+  const rail = document.getElementById("rail");
+  const cont = document.getElementById("controls");
+  const secs = cont.querySelectorAll(".sec");
+  rail.querySelectorAll("button").forEach(b=>{
+    b.setAttribute("aria-expanded", b.classList.contains("on") ? "true" : "false");
+    b.onclick = ()=>{
+      const abrir = !b.classList.contains("on");
+      rail.querySelectorAll("button").forEach(x=>{ x.classList.remove("on"); x.setAttribute("aria-expanded","false"); });
+      secs.forEach(s=>s.classList.remove("on"));
+      cont.classList.toggle("hidden", !abrir);
+      if(abrir){
+        b.classList.add("on"); b.setAttribute("aria-expanded","true");
+        const s = cont.querySelector('.sec[data-sec="'+b.dataset.sec+'"]');
+        if(s) s.classList.add("on");
+        if(b.dataset.sec==="chat"){ const inp=document.getElementById("chat-in"); if(inp) inp.focus(); }
+      }
+    };
+  });
+}
+
 function mkControls(){
   const dd = document.getElementById("days");
   META.dias.forEach((d,k)=>{ const b=document.createElement("button");
@@ -819,6 +868,7 @@ function mkControls(){
     state.clean=!state.clean;
     e.target.classList.toggle("on", state.clean);
     document.getElementById("controls").style.opacity = state.clean ? ".22" : "1";
+    document.getElementById("rail").style.opacity = state.clean ? ".22" : "1";
     document.getElementById("context").style.display = state.clean ? "none" : "";
     document.getElementById("resumen").style.display = state.clean ? "none" : "flex";
     render();
@@ -909,7 +959,7 @@ Promise.all([
     if(!render._raf) render._raf = requestAnimationFrame(()=>{ render._raf = 0; render(); });
   });
 
-  mkControls(); mkHistoria(); mkChat(); syncTabs();
+  mkControls(); mkHistoria(); mkChat(); mkRail(); syncTabs();
   map.on("load", ()=>{ if(META.bbox) fitBounds(); render(); });
 }).catch(e=>{ document.getElementById("map").innerHTML =
   "<p style='color:#ccc;font:14px system-ui;padding:24px'>No se pudo montar el mapa. "
