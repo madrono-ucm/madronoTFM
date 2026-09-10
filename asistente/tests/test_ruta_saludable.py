@@ -103,5 +103,38 @@ class ModuloTests(unittest.TestCase):
         self.assertEqual(r["ruta_sana"]["n_nodos"], 1)
 
 
+class ResolverLugarTests(unittest.TestCase):
+    LUG = ["Atocha", "Gran Vía", "Plaza Elíptica", "Plaza Castilla", "Chamartín", "Sol"]
+
+    def test_exacto_y_sin_acentos_ni_mayusculas(self):
+        self.assertEqual(rs.resolver_lugar("Sol", self.LUG), "Sol")
+        self.assertEqual(rs.resolver_lugar("sol", self.LUG), "Sol")
+        self.assertEqual(rs.resolver_lugar("gran via", self.LUG), "Gran Vía")
+        self.assertEqual(rs.resolver_lugar("PLAZA ELIPTICA", self.LUG), "Plaza Elíptica")
+
+    def test_contenido_en_el_texto(self):
+        self.assertEqual(rs.resolver_lugar("la estación de Atocha", self.LUG), "Atocha")
+        self.assertEqual(rs.resolver_lugar("chamartin renfe", self.LUG), "Chamartín")
+
+    def test_ambiguo_o_desconocido_es_none(self):
+        self.assertIsNone(rs.resolver_lugar("plaza", self.LUG))      # 2 candidatos
+        self.assertIsNone(rs.resolver_lugar("Chamberí", self.LUG))   # no está
+        self.assertIsNone(rs.resolver_lugar("mi casa", self.LUG))
+        self.assertIsNone(rs.resolver_lugar("", self.LUG))
+
+
+class ToleranciaEnLaToolTests(unittest.TestCase):
+    def test_minusculas_y_acentos_resuelven_y_devuelven_el_nombre_canonico(self):
+        r = tools.ruta_saludable("sol", "gran via", "general", datetime(2026, 8, 26, 9))
+        self.assertTrue(r.disponible, r.motivo)
+        self.assertEqual((r.origen, r.destino), ("Sol", "Gran Vía"))
+
+    def test_lugar_no_enrutrable_lo_dice_con_las_opciones(self):
+        r = tools.ruta_saludable("Vallecas", "Chamberí", "asma_epoc")
+        self.assertFalse(r.disponible)
+        self.assertIn("Vallecas", r.motivo)
+        self.assertIn("Atocha", r.lugares_disponibles)
+
+
 if __name__ == "__main__":
     unittest.main()
