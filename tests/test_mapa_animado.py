@@ -125,11 +125,13 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertNotIn('id="l-tex" checked', self.html)  # textura off por defecto
 
     def test_edgepane_explica_los_concentradores(self):
-        # FIL_78: el panel arista/nodo distingue nodos concentradores (top-15
-        # global de importancia_aristas, #5768 en 8) y muestra la dirección
-        # (influye / influido por) + peso, en vez de una lista plana.
-        for marca in ("function impDeg(", "HUB_MIN", "Nodo concentrador",
-                      "influido por", "concentradores de flujo"):
+        # FIL_78: el panel "nodo elegido" distingue los cruces importantes
+        # (top-15 global de importancia_aristas) y muestra la dirección
+        # (influye / influido por) + peso, en vez de una lista plana. El
+        # texto se de-jergonizó en el pase de UX (ya no dice "STGNN" /
+        # "aristas" / "concentradores", pero la lógica es la misma).
+        for marca in ("function impDeg(", "HUB_MIN", "Cruce importante",
+                      "influido por", "conexiones con más peso del modelo"):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_78)")
         # las aristas del nodo seleccionado se resaltan y el resto se atenúan
         self.assertIn("arcOn", self.html)
