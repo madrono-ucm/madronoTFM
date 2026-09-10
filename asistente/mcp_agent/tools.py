@@ -35,6 +35,9 @@ from asistente import ruta_saludable as _ruta
 from asistente.models.herramientas import (
     AfluenciaEstimada,
     AfluenciaPrevista,
+    AvisosMeteo,
+    CalidadAireCams,
+    CalidadAireEpisodio,
     CalidadAirePrevista,
     CalidadAirePrevistaGrafo,
     CalidadAireZona,
@@ -57,6 +60,8 @@ from asistente.models.herramientas import (
     TramoRuta,
     TransporteAlcanzable,
     TraficoPrevistaGrafo,
+    LecturaMeteo,
+    MeteoCercana,
     VecinoGrafo,
 )
 from asistente.neo4j_client import (
@@ -1331,6 +1336,21 @@ def _calidad_aire_prevista_impl(
     limite = _LIMITES_REFERENCIA_UGM3.get(pollutant)
     nivel = _clasificar_indice(previsto / limite) if limite else "sin_clasificar"
 
+    # FIL_80: 2.ª opinión de Copernicus CAMS para el mismo contaminante y la
+    # fecha objetivo. Nunca hace fallar la previsión propia (best-effort).
+    ref_cams = delta_cams = None
+    if athena_client is None:  # solo en producción, no en los tests con Athena mockeada
+        try:
+            objetivo = (ancla + timedelta(hours=horizonte_horas)).date().isoformat()
+            c = calidad_aire_cams(pollutant, objetivo)
+            if not c.disponible:
+                c = calidad_aire_cams(pollutant)  # cae a la última disponible
+            if c.disponible and c.avg_ugm3 is not None:
+                ref_cams = c.avg_ugm3
+                delta_cams = round(previsto - c.avg_ugm3, 1)
+        except Exception:  # noqa: BLE001 - contexto opcional
+            pass
+
     return CalidadAirePrevista(
         zona=zona,
         momento=ancla,
@@ -1347,6 +1367,8 @@ def _calidad_aire_prevista_impl(
         ventana_datos=ventana,
         modelo=f"calidad_aire_h{horizonte_horas}.onnx (ML_07 / madrono-calidad_aire-h{horizonte_horas})",
         fuente_dataset=fuente,
+        referencia_cams=ref_cams,
+        delta_vs_cams=delta_cams,
     )
 
 
@@ -1384,6 +1406,172 @@ def calidad_aire_prevista(
             (hora de Madrid).
     """
     return _calidad_aire_prevista_impl(zona, horizonte_horas, momento)
+
+
+# ---------------------------------------------------------------------------
+# calidad_aire_cams (FIL_80) -- previsión de Copernicus CAMS como 2.ª opinión
+# independiente. Nivel de área (sin estación); Gold
+# cams_calidad_aire_por_contaminante_fecha_validez.
+# ---------------------------------------------------------------------------
+
+_TABLA_CAMS = "cams_calidad_aire_por_contaminante_fecha_validez"
+
+# texto libre -> token del particionado `pollutant` de la Gold CAMS.
+_CAMS_ALIAS = {
+    "no2": "no2", "no₂": "no2", "dioxido de nitrogeno": "no2", "nitrogeno": "no2",
+    "o3": "o3", "o₃": "o3", "ozono": "o3",
+    "pm10": "pm10", "pm 10": "pm10",
+    "pm2.5": "pm2", "pm25": "pm2", "pm2,5": "pm2", "pm 2.5": "pm2",
+    "so2": "so2", "so₂": "so2", "dioxido de azufre": "so2",
+    "pm2": "pm2",
+}
+
+
+def _cams_token(contaminante: str) -> str:
+    c = (contaminante or "").strip().lower()
+    return _CAMS_ALIAS.get(c, c.replace(" ", ""))
+
+
+def calidad_aire_cams(contaminante: str, fecha: str | None = None) -> CalidadAireCams:
+    """Previsión de calidad del aire del modelo atmosférico **Copernicus
+    CAMS** para Madrid (`FIL_80`) — una segunda opinión independiente de los
+    modelos propios.
+
+    Lee `gold.cams_calidad_aire_por_contaminante_fecha_validez` (nivel de
+    área; sin estación). Devuelve el `avg`/`max` de la ciudad para el
+    contaminante y la `fecha_validez` pedida; sin `fecha`, la última
+    disponible (el pipeline está congelado desde 2026-08-30 — lo indica el
+    `motivo`). No lanza excepción: `disponible=False` + `motivo` si no hay
+    filas.
+
+    Args:
+        contaminante: NO2 / O3 / PM10 / PM2.5 / SO2 (texto libre, se
+            normaliza).
+        fecha: `YYYY-MM-DD` de validez. Si es `None`, la última disponible.
+    """
+    tok = _cams_token(contaminante)
+    fuente = f"gold.{_TABLA_CAMS}"
+    where_fecha = f" AND fecha_validez = '{sql_literal(fecha)}'" if fecha else ""
+    sql = f"""
+        SELECT pollutant, pollutant_code, unit, fecha_validez,
+               avg_value, max_value, leadtime_hours, last_forecast_issued_at
+        FROM {_TABLA_CAMS}
+        WHERE lower(pollutant) LIKE '%{sql_literal(tok)}%'{where_fecha}
+        ORDER BY fecha_validez DESC
+        LIMIT 40
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE)
+    except Exception as exc:  # noqa: BLE001 - degradación elegante (FIL_15)
+        return CalidadAireCams(
+            contaminante=contaminante, fuente_dataset=fuente,
+            motivo=f"no se pudo consultar Gold CAMS en Athena: {exc}",
+        )
+    if not filas:
+        return CalidadAireCams(
+            contaminante=contaminante, fuente_dataset=fuente,
+            motivo=(
+                f"CAMS no tiene previsión para «{contaminante}»"
+                + (f" en {fecha}" if fecha else "")
+                + " (¿nombre de contaminante? ¿pipeline congelado?)"
+            ),
+        )
+    fechas = sorted({f["fecha_validez"] for f in filas if f.get("fecha_validez")}, reverse=True)
+    elegida = fecha or (fechas[0] if fechas else None)
+    fila = next((f for f in filas if f.get("fecha_validez") == elegida), filas[0])
+    lt = fila.get("leadtime_hours")
+    if isinstance(lt, str):
+        lt = [int(x) for x in lt.strip("[]").split(",") if x.strip().lstrip("-").isdigit()]
+    motivo = None
+    if not fecha:
+        motivo = f"última previsión CAMS disponible: {elegida} (pipeline de datos pausado)"
+    return CalidadAireCams(
+        contaminante=contaminante, disponible=True,
+        fecha_validez=elegida,
+        avg_ugm3=round(fila["avg_value"], 1) if fila.get("avg_value") is not None else None,
+        max_ugm3=round(fila["max_value"], 1) if fila.get("max_value") is not None else None,
+        unidad=fila.get("unit"),
+        leadtime_horas=lt or [],
+        emitido_en=fila.get("last_forecast_issued_at"),
+        n_fechas_disponibles=len(fechas),
+        motivo=motivo, fuente_dataset=fuente,
+    )
+
+
+# ---------------------------------------------------------------------------
+# calidad_aire_episodio (FIL_79) -- P(superación de umbral OMS/UE) del
+# contaminante más crítico de la estación, derivada de la previsión de
+# regresión (no hay clasificador servido).
+# ---------------------------------------------------------------------------
+
+
+def _prob_superacion(previsto: float, umbral: float, s_frac: float = 0.25) -> float:
+    """Logística sobre el margen normalizado: `P = 1/(1+e^-((ŷ-umbral)/s))`
+    con `s = s_frac·umbral`. Monótona en `ŷ`, `P(ŷ=umbral)=0.5`, `P∈(0,1)`.
+    `s_frac` es una heurística documentada (`FIL_79`): la desviación del
+    residuo del backtest de `FIL_38` la calibraría mejor -- follow-up."""
+    import math
+
+    s = max(1e-6, s_frac * abs(umbral))
+    return 1.0 / (1.0 + math.exp(-(previsto - umbral) / s))
+
+
+def calidad_aire_episodio(
+    zona: str, horizonte_horas: int = 6, momento: datetime | None = None
+) -> CalidadAireEpisodio:
+    """Probabilidad de **episodio** de contaminación (superación del umbral
+    OMS/UE) del contaminante más crítico de una estación de Madrid a
+    `horizonte_horas` vista (`FIL_79`).
+
+    No hay clasificador servido: reutiliza la previsión de regresión de
+    `calidad_aire_prevista` (mismo modelo ONNX de `ML_07`, misma resolución
+    de «zona» por texto sobre el nombre de la estación) y transforma el
+    margen sobre el umbral en probabilidad con una logística
+    `P = σ((ŷ − umbral)/s)`, `s = 0.25·umbral`. `veredicto` es el signo
+    determinista (`ŷ ≷ umbral`). El umbral por contaminante es
+    `_LIMITES_REFERENCIA_UGM3` (límite horario UE de NO₂ 200, umbral de
+    información de O₃ 180, límite diario de PM10 50, PM2.5 25 µg/m³).
+
+    Fiabilidad **BAJA** (ventana de entrenamiento corta + pipeline congelado,
+    memoria §7.4). Si no hay previsión devuelve `disponible=False` +
+    `motivo`, sin lanzar excepción.
+
+    Args:
+        zona: Nombre o identificador (parcial) de una estación de calidad
+            del aire de Madrid.
+        horizonte_horas: Horas por delante. Uno de 1, 3 o 6.
+        momento: Instante de referencia (ISO 8601). Si es `None`, ahora.
+    """
+    prev = _calidad_aire_prevista_impl(zona, horizonte_horas, momento)
+    base = dict(
+        zona=zona, horizonte_horas=horizonte_horas,
+        momento=prev.momento, momento_objetivo=prev.momento_objetivo,
+        estacion=prev.estacion, contaminante=prev.contaminante,
+        unidad=prev.unidad, data_completeness=prev.data_completeness,
+        modelo=prev.modelo, fuente_dataset=prev.fuente_dataset,
+    )
+    if not prev.disponible or prev.valor_previsto is None:
+        return CalidadAireEpisodio(
+            **base, disponible=False, veredicto="sin_datos",
+            motivo=prev.motivo or "no se pudo construir la previsión de calidad del aire",
+        )
+    umbral = _LIMITES_REFERENCIA_UGM3.get(prev.contaminante or "")
+    if not umbral:
+        return CalidadAireEpisodio(
+            **base, disponible=False, veredicto="sin_datos",
+            valor_previsto=prev.valor_previsto,
+            motivo=f"sin umbral de referencia OMS/UE para «{prev.contaminante}»",
+        )
+    prob = _prob_superacion(prev.valor_previsto, umbral)
+    return CalidadAireEpisodio(
+        **base, disponible=True,
+        valor_previsto=prev.valor_previsto,
+        umbral=umbral,
+        margen=round(prev.valor_previsto - umbral, 1),
+        prob_superacion=round(prob, 3),
+        veredicto="supera" if prev.valor_previsto >= umbral else "no supera",
+        motivo=None,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -2451,3 +2639,154 @@ def mejor_hora_zona(
             curado. Si es `None`, el último día curado.
     """
     return _mejor_hora_zona_impl(zona, perfil, momento)
+
+
+# ---------------------------------------------------------------------------
+# meteo_cercana / avisos_meteo (FIL_82) -- dos Gold ya ingeridas y sin tool:
+# meteorologia_por_estacion_magnitud_hora y aemet_avisos_por_zona_fecha_nivel.
+# ---------------------------------------------------------------------------
+
+_TABLA_METEO = "meteorologia_por_estacion_magnitud_hora"
+_TABLA_AVISOS = "aemet_avisos_por_zona_fecha_nivel"
+_NIVEL_AVISO_RANK = {"verde": 0, "amarillo": 1, "naranja": 2, "rojo": 3}
+
+
+def meteo_cercana(
+    lugar: str, radio_m: float = 1500.0, *,
+    neo4j_driver: object | None = None, athena_client: object | None = None,
+) -> MeteoCercana:
+    """Meteorología observada cerca de un lugar de Madrid (`FIL_82`).
+
+    Resuelve el lugar contra el grafo (`:EstacionMedida{meteo}` `PROXIMO_A`,
+    FIL_65), toma la estación meteo más cercana y devuelve su última lectura
+    por magnitud (temperatura, viento, precipitación, humedad) de
+    `gold.meteorologia_por_estacion_magnitud_hora`. Sin estación meteo cerca
+    o sin datos → `disponible=False` + `motivo`, sin lanzar excepción.
+
+    Args:
+        lugar: Nombre de un lugar reconocible de Madrid ("Retiro", "Atocha"…).
+        radio_m: Radio de búsqueda de estación meteo (por defecto 1500 m —
+            la red meteo es menos densa que la de aire/tráfico).
+    """
+    fuente = f"gold.{_TABLA_METEO}"
+    try:
+        estaciones = run_neo4j_query(
+            *estaciones_meteo_cerca_query(lugar, radio_m), driver=neo4j_driver
+        )
+    except Exception as exc:  # noqa: BLE001 - degradación elegante
+        return MeteoCercana(lugar=lugar, fuente_dataset=fuente,
+                            motivo=f"no se pudo consultar el grafo: {exc}")
+    if not estaciones:
+        return MeteoCercana(
+            lugar=lugar, fuente_dataset=fuente,
+            motivo=f"ninguna estación meteorológica a ≤{int(radio_m)} m de «{lugar}» en el grafo",
+        )
+    est = estaciones[0]
+    est_id = str(est.get("estacion_id") or "").split(":")[-1]  # 'meteo:3195' -> '3195'
+    est_lit = sql_literal(est_id)
+    sql = f"""
+        SELECT magnitude, hour, avg_value, date, station_name
+        FROM {_TABLA_METEO}
+        WHERE (station_id = '{est_lit}' OR station_id LIKE '%{est_lit}')
+        ORDER BY date DESC, hour DESC
+        LIMIT 400
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001
+        return MeteoCercana(lugar=lugar, estacion=est.get("estacion_nombre"), estacion_id=est_id,
+                            distancia_m=est.get("distancia_m"), fuente_dataset=fuente,
+                            motivo=f"no se pudo consultar Gold en Athena: {exc}")
+    if not filas:
+        return MeteoCercana(
+            lugar=lugar, estacion=est.get("estacion_nombre"), estacion_id=est_id,
+            distancia_m=est.get("distancia_m"), fuente_dataset=fuente,
+            motivo=f"la estación meteo «{est_id}» no tiene lecturas recientes (pipeline pausado)",
+        )
+    ultima: dict[str, dict] = {}
+    for f in filas:
+        if f.get("avg_value") is None:
+            continue
+        m = f["magnitude"]
+        clave = (f.get("date"), int(f.get("hour") or 0))
+        if m not in ultima or clave > (ultima[m]["date"], int(ultima[m]["hour"] or 0)):
+            ultima[m] = f
+    lecturas = [
+        LecturaMeteo(
+            magnitud=m, valor=round(f["avg_value"], 1),
+            hora=int(f["hour"]) if f.get("hour") is not None else None,
+            fecha=f.get("date"),
+        )
+        for m, f in sorted(ultima.items())
+    ]
+    return MeteoCercana(
+        lugar=lugar, disponible=bool(lecturas),
+        estacion=est.get("estacion_nombre") or (filas[0].get("station_name")),
+        estacion_id=est_id, distancia_m=est.get("distancia_m"),
+        lecturas=lecturas, fuente_dataset=fuente,
+        motivo=None if lecturas else "sin magnitudes con valor",
+    )
+
+
+def avisos_meteo(
+    zona: str | None = None, fecha: str | None = None, *,
+    athena_client: object | None = None,
+) -> AvisosMeteo:
+    """Avisos meteorológicos AEMET activos para Madrid (`FIL_82`).
+
+    Lee `gold.aemet_avisos_por_zona_fecha_nivel`. Devuelve el `nivel` más
+    alto (`rojo` > `naranja` > `amarillo` > `verde`), los fenómenos y la
+    ventana de vigencia. Sin `fecha` → el último día con datos + `motivo` de
+    frescura (pipeline congelado, contrato FIL_73). Sin filas →
+    `disponible=False`.
+
+    Args:
+        zona: Filtro de texto sobre el nombre de zona AEMET. `None` = todas.
+        fecha: `YYYY-MM-DD`. `None` = último día disponible.
+    """
+    fuente = f"gold.{_TABLA_AVISOS}"
+    where = []
+    if zona:
+        where.append(f"lower(zone) LIKE '%{sql_literal(zona.lower())}%'")
+    if fecha:
+        where.append(f"fecha = '{sql_literal(fecha)}'")
+    filtro = (" WHERE " + " AND ".join(where)) if where else ""
+    sql = f"""
+        SELECT zone, level, phenomena, first_effective_from, last_effective_until, fecha
+        FROM {_TABLA_AVISOS}{filtro}
+        ORDER BY fecha DESC
+        LIMIT 200
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001
+        return AvisosMeteo(zona=zona, fecha=fecha, fuente_dataset=fuente,
+                           motivo=f"no se pudo consultar Gold en Athena: {exc}")
+    if not filas:
+        return AvisosMeteo(zona=zona, fecha=fecha, fuente_dataset=fuente,
+                           motivo="sin avisos AEMET para ese filtro (¿zona? ¿pipeline congelado?)")
+    dias = sorted({f["fecha"] for f in filas if f.get("fecha")}, reverse=True)
+    elegido = fecha or (dias[0] if dias else None)
+    deldia = [f for f in filas if f.get("fecha") == elegido] or filas
+    peor = max(deldia, key=lambda f: _NIVEL_AVISO_RANK.get((f.get("level") or "").lower(), -1))
+    fenomenos: set[str] = set()
+    zonas: set[str] = set()
+    desde = hasta = None
+    for f in deldia:
+        ph = f.get("phenomena")
+        if isinstance(ph, str):
+            ph = [x.strip() for x in ph.strip("[]").split(",") if x.strip()]
+        fenomenos.update(ph or [])
+        if f.get("zone"):
+            zonas.add(f["zone"])
+        d, h = f.get("first_effective_from"), f.get("last_effective_until")
+        desde = d if desde is None or (d and d < desde) else desde
+        hasta = h if hasta is None or (h and h > hasta) else hasta
+    return AvisosMeteo(
+        zona=zona, fecha=elegido, disponible=True,
+        nivel=(peor.get("level") or "").lower() or None,
+        fenomenos=sorted(fenomenos), zonas_afectadas=sorted(zonas),
+        vigencia_desde=desde, vigencia_hasta=hasta,
+        motivo=(None if fecha else f"último día con avisos: {elegido} (pipeline pausado)"),
+        fuente_dataset=fuente,
+    )

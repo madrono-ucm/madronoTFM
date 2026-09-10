@@ -103,13 +103,53 @@ def centralidad_transporte(G_conn: nx.Graph, nombres: "dict[str, str] | None" = 
                 G_conn.number_of_nodes(), G_conn.number_of_edges(), H.number_of_nodes())
     bet = nx.betweenness_centrality(H, normalized=True, seed=42)
     clo = nx.closeness_centrality(H)
+    pr = nx.pagerank(H)  # FIL_81: centralidad tipo "flujo de navegación"
     deg = dict(H.degree())
     filas = [
-        {"parada": nombres.get(n, n), "modo": G_conn.nodes[n].get("tipo"), "grado": deg[n],
-         "intermediacion": round(bet[n], 5), "cercania": round(clo[n], 4)}
+        {"nodo": n, "parada": nombres.get(n, n), "modo": G_conn.nodes[n].get("tipo"),
+         "grado": deg[n], "intermediacion": round(bet[n], 5),
+         "cercania": round(clo[n], 4), "pagerank": round(pr[n], 6)}
         for n in H
     ]
     return pd.DataFrame(filas).sort_values("intermediacion", ascending=False).reset_index(drop=True)
+
+
+def resumen_centralidad(cent: pd.DataFrame, com: dict, top: int = 12) -> dict:
+    """Artefacto compacto (`grafo_centralidad.json`, FIL_81) que consumen el
+    explorador y la memoria: top-N por PageRank y por intermediación, más el
+    resumen de comunidades Louvain. Reusa `comunidades_vs_barrios` (`com`).
+
+    Caveat (igual que `grafo_resiliencia.json`): `CONECTADO_CON` modela UN
+    viaje representativo por línea → la red está poco mallada por
+    construcción; la centralidad vale para el grafo tal como se modela."""
+    def _top(col: str) -> list:
+        d = cent.sort_values(col, ascending=False).head(top)
+        return [
+            {"parada": r["parada"], "modo": r["modo"], "grado": int(r["grado"]),
+             col: float(r[col])}
+            for _, r in d.iterrows()
+        ]
+
+    pr_sum = float(cent["pagerank"].sum()) if "pagerank" in cent else None
+    return {
+        "_nota": (
+            "CONECTADO_CON modela UN viaje representativo por línea; la red está "
+            "poco mallada por construcción. La centralidad vale para el grafo tal "
+            "como se modela, no para la topología física del metro/EMT."
+        ),
+        "n_nodos": int(len(cent)),
+        "pagerank_suma": round(pr_sum, 6) if pr_sum is not None else None,
+        "top_pagerank": _top("pagerank"),
+        "top_intermediacion": _top("intermediacion"),
+        "comunidades": {
+            "n_comunidades": com.get("n_comunidades"),
+            "n_barrios": com.get("n_barrios"),
+            "modularidad": com.get("modularidad"),
+            "ARI_vs_barrios": com.get("ARI"),
+            "NMI_vs_barrios": com.get("NMI"),
+            "comunidades_que_juntan_barrios": com.get("comunidades_que_juntan_barrios", [])[:5],
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -491,12 +531,14 @@ def main() -> int:
 
     cent = centralidad_transporte(G_conn, nombres)
     com = comunidades_vs_barrios(g, G_prox)
+    cent_json = resumen_centralidad(cent, com)
     svc = stgnn_vs_conectividad(g, G_prox)
     stats = estadisticos(g, G_prox, G_conn)
     res = resiliencia_transporte(G_conn, nombres)
 
     _ART.mkdir(parents=True, exist_ok=True)
     cent.to_csv(_ART / "grafo_centralidad_transporte.csv", index=False)
+    (_ART / "grafo_centralidad.json").write_text(json.dumps(cent_json, indent=1, ensure_ascii=False), encoding="utf-8")
     (_ART / "grafo_comunidades.json").write_text(json.dumps(com, indent=1, ensure_ascii=False), encoding="utf-8")
     (_ART / "grafo_stgnn_vs_conectividad.json").write_text(json.dumps(svc, indent=1, ensure_ascii=False), encoding="utf-8")
     (_ART / "grafo_stats.json").write_text(json.dumps(stats, indent=1, ensure_ascii=False), encoding="utf-8")

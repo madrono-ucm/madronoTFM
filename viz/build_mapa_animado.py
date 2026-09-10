@@ -1109,7 +1109,7 @@ const CAPITULOS = [
    d:"La misma Sol → Atocha con perfil general: otros pesos de NO₂/O₃/ruido/tráfico → otro camino y otra reducción. El mapa colorea por «salud (perfil)».",
    a:()=>setEstado({route:rutaIdx("Sol","Atocha","general"), perfil:"general", metric:"salud_perfil"})},
   {t:"6 · Hallazgos del grafo real (Neo4j)",
-   d:"Fuera de este mapa, en el grafo de Neo4j: 683 puntos de articulación en la red de transporte · el 96 % de los sensores de tráfico no tienen estación de aire a ≤300 m · Fuencarral 544 sensores vs Vicálvaro 62. Explóralo en «grafo_explorador.html» / <code>/grafo/explorador</code>.",
+   d:"Fuera de este mapa, en el grafo de Neo4j: 683 puntos de articulación en la red de transporte · Louvain la parte en 54 comunidades (modularidad 0,93) frente a los 131 barrios administrativos · el 96 % de los sensores de tráfico no tienen estación de aire a ≤300 m · Fuencarral 544 sensores vs Vicálvaro 62. Explóralo en «grafo_explorador.html» / <code>/grafo/explorador</code>.",
    a:()=>setEstado({metric:"salud", ghost:false, route:-1})},
 ];
 let histIdx = -1;
