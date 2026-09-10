@@ -217,5 +217,108 @@ class FrescuraDatosTests(unittest.TestCase):
         self.assertIn("zona", r["motivo"])  # menciona la otra causa posible
 
 
+# --- FIL_95: traza de herramientas del turno + catálogo ---------------------
+
+class _Msg:
+    def __init__(self, content=None, tool_calls=None):
+        self.content = content
+        self.tool_calls = tool_calls or []
+
+
+class _ToolCall:
+    def __init__(self, name, arguments="{}", id="tc-1"):
+        self.id = id
+        self.function = type("Fn", (), {"name": name, "arguments": arguments})()
+
+
+class _Resp:
+    def __init__(self, msg):
+        self.choices = [type("Choice", (), {"message": msg})()]
+
+
+class _ScriptedClient:
+    """`chat.completions.create` devuelve, en orden, cada `_Msg` envuelto."""
+
+    def __init__(self, mensajes):
+        self._it = iter(mensajes)
+        self.chat = self
+        self.completions = self
+
+    def create(self, **kw):
+        return _Resp(next(self._it))
+
+
+class PasosDelTurnoTests(unittest.TestCase):
+    """`chat()` devuelve `pasos` con las tools de ESTE turno (FIL_95)."""
+
+    def _run(self, mensajes, **tool_stubs):
+        import asistente.mcp_agent.tools as tm
+        from contextlib import ExitStack
+
+        with ExitStack() as st:
+            st.enter_context(patch.object(chat, "_cliente", lambda: _ScriptedClient(mensajes)))
+            for nombre, fn in tool_stubs.items():
+                st.enter_context(patch.object(tm, nombre, fn))
+            return chat.chat("da igual", [])
+
+    def test_dos_tools_dan_dos_pasos_con_ok_ms_y_filas(self):
+        out = self._run(
+            [
+                _Msg(tool_calls=[_ToolCall("calidad_aire", '{"zona":"Retiro"}', "a"),
+                                 _ToolCall("trafico_cercano", '{"lugar":"Atocha"}', "b")]),
+                _Msg(content="El aire está bien y el tráfico es fluido."),
+            ],
+            calidad_aire=lambda **kw: {"indice_calidad": "buena", "estaciones": ["E1", "E2"]},
+            trafico_cercano=lambda **kw: {"nivel_trafico": "fluido"},
+        )
+        self.assertEqual([p["tool"] for p in out["pasos"]], ["calidad_aire", "trafico_cercano"])
+        self.assertTrue(all(p["ok"] for p in out["pasos"]))
+        self.assertTrue(all(isinstance(p["ms"], int) for p in out["pasos"]))
+        self.assertEqual(out["pasos"][0]["filas"], 2)  # 2 estaciones
+
+    def test_respuesta_sin_tools_da_pasos_vacio(self):
+        out = self._run([_Msg(content="¡Hola! ¿En qué te ayudo?")])
+        self.assertEqual(out["pasos"], [])
+        self.assertIn("respuesta", out)
+
+    def test_una_tool_que_falla_queda_como_ok_false(self):
+        def _boom(**kw):
+            raise RuntimeError("Neo4j caído")
+
+        out = self._run(
+            [
+                _Msg(tool_calls=[_ToolCall("consulta_grafo", "{}", "x")]),
+                _Msg(content="No he podido consultar el grafo."),
+            ],
+            consulta_grafo=_boom,
+        )
+        self.assertEqual(len(out["pasos"]), 1)
+        self.assertFalse(out["pasos"][0]["ok"])
+
+
+class CatalogoEndpointTests(unittest.TestCase):
+    """`GET /chat/catalogo` — una entrada con ejemplo por tool del chat, del
+    registro único (FIL_95). Guarda de que ninguna tool del chat se queda
+    sin ejemplo."""
+
+    def test_una_entrada_por_tool_del_chat_todas_con_ejemplo(self):
+        from fastapi.testclient import TestClient
+
+        from asistente.main import create_app
+        from asistente.mcp_agent.server import NOMBRES_CHAT
+
+        r = TestClient(create_app()).get("/chat/catalogo")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(
+            {e["tool"] for e in data}, set(NOMBRES_CHAT),
+            "toda tool con en_chat=True necesita un ejemplo_chat en el registro",
+        )
+        for e in data:
+            self.assertTrue(e["ejemplo"].strip(), f"{e['tool']} sin ejemplo")
+            self.assertTrue(e["titulo"].strip())
+            self.assertTrue(e["descripcion"].strip())
+
+
 if __name__ == "__main__":
     unittest.main()

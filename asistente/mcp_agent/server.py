@@ -90,12 +90,17 @@ class ToolSpec(NamedTuple):
     - ``en_chat``: si se ofrece al LLM del chat. El chat expone solo un
       subconjunto (conversacional / graph-first) para no gastar el
       presupuesto TPM en esquemas grandes de dominio de nicho.
+    - ``ejemplo_chat``: pregunta de ejemplo en lenguaje natural para el
+      catálogo «¿qué puedo preguntar?» (`GET /chat/catalogo`, FIL_95).
+      Cadena vacía = no aparece en el catálogo. Solo tiene sentido con
+      ``en_chat=True``.
     """
 
     fn: Callable[..., object]
     titulo: str
     desc_chat: str
     en_chat: bool
+    ejemplo_chat: str = ""
 
 
 # Registro único de las tools del asistente. **Fuente de verdad** para: el
@@ -110,21 +115,26 @@ _TOOLS = (
     ToolSpec(tools.afluencia_prevista, "Afluencia prevista",
              "Afluencia prevista cerca de un lugar a un horizonte de 1, 3 o 6 horas.", False),
     ToolSpec(tools.calidad_aire, "Calidad del aire ahora",
-             "Calidad del aire medida ahora en una zona o estación de Madrid.", True),
+             "Calidad del aire medida ahora en una zona o estación de Madrid.", True,
+             "¿Cómo está la calidad del aire en Retiro?"),
     ToolSpec(tools.calidad_aire_prevista, "Calidad del aire prevista",
              "Previsión de calidad del aire (modelo LightGBM) a 1, 3 o 6 horas.", False),
     ToolSpec(tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)",
              "Previsión de calidad del aire con el modelo de grafo (STGNN), con vecinos influyentes.", False),
     ToolSpec(tools.calidad_aire_episodio, "Probabilidad de episodio de contaminación",
-             "Probabilidad de episodio (superar el umbral OMS/UE) del contaminante más crítico de una estación a 1/3/6 h.", True),
+             "Probabilidad de episodio (superar el umbral OMS/UE) del contaminante más crítico de una estación a 1/3/6 h.", True,
+             "¿Hay riesgo de episodio de contaminación cerca de Plaza Elíptica en las próximas horas?"),
     ToolSpec(tools.calidad_aire_cams, "Calidad del aire previsión Copernicus CAMS",
              "Previsión de calidad del aire del modelo Copernicus CAMS (nivel ciudad) para un contaminante — segunda opinión independiente.", False),
     ToolSpec(tools.meteo_cercana, "Meteorología observada cerca de un lugar",
-             "Meteorología observada (temperatura, viento, precipitación, humedad) en la estación más cercana a un lugar.", True),
+             "Meteorología observada (temperatura, viento, precipitación, humedad) en la estación más cercana a un lugar.", True,
+             "¿Qué temperatura y viento hace ahora cerca de Chamartín?"),
     ToolSpec(tools.avisos_meteo, "Avisos meteorológicos AEMET",
-             "Avisos meteorológicos AEMET activos en Madrid (nivel amarillo/naranja/rojo y fenómenos).", True),
+             "Avisos meteorológicos AEMET activos en Madrid (nivel amarillo/naranja/rojo y fenómenos).", True,
+             "¿Hay algún aviso meteorológico activo en Madrid?"),
     ToolSpec(tools.trafico_cercano, "Tráfico cerca de un lugar",
-             "Tráfico medido ahora cerca de un lugar de Madrid.", True),
+             "Tráfico medido ahora cerca de un lugar de Madrid.", True,
+             "¿Cómo está el tráfico cerca de Atocha ahora?"),
     ToolSpec(tools.trafico_prevista, "Tráfico previsto",
              "Previsión de tráfico (modelo LightGBM) a 1, 3 o 6 horas cerca de un lugar.", False),
     ToolSpec(tools.trafico_prevista_grafo, "Tráfico previsto (modelo de grafo)",
@@ -132,19 +142,25 @@ _TOOLS = (
     ToolSpec(tools.opciones_movilidad, "Opciones de movilidad entre dos puntos",
              "Compara ir en coche/bici/transporte público entre dos lugares.", False),
     ToolSpec(tools.disponibilidad_aparcamiento, "Disponibilidad de aparcamiento",
-             "Plazas de aparcamiento regulado disponibles cerca de un lugar.", True),
+             "Plazas de aparcamiento regulado disponibles cerca de un lugar.", True,
+             "¿Hay plazas de aparcamiento regulado libres cerca de Sol?"),
     ToolSpec(tools.eventos_cercanos, "Eventos cercanos",
-             "Eventos culturales y de ocio cerca de un lugar en los próximos días.", True),
+             "Eventos culturales y de ocio cerca de un lugar en los próximos días.", True,
+             "¿Qué eventos hay cerca de Gran Vía estos días?"),
     ToolSpec(tools.ruta_saludable, "Ruta saludable entre dos lugares",
-             "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.", True),
+             "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.", True,
+             "Dame una ruta saludable de Sol a Atocha para alguien con asma"),
     ToolSpec(tools.contexto_urbano, "Contexto urbano multi-salto de un lugar",
-             "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.", True),
+             "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.", True,
+             "¿Qué hay alrededor de Nuevos Ministerios?"),
     ToolSpec(tools.consulta_grafo, "Consulta parametrizada del grafo urbano (Neo4j)",
              "Consulta de solo lectura al grafo urbano de Neo4j mediante plantillas predefinidas (`plantilla`): "
              "estaciones de aire que miden un contaminante cerca de un lugar, paradas/líneas de transporte, "
-             "aparcamientos, BiciMAD, vecindario de un lugar, etc.", True),
+             "aparcamientos, BiciMAD, vecindario de un lugar, etc.", True,
+             "¿Qué estación de aire cerca de Retiro mide O₃?"),
     ToolSpec(tools.mejor_hora_zona, "Mejor hora del día para una zona",
-             "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).", True),
+             "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).", True,
+             "¿Cuál es la mejor hora para pasear por Chamberí hoy?"),
 )
 # Alias públicos (sin guion bajo) para importar desde fuera sin depender de
 # un nombre "privado": el generador de la tabla, el chat y los tests leen de aquí.
@@ -155,6 +171,15 @@ NOMBRES_TOOLS = tuple(s.fn.__name__ for s in _TOOLS)
 # encontró el fallo típico: una tool en la lista de una y no de la otra).
 NOMBRES_CHAT = frozenset(s.fn.__name__ for s in _TOOLS if s.en_chat)
 DESCRIPCIONES_CHAT = {s.fn.__name__: s.desc_chat for s in _TOOLS}
+# Catálogo «¿qué puedo preguntar?» (FIL_95): una entrada por tool del chat
+# con ejemplo, en el orden del registro. Lo sirve `GET /chat/catalogo` y lo
+# consumen la landing y el mapa para no hardcodear sugerencias que se
+# desincronicen del registro (misma lección que FIL_70/FIL_71).
+CATALOGO_CHAT = tuple(
+    {"tool": s.fn.__name__, "titulo": s.titulo, "descripcion": s.desc_chat,
+     "ejemplo": s.ejemplo_chat}
+    for s in _TOOLS if s.en_chat and s.ejemplo_chat
+)
 
 # Todas las tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia
 # ONNX / Dijkstra o barrido sobre un grafo vendorizado): `read_only_hint=True`.
