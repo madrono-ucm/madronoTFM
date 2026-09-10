@@ -190,7 +190,7 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
     # a la estación de aire más cercana (fiabilidad de la interpolación) y las
     # bandas de calidad del aire OMS/UE.
     from grafo.geo import haversine_m
-    from viz.rutas import PERFILES
+    from viz.rutas import PERFILES, PERFILES_LABEL
 
     df_pa = pd.read_parquet(_PARQUET)
     ruido_distrito = (
@@ -242,6 +242,7 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
         "ruido_distrito": ruido_distrito,
         "idw_dist": idw_dist,
         "perfiles": perfiles,
+        "perfiles_label": {k: PERFILES_LABEL[k] for k in perfiles},
         "umbrales": umbrales,
     }
 
@@ -438,125 +439,132 @@ _TEMPLATE = r"""<!doctype html>
 <div id="map" role="application" aria-label="Mapa animado del grafo de Madrid"></div>
 <div id="err" role="alert"></div>
 
-<div class="panel" id="titulo">Madrid · previsión sobre el grafo<small id="titulo-sub">—</small></div>
+<div class="panel" id="titulo">Madrid, hora a hora<small id="titulo-sub">—</small></div>
 
 <nav class="panel" id="rail" aria-label="Secciones del panel de control">
-  <button data-sec="historia" class="on" aria-controls="controls">Historia</button>
-  <button data-sec="tiempo" aria-controls="controls">Tiempo</button>
-  <button data-sec="color" aria-controls="controls">Capa de color</button>
-  <button data-sec="salud" aria-controls="controls">Salud</button>
+  <button data-sec="historia" class="on" aria-controls="controls">Recorrido</button>
+  <button data-sec="tiempo" aria-controls="controls">Día y hora</button>
+  <button data-sec="color" aria-controls="controls">Qué se ve</button>
+  <button data-sec="salud" aria-controls="controls" title="Según quién eres: perfil de sensibilidad">Perfil</button>
   <button data-sec="vista" aria-controls="controls">Vista</button>
-  <button data-sec="ruta" aria-controls="controls">Ruta saludable</button>
-  <button data-sec="chat" aria-controls="controls">Asistente</button>
+  <button data-sec="ruta" aria-controls="controls">Rutas</button>
+  <button data-sec="chat" aria-controls="controls">Preguntar</button>
 </nav>
 
 <div class="panel" id="controls">
-  <section class="sec on" data-sec="historia" id="g-historia" aria-label="Historia · recorrido guiado">
-    <h3>Historia · recorrido guiado</h3>
+  <section class="sec on" data-sec="historia" id="g-historia" aria-label="Recorrido guiado">
+    <h3>Recorrido guiado</h3>
     <div class="muted" id="hist-texto" style="margin:2px 0 6px">Elige un capítulo: el mapa se
-      pone en el estado que ilustra cada hallazgo del TFM.</div>
+      pone en el estado que ilustra cada hallazgo.</div>
     <div class="row" id="hist-caps"></div>
     <div class="row" style="margin-top:4px">
-      <button id="hist-prev" aria-label="Capítulo anterior">Anterior</button>
-      <button id="hist-auto" aria-label="Reproducir el capítulo">Animar</button>
-      <button id="hist-next" aria-label="Capítulo siguiente">Siguiente</button>
+      <button id="hist-prev" aria-label="Capítulo anterior">‹ Anterior</button>
+      <button id="hist-auto" aria-label="Reproducir las 24 h del capítulo">▶ Reproducir 24 h</button>
+      <button id="hist-next" aria-label="Capítulo siguiente">Siguiente ›</button>
     </div>
   </section>
-  <section class="sec" data-sec="tiempo" aria-label="Tiempo">
-    <h3>Tiempo</h3>
+  <section class="sec" data-sec="tiempo" aria-label="Día y hora">
+    <h3>Día y hora</h3>
+    <div class="muted" style="margin:0 0 4px">3 días reales con datos (la ingesta está pausada
+      desde el 30 ago).</div>
     <div class="row" id="days"></div>
     <div class="row">
-      <button id="play" aria-label="Reproducir / pausar">▶︎</button>
+      <button id="play" aria-label="Reproducir / pausar la hora">▶︎</button>
       <input type="range" id="hour" min="0" max="23" value="8" aria-label="Hora del día">
       <span id="hlabel" style="width:44px;text-align:right">08:00</span>
     </div>
-    <div class="row" aria-label="Horizonte de previsión">
+    <div class="row" id="hz-row" aria-label="Previsión de tráfico">
+      <span class="muted">previsión de tráfico:</span>
       <button data-h="now" class="hz on">ahora</button>
-      <button data-h="h1" class="hz">+1h</button>
-      <button data-h="h3" class="hz">+3h</button>
-      <button data-h="h6" class="hz">+6h</button>
+      <button data-h="h1" class="hz">+1 h</button>
+      <button data-h="h3" class="hz">+3 h</button>
+      <button data-h="h6" class="hz">+6 h</button>
     </div>
+    <div class="muted" id="hz-nota" style="margin-top:2px"></div>
   </section>
 
-  <section class="sec" data-sec="color" aria-label="Capa de color">
-    <h3>Capa de color</h3>
+  <section class="sec" data-sec="color" aria-label="Qué muestra el color">
+    <h3>Qué muestra el color</h3>
     <div class="row" id="metrics"></div>
     <div class="row" aria-label="Escala de color">
       <span class="muted">escala:</span>
-      <button data-e="lineal" class="es on">lineal</button>
-      <button data-e="bandas" class="es">bandas OMS·UE</button>
+      <button data-e="lineal" class="es on">gradiente</button>
+      <button data-e="bandas" class="es">franjas OMS/UE</button>
     </div>
     <div class="muted" id="metlabel"></div>
     <div class="leg" id="leg"></div>
     <div class="muted" id="legrange" style="display:flex;justify-content:space-between"></div>
     <div id="leg-bandas" class="muted" style="display:none;margin-top:4px"></div>
-    <div class="row"><button id="ghost">modelo vs persistencia (E2)</button></div>
-    <div class="muted" style="margin-top:4px">Arcos = las 15 conexiones más influyentes del STGNN
-      (top-15 global, grosor ∝ importancia, color animado por el tráfico). Dos nodos —#5768 y
-      #4848— concentran la mayoría: son los concentradores de flujo del modelo. Clic en un nodo →
-      detalle, con sus aristas resaltadas.</div>
+    <div class="row"><button id="ghost">¿acierta el modelo de tráfico?</button></div>
+    <div class="muted" id="ghost-nota" style="margin-top:2px;display:none">Verde = la previsión bate
+      a repetir el valor actual; rojo = se queda peor.</div>
+    <div class="muted" style="margin-top:6px">Los arcos son las 15 conexiones que más pesan en el
+      modelo de tráfico (grosor = importancia, color = tráfico ahora). Haz clic en un nodo para
+      ver su detalle.</div>
   </section>
 
-  <section class="sec" data-sec="salud" aria-label="Salud · perfil de sensibilidad">
-    <h3>Salud · perfil de sensibilidad</h3>
+  <section class="sec" data-sec="salud" aria-label="Perfil de sensibilidad">
+    <h3>Perfil de sensibilidad</h3>
+    <div class="muted" style="margin:0 0 4px">El mapa colorea un índice de salud calculado con los
+      pesos de cada perfil (aire, ruido, tráfico).</div>
     <div class="row" id="perfiles"></div>
     <div class="muted" id="mejor-hora" style="margin-top:2px"></div>
-    <label class="chk"><input type="checkbox" id="l-idw"> confianza de la interpolación de aire
-      (nodos lejos de estación = menos fiables)</label>
-    <div class="muted" style="margin-top:6px">Métricas de dosis: media de la exposición prevista de las
-      próximas 8 h como % de la guía OMS.</div>
+    <label class="chk"><input type="checkbox" id="l-idw"> marcar dónde el dato de aire es una
+      estimación (lejos de una estación de medida)</label>
     <div class="muted" style="margin-top:8px;border-top:1px solid #2c3644;padding-top:6px">
-      Agregados por zona · datos abiertos, sin información personal · describe el aire y la hora,
+      Agregado por zona · datos abiertos, sin información personal · describe el aire y la hora,
       no señala barrios · <b>apoyo a la decisión, no consejo médico</b>.</div>
   </section>
 
-  <section class="sec" data-sec="vista" aria-label="Vista">
-    <h3>Vista</h3>
+  <section class="sec" data-sec="vista" aria-label="Vista del mapa">
+    <h3>Vista del mapa</h3>
     <div class="row">
       <button id="v2d" class="on">2D</button><button id="v3d">3D</button>
-      <button id="fit">encajar a Madrid</button>
-      <button id="clean">vista limpia</button>
+      <button id="fit">centrar en Madrid</button>
+      <button id="clean">ocultar paneles</button>
     </div>
-    <div class="row" aria-label="Representación de los nodos">
+    <div class="row" aria-label="Forma de los nodos">
       <span class="muted">nodos:</span>
       <button data-r="puntos" class="rp on">puntos</button>
-      <button data-r="auto" class="rp">auto</button>
-      <button data-r="barras" class="rp">barras (3D)</button>
+      <button data-r="barras" class="rp">barras 3D</button>
     </div>
-    <div class="row" aria-label="Basemap vectorial (opcional)">
-      <span class="muted">basemap:</span>
-      <select id="basemap" aria-label="Basemap vectorial">
-        <option value="positron">Carto Positron (claro)</option>
-        <option value="voyager">Carto Voyager (calles)</option>
-        <option value="dark-matter">Carto Dark Matter (oscuro)</option>
-        <option value="ninguno">ninguno (sin tiles)</option>
+    <div class="row" aria-label="Mapa base">
+      <span class="muted">mapa base:</span>
+      <select id="basemap" aria-label="Mapa base">
+        <option value="positron">claro</option>
+        <option value="voyager">con calles</option>
+        <option value="dark-matter">oscuro</option>
+        <option value="ninguno">sin mapa base</option>
       </select>
     </div>
     <label class="chk"><input type="checkbox" id="l-distr" checked> nombres de distrito</label>
-    <label class="chk"><input type="checkbox" id="l-hitos" checked> hitos (Sol, Atocha…)</label>
-    <label class="chk"><input type="checkbox" id="l-ejes"> ejes (M-30, Castellana… · contexto)</label>
+    <label class="chk"><input type="checkbox" id="l-hitos" checked> lugares (Sol, Atocha…)</label>
+    <label class="chk"><input type="checkbox" id="l-ejes"> vías principales (M-30, Castellana)</label>
     <label class="chk"><input type="checkbox" id="l-parques"> parques grandes</label>
-    <label class="chk"><input type="checkbox" id="l-tex"> textura del grafo (aristas)</label>
+    <label class="chk"><input type="checkbox" id="l-tex"> conexiones entre nodos</label>
   </section>
 
-  <section class="sec" data-sec="ruta" aria-label="Ruta saludable">
-    <h3>Ruta saludable (E3)</h3>
+  <section class="sec" data-sec="ruta" aria-label="Rutas saludables">
+    <h3>Rutas saludables</h3>
+    <div class="muted" style="margin:0 0 4px">Compara la ruta más limpia con la más corta entre
+      dos puntos del centro.</div>
     <div class="row">
-      <select id="r-od" aria-label="Origen y destino"><option value="-1">— sin ruta —</option></select>
+      <select id="r-od" aria-label="Origen y destino"><option value="-1">— elige una ruta —</option></select>
     </div>
     <div class="row"><select id="r-perfil" aria-label="Perfil"></select></div>
     <div class="muted" id="routeinfo" style="margin-top:2px"></div>
   </section>
 
-  <section class="sec" data-sec="chat" id="g-chat" aria-label="Asistente">
+  <section class="sec" data-sec="chat" id="g-chat" aria-label="Preguntar a los datos">
     <h3>Preguntar a los datos</h3>
-    <div class="muted" style="margin:2px 0 4px">Lenguaje natural → el asistente (LLM + herramientas
-      MCP sobre el grafo y Gold) responde. P. ej. «¿qué estación de aire cerca de Retiro mide O₃?».</div>
+    <div class="muted" style="margin:2px 0 4px">Escríbelo en lenguaje natural. El asistente
+      consulta el grafo y los datos y responde. P. ej. «¿qué estación de aire cerca de Retiro
+      mide O₃?».</div>
     <div class="row" id="chat-sug"></div>
     <div id="chat-hilo" style="max-height:180px;overflow:auto;margin:4px 0;font-size:12px"></div>
     <div class="row">
-      <input id="chat-in" placeholder="pregunta…" style="flex:1;background:#2a3340;color:#e8edf2;border:1px solid #3a4756;border-radius:6px;padding:4px 8px">
-      <button id="chat-send">enviar</button>
+      <input id="chat-in" placeholder="Escribe tu pregunta…" style="flex:1;background:#2a3340;color:#e8edf2;border:1px solid #3a4756;border-radius:6px;padding:4px 8px">
+      <button id="chat-send">Enviar</button>
     </div>
     <div class="muted" id="chat-estado"></div>
   </section>
@@ -564,23 +572,23 @@ _TEMPLATE = r"""<!doctype html>
 
 <div class="panel" id="context">
   <div class="tabs">
-    <button id="tab-d" class="tab on">distritos</button>
-    <button id="tab-a" class="tab">arista/nodo</button>
+    <button id="tab-d" class="tab on">Por distrito</button>
+    <button id="tab-a" class="tab">Nodo elegido</button>
   </div>
   <div id="pane-d">
     <div class="muted">índice de salud medio por distrito · <span id="pd-hour">—</span></div>
     <div id="pulse" style="margin-top:6px"></div>
   </div>
   <div id="pane-a" style="display:none">
-    <div class="muted">nodo</div><b class="big" id="ea-id">—</b>
+    <div class="muted">Haz clic en un nodo del mapa</div><b class="big" id="ea-id">—</b>
     <div class="muted" id="ea-dist"></div>
-    <div class="muted" style="margin-top:8px">tráfico obs vs previsto (h1) · 24 h</div>
+    <div class="muted" style="margin-top:8px">tráfico: medido vs. previsto a +1 h · 24 h</div>
     <svg id="ea-spark-t" width="222" height="46"></svg>
     <div class="muted" style="margin-top:4px">NO₂ / O₃ · 24 h</div>
     <svg id="ea-spark-a" width="222" height="46"></svg>
     <div class="muted" style="margin-top:8px" id="ea-imp"></div>
   </div>
-  <div class="muted" style="margin-top:10px">skill STGNN vs persistencia (h1): <b id="ctx-skill">—</b></div>
+  <div class="muted" style="margin-top:10px" title="Media, sobre todos los nodos, de cuánto mejora la previsión a +1 h frente a repetir el valor actual. Positivo = el modelo acierta más.">acierto del modelo de tráfico (+1 h): <b id="ctx-skill">—</b></div>
 </div>
 
 <div class="panel" id="resumen">
@@ -595,9 +603,9 @@ _TEMPLATE = r"""<!doctype html>
     <span class="muted" id="rs-distr-txt">—</span>
   </div>
   <div class="blk" style="min-width:190px">
-    <span class="hd">meteo · skill</span>
+    <span class="hd">meteo · modelo</span>
     <div id="wx" style="margin-top:4px">meteo —</div>
-    <div class="muted" style="margin-top:6px">skill STGNN vs persistencia (h1): <b id="rs-skill">—</b></div>
+    <div class="muted" style="margin-top:6px" title="Cuánto mejora la previsión a +1 h frente a repetir el valor actual.">acierto del modelo (+1 h): <b id="rs-skill">—</b></div>
   </div>
 </div>
 
@@ -673,6 +681,9 @@ const MET_EXTRA = {
   dosis_o3:     {rango:[0,150], label:"Dosis O₃ próximas 8 h (% de la guía OMS 8 h)", peor:1},
 };
 const metDef = m => META.metricas[m] || MET_EXTRA[m];
+// Etiqueta legible del perfil de sensibilidad (la clave snake_case sigue
+// siendo el id interno / de `state.perfil`).
+const perfilLabel = p => (META.perfiles_label && META.perfiles_label[p]) || p;
 const _n = (s,v) => s==="traf" ? clamp01(v/300) : s==="no2" ? clamp01(v/200)
                   : s==="o3" ? clamp01(v/180) : clamp01((v-45)/30);
 
@@ -775,7 +786,7 @@ function nodeElev(i){
   const t = scale(state.metric==="trafico" ? v/100 : v, lo, hi);
   return (md.peor>0 ? t : 1-t) * 100;   // salud: alto = salud baja (problema)
 }
-const usaBarras = () => state.repr==="barras" || (state.repr==="auto" && state.view.pitch > 5);
+const usaBarras = () => state.repr==="barras";
 
 function layers(){
   const idxs = NODE_IDX;
@@ -950,7 +961,7 @@ function edgePane(){
     .sort((x,y)=>y.w-x.w);
   if(!mine.length){
     box.className = "muted";
-    box.textContent = "Este nodo no está en el top-15 de aristas influyentes del STGNN.";
+    box.textContent = "Este nodo no está entre las 15 conexiones con más peso del modelo de tráfico.";
     return;
   }
   box.className = "";
@@ -958,10 +969,10 @@ function edgePane(){
   const cab = document.createElement("div");
   if(n >= HUB_MIN){
     cab.style.cssText = "color:#ffd27f;font-weight:600;margin-bottom:4px";
-    cab.textContent = "Nodo concentrador — "+n+" de las 15 aristas más influyentes del STGNN pasan por aquí.";
+    cab.textContent = "Cruce importante — por aquí pasan "+n+" de las 15 conexiones con más peso del modelo de tráfico.";
   } else {
     cab.className = "muted"; cab.style.marginBottom = "4px";
-    cab.textContent = "Aristas influyentes del STGNN que tocan este nodo (dirección · peso):";
+    cab.textContent = "Conexiones con más peso del modelo que tocan este nodo (sentido · peso):";
   }
   box.appendChild(cab);
   mine.forEach(m=>{
@@ -1029,8 +1040,14 @@ function _render(){
   const md = metDef(state.metric);
   const bandas = state.escala==="bandas" && !state.ghost && (META.umbrales[md.banda||state.metric]);
   document.getElementById("metlabel").textContent = state.ghost
-    ? "E2 · divergencia STGNN(h1) − persistencia (azul = STGNN menor, rojo = mayor)"
-    : md.label + (state.metric==="salud_perfil" ? ` · perfil: ${state.perfil}` : "");
+    ? "El modelo de tráfico frente a repetir el valor actual (azul = el modelo predice menos; rojo = más)"
+    : md.label + (state.metric==="salud_perfil" ? ` · perfil: ${perfilLabel(state.perfil)}` : "");
+  { const esTraf = state.metric==="trafico";
+    const hzr = document.getElementById("hz-row");
+    hzr.style.opacity = esTraf ? "1" : ".38";
+    hzr.querySelectorAll("button").forEach(b=>b.disabled = !esTraf);
+    document.getElementById("hz-nota").textContent = esTraf ? "" : "Solo aplica al indicador «Tráfico».";
+    document.getElementById("ghost-nota").style.display = state.ghost ? "block" : "none"; }
   const leg = document.getElementById("leg");
   leg.style.display = bandas ? "none" : "block";
   leg.className = "leg" + (state.ghost ? " div" : (md.peor>0 ? "" : " rev"));
@@ -1048,15 +1065,14 @@ function _render(){
   } else lb.style.display = "none";
   const hh = String(state.hour).padStart(2,"0")+":00";
   document.getElementById("hlabel").textContent = hh;
-  document.getElementById("titulo-sub").textContent =
-    `${state.day} (${(META.dow[state.day]||"")}) · ${hh} · ${META.n_nodos} nodos`;
+  document.getElementById("titulo-sub").textContent = `${diaLabel(state.day)} · ${hh}`;
   const w = (WX[state.day]||{})[state.hour];
   document.getElementById("wx").innerHTML = w
     ? `${hh} · ${w.temp_c}°C · viento ${w.wind_ms} m/s<br>lluvia ${w.precip} l/m² · HR ${w.humidity}%`
     : "meteo —";
   const mh = mejorHoraPerfil();
   document.getElementById("mejor-hora").innerHTML =
-    `Mejor hora hoy para <b>${state.perfil}</b>: <b>${String(mh.hora).padStart(2,"0")}:00</b> `
+    `Mejor hora hoy para <b>${perfilLabel(state.perfil)}</b>: <b>${String(mh.hora).padStart(2,"0")}:00</b> `
     + `(salud media ${mh.salud.toFixed(0)}) · peor: ${String(mh.peor_hora).padStart(2,"0")}:00`;
   const s = skill(), sTxt = isNaN(s) ? "—" : s.toFixed(2);
   const cs = document.getElementById("ctx-skill"); if(cs) cs.textContent = sTxt;
@@ -1098,7 +1114,7 @@ function resumen(){
     `<path d="${area}" fill="${col}22"/><path d="${line}" fill="none" stroke="${col}" stroke-width="1.6"/>`
     + `<line x1="${x(state.hour)}" y1="0" x2="${x(state.hour)}" y2="${H}" stroke="#89a" stroke-dasharray="2 2"/>`;
   const now=serie[state.hour], iMin=Math.max(0,serie.indexOf(lo)), iMax=Math.max(0,serie.indexOf(hi));
-  const _ETR = {salud_perfil:"salud (perfil "+state.perfil+")", dosis_no2:"dosis NO₂", dosis_o3:"dosis O₃"};
+  const _ETR = {salud_perfil:"salud (perfil "+perfilLabel(state.perfil)+")", dosis_no2:"dosis NO₂", dosis_o3:"dosis O₃"};
   document.getElementById("rs-ct-hd").textContent = `media ciudad · ${_ETR[m]||m} · 24 h`;
   document.getElementById("rs-city-txt").textContent =
     `ahora ${now==null?"—":now.toFixed(1)} · mín ${lo.toFixed(1)} @${String(iMin).padStart(2,"0")}h · máx ${hi.toFixed(1)} @${String(iMax).padStart(2,"0")}h`;
@@ -1117,15 +1133,15 @@ function resumen(){
 
 function routeInfo(){
   const el = document.getElementById("routeinfo");
-  if(state.route<0 || !RUTAS){ el.textContent = "elige origen·destino y perfil"; return; }
+  if(state.route<0 || !RUTAS){ el.textContent = "Elige una ruta arriba."; return; }
   const R = RUTAS.rutas[state.route], r = R && R.por_hora && R.por_hora[state.hour];
   if(!R || !r){ el.textContent = "sin datos de ruta para esta hora"; return; }
   const c = r.cambio_por_senal_pct || {};
   const sig = k => (c[k] >= 0 ? "−" : "+") + Math.abs(c[k]) + "%";
-  el.innerHTML = `<b>verde</b> = saludable · <b>gris</b> = rápida<br>`
-    + `+${r.delta_dist_pct}% distancia · <b>−${r.reduccion_exposicion_pct}%</b> exposición ponderada<br>`
-    + `por señal: tráf ${sig("traf")} · NO₂ ${sig("no2")} · O₃ ${sig("o3")} · ruido ${sig("noise")}<br>`
-    + `mejor salida: ${R.mejor_hora}:00`;
+  el.innerHTML = `<b style="color:#4bbf73">verde</b> = más limpia · <b>gris</b> = más corta<br>`
+    + `+${r.delta_dist_pct}% de distancia y <b>−${r.reduccion_exposicion_pct}%</b> de exposición al salir a las ${String(state.hour).padStart(2,"0")}:00<br>`
+    + `por contaminante: tráfico ${sig("traf")} · NO₂ ${sig("no2")} · O₃ ${sig("o3")} · ruido ${sig("noise")}<br>`
+    + `mejor hora para salir: ${R.mejor_hora}:00`;
 }
 
 function fitBounds(){
@@ -1159,24 +1175,24 @@ function setEstado(p){
   render();
 }
 const CAPITULOS = [
-  {t:"1 · El modelo mejora la persistencia",
-   d:"STGNN de grafo (ML_05): la previsión bate a repetir el valor actual en los 3 horizontes, y el margen crece con h. «modelo vs persistencia» activado — verde = el modelo acierta más que la inercia.",
+  {t:"1 · El modelo acierta más que la inercia",
+   d:"Tráfico previsto a +3 h con el modelo activado. Verde = la previsión bate a repetir el valor actual; rojo = se queda peor. El margen crece cuanto más lejos miras.",
    a:()=>setEstado({metric:"trafico", ghost:true, hz:"h3", route:-1, clean:false})},
   {t:"2 · El aire depende de la hora",
-   d:"Dosis de O₃ (media 8 h, % de la guía OMS), escala por bandas OMS/UE. Sube a media tarde. Pulsa «Animar» para recorrer las 24 h.",
+   d:"Dosis de O₃ (media de 8 h, en % de la guía de la OMS), coloreada por franjas. Sube a media tarde: pulsa «Reproducir 24 h» para verlo.",
    a:()=>setEstado({metric:"dosis_o3", ghost:false, escala:"bandas", hour:16, route:-1})},
-  {t:"3 · Laborable vs domingo",
-   d:"El mismo O₃ en domingo (08-23): sin la punta de tráfico laboral, el patrón del aire cambia. Compara con el capítulo 2 (miércoles).",
+  {t:"3 · Laborable vs. fin de semana",
+   d:"El mismo O₃ un domingo: sin la punta de tráfico laboral, el patrón del aire cambia. Compara con el capítulo 2 (un miércoles).",
    // "2026-08-23" es uno de los DIAS_CURADOS (FIL_90); actualizar a mano si cambian
    a:()=>setEstado({metric:"dosis_o3", day:"2026-08-23", escala:"bandas", hour:16, route:-1})},
-  {t:"4 · Ruta saludable vs rápida",
-   d:"Sol → Atocha, perfil ciclista: la ruta verde (saludable) evita ~27 % de exposición ponderada frente a la gris (la más corta) a las 8:00.",
+  {t:"4 · La ruta limpia vs. la más corta",
+   d:"Sol → Atocha en bici: la ruta verde (más limpia) evita ~27 % de exposición frente a la gris (la más corta) a las 8:00.",
    a:()=>setEstado({route:rutaIdx("Sol","Atocha","ciclista"), perfil:"ciclista", metric:"salud_perfil", ghost:false, hour:8})},
-  {t:"5 · La ruta cambia con quién eres",
-   d:"La misma Sol → Atocha con perfil general: otros pesos de NO₂/O₃/ruido/tráfico → otro camino y otra reducción. El mapa colorea por «salud (perfil)».",
+  {t:"5 · La ruta cambia según quién eres",
+   d:"La misma Sol → Atocha con el perfil general: otros pesos de aire, ruido y tráfico dan otro camino y otro ahorro. El color es el índice de salud del perfil.",
    a:()=>setEstado({route:rutaIdx("Sol","Atocha","general"), perfil:"general", metric:"salud_perfil"})},
-  {t:"6 · Hallazgos del grafo real (Neo4j)",
-   d:"Fuera de este mapa, en el grafo de Neo4j: 683 puntos de articulación en la red de transporte · Louvain la parte en 54 comunidades (modularidad 0,93) frente a los 131 barrios administrativos · el 96 % de los sensores de tráfico no tienen estación de aire a ≤300 m · Fuencarral 544 sensores vs Vicálvaro 62. Explóralo en vivo: <a href=\"https://35-42-164-183.nip.io/grafo/explorador\" target=\"_blank\" rel=\"noopener\">explorador del grafo →</a> (usuario/contraseña de demo: demo / demo).",
+  {t:"6 · Lo que se ve en el grafo real",
+   d:"En el grafo de Neo4j (fuera de este mapa): 683 puntos cuya caída partiría la red de transporte · se agrupa en 54 comunidades muy distintas de los 131 barrios oficiales · el 96 % de los sensores de tráfico no tienen una estación de aire a menos de 300 m · Fuencarral tiene 544 sensores y Vicálvaro 62. Míralo en vivo: <a href=\"https://35-42-164-183.nip.io/grafo/explorador\" target=\"_blank\" rel=\"noopener\">explorador del grafo →</a> (demo / demo).",
    a:()=>setEstado({metric:"salud", ghost:false, route:-1})},
 ];
 let histIdx = -1;
@@ -1273,16 +1289,22 @@ function mkRail(){
   });
 }
 
+const _DOW_ES = {Monday:"lun", Tuesday:"mar", Wednesday:"mié", Thursday:"jue",
+                Friday:"vie", Saturday:"sáb", Sunday:"dom"};
+const _MES_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function diaLabel(d){ return (+d.slice(8)) + " " + _MES_ES[(+d.slice(5,7))-1] + " · " + (_DOW_ES[META.dow[d]] || ""); }
+
 function mkControls(){
   const dd = document.getElementById("days");
   META.dias.forEach((d,k)=>{ const b=document.createElement("button");
-    b.textContent = d.slice(5)+" ·"+(META.dow[d]||"").slice(0,3); b.className = k===0?"day on":"day";
+    b.textContent = diaLabel(d); b.className = k===0?"day on":"day";
     b.onclick=()=>{ state.day=d; document.querySelectorAll(".day").forEach(x=>x.classList.remove("on"));
       b.classList.add("on"); render(); }; dd.appendChild(b); });
 
   const mm = document.getElementById("metrics");
   const METS = [...Object.keys(META.metricas), "salud_perfil", "dosis_no2", "dosis_o3"];
-  const ET = {salud_perfil:"salud (perfil)", dosis_no2:"dosis NO₂", dosis_o3:"dosis O₃"};
+  const ET = {salud:"Índice de salud", trafico:"Tráfico", no2:"NO₂", o3:"O₃",
+              salud_perfil:"Salud (según perfil)", dosis_no2:"Dosis NO₂", dosis_o3:"Dosis O₃"};
   METS.forEach((m,k)=>{ const b=document.createElement("button");
     b.textContent = ET[m] || m; b.className = k===0?"met on":"met"; b.dataset.m = m;
     b.onclick=()=>{ state.metric=m; state.ghost=false; document.getElementById("ghost").classList.remove("on");
@@ -1294,7 +1316,8 @@ function mkControls(){
 
   const pp = document.getElementById("perfiles");
   Object.keys(META.perfiles).forEach(p=>{ const b=document.createElement("button");
-    b.textContent = p; b.className = p==="general" ? "pf on" : "pf"; b.dataset.p = p;
+    b.textContent = perfilLabel(p); b.title = "perfil de sensibilidad: "+perfilLabel(p);
+    b.className = p==="general" ? "pf on" : "pf"; b.dataset.p = p;
     b.onclick=()=>{ state.perfil=p; state.metric="salud_perfil";
       document.querySelectorAll(".pf").forEach(x=>x.classList.remove("on")); b.classList.add("on");
       document.querySelectorAll(".met").forEach(x=>x.classList.toggle("on", x.dataset.m==="salud_perfil"));
@@ -1317,8 +1340,8 @@ function mkControls(){
 
   document.querySelectorAll(".rp").forEach(b=>b.onclick=()=>{ state.repr=b.dataset.r;
     document.querySelectorAll(".rp").forEach(x=>x.classList.remove("on")); b.classList.add("on");
-    // "barras" y "auto" no dicen nada con la cámara plana: inclínala.
-    if((b.dataset.r==="barras" || b.dataset.r==="auto") && map.getPitch() < 5) setPitch(45);
+    // las barras no dicen nada con la cámara plana: inclínala al elegirlas.
+    if(b.dataset.r==="barras" && map.getPitch() < 5) setPitch(45);
     else render();
   });
   document.getElementById("v2d").onclick=()=>setPitch(0);
@@ -1364,7 +1387,7 @@ function mkControls(){
     const perfiles = [...new Set(RUTAS.rutas.map(r=>r.perfil))];
     const odSel = document.getElementById("r-od"), pSel = document.getElementById("r-perfil");
     ods.forEach((od,i)=>odSel.add(new Option(od, i)));
-    perfiles.forEach(p=>pSel.add(new Option(p, p)));
+    perfiles.forEach(p=>pSel.add(new Option(perfilLabel(p), p)));
     const apply=()=>{
       const odi = +odSel.value;
       if(odi<0){ state.route=-1; render(); return; }
