@@ -109,6 +109,10 @@ _TEMPLATE = """<!doctype html>
 <style>
   *{box-sizing:border-box}
   body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#e9e9ec}
+  /* FIL_75: foco visible en todos los controles (navegación por teclado). */
+  a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline:2px solid #7aa2ff; outline-offset:2px; border-radius:5px;
+  }
   #map{position:absolute;inset:0;background:#0d1117}
   #izq{position:absolute;top:12px;left:12px;bottom:12px;width:280px;display:flex;
     flex-direction:column;gap:10px;pointer-events:none;overflow:hidden}
@@ -137,14 +141,20 @@ _TEMPLATE = """<!doctype html>
   .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:6px 0}
   .kv b{color:#9aa0a6;font-weight:500}
   .tag{display:inline-block;background:rgba(255,255,255,.13);border-radius:6px;padding:1px 6px;margin:1px 2px 1px 0;font-size:12px}
-  .muted{color:#8b8f96}
+  .muted{color:#9aa3ab}
   .neigh{margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px}
   .neigh b{color:#9aa0a6}
+  /* FIL_75: estados de panel (cargando / vacío / error) con el mismo aspecto. */
+  [data-estado="cargando"]{color:#9aa3ab}
+  [data-estado="error"]{color:#ffc9c9}
+  .reintentar{width:auto;margin:6px 0 0;padding:3px 10px;border-radius:6px;
+    background:#3d6ce0;color:#fff;border:0;font:inherit;font-size:11.5px;cursor:pointer}
   #err{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:9;max-width:70%;
     background:#5b1a1a;color:#ffdede;border:1px solid #a33;border-radius:8px;padding:6px 12px;font-size:12px;display:none}
+  #err .reintentar{background:#a33}
 </style></head><body>
 <div id="map"></div>
-<div id="err"></div>
+<div id="err" role="alert"></div>
 <div id="izq">
 <div id="menu" class="box">
   <b>Vista / análisis</b>
@@ -172,8 +182,8 @@ _TEMPLATE = """<!doctype html>
 </div>
 <div id="panel">
   <h1>Grafo urbano de Madrid</h1>
-  <div class="sub" id="meta">cargando…</div>
-  <div id="detalle" class="muted">Haz clic en un nodo para ver sus atributos,
+  <div class="sub" id="meta" aria-live="polite" data-estado="cargando">cargando…</div>
+  <div id="detalle" class="muted" aria-live="polite">Haz clic en un nodo para ver sus atributos,
   su barrio/distrito y su vecindario <code>PROXIMO_A</code>.</div>
 </div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -188,13 +198,42 @@ let ANALISIS = null, vista = "explorar";
 let ruta = {activa:false, a:null, b:null};
 const DIM = "#5f6672";
 
-function mostrarError(m){
-  const e = document.getElementById("err");
-  e.textContent = "⚠ " + m; e.style.display = "block";
-  console.error(m);
+// FIL_75: un único patrón de estado (cargando / vacío / error / ok) para
+// todos los paneles que dependen de una petición -- mismo texto, mismo
+// aspecto y mismo botón "Reintentar". `ok` lo pinta el llamante.
+const _TXT_ESTADO = {
+  cargando: "Cargando ",
+  vacio: "Sin resultados.",
+  error: "No se pudo cargar ",
+};
+function estado(el, tipo, opts){
+  opts = opts || {};
+  el.dataset.estado = tipo;
+  if(tipo === "ok"){ return el; }
+  el.textContent = _TXT_ESTADO[tipo] + (opts.detalle || "");
+  if(tipo === "error" && typeof opts.onReintento === "function"){
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "reintentar"; b.textContent = "Reintentar";
+    b.onclick = opts.onReintento;
+    el.append(" ", b);
+  }
+  return el;
 }
-window.addEventListener("error", ev=>mostrarError((ev.error&&ev.error.stack)||ev.message));
-window.addEventListener("unhandledrejection", ev=>mostrarError("promesa: "+((ev.reason&&ev.reason.stack)||ev.reason)));
+
+// El banner global: mensaje legible para la persona, traza cruda solo a la
+// consola. Antes volcaba el stack entero en pantalla.
+function mostrarError(msg, detalleTecnico){
+  const e = document.getElementById("err");
+  e.textContent = "⚠ " + msg + " ";
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "reintentar"; b.textContent = "Recargar";
+  b.onclick = ()=>location.reload();
+  e.append(b);
+  e.style.display = "block";
+  if(detalleTecnico !== undefined) console.error(detalleTecnico);
+}
+window.addEventListener("error", ev=>mostrarError("Se ha producido un error inesperado.", (ev.error&&ev.error.stack)||ev.message));
+window.addEventListener("unhandledrejection", ev=>mostrarError("Se ha producido un error inesperado.", (ev.reason&&ev.reason.stack)||ev.reason));
 
 const map = new maplibregl.Map({
   container:"map", style:"https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
@@ -255,16 +294,16 @@ map.on("load", ()=>arrancar());
 async function arrancar(){
   const meta = document.getElementById("meta");
   if(LIVE){
-    meta.textContent = "cargando el grafo de Neo4j…";
+    estado(meta, "cargando", {detalle:"el grafo de Neo4j…"});
     try{
       G = await traerDatos();
       N = G.nodos; CONN = G.conn; LINEAS = G.lineas_de || {};
     }catch(err){
-      meta.innerHTML = "no se pudo cargar el grafo de Neo4j (" + esc(String(err)) +
-        "). <button id='reintentar'>Reintentar</button>";
-      document.getElementById("reintentar").onclick = ()=>arrancar();
+      estado(meta, "error", {detalle:"el grafo de Neo4j. La base puede estar despertándose.", onReintento:arrancar});
+      console.error(err);
       return;
     }
+    estado(meta, "ok");
   }
   tipos = [...new Set(Object.values(N).map(n=>n.tipo))].sort();
   activos = new Set(tipos);
@@ -465,12 +504,10 @@ function panelAnalisis(v){
 
 async function vecinosDe(id){
   if(!LIVE) return (PROX[id]||[]).map(([vid,d])=>({id:vid, distancia_m:d, nodo:N[vid]}));
-  try{
-    const r = await fetch(ENDPOINT + "/vecindario?id=" + encodeURIComponent(id) + "&radio_m=300");
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    return j.vecinos.map(v=>{ if(!N[v.id]) N[v.id] = v; return {id:v.id, distancia_m:v.distancia_m, nodo:v}; });
-  }catch(err){ return []; }
+  const r = await fetch(ENDPOINT + "/vecindario?id=" + encodeURIComponent(id) + "&radio_m=300");
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  const j = await r.json();
+  return j.vecinos.map(v=>{ if(!N[v.id]) N[v.id] = v; return {id:v.id, distancia_m:v.distancia_m, nodo:v}; });
 }
 
 // ---- Ruta entre 2 puntos (capacidad de enrutado del grafo DB) ---------------
@@ -517,15 +554,27 @@ async function calcularRuta(){
     est.innerHTML = "<b>" + esc(na) + " → " + esc(nb) + "</b><br>" + detalle +
       " · <button id='ruta-clear' style='width:auto;padding:2px 8px;margin:2px 0'>limpiar</button>";
     document.getElementById("ruta-clear").onclick = ()=>{ limpiarRuta(); est.textContent = "clic en el nodo ORIGEN"; };
-  }catch(err){ est.textContent = "error al calcular la ruta: " + err; }
+  }catch(err){
+    estado(est, "error", {detalle:"la ruta entre esos dos puntos.", onReintento:calcularRuta});
+    console.error(err);
+  }
 }
 
 async function seleccionar(id){
   if(ruta.activa){ return rutaPick(id); }
   const n = N[id]; if(!n) return;
   map.setFilter("nodo-sel", ["==","id",id]);
-  document.getElementById("detalle").textContent = "cargando vecindario…";
-  const vecinos = (await vecinosDe(id)).sort((a,b)=>a.distancia_m-b.distancia_m);
+  const det = document.getElementById("detalle");
+  estado(det, "cargando", {detalle:"el vecindario…"});
+  let vecinos;
+  try{
+    vecinos = (await vecinosDe(id)).sort((a,b)=>a.distancia_m-b.distancia_m);
+  }catch(err){
+    estado(det, "error", {detalle:"el vecindario de este nodo.", onReintento:()=>seleccionar(id)});
+    console.error(err);
+    return;
+  }
+  estado(det, "ok");
 
   map.getSource("prox-sel").setData({type:"FeatureCollection", features:vecinos.map(({nodo})=>{
     if(!nodo || nodo.lat==null) return null;
@@ -557,7 +606,6 @@ async function seleccionar(id){
     h += `<div class="kv"><b>${esc(t)}</b><span>${porTipo[t].slice(0,6).map(esc).join("<br>")}${porTipo[t].length>6?`<br>… +${porTipo[t].length-6}`:""}</span></div>`;
   }
   h += `</div>`;
-  const det = document.getElementById("detalle");
   det.innerHTML = h; det.classList.remove("muted");
 }
 </script></body></html>
