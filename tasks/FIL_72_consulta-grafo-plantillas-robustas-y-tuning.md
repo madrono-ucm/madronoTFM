@@ -52,3 +52,30 @@ con el chat (FIL_70) se ven dos problemas:
 - "¿qué estación de aire cerca de Retiro mide ozono?" en el chat devuelve
   la estación, no "no encontré nada".
 - Suite `asistente/` verde; nuevos tests de normalización pasan sin red.
+
+## Hecho (2026-09-10, rama `fil-72-consulta-grafo-robusto`)
+
+1. **`plantilla` es un `enum`** — `consulta_grafo(plantilla: Literal[...])`;
+   el schema MCP lo expone como `{"enum": [...8 nombres...]}`, así el LLM no
+   puede inventarse un valor. Test que fija `Literal ⇄ _PLANTILLAS_GRAFO`.
+2. **Normalización de contaminante** — `neo4j_client.normalizar_contaminante`:
+   `ozono` / `O₃` / `8` / `dióxido de nitrógeno` / `pm25` / … → el código de
+   Gold (`O3`, `NO2`, `PM2.5`, …). Se aplica **antes** de construir la query
+   (`$contaminante IN e.contaminantes`, ya sin `toUpper()`). Era la causa más
+   probable del "Retiro + ozono → 0 filas".
+3. **Anclaje documentado** — el docstring de
+   `estaciones_calidad_aire_que_miden_query` explica: parte del `:Lugar` por
+   `CONTAINS`, sigue `PROXIMO_A` no dirigido, y **subir `radio_m` por encima
+   de ~300 m no encuentra más** (no se cargaron esas relaciones) → si da 0,
+   el problema es el nombre o el contaminante.
+4. **Diagnóstico de 0 filas** — `ConsultaGrafo` gana `radio_m`,
+   `contaminante_normalizado` y `lugares_candidatos` (los `:Lugar` cuyo
+   nombre contiene el texto, vía `lugares_que_contienen_query`, sonda sin
+   relaciones). `motivo` pasa a "0 resultados — ningún :Lugar contiene «X»;
+   contaminante normalizado a «O3»; radio 300 m …".
+5. **Tests en vivo** — `EnVivoTests` (opt-in con `NEO4J_URI`): Retiro/O₃,
+   Chamberí/NO₂, Plaza Elíptica/PM10, BiciMAD/Callao, meteo/Retiro → `n_filas
+   > 0`. Se salta sin credenciales.
+
+Sin cambios en `_PLANTILLAS_GRAFO` (las 8 siguen). `pytest asistente/` →
+251 passed, 1 skipped.

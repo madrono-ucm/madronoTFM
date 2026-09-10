@@ -6,6 +6,7 @@ fallo, y se comprueba el contrato de degradación (`FIL_15`).
 
 from __future__ import annotations
 
+import os
 import unittest
 
 from fastapi.testclient import TestClient
@@ -82,6 +83,69 @@ class ToolTests(unittest.TestCase):
         self.assertEqual(r.parametros, {"lugar": "Sol"})
 
 
+class Fil72Tests(unittest.TestCase):
+    """FIL_72: `plantilla` como enum, contaminante normalizado, diagnóstico
+    de 0 filas."""
+
+    def test_plantilla_es_un_enum_cerrado_sincronizado_con_las_builders(self):
+        import typing
+
+        from asistente.mcp_agent.tools import _PLANTILLAS_GRAFO
+
+        args = set(typing.get_args(typing.get_type_hints(tools.consulta_grafo)["plantilla"]))
+        self.assertEqual(args, set(_PLANTILLAS_GRAFO))
+
+    def test_contaminante_se_normaliza_antes_de_consultar(self):
+        capturado = {}
+
+        class _Espia(_FakeSession):
+            def run(self, query, params):
+                capturado.update(params)
+                return _FakeResult([])
+
+        class _EspiaDriver:
+            def session(self, *a, **k):
+                return _Espia([])
+
+        r = _consulta_grafo_impl("aire_que_mide", "Retiro", 300.0, "ozono", "", "", "",
+                                 neo4j_driver=_EspiaDriver())
+        self.assertEqual(capturado.get("contaminante"), "O3")
+        self.assertEqual(r.contaminante_normalizado, "O3")
+
+    def test_cero_filas_da_diagnostico_util(self):
+        r = _consulta_grafo_impl("aire_que_mide", "SitioQueNoExiste", 300.0, "O₃", "", "", "",
+                                 neo4j_driver=_FakeDriver([]))
+        self.assertTrue(r.disponible)          # la consulta corrió, solo no hubo filas
+        self.assertEqual(r.n_filas, 0)
+        self.assertEqual(r.radio_m, 300.0)
+        self.assertEqual(r.contaminante_normalizado, "O3")
+        self.assertEqual(r.lugares_candidatos, [])
+        self.assertIn("0 resultados", r.motivo)
+        self.assertIn("ningún :Lugar contiene", r.motivo)
+
+    def test_cero_filas_lista_lugares_candidatos(self):
+        # driver que distingue la query principal (0 filas) de la sonda de
+        # :Lugar (`lugares_que_contienen_query`, sin PROXIMO_A).
+        class _PorQuery:
+            def session(self, *a, **k):
+                outer = self
+
+                class _S:
+                    def __enter__(self_): return self_
+                    def __exit__(self_, *a): return None
+                    def run(self_, query, params):
+                        es_sonda = "PROXIMO_A" not in query
+                        return _FakeResult([{"nombre": "Parque de El Retiro"}] if es_sonda else [])
+
+                return _S()
+
+        r = _consulta_grafo_impl("bicimad_cerca", "Retiro", 300.0, "", "", "", "",
+                                 neo4j_driver=_PorQuery())
+        self.assertEqual(r.n_filas, 0)
+        self.assertIn("Parque de El Retiro", r.lugares_candidatos)
+        self.assertNotIn("ningún :Lugar contiene", r.motivo)
+
+
 class RouterTests(unittest.TestCase):
     def test_router_degradado_devuelve_respuesta_asistente(self):
         client = TestClient(create_app())
@@ -90,6 +154,28 @@ class RouterTests(unittest.TestCase):
         body = resp.json()
         self.assertEqual(body["veredicto"], "con_precaucion")
         self.assertIn("Plantillas disponibles", body["explicacion"])
+
+
+@unittest.skipUnless(os.environ.get("NEO4J_URI"), "opt-in: necesita Neo4j real (NEO4J_URI/USERNAME/PASSWORD)")
+class EnVivoTests(unittest.TestCase):  # FIL_72 punto 5
+    """Pares (lugar, plantilla, ...) que en el grafo real deben dar > 0
+    filas. Se salta sin credenciales; se corre a mano al recargar el grafo
+    o al depurar `consulta_grafo`."""
+
+    CASOS = [
+        ("aire_que_mide", {"lugar": "Retiro", "contaminante": "ozono"}),
+        ("aire_que_mide", {"lugar": "Chamberí", "contaminante": "NO2"}),
+        ("aire_que_mide", {"lugar": "Plaza Elíptica", "contaminante": "PM10"}),
+        ("bicimad_cerca", {"lugar": "Callao"}),
+        ("meteo_cerca", {"lugar": "Retiro"}),
+    ]
+
+    def test_casos_conocidos_devuelven_filas(self):
+        for plantilla, kw in self.CASOS:
+            with self.subTest(plantilla=plantilla, **kw):
+                r = tools.consulta_grafo(plantilla, **kw)
+                self.assertTrue(r.disponible, r.motivo)
+                self.assertGreater(r.n_filas, 0, f"{plantilla} {kw} -> {r.motivo}")
 
 
 if __name__ == "__main__":

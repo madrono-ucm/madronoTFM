@@ -606,4 +606,10 @@ class ConsultaGrafo(BaseModel):
     n_filas: int = 0
     filas: list[dict] = Field(default_factory=list)
     plantillas_disponibles: list[str] = Field(default_factory=list)
+    # FIL_72: diagnóstico cuando hay 0 filas — el radio efectivo, el
+    # contaminante ya normalizado al código de Gold, y los `:Lugar` cuyo
+    # nombre contiene el texto pedido (para ver si «Retiro» resolvió a algo).
+    radio_m: float | None = None
+    contaminante_normalizado: str | None = None
+    lugares_candidatos: list[str] = Field(default_factory=list)
     fuente_grafo: str = "Neo4j — grafo urbano real (nodos + PROXIMO_A/CONECTADO_CON)"
