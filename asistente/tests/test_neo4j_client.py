@@ -14,11 +14,34 @@ from asistente.neo4j_client import (
     estaciones_meteo_cerca_query,
     lineas_que_pasan_por_query,
     lugares_proximos_a_estaciones_trafico_query,
+    lugares_que_contienen_query,
+    normalizar_contaminante,
     paradas_de_linea_query,
     recintos_cerca_query,
     run_neo4j_query,
     vecindario_de_lugar_query,
 )
+
+
+class NormalizarContaminanteTests(unittest.TestCase):  # FIL_72
+    def test_alias_al_codigo_de_gold(self):
+        for entrada, esperado in [
+            ("ozono", "O3"), ("O3", "O3"), ("O₃", "O3"), ("8", "NO2"),
+            ("dióxido de nitrógeno", "NO2"), ("NO2", "NO2"),
+            ("pm2.5", "PM2.5"), ("pm25", "PM2.5"), ("PM10", "PM10"),
+            ("monóxido de carbono", "CO"), ("benceno", "BEN"),
+        ]:
+            self.assertEqual(normalizar_contaminante(entrada), esperado, entrada)
+
+    def test_desconocido_pasa_en_mayusculas_sin_acentos(self):
+        self.assertEqual(normalizar_contaminante("xyz"), "XYZ")
+        self.assertEqual(normalizar_contaminante(""), "")
+
+    def test_sonda_de_lugares_no_sigue_relaciones(self):
+        query, params = lugares_que_contienen_query("Retiro")
+        self.assertIn("MATCH (l:Lugar)", query)
+        self.assertNotIn("PROXIMO_A", query)
+        self.assertEqual(params, {"nombre_lugar": "Retiro"})
 
 
 class LugaresProximosQueryTests(unittest.TestCase):
@@ -39,12 +62,15 @@ class LugaresProximosQueryTests(unittest.TestCase):
         self.assertNotIn("-[r:PROXIMO_A]->", query)
         self.assertNotIn("<-[r:PROXIMO_A]-", query)
 
-    def test_calidad_aire_que_miden_filtra_por_contaminante(self):  # FIL_67 / FIL_66
-        query, params = estaciones_calidad_aire_que_miden_query("Retiro", "o3", 400.0)
+    def test_calidad_aire_que_miden_filtra_por_contaminante(self):  # FIL_67 / FIL_66 / FIL_72
+        query, params = estaciones_calidad_aire_que_miden_query("Retiro", "ozono", 400.0)
         self.assertIn("(e:EstacionMedida {tipo: 'calidad_aire'})", query)
-        self.assertIn("toUpper($contaminante) IN e.contaminantes", query)
+        self.assertIn("$contaminante IN e.contaminantes", query)
         self.assertIn("e.contaminantes AS contaminantes", query)
-        self.assertEqual(params, {"nombre_lugar": "Retiro", "contaminante": "o3", "radio_m": 400.0})
+        # FIL_72: el contaminante se normaliza en Python ("ozono" -> "O3"),
+        # ya no con toUpper() dentro de la query.
+        self.assertNotIn("toUpper($contaminante)", query)
+        self.assertEqual(params, {"nombre_lugar": "Retiro", "contaminante": "O3", "radio_m": 400.0})
         self.assertNotIn("-[r:PROXIMO_A]->", query)
 
 
