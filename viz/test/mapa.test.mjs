@@ -51,7 +51,7 @@ test("FIL_57 · todo getElementById('x') tiene su id='x' en el HTML", () => {
   assert.deepEqual(faltan, [], `getElementById sin id en el HTML: ${faltan.join(", ")}`);
 });
 
-test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async () => {
+test("FIL_56 · disparar todos los controles no lanza ninguna excepción", async () => {
   const vc = new VirtualConsole(); // silencia el volcado de jsdom; trazamos aparte
   const errors = [];
   vc.on("jsdomError", (e) => errors.push("jsdomError: " + (e?.stack || e)));
@@ -122,6 +122,11 @@ test("FIL_56 · disparar los 51 controles no lanza ninguna excepción", async ()
   const before = errors.length;
   const click = (el) => el && el.click();
   const fire = (el, type) => el && el.dispatchEvent(new win.Event(type));
+
+  // FIL_77: barra lateral -> abrir cada sección (una visible a la vez) y
+  // dejar "Historia" abierta al final.
+  win.document.querySelectorAll("#rail button").forEach(click);
+  win.document.querySelector('#rail button[data-sec="historia"]').click();
 
   win.document.querySelectorAll(".met").forEach(click); // 4 métricas base + 3 virtuales
   win.document.querySelectorAll(".pf").forEach(click); // 9 perfiles de sensibilidad
