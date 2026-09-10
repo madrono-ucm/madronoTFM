@@ -19,7 +19,7 @@ from asistente.mcp_agent.server import TOOLS as _REGISTRO
 
 # Derivado del registro único (`server.TOOLS`, FIL_93): antes era una lista
 # dura duplicada de `server.py` que había que actualizar a mano.
-TOOL_FUNCTIONS = [fn for fn, _ in _REGISTRO]
+TOOL_FUNCTIONS = [s.fn for s in _REGISTRO]
 
 # Todas las tools tienen lógica real -- no queda ninguna con NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS: list = []

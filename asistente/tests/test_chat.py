@@ -39,17 +39,47 @@ class SubconjuntoToolsTests(unittest.TestCase):
     def test_toda_tool_del_chat_es_ejecutable(self):
         # regresión FIL_70: `consulta_grafo` estaba en `_TOOLS_CHAT` (se
         # ofrecía al modelo) pero `_ejecutar_tool` la rechazaba por no estar
-        # en `_DESCRIPCIONES` -> "herramienta desconocida" en bucle.
+        # en `_DESCRIPCIONES` -> "herramienta desconocida" en bucle. Ahora
+        # ambos salen del mismo registro (`server.NOMBRES_CHAT`), así que no
+        # pueden discrepar; este test lo fija.
         import asistente.mcp_agent.tools as tm
+        from asistente.mcp_agent.server import DESCRIPCIONES_CHAT, NOMBRES_CHAT
 
-        for nombre in chat._TOOLS_CHAT:
-            self.assertTrue(callable(getattr(tm, nombre, None)), nombre)
+        for nombre in NOMBRES_CHAT:
+            self.assertTrue(callable(getattr(tm, nombre, None)), f"{nombre} no es ejecutable")
+            self.assertIn(nombre, DESCRIPCIONES_CHAT, f"{nombre} sin descripción para el LLM")
+            # no lo rechaza la puerta de _ejecutar_tool (fallaría antes de llamar a la tool)
+            self.assertNotEqual(
+                chat._ejecutar_tool(nombre, {}).get("motivo", ""),
+                f"herramienta no disponible en el chat: {nombre!r}",
+            )
+
+    def test_ejecutar_tool_devuelve_siempre_el_mismo_contrato(self):
+        # FIL_71 (mitad segura): {disponible, motivo, datos}, nunca una forma
+        # de error ad-hoc.
+        import asistente.mcp_agent.tools as tm
 
         with patch.object(tm, "consulta_grafo", lambda **kw: {"ok": True}):
             r = chat._ejecutar_tool("consulta_grafo", {"plantilla": "x", "lugar": "y"})
-        self.assertEqual(r, {"ok": True})
+        self.assertEqual(r, {"disponible": True, "motivo": None, "datos": {"ok": True}})
+
+        # tool fuera del subconjunto del chat -> no disponible, sin excepción
         r2 = chat._ejecutar_tool("tool_que_no_existe", {})
-        self.assertIn("desconocida", r2["error"])
+        self.assertEqual(set(r2), {"disponible", "motivo", "datos"})
+        self.assertFalse(r2["disponible"])
+        self.assertIsNone(r2["datos"])
+
+        # una tool que revienta -> disponible=false + motivo, no propaga
+        with patch.object(tm, "consulta_grafo", lambda **kw: (_ for _ in ()).throw(RuntimeError("boom"))):
+            r3 = chat._ejecutar_tool("consulta_grafo", {})
+        self.assertFalse(r3["disponible"])
+        self.assertIn("boom", r3["motivo"])
+
+        # un centinela de "sin datos" del payload se traduce a disponible=false
+        with patch.object(tm, "calidad_aire", lambda **kw: {"indice_calidad": "sin_datos"}):
+            r4 = chat._ejecutar_tool("calidad_aire", {"zona": "x"})
+        self.assertFalse(r4["disponible"])
+        self.assertIn("sin datos", r4["motivo"])
 
     def test_sin_think_quita_bloques_de_razonamiento(self):
         self.assertEqual(chat._sin_think("<think>uhm</think>Hola"), "Hola")

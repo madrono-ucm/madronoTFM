@@ -31,7 +31,7 @@ from typing import Any
 from groq import Groq
 
 from asistente.mcp_agent import tools as tools_module
-from asistente.mcp_agent.server import mcp
+from asistente.mcp_agent.server import DESCRIPCIONES_CHAT, NOMBRES_CHAT, mcp
 
 logger = logging.getLogger(__name__)
 
@@ -55,15 +55,15 @@ _MAX_REINTENTOS_LLM = 3
 _ESTADOS_REINTENTABLES = {408, 409, 429, 500, 502, 503, 504, 529}
 _SSM_PARAMETER = "/madrono-tfm/dev/secrets/groq-api-key"
 
-# El chat solo expone un subconjunto de las tools MCP (`server.TOOLS`): las
-# conversacionales y graph-first. Fuera las `*_prevista*` / `afluencia_*` / `opciones_movilidad`
-# (esquemas grandes, dominio de nicho, datos congelados) -- así el `tools=[...]`
-# ocupa ~la mitad de tokens y se aleja del límite TPM del tier gratuito.
-_TOOLS_CHAT = frozenset({
-    "calidad_aire", "calidad_aire_episodio", "trafico_cercano", "consulta_grafo",
-    "contexto_urbano", "ruta_saludable", "mejor_hora_zona", "eventos_cercanos",
-    "disponibilidad_aparcamiento", "meteo_cercana", "avisos_meteo",
-})
+# El chat solo expone un subconjunto de las tools MCP: las conversacionales y
+# graph-first (fuera las `*_prevista*` / `afluencia_*` / `opciones_movilidad`:
+# esquemas grandes, dominio de nicho, datos congelados -- así el `tools=[...]`
+# ocupa ~la mitad de tokens y se aleja del límite TPM del tier gratuito). El
+# subconjunto y su frase corta viven en el registro único
+# `asistente/mcp_agent/server.py` (`en_chat` / `desc_chat` de cada `ToolSpec`);
+# FIL_70 encontró el fallo típico de tenerlo en dos listas a mano que se
+# desincronizan.
+_TOOLS_CHAT = NOMBRES_CHAT
 
 _SYSTEM_PROMPT = (
     "Eres Madroño, el asistente de una plataforma de datos abiertos de "
@@ -76,35 +76,10 @@ _SYSTEM_PROMPT = (
     "de Madrid; no das consejo médico ni tratas datos personales."
 )
 
-# Descripción corta por tool (una frase, para el tool-calling de Groq) --
-# el `input_schema` real (parámetros) se toma en vivo de `mcp.list_tools()`,
-# no se duplica aquí.
-_DESCRIPCIONES = {
-    "afluencia_estimada": "Actividad urbana estimada ahora cerca de un lugar (tráfico, ruido, BiciMAD, aire).",
-    "afluencia_prevista": "Afluencia prevista cerca de un lugar a un horizonte de 1, 3 o 6 horas.",
-    "calidad_aire": "Calidad del aire medida ahora en una zona o estación de Madrid.",
-    "calidad_aire_episodio": "Probabilidad de episodio (superar el umbral OMS/UE) del contaminante más crítico de una estación a 1/3/6 h.",
-    "calidad_aire_cams": "Previsión de calidad del aire del modelo Copernicus CAMS (nivel ciudad) para un contaminante — segunda opinión independiente.",
-    "calidad_aire_prevista": "Previsión de calidad del aire (modelo LightGBM) a 1, 3 o 6 horas.",
-    "calidad_aire_prevista_grafo": "Previsión de calidad del aire con el modelo de grafo (STGNN), con vecinos influyentes.",
-    "trafico_cercano": "Tráfico medido ahora cerca de un lugar de Madrid.",
-    "trafico_prevista": "Previsión de tráfico (modelo LightGBM) a 1, 3 o 6 horas cerca de un lugar.",
-    "trafico_prevista_grafo": "Previsión de tráfico con el modelo de grafo (STGNN).",
-    "opciones_movilidad": "Compara ir en coche/bici/transporte público entre dos lugares.",
-    "disponibilidad_aparcamiento": "Plazas de aparcamiento regulado disponibles cerca de un lugar.",
-    "eventos_cercanos": "Eventos culturales y de ocio cerca de un lugar en los próximos días.",
-    "ruta_saludable": "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.",
-    "contexto_urbano": "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.",
-    "mejor_hora_zona": "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).",
-    "meteo_cercana": "Meteorología observada (temperatura, viento, precipitación, humedad) en la estación más cercana a un lugar.",
-    "avisos_meteo": "Avisos meteorológicos AEMET activos en Madrid (nivel amarillo/naranja/rojo y fenómenos).",
-    "consulta_grafo": (
-        "Consulta de solo lectura al grafo urbano de Neo4j mediante plantillas "
-        "predefinidas (`plantilla`): estaciones de aire que miden un "
-        "contaminante cerca de un lugar, paradas/lineas de transporte, "
-        "aparcamientos, BiciMAD, vecindario de un lugar, etc."
-    ),
-}
+# Descripción corta por tool (una frase, para el tool-calling del LLM): del
+# registro único `server.DESCRIPCIONES_CHAT`. El `input_schema` real
+# (parámetros) se toma en vivo de `mcp.list_tools()`, no se duplica.
+_DESCRIPCIONES = DESCRIPCIONES_CHAT
 
 _client: "Groq | None" = None
 _tools_schema: "list[dict] | None" = None
@@ -197,22 +172,51 @@ def _tools_para_groq() -> "list[dict]":
     return out
 
 
-def _ejecutar_tool(nombre: str, args: dict) -> Any:
-    """Llama a la tool real en proceso (misma función que MCP/HTTP usan) y
-    serializa el resultado a algo JSON-able. Nunca lanza -- una tool con
-    error se convierte en un mensaje de error para que Groq lo explique,
-    mismo criterio de degradación elegante que el resto de `asistente/`."""
+# Centinelas de "sin datos" que cada tool usa a su manera (histórico: no hay
+# un contrato común todavía -- eso es FIL_71 completo, post-entrega). El chat
+# los traduce a un único `disponible=false` + `motivo` para que el LLM no
+# tenga que reconocer cada variante.
+_CLAVES_CENTINELA = ("indice_calidad", "resumen", "nivel", "estado", "nivel_trafico")
+
+
+def _normalizar_resultado(payload: Any) -> "dict[str, Any]":
+    """Envuelve el retorno de una tool en `{disponible, motivo, datos}`.
+
+    `disponible=False` cuando la propia tool ya se declara degradada
+    (`disponible: false` + `motivo`, de las `*_prevista`, FIL_15) o marca
+    "sin datos" con uno de sus centinelas; si no, `True`. Así el LLM ve
+    siempre la misma forma y el `_SYSTEM_PROMPT` ("si no hay datos, dilo")
+    tiene una señal fiable en la que apoyarse.
+    """
+    datos = payload.model_dump(mode="json") if hasattr(payload, "model_dump") else payload
+    disponible, motivo = True, None
+    if isinstance(datos, dict):
+        if datos.get("disponible") is False:
+            disponible = False
+            motivo = datos.get("motivo") or "la herramienta se declaró no disponible"
+        elif any(datos.get(k) == "sin_datos" for k in _CLAVES_CENTINELA):
+            disponible = False
+            motivo = "sin datos para la consulta (zona sin cobertura o fuera de la ventana disponible)"
+    return {"disponible": disponible, "motivo": motivo, "datos": datos}
+
+
+def _ejecutar_tool(nombre: str, args: dict) -> "dict[str, Any]":
+    """Llama a la tool real en proceso (la misma función que usan MCP/HTTP) y
+    devuelve SIEMPRE `{disponible, motivo, datos}` -- nunca lanza y nunca
+    inventa una forma propia de error. Toda tool ofrecida al LLM
+    (`server.NOMBRES_CHAT`) es ejecutable aquí; lo contrario era el bucle
+    "herramienta desconocida" de FIL_70."""
+    if nombre not in _TOOLS_CHAT:
+        return {"disponible": False, "motivo": f"herramienta no disponible en el chat: {nombre!r}", "datos": None}
     fn = getattr(tools_module, nombre, None)
-    if fn is None or nombre not in _TOOLS_CHAT:
-        return {"error": f"herramienta desconocida: {nombre!r}"}
+    if fn is None:  # registrada pero sin función importable: no debería ocurrir
+        return {"disponible": False, "motivo": f"herramienta desconocida: {nombre!r}", "datos": None}
     try:
         resultado = fn(**args)
     except Exception as exc:  # noqa: BLE001 - degradación elegante, ver docstring
         logger.warning("fallo ejecutando tool %s(%r): %s", nombre, args, exc)
-        return {"error": f"fallo al consultar {nombre}: {exc}"}
-    if hasattr(resultado, "model_dump"):
-        return resultado.model_dump(mode="json")
-    return resultado
+        return {"disponible": False, "motivo": f"fallo al consultar {nombre}: {exc}", "datos": None}
+    return _normalizar_resultado(resultado)
 
 
 def _extraer_tool_calls(msg) -> list:
