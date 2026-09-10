@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "QA — grafo_centralidad (FIL_81): PageRank/Louvain, artefacto, vista del explorador"
 owner: Claude (QA)
-status: pending
+status: done
 depends_on: [FIL_81]
 created_at: "2026-09-10"
 ---
@@ -37,3 +37,28 @@ explorador.
 - Tests de `grafo_analitica` verdes, incluido el de propiedades.
 - Artefacto determinista (dos corridas → mismo JSON salvo `generado`).
 - 0 dependencia de GDS o de red.
+
+## Hecho (2026-09-10, Claude QA)
+
+Los 6 puntos verificados contra el artefacto real y el grafo real
+(`grafo/_data/grafo_urbano.json.gz`). `pagerank_suma=0.999999` ✓,
+`modularidad=0.932` ∈[0,1) ✓ (alto pero explicable: Louvain sobre grafo
+de proximidad espacial), 54 comunidades vs 131 barrios ✓, sin GDS ni
+Neo4j en caliente ✓. El explorador sí expone y testea `centralidad`
+(`asistente/routers/grafo_explorador.py::_centralidad()` +
+`asistente/tests/test_grafo_explorador_router.py`) — el ticket apuntaba
+a los ficheros equivocados (`viz/build_grafo_explorador.py` es el
+explorador estático alternativo, no tiene `centralidad`).
+Reproducibilidad de `centralidad_transporte` confirmada byte-idéntica en
+dos corridas reales; no se pudo ejercer `main()` completo dos veces en
+esta EC2 por el bloqueador ya conocido de `FIL_61`
+(`networkx==2.6.3` sin `louvain_communities`, no es una regresión de
+`FIL_81`).
+
+Un hallazgo real, menor: `centralidad_transporte` y el paso 0 de
+`curva_robustez` calculan el mismo `betweenness_centrality` del grafo
+completo por separado — recomputación evitable, sin impacto en
+corrección. Abierto `FIL_85`.
+
+Detalle completo en
+[`doc/VIC-41-eval-grafo-centralidad.md`](../doc/VIC-41-eval-grafo-centralidad.md).
