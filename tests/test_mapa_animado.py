@@ -183,13 +183,13 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertIn("md = metDef(m)", resumen)
         self.assertNotIn("META.metricas[m]", resumen)
 
-    # --- FIL_88: controles que degradaban o rompían el render ---
+    # --- FIL_94: controles que degradaban o rompían el render ---
     def test_dosis_tiene_umbrales_de_banda(self):
         # el botón "bandas OMS·UE" no hacía nada con dosis_no2 / dosis_o3
         # (sin entrada en `umbrales`): quedaba activo pero sin efecto, y los
         # capítulos 2/3 del recorrido guiado aterrizaban en ese estado.
         for k in ("dosis_no2", "dosis_o3"):
-            self.assertIn(k, self.meta["umbrales"], f"falta umbrales[{k}] (FIL_88)")
+            self.assertIn(k, self.meta["umbrales"], f"falta umbrales[{k}] (FIL_94)")
             u = self.meta["umbrales"][k]
             self.assertEqual(len(u["cortes"]) + 1, len(u["bandas"]))
 
