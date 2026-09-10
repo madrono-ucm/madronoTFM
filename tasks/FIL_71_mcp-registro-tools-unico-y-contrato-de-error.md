@@ -62,3 +62,30 @@ actualizar 4–5 tests de conteo (`test_mcp_tools`, `test_mcp_transport`,
 - Suite `asistente/` verde; los tests de conteo de tools desaparecen o se
   reducen a uno.
 - Añadir una tool ficticia en una rama de prueba toca **un** sitio.
+
+## Criterios de aceptación concretos (afinado 2026-09-10)
+
+- `rg -n "_DESCRIPCIONES|_TOOLS_CHAT|TOOL_FUNCTIONS|_ESPERADAS" asistente/`
+  solo devuelve coincidencias en `asistente/mcp_agent/registro.py` (+ su
+  test). En `chat.py`, `server.py` y los demás tests: cero.
+- Añadir una tool ficticia (`_ping`, devuelve `{"pong": True}`) en una rama
+  de prueba = **1 fichero cambiado** (`registro.py`), suite verde, ningún
+  test de conteo tocado, y aparece en `GET /mcp-server` list-tools.
+- **Contrato de error** — toda tool devuelve un objeto que valida contra un
+  modelo común (`Degradable`: `disponible: bool`, `motivo: str | None`, +
+  payload tipado). Un test parametrizado sobre el registro fuerza el camino
+  degradado de cada tool (mock de Athena/Neo4j que lanza) y afirma
+  `disponible is False` + `motivo` no vacío + **sin excepción**.
+- `_ejecutar_tool` de `chat.py` **nunca** construye su propio
+  `{"error": ...}`: ante tool desconocida o fallo, devuelve/relanza la
+  forma común. Test: pedirle a Groq (mockeado) una tool fuera del
+  subconjunto → el hilo recibe un `motivo` legible, no un bucle.
+- El bug de FIL_70 (`consulta_grafo` ofrecida pero rechazada) tiene un test
+  de regresión explícito: toda tool con `expone_en_chat=True` en el
+  registro **es ejecutable** por `_ejecutar_tool`.
+
+## Prioridad y secuencia
+
+**Alta.** Va **después de FIL_93** (docs) y **antes de FIL_72 y FIL_73**
+(ambos consumen el contrato de error y el registro). Estimación ~1 día.
+Objetivo: **2026-09-15**.
