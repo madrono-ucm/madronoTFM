@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "QA — tools meteo_cercana + avisos_meteo (FIL_82): resolución por grafo, orden de niveles, frescura"
 owner: Claude (QA)
-status: pending
+status: done
 depends_on: [FIL_82]
 created_at: "2026-09-10"
 ---
@@ -38,3 +38,23 @@ FIL_82 añade `meteo_cercana` (18.ª) y `avisos_meteo` (19.ª), sobre
 - Tests FIL_82 verdes (agregación, orden de niveles, degradación).
 - `grep -rn "17 tool\|18 tool\|las 17\|las 18"` → 0 obsoletos; queda "19".
 - Ambos endpoints documentados en `asistente/README.md`.
+
+## Hecho (2026-09-10, Claude QA)
+
+Los 6 puntos verificados; 5/6 sin hallazgos (registro ya completo desde
+la ronda de `VIC_37`, orden de niveles correcto, agregación correcta,
+`contexto_urbano` degrada sin excepción, sin fallback haversine porque
+ningún `_cercano` lo tiene — la premisa del punto 1 no aplicaba).
+
+**Punto 4, hallazgo real**: `meteo_cercana` no tiene parámetro `fecha` y
+su router siempre devuelve `fiabilidad=MEDIA` con cualquier dato
+disponible, a diferencia de `avisos_meteo` (`MEDIA if fecha else BAJA`,
+el patrón que ya sigue el resto del asistente). Con el pipeline
+congelado desde el 30/8 esto sobre-reclama confianza. Severidad baja, sin
+impacto de datos — abierto `tasks/FIL_88_meteo-cercana-sin-fiabilidad-
+por-frescura.md`, no se arregló en esta ronda de QA.
+
+`pytest asistente/tests/test_meteo_avisos.py` → 7/7 verdes.
+
+Detalle completo en
+[`doc/VIC-42-eval-tools-meteo-avisos.md`](../doc/VIC-42-eval-tools-meteo-avisos.md).
