@@ -49,6 +49,23 @@
   #err{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:9;max-width:70%;
     background:#5b1a1a;color:#ffdede;border:1px solid #a33;border-radius:8px;padding:6px 12px;font-size:12px;display:none}
   #err .reintentar{background:#a33}
+  /* FIL_68: chat con el asistente (solo variante --live) */
+  #chat{position:absolute;right:12px;bottom:12px;width:330px;max-width:calc(100vw - 24px);
+    z-index:8;padding:0;overflow:hidden}
+  #chat-tgl{width:100%;margin:0;text-align:left;background:#2a2d36;color:#e9e9ec;border:0;
+    border-radius:0;padding:9px 12px;font:inherit;font-weight:600;cursor:pointer}
+  #chat-body{padding:10px 12px}
+  #chat-sug{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+  #chat-sug button{width:auto;margin:0;padding:3px 8px;font-size:10.5px;background:#2a2d36;
+    color:#cdd2d8;border:1px solid rgba(255,255,255,.14);border-radius:6px;cursor:pointer}
+  #chat-hilo{max-height:200px;overflow:auto;font-size:12px;display:flex;flex-direction:column;gap:5px}
+  #chat-hilo:empty{display:none}
+  .chat-msg b{color:#9aa0a6}
+  .chat-msg .eco{display:inline-block;margin-top:3px;font-size:11px;color:#7aa2ff;cursor:pointer}
+  .chat-in-row{display:flex;gap:6px;margin-top:6px}
+  .chat-in-row input{flex:1;margin:0;padding:5px 8px;border-radius:7px;background:#2a2d36;
+    color:#e9e9ec;border:1px solid rgba(255,255,255,.14);font:inherit}
+  .chat-in-row button{width:auto;margin:0;padding:5px 12px}
 </style></head><body>
 <div id="map"></div>
 <div id="err" role="alert"></div>
@@ -76,6 +93,18 @@
 </div>
 <div id="capas" class="box"></div>
 <div id="analisis" class="box" hidden></div>
+</div>
+<div id="chat" class="box" hidden>
+  <button id="chat-tgl" class="chat-head" type="button" aria-expanded="false" aria-controls="chat-body">💬 Preguntar a los datos</button>
+  <div id="chat-body" hidden>
+    <div id="chat-sug"></div>
+    <div id="chat-hilo" role="log" aria-live="polite"></div>
+    <div class="chat-in-row">
+      <input id="chat-in" placeholder="pregunta sobre el grafo…" aria-label="Pregunta para el asistente">
+      <button id="chat-send" type="button">Enviar</button>
+    </div>
+    <div id="chat-estado" class="muted" aria-live="polite"></div>
+  </div>
 </div>
 <div id="panel">
   <h1>Grafo urbano de Madrid</h1>
@@ -187,6 +216,108 @@ async function traerDatos(reintentos=4){
 
 let arrancado = false;
 map.on("load", ()=>arrancar());
+
+// ---- Chat con el asistente (FIL_68) — solo variante --live, mismo origen
+//      que el servicio FastAPI, así que `/chat` es una llamada directa.
+const API_BASE = new URLSearchParams(location.search).get("api") || "";
+const CHAT_SUG = [
+  "¿Qué estación de aire cerca de Retiro mide O₃?",
+  "¿Qué líneas de transporte paran cerca de Chamberí?",
+  "Ruta a pie de Sol a Atocha",
+  "¿Cuántos sensores de tráfico hay en Salamanca?",
+];
+let chatHist = [];
+
+function chatMsg(rol, txt){
+  const d = document.createElement("div");
+  d.className = "chat-msg " + rol;
+  d.innerHTML = "<b>" + (rol === "user" ? "tú" : "asistente") + ":</b> " + esc(txt);
+  const h = document.getElementById("chat-hilo");
+  h.appendChild(d); h.scrollTop = 1e9;
+  return d;
+}
+
+// Eco visual: si la respuesta nombra un nodo del grafo, ofrece un enlace que
+// lo selecciona y centra el mapa. Coincidencia por nombre (el más largo que
+// aparezca literalmente en el texto), sin adivinar ids.
+function ecoEnMapa(texto, cont){
+  const low = texto.toLowerCase();
+  let mejor = null;
+  for(const id in N){
+    const nom = (N[id].nombre || "").toLowerCase();
+    if(nom.length >= 4 && low.includes(nom) && (!mejor || nom.length > mejor.len))
+      mejor = {id, len: nom.length};
+  }
+  if(!mejor) return;
+  const a = document.createElement("a");
+  a.className = "eco"; a.href = "#";
+  a.textContent = "📍 ver «" + (N[mejor.id].nombre) + "» en el mapa";
+  a.onclick = e=>{
+    e.preventDefault();
+    seleccionar(mejor.id);
+    if(N[mejor.id].lat != null) map.flyTo({center:[N[mejor.id].lon, N[mejor.id].lat], zoom:14});
+  };
+  cont.appendChild(document.createElement("br"));
+  cont.appendChild(a);
+}
+
+async function chatEnviar(){
+  const inp = document.getElementById("chat-in");
+  const est = document.getElementById("chat-estado");
+  const q = inp.value.trim();
+  if(!q) return;
+  inp.value = ""; chatMsg("user", q);
+  estado(est, "cargando", {detalle:"consultando los datos…"});
+  document.getElementById("chat-send").disabled = true;
+  try{
+    const r = await fetch(API_BASE + "/chat", {
+      method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({mensaje:q, historial:chatHist}),
+    });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    chatHist = j.historial || [];
+    const d = chatMsg("bot", j.respuesta || "(sin respuesta)");
+    if(j.respuesta) ecoEnMapa(j.respuesta, d);
+    est.textContent = "";
+  }catch(err){
+    chatMsg("bot", "No se pudo consultar el asistente. Inténtalo de nuevo en un momento.");
+    console.error(err);
+    est.textContent = "";
+  }
+  document.getElementById("chat-send").disabled = false;
+  inp.focus();
+}
+
+function mkChat(){
+  if(!LIVE) return;  // la versión offline no tiene backend que consultar
+  const chat = document.getElementById("chat");
+  const tgl = document.getElementById("chat-tgl");
+  const body = document.getElementById("chat-body");
+  chat.hidden = false;
+  tgl.onclick = ()=>{
+    const abierto = tgl.getAttribute("aria-expanded") === "true";
+    tgl.setAttribute("aria-expanded", abierto ? "false" : "true");
+    body.hidden = abierto;
+    if(!abierto) document.getElementById("chat-in").focus();
+  };
+  const sug = document.getElementById("chat-sug");
+  CHAT_SUG.forEach(s=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = s.length > 30 ? s.slice(0, 28) + "…" : s;
+    b.title = s;
+    b.onclick = ()=>{
+      document.getElementById("chat-in").value = s;
+      if(body.hidden) tgl.click();
+      chatEnviar();
+    };
+    sug.appendChild(b);
+  });
+  document.getElementById("chat-send").onclick = chatEnviar;
+  document.getElementById("chat-in").addEventListener("keydown", e=>{ if(e.key === "Enter") chatEnviar(); });
+}
+mkChat();
 
 async function arrancar(){
   const meta = document.getElementById("meta");

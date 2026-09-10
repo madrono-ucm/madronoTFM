@@ -116,6 +116,19 @@ class ConstruirArtefactoTests(unittest.TestCase):
         self.assertIn(":focus-visible", html)
         self.assertNotIn('catch(err){ return []; }', html)  # vecinosDe ya no traga el error
 
+    def test_chat_solo_en_variante_live(self):  # FIL_68
+        live = construir(live=True, endpoint="/grafo/explorador")
+        for marca in ('id="chat"', 'id="chat-in"', 'id="chat-send"', "function chatEnviar()",
+                      "function ecoEnMapa(", 'fetch(API_BASE + "/chat"', "CHAT_SUG"):
+            self.assertIn(marca, live, f"falta {marca} (FIL_68)")
+        # el eco visual reutiliza la maquinaria existente del explorador
+        self.assertIn("seleccionar(mejor.id)", live)
+        self.assertIn("map.flyTo(", live)
+        # mkChat() sale pronto si no es live -> el panel no aparece en la versión offline
+        self.assertIn("if(!LIVE) return;", live)
+        off = construir()
+        self.assertIn('id="chat" class="box" hidden', off)  # presente pero oculto, mkChat no lo activa
+
 
 if __name__ == "__main__":
     unittest.main()
