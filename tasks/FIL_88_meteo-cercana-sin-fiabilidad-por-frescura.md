@@ -2,10 +2,38 @@
 kind: fil
 title: "meteo_cercana no degrada fiabilidad por frescura (a diferencia de avisos_meteo/trafico_cercano)"
 owner: Sistema
-status: pending
+status: done
 depends_on: [FIL_82]
 created_at: "2026-09-10"
 ---
+
+## Hecho (2026-09-10, Claude)
+
+`meteo_cercana` gana un parámetro `fecha: str | None = None` (mismo lugar
+en la firma que el resto de tools con `fecha`), que filtra el `WHERE` de
+Athena a `date = '<fecha>'` cuando se da. El router replica exactamente
+el patrón de `avisos_meteo`: `fiabilidad = MEDIA if fecha else BAJA` en la
+rama `disponible=True`, con un texto de explicación distinto según haya
+fecha explícita o no. `asistente/README.md` (fila de `meteo_cercana`)
+actualizado con la nueva firma y el contrato de fiabilidad.
+
+Sin cambio de contrato para quien no pase `fecha`: sigue devolviendo la
+última lectura disponible por magnitud, solo cambia la `fiabilidad`
+reportada por el router (antes siempre `MEDIA`, ahora `BAJA` sin fecha
+explícita).
+
+Tests nuevos en `asistente/tests/test_meteo_avisos.py`:
+`test_fecha_explicita_filtra_el_sql`/`test_sin_fecha_no_filtra_el_sql`
+(a nivel de tool, confirman el SQL) y una nueva clase
+`MeteoCercanaRouterFiabilidadTests` con `TestClient` real (mismo patrón
+que `test_afluencia_estimada_router.py`) cubriendo las dos ramas de
+fiabilidad end-to-end. `input_schema` de la tool MCP se actualiza solo
+(se deriva en vivo de la firma vía `mcp.list_tools()`, confirmado
+leyendo `asistente/chat.py`) — no hizo falta tocar `chat.py` ni
+`server.py`.
+
+Suite `asistente/tests/test_meteo_avisos.py` + `test_mcp_tools.py` +
+`test_mcp_transport.py`: 49 passed, 57 subtests.
 
 ## Contexto
 

@@ -5,6 +5,9 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
+
+from asistente.main import create_app
 from asistente.mcp_agent import tools
 
 
@@ -43,6 +46,22 @@ class MeteoCercanaTests(unittest.TestCase):
         self.assertFalse(r.disponible)
         self.assertIn("no tiene lecturas", r.motivo)
 
+    def test_fecha_explicita_filtra_el_sql(self):  # FIL_88
+        graph = [{"estacion_id": "meteo:3195", "estacion_nombre": "Retiro", "distancia_m": 210.0}]
+        with patch.object(tools, "run_neo4j_query", return_value=graph), \
+             patch.object(tools, "run_athena_query", return_value=self._meteo_rows()) as athena:
+            tools.meteo_cercana("Retiro", fecha="2026-08-27")
+        sql = athena.call_args[0][0]
+        self.assertIn("date = '2026-08-27'", sql)
+
+    def test_sin_fecha_no_filtra_el_sql(self):  # FIL_88
+        graph = [{"estacion_id": "meteo:3195", "estacion_nombre": "Retiro", "distancia_m": 210.0}]
+        with patch.object(tools, "run_neo4j_query", return_value=graph), \
+             patch.object(tools, "run_athena_query", return_value=self._meteo_rows()) as athena:
+            tools.meteo_cercana("Retiro")
+        sql = athena.call_args[0][0]
+        self.assertNotIn("date =", sql)
+
 
 class AvisosMeteoTests(unittest.TestCase):
     def _rows(self):
@@ -79,6 +98,39 @@ class AvisosMeteoTests(unittest.TestCase):
     def test_rank_niveles(self):
         self.assertLess(tools._NIVEL_AVISO_RANK["amarillo"], tools._NIVEL_AVISO_RANK["rojo"])
         self.assertLess(tools._NIVEL_AVISO_RANK["verde"], tools._NIVEL_AVISO_RANK["naranja"])
+
+
+class MeteoCercanaRouterFiabilidadTests(unittest.TestCase):
+    """FIL_88: `meteo_cercana` degrada fiabilidad por frescura igual que
+    `avisos_meteo` -- BAJA sin `fecha` explícita (dato estructuralmente tan
+    antiguo como el resto del asistente mientras el pipeline está
+    congelado), MEDIA con ella."""
+
+    def setUp(self):
+        self.client = TestClient(create_app())
+
+    def _mock(self):
+        graph = [{"estacion_id": "meteo:3195", "estacion_nombre": "Retiro", "distancia_m": 210.0}]
+        rows = [{"magnitude": "temperature_c", "hour": 14, "avg_value": 31.2,
+                  "date": "2026-08-29", "station_name": "Retiro"}]
+        return patch.object(tools, "run_neo4j_query", return_value=graph), \
+            patch.object(tools, "run_athena_query", return_value=rows)
+
+    def test_sin_fecha_fiabilidad_baja(self):
+        p1, p2 = self._mock()
+        with p1, p2:
+            response = self.client.get("/meteo-cercana", params={"lugar": "Retiro"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["fiabilidad"], "baja")
+
+    def test_con_fecha_fiabilidad_media(self):
+        p1, p2 = self._mock()
+        with p1, p2:
+            response = self.client.get(
+                "/meteo-cercana", params={"lugar": "Retiro", "fecha": "2026-08-29"}
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["fiabilidad"], "media")
 
 
 if __name__ == "__main__":
