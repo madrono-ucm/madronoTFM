@@ -271,6 +271,52 @@ class CalidadAireCams(BaseModel):
     fuente_dataset: str | None = None
 
 
+class LecturaMeteo(BaseModel):
+    """Una magnitud meteorológica en su última hora disponible (`FIL_82`)."""
+
+    magnitud: str  # temperature_c / wind_speed_ms / precipitation_lm2 / humidity_pct
+    valor: float | None = None
+    hora: int | None = None
+    fecha: str | None = None
+
+
+class MeteoCercana(BaseModel):
+    """Meteorología observada cerca de un lugar (`FIL_82`): la estación
+    `:EstacionMedida{meteo}` más cercana del grafo (`PROXIMO_A`, FIL_65) y su
+    última lectura por magnitud de
+    `gold.meteorologia_por_estacion_magnitud_hora`. Sin estación cerca o sin
+    datos recientes → `disponible=False` + `motivo` (contrato FIL_15).
+    """
+
+    lugar: str
+    disponible: bool = False
+    estacion: str | None = None
+    estacion_id: str | None = None
+    distancia_m: float | None = None
+    lecturas: list[LecturaMeteo] = []
+    motivo: str | None = None
+    fuente_dataset: str | None = None
+
+
+class AvisosMeteo(BaseModel):
+    """Avisos meteorológicos AEMET activos para una zona (`FIL_82`), de
+    `gold.aemet_avisos_por_zona_fecha_nivel`. `nivel` es el más alto
+    (`rojo` > `naranja` > `amarillo` > `verde`); `fenomenos` la unión de
+    todos. Sin `fecha` → el último día con datos + `motivo` de frescura.
+    """
+
+    zona: str | None = None
+    fecha: str | None = None
+    disponible: bool = False
+    nivel: str | None = None
+    fenomenos: list[str] = []
+    zonas_afectadas: list[str] = []
+    vigencia_desde: str | None = None
+    vigencia_hasta: str | None = None
+    motivo: str | None = None
+    fuente_dataset: str | None = None
+
+
 class CalidadAireEpisodio(BaseModel):
     """Probabilidad de **episodio** (superación del umbral OMS/UE) del
     contaminante más crítico de una estación a `horizonte_horas` (`FIL_79`).

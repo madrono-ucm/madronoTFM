@@ -35,6 +35,7 @@ from asistente import ruta_saludable as _ruta
 from asistente.models.herramientas import (
     AfluenciaEstimada,
     AfluenciaPrevista,
+    AvisosMeteo,
     CalidadAireCams,
     CalidadAireEpisodio,
     CalidadAirePrevista,
@@ -59,6 +60,8 @@ from asistente.models.herramientas import (
     TramoRuta,
     TransporteAlcanzable,
     TraficoPrevistaGrafo,
+    LecturaMeteo,
+    MeteoCercana,
     VecinoGrafo,
 )
 from asistente.neo4j_client import (
@@ -2636,3 +2639,154 @@ def mejor_hora_zona(
             curado. Si es `None`, el último día curado.
     """
     return _mejor_hora_zona_impl(zona, perfil, momento)
+
+
+# ---------------------------------------------------------------------------
+# meteo_cercana / avisos_meteo (FIL_82) -- dos Gold ya ingeridas y sin tool:
+# meteorologia_por_estacion_magnitud_hora y aemet_avisos_por_zona_fecha_nivel.
+# ---------------------------------------------------------------------------
+
+_TABLA_METEO = "meteorologia_por_estacion_magnitud_hora"
+_TABLA_AVISOS = "aemet_avisos_por_zona_fecha_nivel"
+_NIVEL_AVISO_RANK = {"verde": 0, "amarillo": 1, "naranja": 2, "rojo": 3}
+
+
+def meteo_cercana(
+    lugar: str, radio_m: float = 1500.0, *,
+    neo4j_driver: object | None = None, athena_client: object | None = None,
+) -> MeteoCercana:
+    """Meteorología observada cerca de un lugar de Madrid (`FIL_82`).
+
+    Resuelve el lugar contra el grafo (`:EstacionMedida{meteo}` `PROXIMO_A`,
+    FIL_65), toma la estación meteo más cercana y devuelve su última lectura
+    por magnitud (temperatura, viento, precipitación, humedad) de
+    `gold.meteorologia_por_estacion_magnitud_hora`. Sin estación meteo cerca
+    o sin datos → `disponible=False` + `motivo`, sin lanzar excepción.
+
+    Args:
+        lugar: Nombre de un lugar reconocible de Madrid ("Retiro", "Atocha"…).
+        radio_m: Radio de búsqueda de estación meteo (por defecto 1500 m —
+            la red meteo es menos densa que la de aire/tráfico).
+    """
+    fuente = f"gold.{_TABLA_METEO}"
+    try:
+        estaciones = run_neo4j_query(
+            *estaciones_meteo_cerca_query(lugar, radio_m), driver=neo4j_driver
+        )
+    except Exception as exc:  # noqa: BLE001 - degradación elegante
+        return MeteoCercana(lugar=lugar, fuente_dataset=fuente,
+                            motivo=f"no se pudo consultar el grafo: {exc}")
+    if not estaciones:
+        return MeteoCercana(
+            lugar=lugar, fuente_dataset=fuente,
+            motivo=f"ninguna estación meteorológica a ≤{int(radio_m)} m de «{lugar}» en el grafo",
+        )
+    est = estaciones[0]
+    est_id = str(est.get("estacion_id") or "").split(":")[-1]  # 'meteo:3195' -> '3195'
+    est_lit = sql_literal(est_id)
+    sql = f"""
+        SELECT magnitude, hour, avg_value, date, station_name
+        FROM {_TABLA_METEO}
+        WHERE (station_id = '{est_lit}' OR station_id LIKE '%{est_lit}')
+        ORDER BY date DESC, hour DESC
+        LIMIT 400
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001
+        return MeteoCercana(lugar=lugar, estacion=est.get("estacion_nombre"), estacion_id=est_id,
+                            distancia_m=est.get("distancia_m"), fuente_dataset=fuente,
+                            motivo=f"no se pudo consultar Gold en Athena: {exc}")
+    if not filas:
+        return MeteoCercana(
+            lugar=lugar, estacion=est.get("estacion_nombre"), estacion_id=est_id,
+            distancia_m=est.get("distancia_m"), fuente_dataset=fuente,
+            motivo=f"la estación meteo «{est_id}» no tiene lecturas recientes (pipeline pausado)",
+        )
+    ultima: dict[str, dict] = {}
+    for f in filas:
+        if f.get("avg_value") is None:
+            continue
+        m = f["magnitude"]
+        clave = (f.get("date"), int(f.get("hour") or 0))
+        if m not in ultima or clave > (ultima[m]["date"], int(ultima[m]["hour"] or 0)):
+            ultima[m] = f
+    lecturas = [
+        LecturaMeteo(
+            magnitud=m, valor=round(f["avg_value"], 1),
+            hora=int(f["hour"]) if f.get("hour") is not None else None,
+            fecha=f.get("date"),
+        )
+        for m, f in sorted(ultima.items())
+    ]
+    return MeteoCercana(
+        lugar=lugar, disponible=bool(lecturas),
+        estacion=est.get("estacion_nombre") or (filas[0].get("station_name")),
+        estacion_id=est_id, distancia_m=est.get("distancia_m"),
+        lecturas=lecturas, fuente_dataset=fuente,
+        motivo=None if lecturas else "sin magnitudes con valor",
+    )
+
+
+def avisos_meteo(
+    zona: str | None = None, fecha: str | None = None, *,
+    athena_client: object | None = None,
+) -> AvisosMeteo:
+    """Avisos meteorológicos AEMET activos para Madrid (`FIL_82`).
+
+    Lee `gold.aemet_avisos_por_zona_fecha_nivel`. Devuelve el `nivel` más
+    alto (`rojo` > `naranja` > `amarillo` > `verde`), los fenómenos y la
+    ventana de vigencia. Sin `fecha` → el último día con datos + `motivo` de
+    frescura (pipeline congelado, contrato FIL_73). Sin filas →
+    `disponible=False`.
+
+    Args:
+        zona: Filtro de texto sobre el nombre de zona AEMET. `None` = todas.
+        fecha: `YYYY-MM-DD`. `None` = último día disponible.
+    """
+    fuente = f"gold.{_TABLA_AVISOS}"
+    where = []
+    if zona:
+        where.append(f"lower(zone) LIKE '%{sql_literal(zona.lower())}%'")
+    if fecha:
+        where.append(f"fecha = '{sql_literal(fecha)}'")
+    filtro = (" WHERE " + " AND ".join(where)) if where else ""
+    sql = f"""
+        SELECT zone, level, phenomena, first_effective_from, last_effective_until, fecha
+        FROM {_TABLA_AVISOS}{filtro}
+        ORDER BY fecha DESC
+        LIMIT 200
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
+    except Exception as exc:  # noqa: BLE001
+        return AvisosMeteo(zona=zona, fecha=fecha, fuente_dataset=fuente,
+                           motivo=f"no se pudo consultar Gold en Athena: {exc}")
+    if not filas:
+        return AvisosMeteo(zona=zona, fecha=fecha, fuente_dataset=fuente,
+                           motivo="sin avisos AEMET para ese filtro (¿zona? ¿pipeline congelado?)")
+    dias = sorted({f["fecha"] for f in filas if f.get("fecha")}, reverse=True)
+    elegido = fecha or (dias[0] if dias else None)
+    deldia = [f for f in filas if f.get("fecha") == elegido] or filas
+    peor = max(deldia, key=lambda f: _NIVEL_AVISO_RANK.get((f.get("level") or "").lower(), -1))
+    fenomenos: set[str] = set()
+    zonas: set[str] = set()
+    desde = hasta = None
+    for f in deldia:
+        ph = f.get("phenomena")
+        if isinstance(ph, str):
+            ph = [x.strip() for x in ph.strip("[]").split(",") if x.strip()]
+        fenomenos.update(ph or [])
+        if f.get("zone"):
+            zonas.add(f["zone"])
+        d, h = f.get("first_effective_from"), f.get("last_effective_until")
+        desde = d if desde is None or (d and d < desde) else desde
+        hasta = h if hasta is None or (h and h > hasta) else hasta
+    return AvisosMeteo(
+        zona=zona, fecha=elegido, disponible=True,
+        nivel=(peor.get("level") or "").lower() or None,
+        fenomenos=sorted(fenomenos), zonas_afectadas=sorted(zonas),
+        vigencia_desde=desde, vigencia_hasta=hasta,
+        motivo=(None if fecha else f"último día con avisos: {elegido} (pipeline pausado)"),
+        fuente_dataset=fuente,
+    )
