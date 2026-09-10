@@ -32,8 +32,19 @@ from groq import Groq
 
 from asistente.mcp_agent import tools as tools_module
 from asistente.mcp_agent.server import DESCRIPCIONES_CHAT, NOMBRES_CHAT, mcp
+from asistente.timeutils import motivo_sin_datos
 
 logger = logging.getLogger(__name__)
+
+# FIL_73: observabilidad mínima del chat, acumulada en proceso (el runner
+# del servicio ya recoge stdout; no hace falta CloudWatch para esto).
+# `GET /health` la expone. Sin PII: las tools solo consultan datos abiertos.
+_METRICAS = {"tool_calls": 0, "tool_calls_ko": 0, "llm_llamadas": 0, "llm_429": 0}
+
+
+def metricas() -> "dict[str, int]":
+    """Copia de los contadores de observabilidad del chat (FIL_73)."""
+    return dict(_METRICAS)
 
 # Modelo por defecto: `qwen/qwen3.8-27b` en Groq (tier gratuito). Se eligió
 # sobre `openai/gpt-oss-120b` porque este último, en pruebas en vivo (FIL_70),
@@ -125,17 +136,26 @@ def _cliente():
 def _completar(client, **kwargs):
     """`chat.completions.create` con reintento ante 429 / 5xx / timeout
     (backoff exponencial corto). Un error no reintentable (400, auth...) se
-    propaga en el primer intento."""
+    propaga en el primer intento. FIL_73: registra latencia + reintentos y
+    cuenta los 429 servidos (para saber si el tier gratuito se queda corto)."""
+    _METRICAS["llm_llamadas"] += 1
+    t0 = time.monotonic()
     for intento in range(_MAX_REINTENTOS_LLM):
         try:
-            return client.chat.completions.create(**kwargs)
+            resp = client.chat.completions.create(**kwargs)
+            logger.info("llm_dur_ms=%d reintentos=%d", round((time.monotonic() - t0) * 1000), intento)
+            return resp
         except Exception as exc:  # noqa: BLE001
             estado = getattr(exc, "status_code", None) or getattr(
                 getattr(exc, "response", None), "status_code", None
             )
+            if estado == 429:
+                _METRICAS["llm_429"] += 1
             if intento == _MAX_REINTENTOS_LLM - 1 or (
                 estado is not None and estado not in _ESTADOS_REINTENTABLES
             ):
+                logger.warning("llm fallo tras %d intento(s) (%s): %s",
+                               intento + 1, estado, exc)
                 raise
             logger.info("reintento %d de la llamada al LLM (%s)", intento + 1, exc)
             time.sleep(1.2 * (2 ** intento))
@@ -196,8 +216,22 @@ def _normalizar_resultado(payload: Any) -> "dict[str, Any]":
             motivo = datos.get("motivo") or "la herramienta se declaró no disponible"
         elif any(datos.get(k) == "sin_datos" for k in _CLAVES_CENTINELA):
             disponible = False
-            motivo = "sin datos para la consulta (zona sin cobertura o fuera de la ventana disponible)"
+            motivo = motivo_sin_datos()  # FIL_73: distingue "sin cobertura" de "sin datos recientes"
     return {"disponible": disponible, "motivo": motivo, "datos": datos}
+
+
+def _contar_filas(datos: Any) -> "int | None":
+    """Nº de elementos del payload de una tool, si es contable (para el log)."""
+    if isinstance(datos, list):
+        return len(datos)
+    if isinstance(datos, dict):
+        for k in ("n_filas", "filas", "estaciones", "eventos", "vecinos", "opciones", "resultados"):
+            v = datos.get(k)
+            if isinstance(v, int):
+                return v
+            if isinstance(v, list):
+                return len(v)
+    return None
 
 
 def _ejecutar_tool(nombre: str, args: dict) -> "dict[str, Any]":
@@ -206,17 +240,30 @@ def _ejecutar_tool(nombre: str, args: dict) -> "dict[str, Any]":
     inventa una forma propia de error. Toda tool ofrecida al LLM
     (`server.NOMBRES_CHAT`) es ejecutable aquí; lo contrario era el bucle
     "herramienta desconocida" de FIL_70."""
+    _METRICAS["tool_calls"] += 1
     if nombre not in _TOOLS_CHAT:
+        _METRICAS["tool_calls_ko"] += 1
         return {"disponible": False, "motivo": f"herramienta no disponible en el chat: {nombre!r}", "datos": None}
     fn = getattr(tools_module, nombre, None)
     if fn is None:  # registrada pero sin función importable: no debería ocurrir
+        _METRICAS["tool_calls_ko"] += 1
         return {"disponible": False, "motivo": f"herramienta desconocida: {nombre!r}", "datos": None}
+    t0 = time.monotonic()
     try:
         resultado = fn(**args)
     except Exception as exc:  # noqa: BLE001 - degradación elegante, ver docstring
-        logger.warning("fallo ejecutando tool %s(%r): %s", nombre, args, exc)
+        _METRICAS["tool_calls_ko"] += 1
+        logger.warning("tool=%s dur_ms=%d ok=False error=%s args=%.120s",
+                       nombre, round((time.monotonic() - t0) * 1000), exc, args)
         return {"disponible": False, "motivo": f"fallo al consultar {nombre}: {exc}", "datos": None}
-    return _normalizar_resultado(resultado)
+    res = _normalizar_resultado(resultado)
+    filas = _contar_filas(res["datos"])
+    if not res["disponible"]:
+        _METRICAS["tool_calls_ko"] += 1
+    logger.info("tool=%s dur_ms=%d ok=%s%s args=%.120s",
+                nombre, round((time.monotonic() - t0) * 1000), res["disponible"],
+                f" filas={filas}" if filas is not None else "", args)
+    return res
 
 
 def _extraer_tool_calls(msg) -> list:

@@ -22,8 +22,18 @@ class HealthResponse(BaseModel):
     status: Literal["ok"] = "ok"
     servicio: str = "madrono-asistente"
     entorno: str
+    # FIL_73: contadores del chat acumulados en proceso (tool-calls totales /
+    # con error, llamadas al LLM, 429 servidos). Útiles para ver de un
+    # vistazo si el tier gratuito del LLM se está quedando corto.
+    chat: dict = {}
 
 
 @router.get("/health", response_model=HealthResponse)
 def health(settings: SettingsDep) -> HealthResponse:
-    return HealthResponse(entorno=settings.environment)
+    try:
+        from asistente.chat import metricas
+
+        chat = metricas()
+    except Exception:  # noqa: BLE001 - health nunca falla por esto
+        chat = {}
+    return HealthResponse(entorno=settings.environment, chat=chat)
