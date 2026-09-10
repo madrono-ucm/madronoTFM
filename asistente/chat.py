@@ -62,7 +62,7 @@ _SSM_PARAMETER = "/madrono-tfm/dev/secrets/groq-api-key"
 _TOOLS_CHAT = frozenset({
     "calidad_aire", "calidad_aire_episodio", "trafico_cercano", "consulta_grafo",
     "contexto_urbano", "ruta_saludable", "mejor_hora_zona", "eventos_cercanos",
-    "disponibilidad_aparcamiento",
+    "disponibilidad_aparcamiento", "meteo_cercana", "avisos_meteo",
 })
 
 _SYSTEM_PROMPT = (
@@ -96,6 +96,8 @@ _DESCRIPCIONES = {
     "ruta_saludable": "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.",
     "contexto_urbano": "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.",
     "mejor_hora_zona": "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).",
+    "meteo_cercana": "Meteorología observada (temperatura, viento, precipitación, humedad) en la estación más cercana a un lugar.",
+    "avisos_meteo": "Avisos meteorológicos AEMET activos en Madrid (nivel amarillo/naranja/rojo y fenómenos).",
     "consulta_grafo": (
         "Consulta de solo lectura al grafo urbano de Neo4j mediante plantillas "
         "predefinidas (`plantilla`): estaciones de aire que miden un "
