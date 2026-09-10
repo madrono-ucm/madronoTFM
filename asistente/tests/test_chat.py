@@ -147,5 +147,69 @@ class ProveedorConfigurableTests(unittest.TestCase):
         chat._client = None
 
 
+class ObservabilidadTests(unittest.TestCase):
+    """FIL_73: logging estructurado de tool-calls + latencia del LLM +
+    contadores en `metricas()`."""
+
+    def setUp(self):
+        for k in chat._METRICAS:
+            chat._METRICAS[k] = 0
+
+    def test_ejecutar_tool_emite_una_linea_con_duracion_y_ok(self):
+        import asistente.mcp_agent.tools as tm
+
+        with patch.object(tm, "calidad_aire", lambda **kw: {"indice_calidad": "buena", "estaciones": ["A", "B"]}):
+            with self.assertLogs("asistente.chat", level="INFO") as cm:
+                r = chat._ejecutar_tool("calidad_aire", {"zona": "Retiro"})
+        self.assertTrue(r["disponible"])
+        lineas = [m for m in cm.output if "tool=calidad_aire" in m]
+        self.assertEqual(len(lineas), 1, cm.output)
+        self.assertRegex(lineas[0], r"tool=calidad_aire dur_ms=\d+ ok=True filas=2")
+        self.assertEqual(chat._METRICAS["tool_calls"], 1)
+        self.assertEqual(chat._METRICAS["tool_calls_ko"], 0)
+
+    def test_ejecutar_tool_cuenta_los_fallos(self):
+        import asistente.mcp_agent.tools as tm
+
+        with patch.object(tm, "consulta_grafo", lambda **kw: (_ for _ in ()).throw(RuntimeError("boom"))):
+            with self.assertLogs("asistente.chat", level="INFO"):
+                chat._ejecutar_tool("consulta_grafo", {})
+        chat._ejecutar_tool("no_existe_como_tool", {})
+        self.assertEqual(chat._METRICAS["tool_calls"], 2)
+        self.assertEqual(chat._METRICAS["tool_calls_ko"], 2)
+
+    def test_completar_registra_latencia_y_cuenta_429(self):
+        c = CompletarReintentoTests._FakeClient([_Err(429), "ok"])
+        with patch("asistente.chat.time.sleep"), self.assertLogs("asistente.chat", level="INFO") as cm:
+            chat._completar(c, model="x", messages=[])
+        self.assertTrue(any("llm_dur_ms=" in m and "reintentos=1" in m for m in cm.output), cm.output)
+        self.assertEqual(chat._METRICAS["llm_429"], 1)
+        self.assertEqual(chat._METRICAS["llm_llamadas"], 1)
+
+    def test_health_expone_los_contadores(self):
+        from asistente.main import create_app
+        from fastapi.testclient import TestClient
+
+        chat._METRICAS["llm_429"] = 3
+        with TestClient(create_app()) as cli:
+            body = cli.get("/health").json()
+        self.assertEqual(body["chat"]["llm_429"], 3)
+        self.assertIn("tool_calls", body["chat"])
+
+
+class FrescuraDatosTests(unittest.TestCase):
+    """FIL_73: un resultado vacío distingue 'sin cobertura' de 'sin datos
+    recientes (pipeline pausado)'."""
+
+    def test_centinela_sin_datos_da_un_motivo_explicativo(self):
+        import asistente.mcp_agent.tools as tm
+
+        with patch.object(tm, "calidad_aire", lambda **kw: {"indice_calidad": "sin_datos"}):
+            r = chat._ejecutar_tool("calidad_aire", {"zona": "Vicálvaro"})
+        self.assertFalse(r["disponible"])
+        self.assertRegex(r["motivo"], r"pausada desde 2026-08-30")
+        self.assertIn("zona", r["motivo"])  # menciona la otra causa posible
+
+
 if __name__ == "__main__":
     unittest.main()

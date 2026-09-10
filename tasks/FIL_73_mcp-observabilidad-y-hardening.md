@@ -91,3 +91,35 @@ riesgos conocidos sin cubrir:
 
 **Media-alta.** Después de **FIL_71** (comparte `Degradable` y el registro).
 Puede solaparse con FIL_72. Estimación ~1 día. Objetivo: **2026-09-17**.
+
+## Hecho (2026-09-10, rama `fil-73-mcp-observabilidad`)
+
+- **Logging de tool-calls** — `asistente/chat.py::_ejecutar_tool` emite una
+  línea INFO por llamada: `tool=X dur_ms=N ok=True|False[ filas=N] args=...`
+  (args recortados a 120 chars; sin PII — las tools solo leen datos
+  abiertos). `_contar_filas()` extrae el nº de filas de payloads contables.
+- **Latencia + 429 del LLM** — `_completar` mide y loguea
+  `llm_dur_ms=N reintentos=N`, y cuenta los 429 servidos. Contadores en
+  proceso `_METRICAS` (`tool_calls`, `tool_calls_ko`, `llm_llamadas`,
+  `llm_429`), expuestos en **`GET /health` → `chat`** (`metricas()`).
+- **Cliente MCP real por HTTP** — `asistente/tests/test_mcp_cliente_real.py`:
+  levanta `create_app()` con uvicorn en un puerto efímero y (1) un
+  `ClientSession` sobre `streamable_http` lista las tools == registro; (2)
+  un POST con `Host: 35-42-164-183.nip.io` **no** recibe 421 — falla si se
+  revierte `allowed_hosts` (verificado: `Host` no permitido → 421, `Host`
+  público permitido → 400 "missing session id", nunca 421). Se salta con
+  mensaje claro si el entorno no puede enlazar un socket.
+- **Frescura** — `asistente/timeutils.py::motivo_sin_datos()` +
+  `PIPELINE_CONGELADO_DESDE = "2026-08-30"`. El centinela `"sin_datos"` de
+  `_normalizar_resultado` pasa de un texto mudo a: «la zona puede no estar
+  cubierta, o el momento cae fuera de los días con datos (ingesta pausada
+  desde 2026-08-30; sin `momento` el asistente se ancla a un día curado)».
+- **Rate-limit uniforme** — ya cubierto: `chat()` ante un 429 agotado
+  devuelve «límite de peticiones o fallo temporal. Prueba de nuevo en un
+  momento», nunca una traza. `_completar` ahora también loguea el estado.
+
+**Fuera de este PR** (menor valor / más riesgo a la entrega): `filas` en el
+log para las tools cuyo payload no expone una lista contable; métricas por
+tool individual.
+
+**Tests:** `pytest asistente/` → 244 passed (+7).
