@@ -70,7 +70,7 @@ class _RoutingNeo4jDriver:
         self.lugares = lugares
         self.rows_by_tipo = rows_by_tipo
 
-    def session(self, database=None):
+    def session(self, database=None, **kwargs):
         return _RoutingNeo4jSession(self)
 
 

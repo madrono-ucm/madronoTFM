@@ -121,7 +121,7 @@ class _FakeDriver:
         self.session_calls: list = []
         self.run_calls: list = []
 
-    def session(self, database=None):
+    def session(self, database=None, **kwargs):
         self.session_calls.append(database)
         return _FakeSession(self._records, self.run_calls)
 

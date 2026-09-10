@@ -2,10 +2,32 @@
 kind: vic-eval
 title: "Evaluación de la tool consulta_grafo (nº 15) y el enriquecimiento de contexto_urbano"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-09-09"
 depends_on: [FIL_67]
 ---
+
+## Hecho (2026-09-10, Claude QA)
+
+Los 6 puntos verificados. Solo lectura y parametrización confirmadas en
+las 8 plantillas; aplicado `default_access_mode="READ"` explícito en
+`run_neo4j_query` (recomendación del propio ticket, punto 1) — requirió
+arreglar 4 dobles de prueba que no aceptaban el nuevo kwarg. El guard
+`_ESCRITURA` de `grafo/consulta.py` resistió los 4 bypasses sugeridos
+(documentado por qué, y su límite real: la enforcement de verdad es
+`default_access_mode="READ"`, no la regex). `contexto_urbano` mantiene
+compatibilidad hacia atrás (tests de esquema en verde). Las dos copias de
+`grafo_urbano.json.gz` coinciden entre sí (con la salvedad ya conocida de
+`VIC_34`). **Hallazgo real**: `grafo/extract.py::_recent_date_filter` usa
+`current_date` real en vez de una fecha ancla — con la ingesta congelada
+desde el 30/8, la ventana de 14 días se queda sin datos reales a partir
+del ~13-14/9, justo antes de la entrega del 17/9. Abierto `FIL_89`.
+
+`pytest asistente/ grafo/`: 361 passed, 1 skipped, 57 subtests (tras
+arreglar los dobles de prueba rotos por el endurecimiento del punto 1).
+
+Detalle completo en
+[`doc/VIC-35-eval-asistente-consulta-grafo.md`](../doc/VIC-35-eval-asistente-consulta-grafo.md).
 
 ## Contexto
 
