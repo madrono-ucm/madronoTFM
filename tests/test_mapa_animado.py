@@ -98,9 +98,24 @@ class MapaArtefactosTests(unittest.TestCase):
     def test_html_legibilidad(self):
         for marca in ("TextLayer", "getTooltip", "fitBounds",
                       'id="v2d"', 'id="v3d"', 'id="fit"', 'id="l-ejes"', 'id="l-parques"',
-                      'id="r-od"', 'id="r-perfil"', "<details", "titulo-sub",
+                      'id="r-od"', 'id="r-perfil"', 'id="rail"', 'class="sec', "titulo-sub",
                       'characterSet:"auto"', "focus-visible", 'lang="es"'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_47)")
+
+    def test_panel_es_barra_lateral_sin_iconos(self):
+        # FIL_77: el stack de <details> pasó a una barra de botones (#rail) que
+        # muestra/oculta una sección a la vez; sin emojis en las cabeceras.
+        self.assertNotIn("<details", self.html)
+        self.assertNotIn("<summary", self.html)
+        rail = self.html.split('id="rail"', 1)[1].split("</nav>", 1)[0]
+        for sec in ("historia", "tiempo", "color", "salud", "vista", "ruta", "chat"):
+            self.assertIn(f'data-sec="{sec}"', rail, f"falta el botón {sec} en #rail")
+        # el chat es su propia sección (con id g-chat, botón propio en la barra)
+        self.assertIn('data-sec="chat" id="g-chat"', self.html)
+        # nada de emojis de cabecera de menú
+        for icono in ("📖", "⏱", "🎨", "♿", "🧭", "🚶", "💬"):
+            self.assertNotIn(icono, self.html)
+        self.assertIn("function mkRail(", self.html)
 
     def test_html_pulido_y_clic(self):
         # FIL_48: clic en nodo restaurado + anillo de selección + vista limpia
