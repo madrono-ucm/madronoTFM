@@ -68,7 +68,12 @@ _INSTRUCCIONES = (
     "etiquetas SIMPLIFICADAS, no el ICA oficial ni una métrica normativa.\n"
     "- La ingesta está CONGELADA desde 2026-08-30: los datos llegan hasta "
     "~2026-08-29. Si se pide un momento posterior, se usa la última hora con "
-    "lectura real."
+    "lectura real.\n"
+    "- Cuando no se indica un momento, el asistente se ancla a un día con "
+    "datos reales (`ASSISTANT_ANCHOR_DATE`, uno de los 3 días curados que "
+    "muestra el mapa: 2026-08-19 laborable / 2026-08-23 domingo / 2026-08-26 "
+    "miércoles cargado). Para consultar otro de esos días, pásalo como "
+    "`momento` (p. ej. `2026-08-23T18:00`)."
 )
 
 mcp = MCPServer(
