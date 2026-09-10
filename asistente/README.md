@@ -370,6 +370,11 @@ de fallar. El handshake real por `stdio` y el round-trip de `list_tools` /
   texto, no por coordenadas), que `sin_datos`/`disponible=false` no es un
   error, que las `*_prevista` son demostración de metodología con ventana
   corta, y que la ingesta está congelada (datos hasta ~2026-08-29).
+- **Anclaje temporal** (`FIL_84`): la ingesta está congelada, así que
+  cuando una tool no recibe `momento` explícito usa `ASSISTANT_ANCHOR_DATE`
+  como "hoy" (uno de los 3 días curados del mapa: `2026-08-19` laborable /
+  `2026-08-23` domingo / `2026-08-26` miércoles). Para consultar otro de
+  esos días, pásalo como `momento`. Sin la env → reloj real (desarrollo).
 - Cada tool lleva `title` legible y `annotations` con
   `readOnlyHint=true` + `openWorldHint=true` (las 9 sólo leen datos vivos:
   `SELECT` en Athena / `MATCH` en Neo4j / inferencia ONNX).

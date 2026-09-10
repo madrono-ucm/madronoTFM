@@ -82,7 +82,7 @@ from asistente.neo4j_client import (
     vecindario_de_lugar_query,
 )
 from asistente import prevision, prevision_grafo
-from asistente.timeutils import MADRID_TZ, now_madrid
+from asistente.timeutils import MADRID_TZ, ahora_o_ancla
 
 # Tabla Gold real, ya verificada con datos de producción en las tareas
 # 049/066/068/069 (`gold.calidad_aire_por_estacion_contaminante_hora`,
@@ -133,7 +133,7 @@ def _calidad_aire_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
     fecha = instante.date().isoformat()
     zona_literal = sql_literal(zona.lower())
 
@@ -249,7 +249,7 @@ def _disponibilidad_aparcamiento_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
     fecha = instante.date().isoformat()
     zona_literal = sql_literal(zona.lower())
 
@@ -337,7 +337,7 @@ def _trafico_cercano_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     def _sin_datos() -> TraficoCercano:
         return TraficoCercano(
@@ -503,7 +503,7 @@ def _afluencia_estimada_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     def _sin_datos() -> AfluenciaEstimada:
         return AfluenciaEstimada(
@@ -906,7 +906,7 @@ def _opciones_movilidad_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
     fecha = instante.date().isoformat()
     hora_objetivo = instante.hour if momento is not None else None
 
@@ -1097,7 +1097,7 @@ def _eventos_cercanos_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     query, params = resolver_lugar_query(lugar)
     filas_lugar = run_neo4j_query(query, params, driver=neo4j_driver)
@@ -1249,7 +1249,7 @@ def _calidad_aire_prevista_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     fuente = _FUENTE_CALIDAD_AIRE
 
@@ -1592,7 +1592,7 @@ def _calidad_aire_prevista_grafo_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     fuente = _FUENTE_CALIDAD_AIRE
 
@@ -1805,7 +1805,7 @@ def _trafico_prevista_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     fuente = _FUENTE_TRAFICO
 
@@ -1975,7 +1975,7 @@ def _trafico_prevista_grafo_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     fuente = _FUENTE_TRAFICO
 
@@ -2164,7 +2164,7 @@ def _afluencia_prevista_impl(
     if momento is not None:
         instante = momento.astimezone(MADRID_TZ) if momento.tzinfo is not None else momento.replace(tzinfo=MADRID_TZ)
     else:
-        instante = now_madrid()
+        instante = ahora_o_ancla()
 
     def _base(**kw) -> dict:
         d = dict(
