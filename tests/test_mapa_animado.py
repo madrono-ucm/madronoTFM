@@ -35,7 +35,9 @@ class MapaArtefactosTests(unittest.TestCase):
     def test_frames_forma(self):
         self.assertEqual(sorted(self.data), sorted(self.meta["dias"]))
         for dia, md in self.data.items():
-            for k in ("salud", "trafico", "no2", "o3", "traf_now", "traf_h1", "traf_h1_act"):
+            # `trafico` no se emite: sería idéntico a `traf_h1` (FIL_76).
+            self.assertNotIn("trafico", md)
+            for k in ("salud", "no2", "o3", "traf_now", "traf_h1", "traf_h3", "traf_h6", "traf_h1_act"):
                 self.assertEqual(len(md[k]), 24, f"{dia}/{k} != 24 h")
                 self.assertEqual(len(md[k][0]), 1798)
 
@@ -162,8 +164,9 @@ class MapaArtefactosTests(unittest.TestCase):
                       "MapboxOverlay", "map.setStyle(estiloBase(), {diff:false})",
                       'map.easeTo({pitch'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML")
-        # el basemap por defecto es Carto Voyager (calles)
-        self.assertIn('basemap:"voyager"', self.html.replace(" ", ""))
+        # el basemap por defecto es Carto Positron (claro, para viz de datos;
+        # FIL_76 lo cambió desde Voyager)
+        self.assertIn('basemap:"positron"', self.html.replace(" ", ""))
         # el selector ofrece las 3 opciones Carto + "ninguno"
         opciones = self.html.split('id="basemap"', 1)[1].split("</select>", 1)[0]
         for v in ('value="ninguno"', 'value="positron"', 'value="dark-matter"',

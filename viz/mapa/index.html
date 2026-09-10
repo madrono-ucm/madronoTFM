@@ -4,9 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Madrid — mapa animado del grafo</title>
-<script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
-<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<meta name="description" content="Mapa animado del grafo urbano de Madrid: previsión de tráfico y calidad del aire hora a hora sobre 1798 nodos, con recorrido guiado y asistente de datos.">
+<meta name="theme-color" content="#0b1220">
+<meta name="color-scheme" content="dark light">
+<!-- Optimización de carga: abrir conexiones a los CDN cuanto antes y empezar
+     la descarga de los JSON grandes durante el parseo del <head>, en paralelo
+     con la librería del mapa (que se carga al final del <body>, no bloquea el
+     primer pintado). -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
+<link rel="preconnect" href="https://tiles.basemaps.cartocdn.com" crossorigin>
+<link rel="dns-prefetch" href="https://tiles-a.basemaps.cartocdn.com">
+<link rel="preload" as="fetch" href="./meta.json" crossorigin>
+<link rel="preload" as="fetch" href="./data.json" crossorigin>
 <style>
   :root { color-scheme: light dark; }
   html,body { margin:0; height:100%; font-family:system-ui,Segoe UI,Roboto,sans-serif; }
@@ -132,8 +142,8 @@
     <div class="row" aria-label="Basemap vectorial (opcional)">
       <span class="muted">basemap:</span>
       <select id="basemap" aria-label="Basemap vectorial">
-        <option value="voyager">Carto Voyager (calles)</option>
         <option value="positron">Carto Positron (claro)</option>
+        <option value="voyager">Carto Voyager (calles)</option>
         <option value="dark-matter">Carto Dark Matter (oscuro)</option>
         <option value="ninguno">ninguno (sin tiles)</option>
       </select>
@@ -206,6 +216,14 @@
   </div>
 </div>
 
+<!-- La librería del mapa (deck.gl ~365 KB + maplibre ~210 KB gzip) se carga
+     aquí, al final del <body>: así el esqueleto de la interfaz (paneles,
+     timeline, leyenda) pinta de inmediato con el CSS, sin esperar ~575 KB de
+     JS. El script de la app va justo después y los usa en cuanto están. -->
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
 <script>
 // Interfaz del mapa. `META` (estático), `DATA` (valores por día/hora/nodo) y
 // `WX` (meteo) se cargan de tres JSON al final del fichero; `state` guarda lo
@@ -217,7 +235,7 @@ let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
   layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false},
-  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"voyager",
+  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"positron",
 };
 
 // El mapa base es una instancia de maplibre-gl (dueña de la cámara) y los
@@ -283,7 +301,7 @@ function _saludPerfilHora(h){
   const sw = w.traf+w.no2+w.o3+w.noise;
   const md = DATA[state.day];
   return META.coords.map((_,i)=>{
-    const traf=md.trafico[h][i], no2=md.no2[h][i], o3=md.o3[h][i];
+    const traf=md.traf_h1[h][i], no2=md.no2[h][i], o3=md.o3[h][i];  // `trafico` === `traf_h1`, no duplicado en data.json
     const db = META.ruido_distrito[META.distrito[i]];
     if(no2<0||o3<0) return -1;
     const carga = (w.traf*_n("traf", traf<0?0:traf) + w.no2*_n("no2",no2) + w.o3*_n("o3",o3)
