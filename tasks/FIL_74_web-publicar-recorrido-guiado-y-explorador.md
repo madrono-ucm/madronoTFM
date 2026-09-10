@@ -72,14 +72,18 @@ en un navegador real.
   URLs vivas.
 - `tests/test_grafo_explorador.py` (7) y `viz/test/*` (25) verdes.
 
-## Pendiente (pasos de operación, fuera de esta sesión)
+## Pendiente
 
-1. **Redesplegar la EC2** — el asistente sirve un build **anterior**
-   (`/health` sin el campo `chat` de `FIL_73`; el HTML de
-   `/grafo/explorador` sin el panel de chat de `FIL_68` ni los estados de
-   `FIL_75`). `git pull` + `systemctl restart madrono-web.service` en
-   `i-0aa45f0df26b4b7e6` recoge FIL_68/71/72/73/75/93. Runbook:
-   `infra/OPERACION.md`.
+1. ~~**Redesplegar la EC2**~~ — **HECHO 2026-09-10** vía `aws ssm
+   send-command` (`AWS-RunShellScript` sobre `i-0aa45f0df26b4b7e6`): `git
+   fetch origin main` + `git reset --hard origin/main` (working tree limpio,
+   0 cambios locales) + `systemctl restart madrono-web`. Verificado en vivo:
+   `GET /health` ya trae `chat: {...}` (FIL_73); `GET /grafo/explorador`
+   trae el panel de chat (FIL_68) + `estado()` + `role="alert"` (FIL_75).
+   El asistente sirve `56e0813` (FIL_68/71/72/73/75/91/92/93/94).
+   Pendiente menor: `POST /chat` da 403 de **nginx** para un cliente
+   no-navegador (User-Agent/Origin) — funciona desde la landing/explorador
+   reales; comprobar en el navegador.
 2. **Recorrido en navegador real** — abrir la URL publicada en
    Chrome/Firefox, recorrer los 6 capítulos + el explorador y sus 6 vistas,
    3 preguntas a cada chat, capturas. (Aquí solo hay arnés jsdom/Playwright
