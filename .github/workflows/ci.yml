@@ -63,6 +63,31 @@ jobs:
       - name: Ejecutar tests
         run: python -m pytest ingesta/ procesamiento/ grafo/ asistente/ herramientas/ modelado/ tests/ -v
 
+  frontend:
+    # FIL_91: los tests de `viz/test/` (jsdom + `node --check` del JS
+    # embebido de las páginas generadas) no corrían en CI -- `pytest tests/`
+    # solo los veía como comprobaciones de subcadenas. Este job los ejecuta
+    # de verdad en cada PR: sintaxis del `<script>` de las páginas generadas,
+    # guard de "ningún control sin cablear", y los arneses jsdom (mapa
+    # FIL_56/88, y lo que añadan FIL_68/75/86).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: viz/package-lock.json
+
+      - name: Instalar dependencias de test
+        working-directory: viz
+        run: npm ci
+
+      - name: Ejecutar tests de frontend
+        working-directory: viz
+        run: npm test
+
   terraform:
     runs-on: ubuntu-latest
     defaults:
