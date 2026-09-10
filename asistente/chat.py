@@ -60,8 +60,9 @@ _SSM_PARAMETER = "/madrono-tfm/dev/secrets/groq-api-key"
 # (esquemas grandes, dominio de nicho, datos congelados) -- así el `tools=[...]`
 # ocupa ~la mitad de tokens y se aleja del límite TPM del tier gratuito.
 _TOOLS_CHAT = frozenset({
-    "calidad_aire", "trafico_cercano", "consulta_grafo", "contexto_urbano",
-    "ruta_saludable", "mejor_hora_zona", "eventos_cercanos", "disponibilidad_aparcamiento",
+    "calidad_aire", "calidad_aire_episodio", "trafico_cercano", "consulta_grafo",
+    "contexto_urbano", "ruta_saludable", "mejor_hora_zona", "eventos_cercanos",
+    "disponibilidad_aparcamiento",
 })
 
 _SYSTEM_PROMPT = (
@@ -82,6 +83,7 @@ _DESCRIPCIONES = {
     "afluencia_estimada": "Actividad urbana estimada ahora cerca de un lugar (tráfico, ruido, BiciMAD, aire).",
     "afluencia_prevista": "Afluencia prevista cerca de un lugar a un horizonte de 1, 3 o 6 horas.",
     "calidad_aire": "Calidad del aire medida ahora en una zona o estación de Madrid.",
+    "calidad_aire_episodio": "Probabilidad de episodio (superar el umbral OMS/UE) del contaminante más crítico de una estación a 1/3/6 h.",
     "calidad_aire_prevista": "Previsión de calidad del aire (modelo LightGBM) a 1, 3 o 6 horas.",
     "calidad_aire_prevista_grafo": "Previsión de calidad del aire con el modelo de grafo (STGNN), con vecinos influyentes.",
     "trafico_cercano": "Tráfico medido ahora cerca de un lugar de Madrid.",

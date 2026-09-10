@@ -45,7 +45,7 @@ construidas a partir de las últimas 24 h de Gold. Ancla el forecast en la
 última hora con lectura real (Gold va con retraso) y baja la fiabilidad si
 faltan features históricas. Las siete están montadas como agente MCP dentro
 de la app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
-`GET /calidad-aire-prevista`, `GET /trafico-cercano`,
+`GET /calidad-aire-prevista`, `GET /calidad-aire-episodio`, `GET /trafico-cercano`,
 `GET /afluencia-estimada`, `GET /disponibilidad-aparcamiento`,
 `GET /eventos-cercanos`, `GET /opciones-movilidad`) — verificado con
 invocaciones reales contra la cuenta AWS de este proyecto, incluida la
@@ -254,7 +254,7 @@ fallan, la tool devuelve el objeto con `disponible=False`,
 `valor_previsto=None` y `motivo` explicativo (cubierto por
 `asistente/tests/test_mcp_hardening.py` y `test_mcp_transport.py`).
 
-## Las 13 `tools` del agente MCP
+## Las 16 `tools` del agente MCP
 
 De la memoria (apartado 6.7). **Todas tienen lógica real** — ninguna
 `NotImplementedError` (`FIL_29` limpió esta tabla, que databa de antes de
@@ -272,6 +272,9 @@ las tareas 090/095/096). Registro y anotaciones: `asistente/mcp_agent/server.py`
 | `trafico_prevista(lugar, horizonte_horas=6, radio_m=300.0, momento=None)` | ídem sobre `avg_service_level` del punto de tráfico resuelto por el grafo | `FIL_13` |
 | `afluencia_prevista(lugar, horizonte_horas=6, radio_m=300.0, momento=None)` | **derivada**: `trafico_prevista` + persistencia de ruido/BiciMAD | `FIL_14` |
 | `calidad_aire_prevista_grafo(zona, horizonte_horas=3, momento=None)` | **STGNN de grafo** (`ML_05`) vía ONNX + importancia de aristas | `FIL_26` |
+| `calidad_aire_episodio(zona, horizonte_horas=6, momento=None)` | P(superar el umbral OMS/UE del contaminante más crítico): logística sobre la previsión de regresión de `calidad_aire_prevista` | `FIL_79` |
+| `consulta_grafo(plantilla, lugar, ...)` | plantillas de solo lectura sobre el grafo urbano de Neo4j (aire que mide, líneas/paradas, aparcamiento, BiciMAD, vecindario…) | `FIL_67` |
+| `mejor_hora_zona(zona, perfil="general", momento=None)` | franja del día más limpia en un distrito por perfil de sensibilidad (barrido 24 h sobre el grafo) | `FIL_46` |
 | `trafico_prevista_grafo(lugar, horizonte_horas=3, radio_m=300.0, momento=None)` | **STGNN de grafo** de tráfico (`ML_05`, 1.798 puntos) vía ONNX + `vecinos_influyentes` | `FIL_31` |
 | `ruta_saludable(origen, destino, perfil="general", momento=None)` | enrutado multi-objetivo sobre el grafo: ruta sana vs rápida + reducción de exposición + mejor hora (Dijkstra, artefacto vendorizado) | `FIL_37` |
 | `contexto_urbano(lugar)` | consulta **multi-salto** del grafo urbano reconstruido: barrio/distrito reales, estaciones a 1 salto, lugares a ≤2 saltos, transporte a ≤2 saltos de `CONECTADO_CON` | `FIL_53` |

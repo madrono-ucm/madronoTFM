@@ -242,6 +242,39 @@ class CalidadAirePrevista(RespuestaPrevision):
     contaminante: str | None = None
 
 
+class CalidadAireEpisodio(BaseModel):
+    """Probabilidad de **episodio** (superación del umbral OMS/UE) del
+    contaminante más crítico de una estación a `horizonte_horas` (`FIL_79`).
+
+    No hay clasificador servido: se deriva de la previsión de regresión ya
+    existente (`calidad_aire_prevista`) transformando el margen sobre el
+    umbral en probabilidad con una logística `P = σ((ŷ − umbral)/s)`,
+    `s = 0.25·umbral` (heurística documentada; la desviación del residuo del
+    backtest de `FIL_38` la afinaría — follow-up). `veredicto` es el signo
+    determinista (`ŷ ≷ umbral`). Fiabilidad **BAJA** (§7.4 + pipeline
+    congelado). Mismo contrato de degradación: `disponible=False` +
+    `motivo` si no hay previsión.
+    """
+
+    zona: str
+    momento: datetime | None = None
+    momento_objetivo: datetime | None = None
+    horizonte_horas: int
+    disponible: bool = False
+    estacion: str | None = None
+    contaminante: str | None = None
+    valor_previsto: float | None = None
+    umbral: float | None = None
+    margen: float | None = None  # ŷ − umbral (µg/m³)
+    prob_superacion: float | None = None  # 0..1
+    veredicto: str = "sin_datos"  # "supera" | "no supera" | "sin_datos"
+    unidad: str | None = None
+    data_completeness: float | None = None
+    modelo: str | None = None
+    motivo: str | None = None
+    fuente_dataset: str | None = None
+
+
 class VecinoGrafo(BaseModel):
     """Una conexión influyente del grafo del STGNN (`FIL_26`). `nodo` es un
     par `"<station_id>__<contaminante>"`; `importancia` es
