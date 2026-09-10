@@ -2,7 +2,7 @@
 kind: fil
 title: "Chat: hacer visible la capa MCP — traza de herramientas bajo cada respuesta + catálogo «¿qué puedo preguntar?»"
 owner: Filippos (interactive)
-status: pending
+status: in_review
 allow_infra_apply: false
 created_at: "2026-09-10"
 depends_on: [FIL_62, FIL_71, FIL_73, FIL_91]
@@ -97,3 +97,40 @@ Dos huecos concretos:
 desbloquea los paneles «cómo funciona» de FIL_98 y toda la feature FIL_99.
 Después de FIL_71 (registro de tools) y FIL_73 (métricas/logs) — ya en main.
 Estimación ~0,5 día. Objetivo **2026-09-12**.
+
+## Hecho (2026-09-11, rama `fil-95-chat-traza-y-catalogo`)
+
+- **Backend — `pasos`**: `asistente/chat.py::chat()` acumula, por turno, la
+  lista `pasos` de `{tool, ok, ms, filas}` (una entrada por ejecución real
+  de tool, en orden) y la devuelve junto a `respuesta`/`historial`; también
+  en las salidas degradadas. `asistente/routers/chat.py`: `RespuestaChat`
+  gana `pasos: list[PasoChat] = []` (aditivo; documentado como traza, no
+  contrato estable).
+- **Backend — catálogo**: `ToolSpec` (registro único, `server.py`) gana
+  `ejemplo_chat: str = ""`; las 11 tools con `en_chat=True` llevan un
+  ejemplo en lenguaje natural. `CATALOGO_CHAT` derivado + endpoint
+  `GET /chat/catalogo`. Una tool nueva en `NOMBRES_CHAT` sin `ejemplo_chat`
+  hace fallar el test de guarda.
+- **Landing (`web/index.html`)**: bajo cada respuesta del bot,
+  `details.traza` plegable — resumen `🔧 tool1 · tool2`, detalle con
+  ok/fallo · ms · filas por paso; si `pasos` viene vacío, marca discreta
+  «respondido sin consultar datos». Botón `? Qué puedo preguntar` que abre
+  un panel con una ficha por tool (título + descripción + ejemplo
+  clicable); las sugerencias fijas se sustituyen por las del catálogo al
+  cargar (si el endpoint falla, se quedan las estáticas). Delegación de
+  eventos (sugerencias dinámicas), `aria-expanded`, `:focus-visible`,
+  `prefers-reduced-motion`, tema claro/oscuro.
+- **Mapa (`viz/build_mapa_animado.py` → `viz/mapa/index.html`)**: misma
+  traza (línea discreta bajo la respuesta) y sugerencias del chat del rail
+  alimentadas por `/chat/catalogo` (fallback a las fijas). `viz/mapa/`
+  regenerado (solo `index.html`; `meta.json`/`rutas.json` revertidos —
+  regenerarlos es FIL_74).
+- **Tests**: `asistente/tests/test_chat.py` +`PasosDelTurnoTests` (2 tools
+  → 2 pasos con ok/ms/filas; sin tools → `[]`; tool que lanza → `ok:false`)
+  y +`CatalogoEndpointTests` (una entrada por tool del chat, todas con
+  ejemplo). `viz/test/web-landing.test.mjs` +4 (traza pintada, marca «sin
+  datos», catálogo llena sugerencias + panel abre/cierra, endpoint caído →
+  sugerencias fijas). `pytest asistente/ tests/test_mapa_animado.py` →
+  283 pass / 1 skip; `node --test viz/test/` → 29 pass.
+
+Pendiente: PR, merge, redeploy EC2, y flip de `status` a `done`.
