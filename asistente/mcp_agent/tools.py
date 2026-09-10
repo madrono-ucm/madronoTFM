@@ -35,6 +35,7 @@ from asistente import ruta_saludable as _ruta
 from asistente.models.herramientas import (
     AfluenciaEstimada,
     AfluenciaPrevista,
+    CalidadAireCams,
     CalidadAireEpisodio,
     CalidadAirePrevista,
     CalidadAirePrevistaGrafo,
@@ -1332,6 +1333,21 @@ def _calidad_aire_prevista_impl(
     limite = _LIMITES_REFERENCIA_UGM3.get(pollutant)
     nivel = _clasificar_indice(previsto / limite) if limite else "sin_clasificar"
 
+    # FIL_80: 2.ª opinión de Copernicus CAMS para el mismo contaminante y la
+    # fecha objetivo. Nunca hace fallar la previsión propia (best-effort).
+    ref_cams = delta_cams = None
+    if athena_client is None:  # solo en producción, no en los tests con Athena mockeada
+        try:
+            objetivo = (ancla + timedelta(hours=horizonte_horas)).date().isoformat()
+            c = calidad_aire_cams(pollutant, objetivo)
+            if not c.disponible:
+                c = calidad_aire_cams(pollutant)  # cae a la última disponible
+            if c.disponible and c.avg_ugm3 is not None:
+                ref_cams = c.avg_ugm3
+                delta_cams = round(previsto - c.avg_ugm3, 1)
+        except Exception:  # noqa: BLE001 - contexto opcional
+            pass
+
     return CalidadAirePrevista(
         zona=zona,
         momento=ancla,
@@ -1348,6 +1364,8 @@ def _calidad_aire_prevista_impl(
         ventana_datos=ventana,
         modelo=f"calidad_aire_h{horizonte_horas}.onnx (ML_07 / madrono-calidad_aire-h{horizonte_horas})",
         fuente_dataset=fuente,
+        referencia_cams=ref_cams,
+        delta_vs_cams=delta_cams,
     )
 
 
@@ -1385,6 +1403,96 @@ def calidad_aire_prevista(
             (hora de Madrid).
     """
     return _calidad_aire_prevista_impl(zona, horizonte_horas, momento)
+
+
+# ---------------------------------------------------------------------------
+# calidad_aire_cams (FIL_80) -- previsión de Copernicus CAMS como 2.ª opinión
+# independiente. Nivel de área (sin estación); Gold
+# cams_calidad_aire_por_contaminante_fecha_validez.
+# ---------------------------------------------------------------------------
+
+_TABLA_CAMS = "cams_calidad_aire_por_contaminante_fecha_validez"
+
+# texto libre -> token del particionado `pollutant` de la Gold CAMS.
+_CAMS_ALIAS = {
+    "no2": "no2", "no₂": "no2", "dioxido de nitrogeno": "no2", "nitrogeno": "no2",
+    "o3": "o3", "o₃": "o3", "ozono": "o3",
+    "pm10": "pm10", "pm 10": "pm10",
+    "pm2.5": "pm2", "pm25": "pm2", "pm2,5": "pm2", "pm 2.5": "pm2",
+    "so2": "so2", "so₂": "so2", "dioxido de azufre": "so2",
+    "pm2": "pm2",
+}
+
+
+def _cams_token(contaminante: str) -> str:
+    c = (contaminante or "").strip().lower()
+    return _CAMS_ALIAS.get(c, c.replace(" ", ""))
+
+
+def calidad_aire_cams(contaminante: str, fecha: str | None = None) -> CalidadAireCams:
+    """Previsión de calidad del aire del modelo atmosférico **Copernicus
+    CAMS** para Madrid (`FIL_80`) — una segunda opinión independiente de los
+    modelos propios.
+
+    Lee `gold.cams_calidad_aire_por_contaminante_fecha_validez` (nivel de
+    área; sin estación). Devuelve el `avg`/`max` de la ciudad para el
+    contaminante y la `fecha_validez` pedida; sin `fecha`, la última
+    disponible (el pipeline está congelado desde 2026-08-30 — lo indica el
+    `motivo`). No lanza excepción: `disponible=False` + `motivo` si no hay
+    filas.
+
+    Args:
+        contaminante: NO2 / O3 / PM10 / PM2.5 / SO2 (texto libre, se
+            normaliza).
+        fecha: `YYYY-MM-DD` de validez. Si es `None`, la última disponible.
+    """
+    tok = _cams_token(contaminante)
+    fuente = f"gold.{_TABLA_CAMS}"
+    where_fecha = f" AND fecha_validez = '{sql_literal(fecha)}'" if fecha else ""
+    sql = f"""
+        SELECT pollutant, pollutant_code, unit, fecha_validez,
+               avg_value, max_value, leadtime_hours, last_forecast_issued_at
+        FROM {_TABLA_CAMS}
+        WHERE lower(pollutant) LIKE '%{sql_literal(tok)}%'{where_fecha}
+        ORDER BY fecha_validez DESC
+        LIMIT 40
+    """
+    try:
+        filas = run_athena_query(sql, GOLD_DATABASE)
+    except Exception as exc:  # noqa: BLE001 - degradación elegante (FIL_15)
+        return CalidadAireCams(
+            contaminante=contaminante, fuente_dataset=fuente,
+            motivo=f"no se pudo consultar Gold CAMS en Athena: {exc}",
+        )
+    if not filas:
+        return CalidadAireCams(
+            contaminante=contaminante, fuente_dataset=fuente,
+            motivo=(
+                f"CAMS no tiene previsión para «{contaminante}»"
+                + (f" en {fecha}" if fecha else "")
+                + " (¿nombre de contaminante? ¿pipeline congelado?)"
+            ),
+        )
+    fechas = sorted({f["fecha_validez"] for f in filas if f.get("fecha_validez")}, reverse=True)
+    elegida = fecha or (fechas[0] if fechas else None)
+    fila = next((f for f in filas if f.get("fecha_validez") == elegida), filas[0])
+    lt = fila.get("leadtime_hours")
+    if isinstance(lt, str):
+        lt = [int(x) for x in lt.strip("[]").split(",") if x.strip().lstrip("-").isdigit()]
+    motivo = None
+    if not fecha:
+        motivo = f"última previsión CAMS disponible: {elegida} (pipeline de datos pausado)"
+    return CalidadAireCams(
+        contaminante=contaminante, disponible=True,
+        fecha_validez=elegida,
+        avg_ugm3=round(fila["avg_value"], 1) if fila.get("avg_value") is not None else None,
+        max_ugm3=round(fila["max_value"], 1) if fila.get("max_value") is not None else None,
+        unidad=fila.get("unit"),
+        leadtime_horas=lt or [],
+        emitido_en=fila.get("last_forecast_issued_at"),
+        n_fechas_disponibles=len(fechas),
+        motivo=motivo, fuente_dataset=fuente,
+    )
 
 
 # ---------------------------------------------------------------------------

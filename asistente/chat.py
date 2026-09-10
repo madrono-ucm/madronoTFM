@@ -84,6 +84,7 @@ _DESCRIPCIONES = {
     "afluencia_prevista": "Afluencia prevista cerca de un lugar a un horizonte de 1, 3 o 6 horas.",
     "calidad_aire": "Calidad del aire medida ahora en una zona o estación de Madrid.",
     "calidad_aire_episodio": "Probabilidad de episodio (superar el umbral OMS/UE) del contaminante más crítico de una estación a 1/3/6 h.",
+    "calidad_aire_cams": "Previsión de calidad del aire del modelo Copernicus CAMS (nivel ciudad) para un contaminante — segunda opinión independiente.",
     "calidad_aire_prevista": "Previsión de calidad del aire (modelo LightGBM) a 1, 3 o 6 horas.",
     "calidad_aire_prevista_grafo": "Previsión de calidad del aire con el modelo de grafo (STGNN), con vecinos influyentes.",
     "trafico_cercano": "Tráfico medido ahora cerca de un lugar de Madrid.",

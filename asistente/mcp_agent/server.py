@@ -77,7 +77,7 @@ mcp = MCPServer(
     instructions=_INSTRUCCIONES,
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
-        "(memoria del TFM, apartados 5.2 y 6.7). 16 tools con lógica real: "
+        "(memoria del TFM, apartados 5.2 y 6.7). 17 tools con lógica real: "
         "`calidad_aire` / `disponibilidad_aparcamiento` leen Gold vía Athena; "
         "`trafico_cercano` / `afluencia_estimada` / `eventos_cercanos` / "
         "`opciones_movilidad` cruzan el grafo urbano en Neo4j; "
@@ -91,12 +91,14 @@ mcp = MCPServer(
         "multi-salto del grafo urbano (FIL_53) y `mejor_hora_zona` da la "
         "franja del día más limpia en un distrito por perfil de sensibilidad "
         "(FIL_46), `calidad_aire_episodio` da la probabilidad de superar el "
-        "umbral OMS/UE del contaminante más crítico (FIL_79). "
+        "umbral OMS/UE del contaminante más crítico (FIL_79) y "
+        "`calidad_aire_cams` trae la previsión de Copernicus CAMS como "
+        "segunda opinión independiente (FIL_80). "
         "Ver asistente/mcp_agent/tools.py."
     ),
 )
 
-# Las 16 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX /
+# Las 17 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX /
 # Dijkstra o barrido sobre un grafo vendorizado):
 # `read_only_hint=True`. `open_world_hint=True` porque consultan datos vivos
 # externos. Son la señal estándar de "es seguro llamar a esto" para el cliente.
@@ -110,6 +112,7 @@ _TOOLS = (
     (tools.calidad_aire_prevista, "Calidad del aire prevista"),
     (tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)"),
     (tools.calidad_aire_episodio, "Probabilidad de episodio de contaminación"),
+    (tools.calidad_aire_cams, "Calidad del aire previsión Copernicus CAMS"),
     (tools.trafico_cercano, "Tráfico cerca de un lugar"),
     (tools.trafico_prevista, "Tráfico previsto"),
     (tools.trafico_prevista_grafo, "Tráfico previsto (modelo de grafo)"),
