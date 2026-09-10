@@ -61,3 +61,33 @@ riesgos conocidos sin cubrir:
 - El test de integración MCP falla si se revierte el fix de `allowed_hosts`.
 - "calidad del aire en Vicálvaro" (zona sin datos recientes) responde
   distinguiendo "sin datos recientes" de "zona desconocida".
+
+## Criterios de aceptación concretos (afinado 2026-09-10)
+
+- **Logging** — un `POST /chat` que dispara 2 tool-calls emite exactamente
+  2 líneas INFO que casan con
+  `tool=\S+ dur_ms=\d+ ok=(True|False)( filas=\d+)?`. Args recortados a N
+  chars. Un test con `caplog` lo comprueba.
+- **Latencia LLM** — cada respuesta de `_completar` añade al log
+  `llm_dur_ms=\d+ reintentos=\d+`; un contador de 429 servidas acumulado en
+  proceso, expuesto en `GET /health` como `llm_429_total`.
+- **Test de cliente MCP real** — `asistente/tests/test_mcp_cliente_real.py`:
+  levanta la app montada en un puerto efímero, se conecta con
+  `mcp.client.streamable_http`, lista tools (== `len(_ESPERADAS)`) y llama a
+  `avisos_meteo`. **Revertir `allowed_hosts` en `main.py` hace fallar este
+  test con 421** (aserción explícita del código de estado). Marcado
+  `@pytest.mark.integracion` si arranca servidor.
+- **Frescura** — helper `motivo_sin_datos(ventana_dias, desde)` (encaja con
+  el `Degradable` de FIL_71). "calidad del aire en Vicálvaro" (zona real,
+  sin datos en ventana) → `motivo` contiene `"sin datos en los últimos 14
+  días"` y una fecha; una zona inexistente → `motivo` distinto
+  (`"no se encontró la zona"`). Test que afirma que los dos `motivo` no son
+  iguales.
+- **Rate-limit uniforme** — el 429 de Groq y un 429 upstream simulado
+  producen **el mismo string** al usuario (`"vuelve a intentarlo en un
+  momento"`), nunca una traza. Un test parametriza ambos orígenes.
+
+## Prioridad y secuencia
+
+**Media-alta.** Después de **FIL_71** (comparte `Degradable` y el registro).
+Puede solaparse con FIL_72. Estimación ~1 día. Objetivo: **2026-09-17**.
