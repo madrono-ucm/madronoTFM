@@ -887,6 +887,18 @@ function chatMsg(rol, txt){
     + String(txt).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
   const h = document.getElementById("chat-hilo"); h.appendChild(d); h.scrollTop = 1e9;
 }
+// FIL_95: traza de herramientas del turno (`pasos` de /chat). Vacía = el
+// modelo respondió sin consultar datos.
+function chatTraza(pasos){
+  if(!Array.isArray(pasos)) return;
+  const h = document.getElementById("chat-hilo");
+  const d = document.createElement("div");
+  d.style.cssText = "margin:1px 0 5px;font-size:10.5px;color:#8a97a6";
+  d.textContent = pasos.length
+    ? "🔧 " + pasos.map(p => p.tool + (p.ok ? "" : " (falló)")).join(" · ")
+    : "· respondido sin consultar datos";
+  h.appendChild(d); h.scrollTop = 1e9;
+}
 async function chatEnviar(){
   const inp = document.getElementById("chat-in"), est = document.getElementById("chat-estado");
   const q = inp.value.trim(); if(!q) return;
@@ -899,20 +911,33 @@ async function chatEnviar(){
     const j = await r.json();
     chatHist = j.historial || [];
     chatMsg("bot", j.respuesta || "(sin respuesta)");
+    chatTraza(j.pasos);
   }catch(err){
     chatMsg("bot", "no se pudo consultar el asistente ("+err+")."
       + (API_BASE ? "" : " Sirve esta página desde el asistente o añade ?api=<url>."));
   }
   est.textContent = ""; document.getElementById("chat-send").disabled = false;
 }
-function mkChat(){
+function chatSugerencias(lista){
   const sug = document.getElementById("chat-sug");
-  CHAT_SUG.forEach(s=>{ const b=document.createElement("button");
-    b.textContent = s.length>26 ? s.slice(0,24)+"…" : s; b.title = s; b.style.fontSize = "10.5px";
-    b.onclick = ()=>{ document.getElementById("chat-in").value = s; chatEnviar(); };
+  sug.innerHTML = "";
+  lista.forEach(s=>{ const q = s.ejemplo || s, t = s.titulo || s;
+    const b=document.createElement("button");
+    b.textContent = q.length>26 ? q.slice(0,24)+"…" : q; b.title = t; b.style.fontSize = "10.5px";
+    b.onclick = ()=>{ document.getElementById("chat-in").value = q; chatEnviar(); };
     sug.appendChild(b); });
+}
+async function mkChat(){
+  chatSugerencias(CHAT_SUG);
   document.getElementById("chat-send").onclick = chatEnviar;
   document.getElementById("chat-in").addEventListener("keydown", e=>{ if(e.key==="Enter") chatEnviar(); });
+  // FIL_95: si el asistente responde, se cambian las sugerencias fijas por
+  // el catálogo real (una por herramienta del chat, del registro único).
+  try{
+    const r = await fetch(API_BASE + "/chat/catalogo");
+    if(r.ok){ const items = await r.json();
+      if(Array.isArray(items) && items.length) chatSugerencias(items); }
+  }catch(e){ /* sin red: se quedan las fijas */ }
 }
 
 // ---- Barra lateral de secciones -------------------------------------------

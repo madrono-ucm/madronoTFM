@@ -303,8 +303,12 @@ _MAX_RONDAS_TOOL = 4
 def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
     """Un turno de chat como bucle acotado de tool-calling (formato
     Groq/OpenAI). `historial` es la lista de mensajes previa (vacía en el
-    primer turno); se devuelve `{"respuesta": str, "historial": list[dict]}`
-    y el `historial` devuelto se reenvía tal cual al siguiente turno.
+    primer turno); se devuelve
+    `{"respuesta": str, "historial": list[dict], "pasos": list[dict]}`.
+    El `historial` se reenvía tal cual al siguiente turno; `pasos` es la
+    traza de herramientas de ESTE turno (`{tool, ok, ms, filas}`, FIL_95),
+    material para que el cliente la enseñe — lista vacía si el modelo
+    respondió sin consultar ninguna herramienta.
 
     El bucle (hasta `_MAX_RONDAS_TOOL` rondas con herramientas + 1 ronda
     final en prosa) tolera que el modelo alucine un nombre de tool
@@ -318,9 +322,15 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
     messages.extend(historial or [])
     messages.append({"role": "user", "content": mensaje})
 
+    # FIL_95: traza de herramientas de ESTE turno, para que el cliente la
+    # pueda enseñar («🔧 consultó ruta_saludable · trafico_prevista»). No es
+    # el `historial` (que además lleva los turnos previos): son solo las
+    # tools llamadas ahora, con si fueron bien, cuánto tardaron y nº de filas.
+    pasos: "list[dict]" = []
+
     def _degradado(msg_err: str):
         base = messages if len(messages) > 2 else (historial or [])
-        return {"respuesta": msg_err, "historial": base}
+        return {"respuesta": msg_err, "historial": base, "pasos": pasos}
 
     for ronda in range(_MAX_RONDAS_TOOL + 1):
         ultima = ronda == _MAX_RONDAS_TOOL
@@ -355,7 +365,7 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
         if not tcs or ultima:
             texto = _sin_think(msg.content) or "He consultado los datos, pero el modelo no ha devuelto texto."
             messages.append({"role": "assistant", "content": texto})
-            return {"respuesta": texto, "historial": messages}
+            return {"respuesta": texto, "historial": messages, "pasos": pasos}
 
         messages.append({
             "role": "assistant", "content": msg.content,
@@ -370,7 +380,14 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
                 args = json.loads(tc.function.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}
+            _t0 = time.monotonic()
             resultado = _ejecutar_tool(tc.function.name, args)
+            pasos.append({
+                "tool": tc.function.name,
+                "ok": bool(resultado.get("disponible")),
+                "ms": round((time.monotonic() - _t0) * 1000),
+                "filas": _contar_filas(resultado.get("datos")),
+            })
             messages.append({
                 "role": "tool", "tool_call_id": tc.id,
                 "content": json.dumps(resultado, ensure_ascii=False, default=str),

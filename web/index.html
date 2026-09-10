@@ -248,6 +248,36 @@
     white-space: nowrap;
   }
   .suggestions button:hover { border-color: var(--gold); color: var(--ink); background: var(--gold-soft); }
+  .suggestions button.cat-toggle { font-weight: 700; padding-inline: 12px; }
+  .suggestions button.cat-toggle[aria-expanded="true"] { border-color: var(--gold); color: var(--ink); background: var(--gold-soft); }
+
+  /* ---- traza de herramientas bajo cada respuesta (FIL_95) ---- */
+  details.traza { align-self: flex-start; max-width: 82%; margin: -6px 0 0; font-size: 11.5px; }
+  details.traza summary {
+    cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--surface); color: var(--ink-soft); font-weight: 600;
+  }
+  details.traza summary::-webkit-details-marker { display: none; }
+  details.traza[open] summary { border-color: var(--gold); color: var(--ink); }
+  details.traza .pasos { margin-top: 6px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: grid; gap: 5px; }
+  details.traza .paso { display: flex; gap: 10px; justify-content: space-between; color: var(--ink-soft); }
+  details.traza .paso b { color: var(--ink); font-weight: 600; }
+  details.traza .paso .ko { color: var(--danger); font-weight: 700; }
+  .traza-none { align-self: flex-start; font-size: 11px; color: var(--ink-soft); opacity: .7; margin: -6px 0 0; }
+
+  /* ---- catálogo «¿qué puedo preguntar?» (FIL_95) ---- */
+  #catalogo { width: 100%; max-width: 720px; margin: 0 auto 4px; padding: 0 16px; }
+  #catalogo .box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; display: grid; gap: 11px; max-height: 46vh; overflow-y: auto; }
+  #catalogo .item { display: grid; gap: 3px; }
+  #catalogo .item b { font-size: 13px; }
+  #catalogo .item span { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+  #catalogo .item button {
+    justify-self: start; margin-top: 3px; background: var(--gold-soft);
+    border: 1px solid var(--border); color: var(--ink); border-radius: 999px;
+    padding: 5px 13px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  #catalogo .item button:hover { border-color: var(--gold); }
 
   form#composer { display: flex; align-items: center; gap: 8px; padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); width: 100%; max-width: 720px; margin: 0 auto; box-sizing: border-box; }
   form#composer .field-wrap {
@@ -342,7 +372,9 @@
       </header>
     </div>
     <div id="msgs" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación con el asistente"></div>
+    <div id="catalogo" hidden></div>
     <div class="suggestions" id="suggestions">
+      <button type="button" class="cat-toggle" aria-expanded="false" aria-controls="catalogo">? Qué puedo preguntar</button>
       <button data-q="¿Cómo está el tráfico cerca de Atocha?">🚗 Tráfico en Atocha</button>
       <button data-q="¿Cómo está la calidad del aire en Retiro?">🌬️ Aire en Retiro</button>
       <button data-q="¿Cuál es la mejor hora para pasear por Sol hoy?">☀️ Mejor hora en Sol</button>
@@ -420,6 +452,7 @@ function showChat() {
   $("login").style.display = "none";
   $("chat-screen").style.display = "flex";
   $("input").focus();
+  cargarCatalogo();
 }
 
 function addMsg(texto, tipo) {
@@ -440,6 +473,97 @@ function addErrorConReintento(texto) {
   b.addEventListener("click", () => { el.remove(); if (ultimoMensaje) enviar(ultimoMensaje); });
   el.append(document.createElement("br"), b);
   return el;
+}
+
+// FIL_95 -- traza de herramientas bajo la respuesta del bot. `pasos` viene
+// de `/chat` (lista de {tool, ok, ms, filas} de este turno); si está vacía,
+// el modelo respondió sin consultar datos y se marca como tal.
+function addTraza(pasos) {
+  if (!Array.isArray(pasos)) return;
+  if (pasos.length === 0) {
+    const s = document.createElement("div");
+    s.className = "traza-none";
+    s.textContent = "· respondido sin consultar datos";
+    $("msgs").appendChild(s);
+    return;
+  }
+  const d = document.createElement("details");
+  d.className = "traza";
+  const sum = document.createElement("summary");
+  sum.textContent = "🔧 " + pasos.map((p) => p.tool).join(" · ");
+  d.appendChild(sum);
+  const box = document.createElement("div");
+  box.className = "pasos";
+  for (const p of pasos) {
+    const row = document.createElement("div");
+    row.className = "paso";
+    const name = document.createElement("b");
+    name.textContent = p.tool;
+    const meta = document.createElement("span");
+    const filas = p.filas != null ? ` · ${p.filas} filas` : "";
+    meta.innerHTML = (p.ok ? "ok" : '<span class="ko">falló</span>') + ` · ${p.ms} ms${filas}`;
+    row.append(name, meta);
+    box.appendChild(row);
+  }
+  d.appendChild(box);
+  $("msgs").appendChild(d);
+  d.scrollIntoView({ block: "end", behavior: SIN_MOV ? "auto" : "smooth" });
+}
+
+// FIL_95 -- catálogo «¿qué puedo preguntar?»: una entrada por herramienta
+// del chat, servida por `/chat/catalogo` (fuente: el registro único de
+// tools). Si falla, se dejan las sugerencias estáticas del HTML.
+let catalogoCargado = false;
+async function cargarCatalogo() {
+  if (catalogoCargado) return;
+  let items;
+  try {
+    const r = await apiFetch("/chat/catalogo");
+    if (!r.ok) return;
+    items = await r.json();
+  } catch { return; }
+  if (!Array.isArray(items) || !items.length) return;
+  catalogoCargado = true;
+
+  const sug = $("suggestions");
+  sug.querySelectorAll("button:not(.cat-toggle)").forEach((b) => b.remove());
+  for (const it of items) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.q = it.ejemplo;
+    b.textContent = it.ejemplo.length > 34 ? it.ejemplo.slice(0, 32) + "…" : it.ejemplo;
+    b.title = it.ejemplo;
+    sug.appendChild(b);
+  }
+
+  const box = document.createElement("div");
+  box.className = "box";
+  const h = document.createElement("h3");
+  h.textContent = "Puedes preguntar por…";
+  box.appendChild(h);
+  for (const it of items) {
+    const item = document.createElement("div");
+    item.className = "item";
+    const b = document.createElement("b");
+    b.textContent = it.titulo;
+    const s = document.createElement("span");
+    s.textContent = it.descripcion;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = it.ejemplo;
+    btn.addEventListener("click", () => { cerrarCatalogo(); enviar(it.ejemplo); });
+    item.append(b, s, btn);
+    box.appendChild(item);
+  }
+  const cat = $("catalogo");
+  cat.innerHTML = "";
+  cat.appendChild(box);
+}
+
+function cerrarCatalogo() {
+  $("catalogo").hidden = true;
+  const t = $("suggestions").querySelector(".cat-toggle");
+  if (t) t.setAttribute("aria-expanded", "false");
 }
 
 function setEnviando(activo) {
@@ -483,6 +607,7 @@ async function enviar(texto) {
         historial = data.historial || historial;
         pending.remove();
         addMsg(data.respuesta, "bot");
+        addTraza(data.pasos);
         setEnviando(false);
         return;
       }
@@ -501,6 +626,7 @@ function logout(motivo) {
   auth = null; historial = []; ultimoMensaje = null;
   $("msgs").innerHTML = "";
   $("suggestions").style.display = "";
+  cerrarCatalogo();
   $("chat-screen").style.display = "none";
   $("login").style.display = "flex";
   $("login-err").textContent = motivo || "";
@@ -529,8 +655,17 @@ $("composer").addEventListener("submit", (e) => {
   enviar(v);
 });
 
-document.querySelectorAll("#suggestions button").forEach((b) => {
-  b.addEventListener("click", () => enviar(b.dataset.q));
+// Delegación: las sugerencias se reconstruyen desde el catálogo (FIL_95).
+$("suggestions").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.classList.contains("cat-toggle")) {
+    const mostrar = $("catalogo").hidden;
+    $("catalogo").hidden = !mostrar;
+    b.setAttribute("aria-expanded", mostrar ? "true" : "false");
+    return;
+  }
+  if (b.dataset.q) { cerrarCatalogo(); enviar(b.dataset.q); }
 });
 
 $("logout-btn").addEventListener("click", () => logout());

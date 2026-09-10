@@ -165,3 +165,74 @@ test("FIL_92 · sin excepciones de página en ningún camino", async () => {
   await preguntar(ctx);
   assert.deepEqual(ctx.errores, []);
 });
+
+// --- FIL_95: traza de herramientas + catálogo -----------------------------
+
+const CATALOGO = [
+  { tool: "calidad_aire", titulo: "Calidad del aire ahora", descripcion: "…", ejemplo: "¿Cómo está el aire en Retiro?" },
+  { tool: "trafico_cercano", titulo: "Tráfico cerca de un lugar", descripcion: "…", ejemplo: "¿Tráfico cerca de Atocha?" },
+];
+const OK_CAT = { "GET /chat/catalogo": { status: 200, body: CATALOGO } };
+
+test("FIL_95 · la respuesta muestra la traza de herramientas del turno", async () => {
+  const ctx = montar({
+    ...OK_HEALTH, ...OK_CAT,
+    "POST /chat": {
+      status: 200,
+      body: {
+        respuesta: "El aire está bien.",
+        pasos: [
+          { tool: "calidad_aire", ok: true, ms: 12, filas: 3 },
+          { tool: "trafico_cercano", ok: false, ms: 8, filas: null },
+        ],
+      },
+    },
+  });
+  await login(ctx);
+  await preguntar(ctx);
+  const tr = ctx.$("msgs").querySelector("details.traza");
+  assert.ok(tr, "no se pintó la traza");
+  assert.match(tr.querySelector("summary").textContent, /calidad_aire · trafico_cercano/);
+  assert.match(tr.textContent, /falló/, "un paso ko debe marcarse");
+});
+
+test("FIL_95 · respuesta sin tools -> marca «sin consultar datos», sin traza", async () => {
+  const ctx = montar({
+    ...OK_HEALTH, ...OK_CAT,
+    "POST /chat": { status: 200, body: { respuesta: "¡Hola!", pasos: [] } },
+  });
+  await login(ctx);
+  await preguntar(ctx);
+  assert.equal(ctx.$("msgs").querySelector("details.traza"), null);
+  assert.ok(ctx.$("msgs").querySelector(".traza-none"), "falta la marca de 'sin datos'");
+});
+
+test("FIL_95 · el catálogo llena las sugerencias y el panel se abre/cierra", async () => {
+  const ctx = montar({ ...OK_HEALTH, ...OK_CAT, "POST /chat": { status: 200, body: { respuesta: "ok", pasos: [] } } });
+  await login(ctx);
+  await tick();
+  const qs = [...ctx.$("suggestions").querySelectorAll("button:not(.cat-toggle)")].map((b) => b.dataset.q);
+  assert.deepEqual(qs, CATALOGO.map((c) => c.ejemplo), "las sugerencias no salen del catálogo");
+
+  const toggle = ctx.$("suggestions").querySelector(".cat-toggle");
+  assert.equal(ctx.$("catalogo").hidden, true);
+  toggle.dispatchEvent(new ctx.win.Event("click", { bubbles: true }));
+  assert.equal(ctx.$("catalogo").hidden, false);
+  assert.equal(toggle.getAttribute("aria-expanded"), "true");
+  assert.equal(ctx.$("catalogo").querySelectorAll(".item").length, CATALOGO.length);
+  toggle.dispatchEvent(new ctx.win.Event("click", { bubbles: true }));
+  assert.equal(ctx.$("catalogo").hidden, true);
+});
+
+test("FIL_95 · sin catálogo (endpoint caído) se mantienen las sugerencias fijas", async () => {
+  const ctx = montar({
+    ...OK_HEALTH,
+    "GET /chat/catalogo": () => new TypeError("Failed to fetch"),
+    "POST /chat": { status: 200, body: { respuesta: "ok", pasos: [] } },
+  });
+  await login(ctx);
+  await tick();
+  const btns = ctx.$("suggestions").querySelectorAll("button:not(.cat-toggle)");
+  assert.ok(btns.length >= 3, "deberían seguir las sugerencias estáticas del HTML");
+  assert.deepEqual(ctx.errores, []);
+});
