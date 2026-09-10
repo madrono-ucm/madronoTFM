@@ -210,6 +210,15 @@ def _meta(node_ids: "list[str]", dias: "list[str]") -> dict:
         "o3":  {"cortes": BANDAS_UGM3["o3"],
                 "bandas": ["≤ guía OMS 8 h", "≤ objetivo 8 h UE", "≥ umbral información UE", "≥ umbral alerta UE", "extremo"]},
         "salud": {"cortes": [60, 70, 80, 90], "bandas": ["muy baja", "baja", "media", "buena", "muy buena"]},
+        # Las dosis se expresan ya como % de la guía OMS, así que las bandas
+        # son múltiplos de esa guía (100 % = justo en la guía). Sin estas
+        # entradas, el botón «bandas OMS·UE» quedaba activo pero sin efecto
+        # para las métricas de dosis (y los capítulos 2/3 del recorrido
+        # guiado aterrizaban en ese estado incoherente).
+        "dosis_no2": {"cortes": [50, 100, 150, 200],
+                      "bandas": ["≤ ½ de la guía", "≤ guía OMS", "≤ 1,5× guía", "≤ 2× guía", "> 2× guía"]},
+        "dosis_o3":  {"cortes": [50, 100, 150, 200],
+                      "bandas": ["≤ ½ de la guía", "≤ guía OMS", "≤ 1,5× guía", "≤ 2× guía", "> 2× guía"]},
     }
 
     return {
@@ -362,6 +371,14 @@ _TEMPLATE = r"""<!doctype html>
   html,body { margin:0; height:100%; font-family:system-ui,Segoe UI,Roboto,sans-serif; }
   #map { position:absolute; inset:0; z-index:0;
     background:radial-gradient(ellipse 120% 90% at 50% 38%, #0e141c 0%, #070a0e 70%); }
+  /* Aviso discreto si un render lanza: el mapa sigue vivo y respondiendo a
+     los siguientes cambios, en vez de quedarse congelado sin explicación. */
+  #err { position:absolute; left:50%; bottom:14px; transform:translateX(-50%); z-index:20;
+    max-width:min(560px,92vw); background:#3a1d1d; color:#ffd7d7; border:1px solid #7a3a3a;
+    border-radius:8px; padding:8px 12px; font-size:12px; box-shadow:0 6px 24px rgba(0,0,0,.4);
+    display:none; }
+  #err button { margin-left:10px; background:#7a3a3a; color:#ffe9e9; border:0; border-radius:5px;
+    padding:2px 8px; cursor:pointer; }
   /* Todos los paneles por encima del lienzo del mapa (deck.gl pinta en un
      canvas propio; sin este z-index los nodos podían taparlos). */
   .panel { position:absolute; z-index:5; background:rgba(18,22,28,.95); color:#e8edf2;
@@ -419,6 +436,7 @@ _TEMPLATE = r"""<!doctype html>
 </head>
 <body>
 <div id="map" role="application" aria-label="Mapa animado del grafo de Madrid"></div>
+<div id="err" role="alert"></div>
 
 <div class="panel" id="titulo">Madrid · previsión sobre el grafo<small id="titulo-sub">—</small></div>
 
@@ -598,6 +616,11 @@ _TEMPLATE = r"""<!doctype html>
 // deck.gl y los paneles a partir de `state` cada vez que algo cambia.
 const {ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, MapboxOverlay} = deck;
 let META, DATA, WX, RUTAS, map, overlay, selNode = null;
+// Índices de nodo 0..N-1, estable entre renders: si `data` cambiara de
+// identidad en cada `layers()`, deck.gl re-ejecutaría todos los accessors
+// (color/altura) aunque sólo se moviera la cámara. Se construye una vez al
+// cargar `meta.json`.
+let NODE_IDX = [];
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
@@ -691,12 +714,24 @@ function mejorHoraPerfil(){
     if(m<worst){ worst=m; wh=h; } }
   return (_mhpCache[key] = {hora:bh, salud:best, peor_hora:wh});
 }
-function metricArr(){
+// El vector de la métrica activa. `nodeColor` y `nodeElev` lo piden una vez
+// por nodo (1798) y, en «barras (3D)», los dos → sin caché, cada render
+// reconstruía el array de perfil/dosis 1798·2 veces (O(n²): ~3-26 M
+// iteraciones/frame) y el mapa se congelaba al inclinar la cámara o al
+// reproducir. Se memoiza por el estado del que depende; sólo se recalcula
+// cuando cambia de verdad.
+let _maCache = {k:null, v:null};
+function _metricArrCalc(){
   if(state.metric==="trafico") return trafArr(state.hz);
   if(state.metric==="salud_perfil") return _saludPerfil();
   if(state.metric==="dosis_no2") return _dosis("no2", 25);
   if(state.metric==="dosis_o3")  return _dosis("o3", 100);
   return DATA[state.day][state.metric][state.hour];
+}
+function metricArr(){
+  const k = state.metric+"|"+state.day+"|"+state.hour+"|"+state.hz+"|"+state.perfil;
+  if(_maCache.k!==k) _maCache = {k, v:_metricArrCalc()};
+  return _maCache.v;
 }
 function _banda(m, v){
   const key = (metDef(m).banda) || m;
@@ -743,7 +778,7 @@ function nodeElev(i){
 const usaBarras = () => state.repr==="barras" || (state.repr==="auto" && state.view.pitch > 5);
 
 function layers(){
-  const idxs = META.coords.map((_,i)=>i);
+  const idxs = NODE_IDX;
   const trafNow = trafArr(state.hz);
   const L = [
     new GeoJsonLayer({id:"distr", data:META.distritos_geojson, stroked:true, filled:true,
@@ -788,7 +823,7 @@ function layers(){
       stroked:true, getLineColor:[8,11,16,110], lineWidthMinPixels:0.4, getFillColor:nodeColor,
       updateTriggers:{getFillColor:trig, radiusMinPixels:[state.view.zoom]}, onClick:onNode}));
   if(state.layers.idw && META.idw_dist)
-    L.push(new ScatterplotLayer({id:"idw", data:META.coords.map((_,i)=>i).filter(i=>META.idw_dist[i]>1800),
+    L.push(new ScatterplotLayer({id:"idw", data:NODE_IDX.filter(i=>META.idw_dist[i]>1800),
       getPosition:i=>META.coords[i], getRadius:i=>Math.min(3, META.idw_dist[i]/2500),
       radiusUnits:"pixels", radiusMinPixels:2, radiusMaxPixels:5,
       stroked:true, filled:false, getLineColor:[255,190,90,150], lineWidthMinPixels:1}));
@@ -964,7 +999,31 @@ function tooltip({object, layer}){
   return null;
 }
 
+// Un `throw` dentro del render (p. ej. una métrica sin datos, una ruta mal
+// formada) no debe congelar el mapa para siempre: se atrapa, se avisa, y el
+// siguiente cambio vuelve a intentarlo.
+function _mostrarError(msg){
+  const e = document.getElementById("err");
+  if(!e) return;
+  if(!msg){ e.style.display = "none"; return; }
+  e.innerHTML = "";
+  e.append("No se pudo actualizar el mapa. " + msg);
+  const b = document.createElement("button");
+  b.textContent = "Reintentar";
+  b.onclick = ()=>{ _mostrarError(null); render(); };
+  e.append(b);
+  e.style.display = "block";
+}
+if(typeof window !== "undefined"){
+  window.addEventListener("error", ev=>_mostrarError((ev.error && ev.error.message) || ev.message || "error"));
+  window.addEventListener("unhandledrejection", ev=>_mostrarError((ev.reason && ev.reason.message) || String(ev.reason)));
+}
+
 function render(){
+  try { _render(); _mostrarError(null); }
+  catch(e){ console.error("render:", e); _mostrarError((e && e.message) || String(e)); }
+}
+function _render(){
   // La cámara la lleva maplibre; aquí solo se reconstruyen las capas.
   overlay.setProps({layers: layers()});
   const md = metDef(state.metric);
@@ -1025,7 +1084,8 @@ function resumen(){
   // 1) media ciudad 24 h
   const serie = Array.from({length:24}, (_,h)=>_mediaCiudad(dia, m, h));
   const vals = serie.filter(v=>v!=null);
-  const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi-lo)*0.12 || 1;
+  const lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 1;
+  const pad = (hi-lo)*0.12 || 1;
   const W=320, H=60;
   const x = h => 4 + h*(W-8)/23;
   const y = v => v==null ? null : H-4 - (v-lo+pad)/((hi-lo)+2*pad)*(H-8);
@@ -1037,7 +1097,7 @@ function resumen(){
   document.getElementById("rs-city").innerHTML =
     `<path d="${area}" fill="${col}22"/><path d="${line}" fill="none" stroke="${col}" stroke-width="1.6"/>`
     + `<line x1="${x(state.hour)}" y1="0" x2="${x(state.hour)}" y2="${H}" stroke="#89a" stroke-dasharray="2 2"/>`;
-  const now=serie[state.hour], iMin=serie.indexOf(lo), iMax=serie.indexOf(hi);
+  const now=serie[state.hour], iMin=Math.max(0,serie.indexOf(lo)), iMax=Math.max(0,serie.indexOf(hi));
   const _ETR = {salud_perfil:"salud (perfil "+state.perfil+")", dosis_no2:"dosis NO₂", dosis_o3:"dosis O₃"};
   document.getElementById("rs-ct-hd").textContent = `media ciudad · ${_ETR[m]||m} · 24 h`;
   document.getElementById("rs-city-txt").textContent =
@@ -1058,7 +1118,8 @@ function resumen(){
 function routeInfo(){
   const el = document.getElementById("routeinfo");
   if(state.route<0 || !RUTAS){ el.textContent = "elige origen·destino y perfil"; return; }
-  const R = RUTAS.rutas[state.route], r = R.por_hora[state.hour];
+  const R = RUTAS.rutas[state.route], r = R && R.por_hora && R.por_hora[state.hour];
+  if(!R || !r){ el.textContent = "sin datos de ruta para esta hora"; return; }
   const c = r.cambio_por_senal_pct || {};
   const sig = k => (c[k] >= 0 ? "−" : "+") + Math.abs(c[k]) + "%";
   el.innerHTML = `<b>verde</b> = saludable · <b>gris</b> = rápida<br>`
@@ -1078,7 +1139,10 @@ function rutaIdx(o,d,perfil){
   return RUTAS ? RUTAS.rutas.findIndex(r=>r.origen===o && r.destino===d && r.perfil===perfil) : -1;
 }
 function setEstado(p){
-  Object.assign(state, p);
+  // Cada capítulo declara sólo lo que lo distingue; el resto vuelve a un
+  // valor base para que no se filtre el estado del capítulo anterior (p. ej.
+  // `escala:"bandas"` del cap. 2/3 tiñendo el cap. 6).
+  Object.assign(state, {ghost:false, escala:"lineal", hz:"now", route:-1, perfil:"general"}, p);
   document.querySelectorAll(".day").forEach(x=>x.classList.toggle("on", x.textContent.startsWith(state.day.slice(5))));
   document.querySelectorAll(".met").forEach(x=>x.classList.toggle("on", x.dataset.m===state.metric));
   document.querySelectorAll(".hz").forEach(x=>x.classList.toggle("on", x.dataset.h===state.hz));
@@ -1332,6 +1396,7 @@ Promise.all([
   fetch("./rutas.json").then(r=>r.ok?r.json():null).catch(()=>null),
 ]).then(([m,d,w,ru])=>{
   META=m; DATA=d; WX=w; RUTAS=ru; state.day=m.dias[0];
+  NODE_IDX = META.coords.map((_,i)=>i);
   if(typeof maplibregl === "undefined") throw new Error("maplibre-gl no se pudo cargar (CDN)");
 
   const v = state.view;

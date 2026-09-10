@@ -183,6 +183,47 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertIn("md = metDef(m)", resumen)
         self.assertNotIn("META.metricas[m]", resumen)
 
+    # --- FIL_88: controles que degradaban o rompían el render ---
+    def test_dosis_tiene_umbrales_de_banda(self):
+        # el botón "bandas OMS·UE" no hacía nada con dosis_no2 / dosis_o3
+        # (sin entrada en `umbrales`): quedaba activo pero sin efecto, y los
+        # capítulos 2/3 del recorrido guiado aterrizaban en ese estado.
+        for k in ("dosis_no2", "dosis_o3"):
+            self.assertIn(k, self.meta["umbrales"], f"falta umbrales[{k}] (FIL_88)")
+            u = self.meta["umbrales"][k]
+            self.assertEqual(len(u["cortes"]) + 1, len(u["bandas"]))
+
+    def test_metricarr_memoizado(self):
+        # nodeColor/nodeElev piden metricArr() por nodo; sin caché, cada
+        # render reconstruía el vector de perfil/dosis O(n²) y el mapa se
+        # congelaba en "barras (3D)".
+        self.assertIn("_maCache", self.html)
+        self.assertIn("function _metricArrCalc()", self.html)
+        # `data` de la capa de nodos estable entre renders (si cambia de
+        # identidad, deck.gl re-ejecuta todos los accessors aunque solo se
+        # mueva la cámara).
+        self.assertIn("let NODE_IDX", self.html)
+        self.assertNotIn("const idxs = META.coords.map((_,i)=>i)", self.html)
+
+    def test_render_protegido_contra_excepciones(self):
+        # un throw dentro del render (métrica sin datos, ruta mal formada)
+        # dejaba el mapa congelado para siempre, sin aviso (clase de bug de
+        # FIL_55). Ahora se atrapa, se avisa y el siguiente cambio reintenta.
+        self.assertIn("function _render()", self.html)
+        self.assertIn("try { _render()", self.html)
+        self.assertIn('addEventListener("error"', self.html)
+        self.assertIn('id="err"', self.html)
+        # y routeInfo() no revienta si falta la hora en la ruta
+        routeinfo = self.html.split("function routeInfo()", 1)[1].split("function ", 1)[0]
+        self.assertIn("if(!R || !r)", routeinfo)
+
+    def test_capitulos_no_filtran_estado(self):
+        # setEstado() resetea lo no declarado por el capítulo a un valor base
+        # (escala:"bandas" del cap. 2/3 teñía el cap. 6).
+        setestado = self.html.split("function setEstado(p)", 1)[1].split("const CAPITULOS", 1)[0]
+        self.assertIn('escala:"lineal"', setestado)
+        self.assertIn("ghost:false", setestado)
+
     # --- FIL_50 / FIL_61: mapa base maplibre + deck.gl como MapboxOverlay ---
     def test_html_basemap(self):
         for marca in ("maplibre-gl.js", "maplibre-gl.css", 'id="basemap"',

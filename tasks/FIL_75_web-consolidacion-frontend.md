@@ -64,3 +64,43 @@ añadiendo a parches distintos en cada uno.
 - Lint en verde en CI.
 - Recorrido de teclado por los paneles del mapa y del explorador sin
   ratón.
+
+## Criterios de aceptación concretos (afinado 2026-09-10)
+
+- **Módulo compartido** — `rg -n "function fetchConReintento" viz/` devuelve
+  **un solo** sitio (`viz/static/comun.js`); ambos generadores lo inyectan
+  una vez. Idéntico para el banner de error + `window.onerror` +
+  `onunhandledrejection` y para la resolución de `API_BASE`/`?api=`.
+- **Estados** — un helper `estado(panelEl, tipo, detalle)` con
+  `tipo ∈ {cargando, error, vacio, ok}`. Cada panel que hace fetch —
+  mapa: rutas, weather, chat; explorador: data, vecindario, analisis, ruta
+  — muestra los 4 estados con el mismo aspecto, textos y botón
+  «Reintentar». Un test dirige cada panel por los 4 estados con `fetch`
+  mockeado. **Los textos coinciden con los de FIL_92** (landing).
+- **Caché** — `/grafo/explorador/data` se cachea en cliente
+  (`sessionStorage`, clave con la fecha/versión del payload). Test o
+  contador: **cambiar de vista 2 veces = 1 solo fetch de `data`**.
+- **Lint** — job del CI `frontend` (creado en FIL_91) corre ESLint sobre
+  `viz/static/*.js`: **0 errores** (warnings permitidos). El JS embebido
+  restante sigue pasando por `node --check` (ya en FIL_91).
+- **a11y** — `:focus-visible` en todos los controles de ambas páginas;
+  `aria-label` en los botones icónicos (`▶︎`, `➤`, tabs); navegación por
+  teclado de los grupos plegables del mapa y de los paneles del explorador;
+  contraste ≥ 4.5:1 en el tema oscuro del explorador (listar en el PR los
+  tokens de color ajustados). Recorrido de teclado documentado en
+  `viz/README.md`.
+
+## Prioridad y secuencia
+
+**Baja / candidato a partir en dos.** Es el ticket más invasivo — reescribe
+partes de ~1000 líneas de JS-en-string en **cada** generador, con 7 días
+para la entrega y alto riesgo de regresión. Propuesta:
+
+- **Antes de la entrega (2026-09-17):** solo el helper `estado(...)`
+  compartido + los 4 estados consistentes + a11y mínima (`:focus-visible`,
+  `aria-label`, teclado). Sin extraer el módulo entero.
+- **Post-defensa:** extracción de `viz/static/comun.js`, caché de payload,
+  ESLint sobre el extraído, deduplicación completa.
+
+Depende de **FIL_74** (publicar primero lo que ya funciona) y de **FIL_91**
+(el job `frontend` de CI donde entra el lint).
