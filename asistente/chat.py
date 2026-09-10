@@ -46,12 +46,14 @@ def metricas() -> "dict[str, int]":
     """Copia de los contadores de observabilidad del chat (FIL_73)."""
     return dict(_METRICAS)
 
-# Modelo por defecto: `qwen/qwen3.8-27b` en Groq (tier gratuito). Se eligió
-# sobre `openai/gpt-oss-120b` porque este último, en pruebas en vivo (FIL_70),
-# alucinaba nombres de tool e intentaba llamar herramientas en la ronda de
-# redacción -> `400 tool_use_failed` y respuestas vacías. Qwen3 sigue el
-# bucle de tool-calling de forma estable. Sigue con el límite de 8K TPM de
-# Groq gratuito; ver `_TOOLS_CHAT` (subconjunto) y `_completar` (reintento).
+# Modelo por defecto: `llama-3.3-70b-versatile` en Groq (tier gratuito) --
+# rápido y sólido en tool-calling. Se probó `qwen/qwen3.8-27b`, que también
+# sigue el bucle de forma estable, pero **razona por defecto**: en el
+# despliegue se midieron respuestas de ~18 s por llamada al LLM (bloque
+# `<think>` largo, ver `llm_dur_ms` en el log, FIL_73) -> chat lento. Con
+# un modelo qwen configurado se le manda `reasoning_effort="none"` (ver
+# `_extra_kw`) para quitar ese sobrecoste. `openai/gpt-oss-120b` se
+# descartó antes (FIL_70: alucinaba nombres de tool en la ronda de prosa).
 #
 # Proveedor configurable por entorno (FIL_70): apunta `LLM_BASE_URL` a otro
 # endpoint OpenAI-compatible + `LLM_MODEL` + `LLM_API_KEY`, sin tocar código.
@@ -59,8 +61,18 @@ def metricas() -> "dict[str, int]":
 # (`https://generativelanguage.googleapis.com/v1beta/openai/`,
 # `gemini-2.0-flash` -- tier gratuito generoso), OpenRouter modelos `:free`,
 # o vLLM/Ollama propios. Cerebras NO tiene tier gratuito.
-_MODEL = os.environ.get("LLM_MODEL", "qwen/qwen3.8-27b")
+_MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile")
 _LLM_BASE_URL = os.environ.get("LLM_BASE_URL") or None
+
+
+def _extra_kw() -> "dict":
+    """kwargs extra para `chat.completions.create` según el modelo. Los
+    qwen3 de Groq razonan por defecto -> `reasoning_effort="none"` los deja
+    responder directo (barato y ~10x más rápido). Vacío para el resto
+    (mandar el parámetro a un modelo que no lo entiende da 400)."""
+    if "qwen" in _MODEL.lower():
+        return {"reasoning_effort": "none"}
+    return {}
 _MAX_TOKENS_RESPUESTA = 700
 _MAX_REINTENTOS_LLM = 3
 _ESTADOS_REINTENTABLES = {408, 409, 429, 500, 502, 503, 504, 529}
@@ -307,7 +319,7 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
     for ronda in range(_MAX_RONDAS_TOOL + 1):
         ultima = ronda == _MAX_RONDAS_TOOL
         kw = dict(model=_MODEL, messages=messages,
-                  max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2)
+                  max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2, **_extra_kw())
         if not ultima:
             kw["tools"] = tools
             kw["tool_choice"] = "auto"
@@ -323,7 +335,7 @@ def chat(mensaje: str, historial: "list[dict] | None" = None) -> dict:
                                  "content": "Responde ahora en prosa, sin llamar más herramientas."})
                 try:
                     resp = _completar(client, model=_MODEL, messages=messages,
-                                      max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2)
+                                      max_tokens=_MAX_TOKENS_RESPUESTA, temperature=0.2, **_extra_kw())
                 except Exception as exc2:  # noqa: BLE001
                     logger.warning("fallo redactando (fallback prosa): %s", exc2)
                     return _degradado("He consultado los datos pero no he podido redactar la respuesta (fallo del modelo).")
