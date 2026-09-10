@@ -353,7 +353,7 @@ class FakeNeo4jDriver:
     def __init__(self, rows: "list[dict]"):
         self._rows = rows
 
-    def session(self, database=None):
+    def session(self, database=None, **kwargs):
         return FakeNeo4jSession(self._rows)
 
 

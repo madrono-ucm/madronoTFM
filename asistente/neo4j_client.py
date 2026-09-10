@@ -450,6 +450,14 @@ def run_neo4j_query(query: str, params: dict, *, driver=None, database: Optional
     # Aura es siempre la correcta (FIL_67).
     database = database or os.environ.get("NEO4J_DATABASE") or None
 
-    with driver.session(database=database) as session:
+    # `default_access_mode="READ"` (VIC_35): este módulo es un cliente de
+    # SOLO LECTURA por diseño (ver docstring del módulo) -- ninguno de sus
+    # ~15 puntos de llamada en `asistente/` escribe en el grafo (la escritura
+    # vive aparte, en `grafo/cargar_grafo.py`/`grafo/cypher.py`). Forzar el
+    # modo de sesión es defensa en profundidad: si algún día una plantilla de
+    # `consulta_grafo` (FIL_67) o una query nueva colara un `CREATE`/`SET`/
+    # `CALL apoc.*.set*` por error, el driver la rechaza en el enrutado de
+    # Bolt en vez de ejecutarla contra la instancia real.
+    with driver.session(database=database, default_access_mode="READ") as session:
         result = session.run(query, params)
         return [dict(record) for record in result]

@@ -59,7 +59,7 @@ class _RoutingNeo4jDriver:
     def __init__(self, rows_by_tipo: dict):
         self.rows_by_tipo = rows_by_tipo
 
-    def session(self, database=None):
+    def session(self, database=None, **kwargs):
         return _RoutingNeo4jSession(self)
 
 
