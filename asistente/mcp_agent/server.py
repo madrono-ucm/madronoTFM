@@ -76,13 +76,51 @@ _INSTRUCCIONES = (
     "`momento` (p. ej. `2026-08-23T18:00`)."
 )
 
+# Registro único de las tools del asistente: `(función, título legible para
+# el cliente)`. Fuente de verdad para el servidor MCP (`add_tool` más abajo),
+# los routers HTTP, la tabla de tools de los README
+# (`asistente/gen_tabla_tools.py`) y los tests de conteo. Añadir una tool =
+# una línea aquí y nada más (FIL_93: antes el número vivía copiado a mano en
+# 4-5 sitios y se desincronizaba).
+_TOOLS = (
+    (tools.afluencia_estimada, "Afluencia estimada ahora"),
+    (tools.afluencia_prevista, "Afluencia prevista"),
+    (tools.calidad_aire, "Calidad del aire ahora"),
+    (tools.calidad_aire_prevista, "Calidad del aire prevista"),
+    (tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)"),
+    (tools.calidad_aire_episodio, "Probabilidad de episodio de contaminación"),
+    (tools.calidad_aire_cams, "Calidad del aire previsión Copernicus CAMS"),
+    (tools.meteo_cercana, "Meteorología observada cerca de un lugar"),
+    (tools.avisos_meteo, "Avisos meteorológicos AEMET"),
+    (tools.trafico_cercano, "Tráfico cerca de un lugar"),
+    (tools.trafico_prevista, "Tráfico previsto"),
+    (tools.trafico_prevista_grafo, "Tráfico previsto (modelo de grafo)"),
+    (tools.opciones_movilidad, "Opciones de movilidad entre dos puntos"),
+    (tools.disponibilidad_aparcamiento, "Disponibilidad de aparcamiento"),
+    (tools.eventos_cercanos, "Eventos cercanos"),
+    (tools.ruta_saludable, "Ruta saludable entre dos lugares"),
+    (tools.contexto_urbano, "Contexto urbano multi-salto de un lugar"),
+    (tools.consulta_grafo, "Consulta parametrizada del grafo urbano (Neo4j)"),
+    (tools.mejor_hora_zona, "Mejor hora del día para una zona"),
+)
+# Alias públicos (sin guion bajo) para importar desde fuera sin depender de
+# un nombre "privado": el generador de la tabla y los tests leen de aquí.
+TOOLS = _TOOLS
+NOMBRES_TOOLS = tuple(fn.__name__ for fn, _ in _TOOLS)
+
+# Todas las tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia
+# ONNX / Dijkstra o barrido sobre un grafo vendorizado): `read_only_hint=True`.
+# `open_world_hint=True` porque consultan datos vivos externos. Son la señal
+# estándar de "es seguro llamar a esto" para el cliente.
+_ANOTACIONES_LECTURA = ToolAnnotations(read_only_hint=True, open_world_hint=True)
+
 mcp = MCPServer(
     name="madrono",
     title="Madroño",
     instructions=_INSTRUCCIONES,
     description=(
         "Asistente conversacional sobre movilidad y vida urbana de Madrid "
-        "(memoria del TFM, apartados 5.2 y 6.7). 19 tools con lógica real: "
+        f"(memoria del TFM, apartados 5.2 y 6.7). {len(_TOOLS)} tools con lógica real: "
         "`calidad_aire` / `disponibilidad_aparcamiento` leen Gold vía Athena; "
         "`trafico_cercano` / `afluencia_estimada` / `eventos_cercanos` / "
         "`opciones_movilidad` cruzan el grafo urbano en Neo4j; "
@@ -105,35 +143,6 @@ mcp = MCPServer(
         "Neo4j (FIL_67) para preguntas relacionales que no encajan en "
         "ninguna otra tool. Ver asistente/mcp_agent/tools.py."
     ),
-)
-
-# Las 19 tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia ONNX /
-# Dijkstra o barrido sobre un grafo vendorizado):
-# `read_only_hint=True`. `open_world_hint=True` porque consultan datos vivos
-# externos. Son la señal estándar de "es seguro llamar a esto" para el cliente.
-_ANOTACIONES_LECTURA = ToolAnnotations(read_only_hint=True, open_world_hint=True)
-
-# `(función, título legible para el cliente)`.
-_TOOLS = (
-    (tools.afluencia_estimada, "Afluencia estimada ahora"),
-    (tools.afluencia_prevista, "Afluencia prevista"),
-    (tools.calidad_aire, "Calidad del aire ahora"),
-    (tools.calidad_aire_prevista, "Calidad del aire prevista"),
-    (tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)"),
-    (tools.calidad_aire_episodio, "Probabilidad de episodio de contaminación"),
-    (tools.calidad_aire_cams, "Calidad del aire previsión Copernicus CAMS"),
-    (tools.meteo_cercana, "Meteorología observada cerca de un lugar"),
-    (tools.avisos_meteo, "Avisos meteorológicos AEMET"),
-    (tools.trafico_cercano, "Tráfico cerca de un lugar"),
-    (tools.trafico_prevista, "Tráfico previsto"),
-    (tools.trafico_prevista_grafo, "Tráfico previsto (modelo de grafo)"),
-    (tools.opciones_movilidad, "Opciones de movilidad entre dos puntos"),
-    (tools.disponibilidad_aparcamiento, "Disponibilidad de aparcamiento"),
-    (tools.eventos_cercanos, "Eventos cercanos"),
-    (tools.ruta_saludable, "Ruta saludable entre dos lugares"),
-    (tools.contexto_urbano, "Contexto urbano multi-salto de un lugar"),
-    (tools.consulta_grafo, "Consulta parametrizada del grafo urbano (Neo4j)"),
-    (tools.mejor_hora_zona, "Mejor hora del día para una zona"),
 )
 
 for _fn, _titulo in _TOOLS:

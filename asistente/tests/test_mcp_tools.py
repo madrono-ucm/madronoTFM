@@ -15,30 +15,13 @@ from zoneinfo import ZoneInfo
 
 from asistente.mcp_agent import tools
 from asistente.mcp_agent.server import mcp
+from asistente.mcp_agent.server import TOOLS as _REGISTRO
 
-TOOL_FUNCTIONS = [
-    tools.afluencia_estimada,
-    tools.afluencia_prevista,
-    tools.calidad_aire,
-    tools.calidad_aire_prevista,
-    tools.calidad_aire_prevista_grafo,
-    tools.calidad_aire_episodio,
-    tools.calidad_aire_cams,
-    tools.meteo_cercana,
-    tools.avisos_meteo,
-    tools.trafico_cercano,
-    tools.trafico_prevista,
-    tools.trafico_prevista_grafo,
-    tools.opciones_movilidad,
-    tools.disponibilidad_aparcamiento,
-    tools.eventos_cercanos,
-    tools.ruta_saludable,
-    tools.contexto_urbano,
-    tools.consulta_grafo,
-    tools.mejor_hora_zona,
-]
+# Derivado del registro único (`server.TOOLS`, FIL_93): antes era una lista
+# dura duplicada de `server.py` que había que actualizar a mano.
+TOOL_FUNCTIONS = [fn for fn, _ in _REGISTRO]
 
-# Las 19 tools tienen lógica real (`consulta_grafo`, FIL_67) -- no queda ninguna con NotImplementedError.
+# Todas las tools tienen lógica real -- no queda ninguna con NotImplementedError.
 NOT_IMPLEMENTED_TOOL_FUNCTIONS: list = []
 
 

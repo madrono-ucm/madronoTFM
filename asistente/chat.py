@@ -55,8 +55,8 @@ _MAX_REINTENTOS_LLM = 3
 _ESTADOS_REINTENTABLES = {408, 409, 429, 500, 502, 503, 504, 529}
 _SSM_PARAMETER = "/madrono-tfm/dev/secrets/groq-api-key"
 
-# El chat solo expone un subconjunto de las 19 tools MCP: las conversacionales
-# y graph-first. Fuera las `*_prevista*` / `afluencia_*` / `opciones_movilidad`
+# El chat solo expone un subconjunto de las tools MCP (`server.TOOLS`): las
+# conversacionales y graph-first. Fuera las `*_prevista*` / `afluencia_*` / `opciones_movilidad`
 # (esquemas grandes, dominio de nicho, datos congelados) -- así el `tools=[...]`
 # ocupa ~la mitad de tokens y se aleja del límite TPM del tier gratuito.
 _TOOLS_CHAT = frozenset({
