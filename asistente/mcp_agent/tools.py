@@ -32,6 +32,7 @@ from asistente.athena import GOLD_DATABASE, SILVER_DATABASE, run_athena_query, s
 from asistente import contexto_urbano as _ctx
 from asistente import mejor_hora_zona as _zona
 from asistente import ruta_saludable as _ruta
+from asistente import umbrales as _umbrales
 from asistente.models.herramientas import (
     AfluenciaEstimada,
     AfluenciaPrevista,
@@ -95,18 +96,10 @@ _FUENTE_CALIDAD_AIRE = f"gold.{_TABLA_CALIDAD_AIRE}"
 # usados *solo* para elegir de forma simple qué contaminante destacar cuando
 # una zona/hora reporta varios -- no es un cálculo del Índice de Calidad del
 # Aire oficial (que combina más señales y periodos de promediado distintos
-# por contaminante). NO2/SO2/O3 usan su límite/umbral horario oficial;
-# PM10/PM2.5/CO no tienen límite horario oficial, así que se usa su límite
-# diario/anual/8h como referencia aproximada -- deliberadamente simple, ver
-# `asistente/README.md`.
-_LIMITES_REFERENCIA_UGM3: dict[str, float] = {
-    "NO2": 200.0,
-    "SO2": 350.0,
-    "O3": 180.0,
-    "PM10": 50.0,
-    "PM2.5": 25.0,
-    "CO": 10_000.0,  # 10 mg/m³
-}
+# por contaminante). Fuente única en `asistente/umbrales.py` (`FIL_87`) --
+# compartida con `viz/build_mapa_animado.py`, `viz/build_grafo_ruta.py` y
+# `viz/rutas.py`, que antes llevaban su propia copia.
+_LIMITES_REFERENCIA_UGM3: dict[str, float] = _umbrales.LIMITE_REFERENCIA_UGM3
 
 _BANDAS_INDICE = (
     (0.5, "buena"),
@@ -2659,7 +2652,7 @@ _NIVEL_AVISO_RANK = {"verde": 0, "amarillo": 1, "naranja": 2, "rojo": 3}
 
 
 def meteo_cercana(
-    lugar: str, radio_m: float = 1500.0, *,
+    lugar: str, radio_m: float = 1500.0, fecha: str | None = None, *,
     neo4j_driver: object | None = None, athena_client: object | None = None,
 ) -> MeteoCercana:
     """Meteorología observada cerca de un lugar de Madrid (`FIL_82`).
@@ -2674,6 +2667,10 @@ def meteo_cercana(
         lugar: Nombre de un lugar reconocible de Madrid ("Retiro", "Atocha"…).
         radio_m: Radio de búsqueda de estación meteo (por defecto 1500 m —
             la red meteo es menos densa que la de aire/tráfico).
+        fecha: `YYYY-MM-DD`. `None` = último día disponible -- en ese caso
+            el dato es estructuralmente tan antiguo como el pipeline
+            congelado, y el router (`FIL_88`) lo refleja bajando la
+            fiabilidad a BAJA (mismo contrato que `avisos_meteo`).
     """
     fuente = f"gold.{_TABLA_METEO}"
     try:
@@ -2691,10 +2688,11 @@ def meteo_cercana(
     est = estaciones[0]
     est_id = str(est.get("estacion_id") or "").split(":")[-1]  # 'meteo:3195' -> '3195'
     est_lit = sql_literal(est_id)
+    filtro_fecha = f" AND date = '{sql_literal(fecha)}'" if fecha else ""
     sql = f"""
         SELECT magnitude, hour, avg_value, date, station_name
         FROM {_TABLA_METEO}
-        WHERE (station_id = '{est_lit}' OR station_id LIKE '%{est_lit}')
+        WHERE (station_id = '{est_lit}' OR station_id LIKE '%{est_lit}'){filtro_fecha}
         ORDER BY date DESC, hour DESC
         LIMIT 400
     """
