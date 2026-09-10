@@ -35,6 +35,7 @@ from asistente import ruta_saludable as _ruta
 from asistente.models.herramientas import (
     AfluenciaEstimada,
     AfluenciaPrevista,
+    CalidadAireEpisodio,
     CalidadAirePrevista,
     CalidadAirePrevistaGrafo,
     CalidadAireZona,
@@ -1384,6 +1385,82 @@ def calidad_aire_prevista(
             (hora de Madrid).
     """
     return _calidad_aire_prevista_impl(zona, horizonte_horas, momento)
+
+
+# ---------------------------------------------------------------------------
+# calidad_aire_episodio (FIL_79) -- P(superación de umbral OMS/UE) del
+# contaminante más crítico de la estación, derivada de la previsión de
+# regresión (no hay clasificador servido).
+# ---------------------------------------------------------------------------
+
+
+def _prob_superacion(previsto: float, umbral: float, s_frac: float = 0.25) -> float:
+    """Logística sobre el margen normalizado: `P = 1/(1+e^-((ŷ-umbral)/s))`
+    con `s = s_frac·umbral`. Monótona en `ŷ`, `P(ŷ=umbral)=0.5`, `P∈(0,1)`.
+    `s_frac` es una heurística documentada (`FIL_79`): la desviación del
+    residuo del backtest de `FIL_38` la calibraría mejor -- follow-up."""
+    import math
+
+    s = max(1e-6, s_frac * abs(umbral))
+    return 1.0 / (1.0 + math.exp(-(previsto - umbral) / s))
+
+
+def calidad_aire_episodio(
+    zona: str, horizonte_horas: int = 6, momento: datetime | None = None
+) -> CalidadAireEpisodio:
+    """Probabilidad de **episodio** de contaminación (superación del umbral
+    OMS/UE) del contaminante más crítico de una estación de Madrid a
+    `horizonte_horas` vista (`FIL_79`).
+
+    No hay clasificador servido: reutiliza la previsión de regresión de
+    `calidad_aire_prevista` (mismo modelo ONNX de `ML_07`, misma resolución
+    de «zona» por texto sobre el nombre de la estación) y transforma el
+    margen sobre el umbral en probabilidad con una logística
+    `P = σ((ŷ − umbral)/s)`, `s = 0.25·umbral`. `veredicto` es el signo
+    determinista (`ŷ ≷ umbral`). El umbral por contaminante es
+    `_LIMITES_REFERENCIA_UGM3` (límite horario UE de NO₂ 200, umbral de
+    información de O₃ 180, límite diario de PM10 50, PM2.5 25 µg/m³).
+
+    Fiabilidad **BAJA** (ventana de entrenamiento corta + pipeline congelado,
+    memoria §7.4). Si no hay previsión devuelve `disponible=False` +
+    `motivo`, sin lanzar excepción.
+
+    Args:
+        zona: Nombre o identificador (parcial) de una estación de calidad
+            del aire de Madrid.
+        horizonte_horas: Horas por delante. Uno de 1, 3 o 6.
+        momento: Instante de referencia (ISO 8601). Si es `None`, ahora.
+    """
+    prev = _calidad_aire_prevista_impl(zona, horizonte_horas, momento)
+    base = dict(
+        zona=zona, horizonte_horas=horizonte_horas,
+        momento=prev.momento, momento_objetivo=prev.momento_objetivo,
+        estacion=prev.estacion, contaminante=prev.contaminante,
+        unidad=prev.unidad, data_completeness=prev.data_completeness,
+        modelo=prev.modelo, fuente_dataset=prev.fuente_dataset,
+    )
+    if not prev.disponible or prev.valor_previsto is None:
+        return CalidadAireEpisodio(
+            **base, disponible=False, veredicto="sin_datos",
+            motivo=prev.motivo or "no se pudo construir la previsión de calidad del aire",
+        )
+    umbral = _LIMITES_REFERENCIA_UGM3.get(prev.contaminante or "")
+    if not umbral:
+        return CalidadAireEpisodio(
+            **base, disponible=False, veredicto="sin_datos",
+            valor_previsto=prev.valor_previsto,
+            motivo=f"sin umbral de referencia OMS/UE para «{prev.contaminante}»",
+        )
+    prob = _prob_superacion(prev.valor_previsto, umbral)
+    return CalidadAireEpisodio(
+        **base, disponible=True,
+        valor_previsto=prev.valor_previsto,
+        umbral=umbral,
+        margen=round(prev.valor_previsto - umbral, 1),
+        prob_superacion=round(prob, 3),
+        veredicto="supera" if prev.valor_previsto >= umbral else "no supera",
+        motivo=None,
+    )
 
 
 # ---------------------------------------------------------------------------
