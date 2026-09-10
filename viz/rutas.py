@@ -77,6 +77,22 @@ PERFILES = {
     "movilidad_reducida": {"dist": 1.3, "traf": 0.35, "no2": 0.45, "o3": 0.35, "noise": 0.80},
     "trabajo_exterior":   {"dist": 0.5, "traf": 0.40, "no2": 0.75, "o3": 0.75, "noise": 0.50},
 }
+
+# Etiqueta legible por perfil, para la interfaz (mapa, respuestas del
+# asistente). La CLAVE (snake_case) es el identificador estable de la API y
+# de `PERFILES`; esto es solo lo que ve una persona.
+PERFILES_LABEL = {
+    "general":            "General",
+    "ciclista":           "En bici",
+    "sensible_aire":      "Sensible al aire",
+    "sensible_ruido":     "Sensible al ruido",
+    "asma_epoc":          "Asma o EPOC",
+    "mayor":              "Persona mayor",
+    "infancia":           "Con niñas y niños",
+    "movilidad_reducida": "Movilidad reducida",
+    "trabajo_exterior":   "Trabajo al aire libre",
+}
+assert set(PERFILES_LABEL) == set(PERFILES), "PERFILES_LABEL desincronizado con PERFILES"
 # Denominadores para normalizar cada señal a 0..1: un techo por señal, salvo
 # el ruido, que se escala entre (silencioso, ruidoso) en dB. El tráfico llega
 # multiplicado por 100 (nivel de servicio ~0-3 → ~0-300), como en el mapa.
