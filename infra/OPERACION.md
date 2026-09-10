@@ -343,6 +343,27 @@ Redeploy de código: `cd /home/ubuntu/repos/madronoTFM && sudo -u ubuntu git
 fetch origin main && sudo -u ubuntu git reset --hard origin/main && sudo
 systemctl restart madrono-web`.
 
+### Vistas Athena de las rutas calientes (`FIL_83`)
+
+`infra/athena/vistas_asistente.sql` — DDL versionado, **sin aplicar**
+(`v_calidad_aire_ultima_hora`, `v_trafico_ultima_hora`,
+`v_meteo_ultima_hora`; "última fila por partición" vía
+`max(date || lpad(hour,2,'0'))` + join, para no rehacer ese cálculo en cada
+llamada de tool). Aplicar una vista a la vez (Athena no ejecuta scripts
+multi-statement):
+
+```
+aws athena start-query-execution \
+  --work-group madrono-tfm-dev-silver-gold \
+  --query-execution-context Database=madrono-tfm_dev_gold \
+  --query-string "<una de las 3 sentencias CREATE OR REPLACE VIEW del fichero>"
+```
+
+`asistente/athena.py` todavía no lee estas vistas (sigue consultando las
+tablas base directamente) — la lectura con fallback a la tabla es trabajo
+futuro, condicionado a que las vistas se apliquen primero (ver
+`doc/VIC-43-eval-cache-y-vistas.md`).
+
 ## Rellenar huecos horarios de Silver/Gold (`--backfill_fecha`, FIL_12)
 
 Si un dataset horario (`trafico`, `calidad_aire`, `meteorologia`, `bicimad`,

@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "QA — caché TTL del asistente + vistas Athena (FIL_83): corrección, invalidación, sin cambio de contrato"
 owner: Claude (QA)
-status: pending
+status: done
 depends_on: [FIL_83]
 created_at: "2026-09-10"
 ---
@@ -39,3 +39,28 @@ calientes + DDL de vistas Athena + `_recent_date_filter()` configurable.
 - Suite `asistente/` completa verde con `ASSISTANT_CACHE_TTL` por defecto y
   con `=0`.
 - DDL de vistas versionado y documentado en `infra/OPERACION.md`.
+
+## Hecho (2026-09-10, Claude QA)
+
+Los 7 puntos verificados contra el código real de `FIL_83` (cuya propia
+sección "No hecho" ya declaraba sin construir la cabecera `X-Cache`, el
+`_recent_date_filter()` configurable y la lectura de vistas con fallback —
+no son huecos ocultos). Detalle completo, punto a punto, en
+[`doc/VIC-43-eval-cache-y-vistas.md`](../doc/VIC-43-eval-cache-y-vistas.md).
+
+**Hallazgo real (no solo teórico)**: con `ASSISTANT_CACHE_TTL=900` (el
+valor real de despliegue) puesto para la suite `asistente/` completa,
+**17 tests fallaban** por contaminación cruzada de la caché entre tests
+que generan el mismo SQL/Cypher con datos *fake* distintos (el cliente
+inyectable se excluye de la clave a propósito). Arreglado con
+`asistente/tests/conftest.py` (fixture `autouse` que limpia ambas cachés
+antes/después de cada test) — reconfirmado verde: 226 tests + 57 subtests,
+tanto con la caché desactivada como con `900`.
+
+**Añadido**: `asistente/tests/test_cache_paridad.py` (contrato: misma
+respuesta de una tool real con caché on/off) y una sección nueva en
+`infra/OPERACION.md` documentando el DDL de `infra/athena/
+vistas_asistente.sql` (versionado pero sin aplicar).
+
+Ningún `FIL_*` nuevo — el único bug real encontrado (punto 7) se arregló
+directamente, es de higiene de tests, no de comportamiento en producción.
