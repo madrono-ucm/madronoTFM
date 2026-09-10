@@ -57,6 +57,10 @@ def _cast_athena_value(value: Optional[str], athena_type: str):
     return value
 
 
+from asistente.cache import cacheado  # noqa: E402 - evita ciclo en import de nivel de módulo
+
+
+@cacheado(ttl_s=1800)
 def run_athena_query(
     sql: str,
     database: str,

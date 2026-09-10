@@ -2,7 +2,7 @@
 kind: fil
 title: "MCP: tool de probabilidad de episodio de contaminación (superación de umbral OMS/UE)"
 owner: Filippos (interactive)
-status: pending
+status: done
 allow_infra_apply: false
 created_at: "2026-09-10"
 depends_on: [FIL_26, ML_03, ML_09]
