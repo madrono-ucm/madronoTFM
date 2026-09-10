@@ -36,6 +36,9 @@ MCP como Claude Desktop lo probarían en desarrollo sin pasar por HTTP.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import NamedTuple
+
 from mcp.server.mcpserver.server import MCPServer
 from mcp.types import ToolAnnotations
 
@@ -76,37 +79,82 @@ _INSTRUCCIONES = (
     "`momento` (p. ej. `2026-08-23T18:00`)."
 )
 
-# Registro único de las tools del asistente: `(función, título legible para
-# el cliente)`. Fuente de verdad para el servidor MCP (`add_tool` más abajo),
-# los routers HTTP, la tabla de tools de los README
-# (`asistente/gen_tabla_tools.py`) y los tests de conteo. Añadir una tool =
-# una línea aquí y nada más (FIL_93: antes el número vivía copiado a mano en
-# 4-5 sitios y se desincronizaba).
+class ToolSpec(NamedTuple):
+    """Una fila del registro único de tools.
+
+    - ``fn``: la función real de `asistente/mcp_agent/tools.py`.
+    - ``titulo``: etiqueta legible para el cliente MCP (Claude Desktop…).
+    - ``desc_chat``: frase corta para el `tool-calling` del LLM del chat
+      (`asistente/chat.py`) — los docstrings largos de MCP no caben en el
+      límite de tokens del tier gratuito.
+    - ``en_chat``: si se ofrece al LLM del chat. El chat expone solo un
+      subconjunto (conversacional / graph-first) para no gastar el
+      presupuesto TPM en esquemas grandes de dominio de nicho.
+    """
+
+    fn: Callable[..., object]
+    titulo: str
+    desc_chat: str
+    en_chat: bool
+
+
+# Registro único de las tools del asistente. **Fuente de verdad** para: el
+# servidor MCP (`add_tool` más abajo), los routers HTTP, la tabla de los
+# README (`asistente/gen_tabla_tools.py`), el `tools=[...]` y la puerta de
+# `_ejecutar_tool` del chat (`asistente/chat.py`) y los tests de conteo.
+# Añadir una tool = una línea aquí y nada más (FIL_93 unificó el número;
+# FIL_71 trajo `desc_chat`/`en_chat`, antes copiados a mano en `chat.py`).
 _TOOLS = (
-    (tools.afluencia_estimada, "Afluencia estimada ahora"),
-    (tools.afluencia_prevista, "Afluencia prevista"),
-    (tools.calidad_aire, "Calidad del aire ahora"),
-    (tools.calidad_aire_prevista, "Calidad del aire prevista"),
-    (tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)"),
-    (tools.calidad_aire_episodio, "Probabilidad de episodio de contaminación"),
-    (tools.calidad_aire_cams, "Calidad del aire previsión Copernicus CAMS"),
-    (tools.meteo_cercana, "Meteorología observada cerca de un lugar"),
-    (tools.avisos_meteo, "Avisos meteorológicos AEMET"),
-    (tools.trafico_cercano, "Tráfico cerca de un lugar"),
-    (tools.trafico_prevista, "Tráfico previsto"),
-    (tools.trafico_prevista_grafo, "Tráfico previsto (modelo de grafo)"),
-    (tools.opciones_movilidad, "Opciones de movilidad entre dos puntos"),
-    (tools.disponibilidad_aparcamiento, "Disponibilidad de aparcamiento"),
-    (tools.eventos_cercanos, "Eventos cercanos"),
-    (tools.ruta_saludable, "Ruta saludable entre dos lugares"),
-    (tools.contexto_urbano, "Contexto urbano multi-salto de un lugar"),
-    (tools.consulta_grafo, "Consulta parametrizada del grafo urbano (Neo4j)"),
-    (tools.mejor_hora_zona, "Mejor hora del día para una zona"),
+    ToolSpec(tools.afluencia_estimada, "Afluencia estimada ahora",
+             "Actividad urbana estimada ahora cerca de un lugar (tráfico, ruido, BiciMAD, aire).", False),
+    ToolSpec(tools.afluencia_prevista, "Afluencia prevista",
+             "Afluencia prevista cerca de un lugar a un horizonte de 1, 3 o 6 horas.", False),
+    ToolSpec(tools.calidad_aire, "Calidad del aire ahora",
+             "Calidad del aire medida ahora en una zona o estación de Madrid.", True),
+    ToolSpec(tools.calidad_aire_prevista, "Calidad del aire prevista",
+             "Previsión de calidad del aire (modelo LightGBM) a 1, 3 o 6 horas.", False),
+    ToolSpec(tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)",
+             "Previsión de calidad del aire con el modelo de grafo (STGNN), con vecinos influyentes.", False),
+    ToolSpec(tools.calidad_aire_episodio, "Probabilidad de episodio de contaminación",
+             "Probabilidad de episodio (superar el umbral OMS/UE) del contaminante más crítico de una estación a 1/3/6 h.", True),
+    ToolSpec(tools.calidad_aire_cams, "Calidad del aire previsión Copernicus CAMS",
+             "Previsión de calidad del aire del modelo Copernicus CAMS (nivel ciudad) para un contaminante — segunda opinión independiente.", False),
+    ToolSpec(tools.meteo_cercana, "Meteorología observada cerca de un lugar",
+             "Meteorología observada (temperatura, viento, precipitación, humedad) en la estación más cercana a un lugar.", True),
+    ToolSpec(tools.avisos_meteo, "Avisos meteorológicos AEMET",
+             "Avisos meteorológicos AEMET activos en Madrid (nivel amarillo/naranja/rojo y fenómenos).", True),
+    ToolSpec(tools.trafico_cercano, "Tráfico cerca de un lugar",
+             "Tráfico medido ahora cerca de un lugar de Madrid.", True),
+    ToolSpec(tools.trafico_prevista, "Tráfico previsto",
+             "Previsión de tráfico (modelo LightGBM) a 1, 3 o 6 horas cerca de un lugar.", False),
+    ToolSpec(tools.trafico_prevista_grafo, "Tráfico previsto (modelo de grafo)",
+             "Previsión de tráfico con el modelo de grafo (STGNN).", False),
+    ToolSpec(tools.opciones_movilidad, "Opciones de movilidad entre dos puntos",
+             "Compara ir en coche/bici/transporte público entre dos lugares.", False),
+    ToolSpec(tools.disponibilidad_aparcamiento, "Disponibilidad de aparcamiento",
+             "Plazas de aparcamiento regulado disponibles cerca de un lugar.", True),
+    ToolSpec(tools.eventos_cercanos, "Eventos cercanos",
+             "Eventos culturales y de ocio cerca de un lugar en los próximos días.", True),
+    ToolSpec(tools.ruta_saludable, "Ruta saludable entre dos lugares",
+             "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.", True),
+    ToolSpec(tools.contexto_urbano, "Contexto urbano multi-salto de un lugar",
+             "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.", True),
+    ToolSpec(tools.consulta_grafo, "Consulta parametrizada del grafo urbano (Neo4j)",
+             "Consulta de solo lectura al grafo urbano de Neo4j mediante plantillas predefinidas (`plantilla`): "
+             "estaciones de aire que miden un contaminante cerca de un lugar, paradas/líneas de transporte, "
+             "aparcamientos, BiciMAD, vecindario de un lugar, etc.", True),
+    ToolSpec(tools.mejor_hora_zona, "Mejor hora del día para una zona",
+             "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).", True),
 )
 # Alias públicos (sin guion bajo) para importar desde fuera sin depender de
-# un nombre "privado": el generador de la tabla y los tests leen de aquí.
+# un nombre "privado": el generador de la tabla, el chat y los tests leen de aquí.
 TOOLS = _TOOLS
-NOMBRES_TOOLS = tuple(fn.__name__ for fn, _ in _TOOLS)
+NOMBRES_TOOLS = tuple(s.fn.__name__ for s in _TOOLS)
+# Subconjunto que el chat ofrece a su LLM, y sus frases cortas — antes eran
+# `_TOOLS_CHAT` / `_DESCRIPCIONES` a mano en `asistente/chat.py` (FIL_70
+# encontró el fallo típico: una tool en la lista de una y no de la otra).
+NOMBRES_CHAT = frozenset(s.fn.__name__ for s in _TOOLS if s.en_chat)
+DESCRIPCIONES_CHAT = {s.fn.__name__: s.desc_chat for s in _TOOLS}
 
 # Todas las tools sólo LEEN (SELECT en Athena / MATCH en Neo4j / inferencia
 # ONNX / Dijkstra o barrido sobre un grafo vendorizado): `read_only_hint=True`.
@@ -145,8 +193,8 @@ mcp = MCPServer(
     ),
 )
 
-for _fn, _titulo in _TOOLS:
-    mcp.add_tool(_fn, title=_titulo, annotations=_ANOTACIONES_LECTURA)
+for _spec in _TOOLS:
+    mcp.add_tool(_spec.fn, title=_spec.titulo, annotations=_ANOTACIONES_LECTURA)
 
 
 def main() -> None:
