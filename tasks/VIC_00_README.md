@@ -76,6 +76,7 @@ in the memoria.
 | `VIC_41` | QA de `grafo_centralidad` (`FIL_81`): PageRank/Louvain, artefacto, explorador | No | ✅ **done 10/9 (Claude)** — abrió `FIL_85` (betweenness recalculado dos veces con la misma entrada) |
 | `VIC_42` | QA de `meteo_cercana`+`avisos_meteo` (18ª/19ª tools, `FIL_82`) | No | ✅ **done 10/9 (Claude)** — abrió `FIL_88` (`meteo_cercana` no degrada fiabilidad por frescura, a diferencia de sus hermanas) |
 | `VIC_43` | QA de la caché TTL + vistas Athena (`FIL_83`) | No | ✅ **done 10/9 (Claude)** — sin bug de producción; arregló contaminación de caché entre tests (17 tests flaky con `ASSISTANT_CACHE_TTL=900`) |
+| `VIC_44` | QA del anclaje temporal del asistente (`FIL_84`, `ASSISTANT_ANCHOR_DATE`) | No | ⬜ en curso (10/9, Claude) |
 
 **Nota sobre `VIKT_12`**: una sesión anterior había preparado y comiteado
 localmente el contenido de `VIKT_12` (14 tools, app web, mapa animado,
@@ -87,9 +88,20 @@ pasada, ya con las cifras reales de hoy (19 tools, no 14). Lección para
 quien edite el `.docx` en el futuro: **hacer `git push` inmediatamente
 después de cada commit que lo toque**, no acumular trabajo local.
 
-Nuevos tickets `FIL_*` abiertos por esta ronda: `FIL_85`, `FIL_86`,
-`FIL_87`, `FIL_88`, `FIL_89` — ninguno bloqueante para la entrega, pero
-`FIL_89` tiene fecha límite real (empieza a fallar en silencio ~13-14/9).
+Nuevos tickets `FIL_*` abiertos por esta ronda: `FIL_85`–`89` — **los 5
+ya están arreglados (10/9, Claude, mismo día que se abrieron)**:
+
+| Ticket | Arreglo | Verificado con |
+|---|---|---|
+| `FIL_85` | `centralidad_transporte`/`curva_robustez` comparten un `bet_inicial` en vez de calcular el mismo betweenness dos veces | test con spy (una llamada menos, mismo resultado) |
+| `FIL_86` | `curva_robustez` re-etiqueta el ataque dirigido como aproximado en el artefacto, la figura y la memoria (vía 2 del ticket, sin recálculo exacto — inviable a esta escala, ~2h) | test que confirma la nota nueva |
+| `FIL_87` | `asistente/umbrales.py` — fuente única de umbrales OMS/UE, ya no duplicados en 4 ficheros | import + lectura de valores tras el cambio |
+| `FIL_88` | `meteo_cercana` gana `fecha` y fiabilidad `BAJA`/`MEDIA` según se dé, igual que `avisos_meteo` | tests de tool + router (`TestClient`) |
+| `FIL_89` | `grafo/extract.py` ya no depende de `current_date` real — quitado el filtro de ventana en las 7 consultas afectadas | **recarga real del grafo** (14,4 min, AuraDB real) + memoria corregida con las cifras post-recarga (9812 nodos, 76156 relaciones, subárea 4439/4705) |
+
+`FIL_89` era el único con fecha límite real (se habría vaciado en
+silencio entre el 13 y el 14/9, días antes de la entrega) — ya no es un
+riesgo.
 
 ## Cross-cutting: claims in the June draft that must change
 
