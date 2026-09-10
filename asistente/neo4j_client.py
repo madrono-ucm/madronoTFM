@@ -427,6 +427,10 @@ def _driver_from_env():
     return GraphDatabase.driver(uri, auth=(username, password))
 
 
+from asistente.cache import cacheado  # noqa: E402 - se importa aquí para evitar ciclo
+
+
+@cacheado(ttl_s=900)
 def run_neo4j_query(query: str, params: dict, *, driver=None, database: Optional[str] = None) -> "list[dict]":
     """Ejecuta `query` con `params` y devuelve las filas como `dict`.
 

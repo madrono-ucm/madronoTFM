@@ -37,7 +37,10 @@ from asistente.mcp_agent.server import mcp
 from asistente.routers import (
     afluencia_estimada,
     afluencia_prevista,
+    avisos_meteo,
     calidad_aire,
+    calidad_aire_cams,
+    calidad_aire_episodio,
     calidad_aire_prevista,
     calidad_aire_prevista_grafo,
     chat,
@@ -48,6 +51,7 @@ from asistente.routers import (
     grafo_explorador,
     health,
     mejor_hora_zona,
+    meteo_cercana,
     opciones_movilidad,
     ruta_saludable,
     trafico_cercano,
@@ -123,6 +127,10 @@ def create_app() -> FastAPI:
     app.include_router(calidad_aire.router)
     app.include_router(calidad_aire_prevista.router)
     app.include_router(calidad_aire_prevista_grafo.router)
+    app.include_router(calidad_aire_episodio.router)
+    app.include_router(calidad_aire_cams.router)
+    app.include_router(meteo_cercana.router)
+    app.include_router(avisos_meteo.router)
     app.include_router(trafico_cercano.router)
     app.include_router(trafico_prevista.router)
     app.include_router(trafico_prevista_grafo.router)

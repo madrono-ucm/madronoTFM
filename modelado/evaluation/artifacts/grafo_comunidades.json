@@ -1,10 +1,10 @@
 {
- "n_comunidades": 55,
+ "n_comunidades": 54,
  "n_barrios": 131,
  "n_nodos_comparados": 8112,
- "ARI": 0.358,
+ "ARI": 0.362,
  "NMI": 0.754,
- "modularidad": 0.933,
+ "modularidad": 0.932,
  "comunidades_que_juntan_barrios": [
   {
    "comunidad": 53,
@@ -20,20 +20,33 @@
    "n_nodos": 285
   },
   {
-   "comunidad": 46,
+   "comunidad": 52,
    "barrios": [
     "044",
     "051",
     "045",
     "052",
     "046",
-    "043"
+    "042"
    ],
    "n_barrios": 10,
-   "n_nodos": 262
+   "n_nodos": 266
   },
   {
-   "comunidad": 12,
+   "comunidad": 20,
+   "barrios": [
+    "022",
+    "026",
+    "012",
+    "035",
+    "021",
+    "025"
+   ],
+   "n_barrios": 9,
+   "n_nodos": 241
+  },
+  {
+   "comunidad": 50,
    "barrios": [
     "083",
     "084",
@@ -42,47 +55,47 @@
     "087",
     "065"
    ],
-   "n_barrios": 10,
-   "n_nodos": 482
+   "n_barrios": 9,
+   "n_nodos": 425
   },
   {
-   "comunidad": 13,
+   "comunidad": 47,
    "barrios": [
     "117",
     "112",
     "126",
     "125",
     "115",
-    "111"
+    "127"
    ],
    "n_barrios": 9,
-   "n_nodos": 160
+   "n_nodos": 161
   },
   {
-   "comunidad": 5,
+   "comunidad": 12,
    "barrios": [
-    "093",
-    "061",
     "062",
-    "076",
-    "066",
-    "094"
+    "063",
+    "054",
+    "051",
+    "075",
+    "066"
    ],
-   "n_barrios": 8,
-   "n_nodos": 193
+   "n_barrios": 9,
+   "n_nodos": 315
   },
   {
-   "comunidad": 23,
+   "comunidad": 36,
    "barrios": [
-    "026",
-    "022",
-    "012",
+    "042",
+    "034",
+    "041",
+    "033",
     "035",
-    "025",
-    "023"
+    "036"
    ],
    "n_barrios": 8,
-   "n_nodos": 207
+   "n_nodos": 215
   },
   {
    "comunidad": 49,
@@ -96,31 +109,18 @@
    ],
    "n_barrios": 8,
    "n_nodos": 117
-  },
-  {
-   "comunidad": 16,
-   "barrios": [
-    "042",
-    "034",
-    "041",
-    "033",
-    "035",
-    "036"
-   ],
-   "n_barrios": 8,
-   "n_nodos": 214
   }
  ],
  "barrios_partidos_por_el_grafo": [
   {
-   "barrio": "091",
-   "n_comunidades": 5,
-   "n_nodos": 93
-  },
-  {
    "barrio": "151",
    "n_comunidades": 5,
    "n_nodos": 132
+  },
+  {
+   "barrio": "091",
+   "n_comunidades": 5,
+   "n_nodos": 93
   },
   {
    "barrio": "201",
@@ -133,9 +133,9 @@
    "n_nodos": 120
   },
   {
-   "barrio": "131",
+   "barrio": "021",
    "n_comunidades": 4,
-   "n_nodos": 105
+   "n_nodos": 71
   },
   {
    "barrio": "011",
@@ -143,14 +143,14 @@
    "n_nodos": 164
   },
   {
-   "barrio": "086",
+   "barrio": "035",
    "n_comunidades": 4,
-   "n_nodos": 162
+   "n_nodos": 105
   },
   {
-   "barrio": "015",
+   "barrio": "162",
    "n_comunidades": 4,
-   "n_nodos": 112
+   "n_nodos": 92
   }
  ]
 }

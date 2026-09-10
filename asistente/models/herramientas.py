@@ -240,6 +240,114 @@ class CalidadAirePrevista(RespuestaPrevision):
     zona: str
     estacion: str | None = None
     contaminante: str | None = None
+    # FIL_80: 2.ª opinión independiente (modelo atmosférico Copernicus CAMS)
+    # para el mismo contaminante y fecha. Solo contexto, no cambia el veredicto.
+    referencia_cams: float | None = None  # µg/m³ que da CAMS
+    delta_vs_cams: float | None = None  # valor_previsto − referencia_cams
+
+
+class CalidadAireCams(BaseModel):
+    """Previsión de calidad del aire del modelo atmosférico **Copernicus
+    CAMS** para Madrid (`FIL_80`), leída de
+    `gold.cams_calidad_aire_por_contaminante_fecha_validez`.
+
+    Es nivel de área (la rejilla CAMS no tiene estación/lat-lon), así que
+    devuelve el `avg`/`max` de la ciudad por `fecha_validez`. Fuente
+    independiente de los modelos propios (LightGBM/STGNN) — sirve de
+    contraste. Con el pipeline congelado (2026-08-30) sin `fecha` explícita
+    devuelve la última `fecha_validez` disponible y lo dice en `motivo`.
+    """
+
+    contaminante: str
+    disponible: bool = False
+    fecha_validez: str | None = None
+    avg_ugm3: float | None = None
+    max_ugm3: float | None = None
+    unidad: str | None = None
+    leadtime_horas: list[int] = []
+    emitido_en: str | None = None  # last_forecast_issued_at
+    n_fechas_disponibles: int = 0
+    motivo: str | None = None
+    fuente_dataset: str | None = None
+
+
+class LecturaMeteo(BaseModel):
+    """Una magnitud meteorológica en su última hora disponible (`FIL_82`)."""
+
+    magnitud: str  # temperature_c / wind_speed_ms / precipitation_lm2 / humidity_pct
+    valor: float | None = None
+    hora: int | None = None
+    fecha: str | None = None
+
+
+class MeteoCercana(BaseModel):
+    """Meteorología observada cerca de un lugar (`FIL_82`): la estación
+    `:EstacionMedida{meteo}` más cercana del grafo (`PROXIMO_A`, FIL_65) y su
+    última lectura por magnitud de
+    `gold.meteorologia_por_estacion_magnitud_hora`. Sin estación cerca o sin
+    datos recientes → `disponible=False` + `motivo` (contrato FIL_15).
+    """
+
+    lugar: str
+    disponible: bool = False
+    estacion: str | None = None
+    estacion_id: str | None = None
+    distancia_m: float | None = None
+    lecturas: list[LecturaMeteo] = []
+    motivo: str | None = None
+    fuente_dataset: str | None = None
+
+
+class AvisosMeteo(BaseModel):
+    """Avisos meteorológicos AEMET activos para una zona (`FIL_82`), de
+    `gold.aemet_avisos_por_zona_fecha_nivel`. `nivel` es el más alto
+    (`rojo` > `naranja` > `amarillo` > `verde`); `fenomenos` la unión de
+    todos. Sin `fecha` → el último día con datos + `motivo` de frescura.
+    """
+
+    zona: str | None = None
+    fecha: str | None = None
+    disponible: bool = False
+    nivel: str | None = None
+    fenomenos: list[str] = []
+    zonas_afectadas: list[str] = []
+    vigencia_desde: str | None = None
+    vigencia_hasta: str | None = None
+    motivo: str | None = None
+    fuente_dataset: str | None = None
+
+
+class CalidadAireEpisodio(BaseModel):
+    """Probabilidad de **episodio** (superación del umbral OMS/UE) del
+    contaminante más crítico de una estación a `horizonte_horas` (`FIL_79`).
+
+    No hay clasificador servido: se deriva de la previsión de regresión ya
+    existente (`calidad_aire_prevista`) transformando el margen sobre el
+    umbral en probabilidad con una logística `P = σ((ŷ − umbral)/s)`,
+    `s = 0.25·umbral` (heurística documentada; la desviación del residuo del
+    backtest de `FIL_38` la afinaría — follow-up). `veredicto` es el signo
+    determinista (`ŷ ≷ umbral`). Fiabilidad **BAJA** (§7.4 + pipeline
+    congelado). Mismo contrato de degradación: `disponible=False` +
+    `motivo` si no hay previsión.
+    """
+
+    zona: str
+    momento: datetime | None = None
+    momento_objetivo: datetime | None = None
+    horizonte_horas: int
+    disponible: bool = False
+    estacion: str | None = None
+    contaminante: str | None = None
+    valor_previsto: float | None = None
+    umbral: float | None = None
+    margen: float | None = None  # ŷ − umbral (µg/m³)
+    prob_superacion: float | None = None  # 0..1
+    veredicto: str = "sin_datos"  # "supera" | "no supera" | "sin_datos"
+    unidad: str | None = None
+    data_completeness: float | None = None
+    modelo: str | None = None
+    motivo: str | None = None
+    fuente_dataset: str | None = None
 
 
 class VecinoGrafo(BaseModel):
