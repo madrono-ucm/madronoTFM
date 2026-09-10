@@ -1338,8 +1338,15 @@ def _calidad_aire_prevista_impl(
 
     # FIL_80: 2.ª opinión de Copernicus CAMS para el mismo contaminante y la
     # fecha objetivo. Nunca hace fallar la previsión propia (best-effort).
+    # VIC_40: `athena_client is None` NO desactiva este bloque en los tests
+    # que mockean `run_athena_query` a nivel de módulo (patrón estándar del
+    # repo) -- solo protegería si alguien llamara a `_calidad_aire_prevista_
+    # impl` pasando `athena_client` explícito, cosa que ningún test hace.
+    # La cobertura real de este bloque vive en `test_cams.py::
+    # ContrasteCamsEnPrevistaTests`, que mockea `calidad_aire_cams`
+    # directamente (el punto de inyección correcto).
     ref_cams = delta_cams = None
-    if athena_client is None:  # solo en producción, no en los tests con Athena mockeada
+    if athena_client is None:
         try:
             objetivo = (ancla + timedelta(hours=horizonte_horas)).date().isoformat()
             c = calidad_aire_cams(pollutant, objetivo)

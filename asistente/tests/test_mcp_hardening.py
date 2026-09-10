@@ -58,7 +58,12 @@ class EnvoltorioComunTests(unittest.TestCase):
         self.assertTrue(issubclass(tools.TraficoPrevista, RespuestaPrevision))
 
     def test_calidad_aire_ok_rellena_el_envoltorio(self):
-        with patch("asistente.mcp_agent.tools.run_athena_query", return_value=_aire(_AHORA)):
+        # VIC_40: aísla el contraste CAMS interno (FIL_80) -- sin esto,
+        # reutilizaría estas mismas filas de aire y sintetizaría un
+        # referencia_cams/delta_vs_cams sin sentido de forma silenciosa.
+        cams_fake = tools.CalidadAireCams(contaminante="NO2", disponible=False, motivo="no probado aquí")
+        with patch("asistente.mcp_agent.tools.run_athena_query", return_value=_aire(_AHORA)), \
+             patch.object(tools, "calidad_aire_cams", return_value=cams_fake):
             r = tools.calidad_aire_prevista("cajal", 3, _AHORA)
         self.assertTrue(r.disponible)
         self.assertIsNotNone(r.valor_previsto)

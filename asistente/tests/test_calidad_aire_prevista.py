@@ -78,7 +78,14 @@ class PredecirOnnxTests(unittest.TestCase):
 class ToolTests(unittest.TestCase):
     def test_devuelve_prevision_real_desde_onnx(self):
         ahora = datetime(2026, 8, 17, 10)
-        with patch("asistente.mcp_agent.tools.run_athena_query", return_value=_filas_mock(ahora)):
+        # VIC_40: sin esto, el contraste CAMS interno (FIL_80) reutiliza estas
+        # mismas filas de aire (forma distinta a una fila CAMS) y sintetiza un
+        # referencia_cams/delta_vs_cams sin sentido -- ver
+        # test_cams.py::ContrasteCamsEnPrevistaTests para la cobertura real
+        # de ese contraste, aislada correctamente.
+        cams_fake = tools.CalidadAireCams(contaminante="NO2", disponible=False, motivo="no probado aquí")
+        with patch("asistente.mcp_agent.tools.run_athena_query", return_value=_filas_mock(ahora)), \
+             patch.object(tools, "calidad_aire_cams", return_value=cams_fake):
             r = tools.calidad_aire_prevista("cajal", 6, ahora)
         self.assertEqual(r.contaminante, "NO2")
         self.assertIsNotNone(r.valor_previsto)
