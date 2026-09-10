@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "Evaluación del grafo tras FIL_65/66/67 — estado de la instancia AuraDB tras 3 recargas"
 owner: Claude (QA)
-status: pending
+status: done
 created_at: "2026-09-09"
 depends_on: [FIL_65, FIL_66, FIL_67]
 ---
@@ -56,3 +56,25 @@ Contra la instancia real (`grafo/consulta.py` o driver directo, solo lectura):
   ticket `FIL_*` nuevo.
 - Nota corta para la memoria: cifras finales del grafo + qué añadió cada
   ticket, para `VIC_38` / el capítulo de grafo.
+
+## Hecho (2026-09-10, Claude QA)
+
+Los 6 puntos verificados con consultas reales contra la instancia AuraDB
+(vía `grafo/consulta.py`) más una consulta Athena directa para el punto 3
+(confirmó 4 `parking_id` con `total_spaces=NULL` real en Gold, no un
+artefacto de ventana). Todos los conteos esperados por el ticket
+coinciden exactamente: `contaminantes` 23/23, `magnitudes` 25/25,
+`subarea` 4413/4705, `anclajes_totales` 680/680, `plazas_totales` 22/26,
+`nombre` 162/162, meteo 24/25 `PROXIMO_A`, recinto 142/145 `PROXIMO_A`.
+Cero duplicados, cero huérfanos reales (los nodos "aislados" son POIs/
+paradas fuera del municipio de Madrid, comportamiento esperado del radio
+de 300 m y de los 131 barrios). Esquema vivo = `schema.cypher` exacto.
+
+Único hallazgo: el snapshot offline `grafo/_data/grafo_urbano.json.gz`
+(usado por `modelado/grafo_analitica/` y `viz/`, ya verificado
+autoconsistente por `VIC_36`/`VIC_41`) va 27 nodos de tráfico por detrás
+de la instancia real — cosmético, sin ticket `FIL_*` nuevo, anotado para
+regenerarlo antes de la entrega.
+
+Detalle completo, con las cifras finales del grafo para `VIC_38`, en
+[`doc/VIC-34-eval-grafo-v2.md`](../doc/VIC-34-eval-grafo-v2.md).
