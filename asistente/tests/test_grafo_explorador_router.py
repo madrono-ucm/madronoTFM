@@ -111,6 +111,9 @@ class RouterTests(unittest.TestCase):
         # los ficheros vendorizados existen -> deben venir poblados
         self.assertGreaterEqual(len(a["stgnn_aristas_influyentes"]), 10)
         self.assertIn("n_puntos_articulacion", a["resiliencia"])
+        # FIL_81: PageRank + comunidades del artefacto offline
+        self.assertIn("top_pagerank", a["centralidad"])
+        self.assertIn("modularidad", a["centralidad"]["comunidades"])
 
     def test_ruta_proximo_y_transporte(self):
         _RP = [{"metros": 812.4, "saltos": 3,

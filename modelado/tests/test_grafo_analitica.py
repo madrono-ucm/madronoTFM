@@ -16,6 +16,7 @@ import networkx as nx
 from modelado.grafo_analitica.analisis import (
     centralidad_transporte,
     comunidades_vs_barrios,
+    resumen_centralidad,
     construir_grafos,
     curva_robustez,
     kcore_resumen,
@@ -71,7 +72,23 @@ class FuncionesTests(unittest.TestCase):
     def test_centralidad_df(self):
         _, gc = construir_grafos(_G)
         df = centralidad_transporte(gc, nombres_transporte(_G, gc))
-        self.assertEqual(set(df.columns), {"parada", "modo", "grado", "intermediacion", "cercania"})
+        self.assertEqual(
+            set(df.columns),
+            {"nodo", "parada", "modo", "grado", "intermediacion", "cercania", "pagerank"},
+        )
+        # FIL_81: PageRank es una distribución (suma ~1 en la componente mayor)
+        self.assertAlmostEqual(df["pagerank"].sum(), 1.0, places=4)
+
+    def test_resumen_centralidad(self):
+        gp, gc = construir_grafos(_G)
+        cent = centralidad_transporte(gc, nombres_transporte(_G, gc))
+        com = comunidades_vs_barrios(_G, gp)
+        r = resumen_centralidad(cent, com, top=3)
+        self.assertIn("_nota", r)
+        self.assertLessEqual(len(r["top_pagerank"]), 3)
+        self.assertLessEqual(len(r["top_intermediacion"]), 3)
+        self.assertAlmostEqual(r["pagerank_suma"], 1.0, places=4)
+        self.assertIn("modularidad", r["comunidades"])
 
     def test_comunidades_devuelve_ari_nmi(self):
         gp, _ = construir_grafos(_G)
@@ -143,7 +160,7 @@ class ResilienciaTests(unittest.TestCase):
 
 class ArtefactosTests(unittest.TestCase):
     def test_artefactos_versionados(self):
-        for f in ("grafo_centralidad_transporte.csv", "grafo_comunidades.json",
+        for f in ("grafo_centralidad_transporte.csv", "grafo_centralidad.json", "grafo_comunidades.json",
                   "grafo_stats.json", "grafo_stgnn_vs_conectividad.json", "grafo_analitica.png",
                   "grafo_resiliencia.json", "grafo_resiliencia.png"):
             p = _ART / f
@@ -153,6 +170,10 @@ class ArtefactosTests(unittest.TestCase):
         com = json.loads((_ART / "grafo_comunidades.json").read_text(encoding="utf-8"))
         self.assertTrue(0 <= com["NMI"] <= 1)
         self.assertGreater(com["n_comunidades"], 1)
+        cen = json.loads((_ART / "grafo_centralidad.json").read_text(encoding="utf-8"))
+        self.assertAlmostEqual(cen["pagerank_suma"], 1.0, places=4)
+        self.assertTrue(0 <= cen["comunidades"]["modularidad"] < 1)
+        self.assertTrue(cen["top_pagerank"] and "parada" in cen["top_pagerank"][0])
 
 
 if __name__ == "__main__":

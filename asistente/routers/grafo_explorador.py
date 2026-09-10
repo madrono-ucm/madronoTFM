@@ -36,6 +36,7 @@ from asistente.neo4j_client import (
 _RAIZ = Path(__file__).resolve().parents[2]
 _STGNN_META = _RAIZ / "asistente" / "modelos" / "stgnn_trafico.meta.json"
 _RESILIENCIA = _RAIZ / "modelado" / "evaluation" / "artifacts" / "grafo_resiliencia.json"
+_CENTRALIDAD = _RAIZ / "modelado" / "evaluation" / "artifacts" / "grafo_centralidad.json"
 
 
 def _leer(query: str, params: dict, *, intentos: int = 3) -> list:
@@ -167,6 +168,22 @@ def _resiliencia() -> dict:
     }
 
 
+def _centralidad() -> dict:
+    """PageRank + comunidades Louvain de `CONECTADO_CON` (`FIL_81`), del
+    artefacto offline `grafo_centralidad.json` (sin GDS, sin Neo4j en
+    caliente)."""
+    if not _CENTRALIDAD.exists():
+        return {}
+    c = json.loads(_CENTRALIDAD.read_text(encoding="utf-8"))
+    return {
+        "nota": c.get("_nota"),
+        "n_nodos": c.get("n_nodos"),
+        "top_pagerank": c.get("top_pagerank", [])[:10],
+        "top_intermediacion": c.get("top_intermediacion", [])[:10],
+        "comunidades": c.get("comunidades", {}),
+    }
+
+
 @router.get("/grafo/explorador/analisis")
 def analisis() -> dict:
     """Análisis del TFM proyectados sobre el grafo: cobertura de aire,
@@ -195,6 +212,7 @@ def analisis() -> dict:
             ],
             "stgnn_aristas_influyentes": _stgnn_aristas_influyentes(),
             "resiliencia": _resiliencia(),
+            "centralidad": _centralidad(),
             "generado": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
         _analisis_cache["t"] = ahora
