@@ -38,6 +38,7 @@ from asistente.routers import (
     afluencia_estimada,
     afluencia_prevista,
     calidad_aire,
+    calidad_aire_cams,
     calidad_aire_episodio,
     calidad_aire_prevista,
     calidad_aire_prevista_grafo,
@@ -125,6 +126,7 @@ def create_app() -> FastAPI:
     app.include_router(calidad_aire_prevista.router)
     app.include_router(calidad_aire_prevista_grafo.router)
     app.include_router(calidad_aire_episodio.router)
+    app.include_router(calidad_aire_cams.router)
     app.include_router(trafico_cercano.router)
     app.include_router(trafico_prevista.router)
     app.include_router(trafico_prevista_grafo.router)

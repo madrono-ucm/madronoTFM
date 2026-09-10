@@ -240,6 +240,35 @@ class CalidadAirePrevista(RespuestaPrevision):
     zona: str
     estacion: str | None = None
     contaminante: str | None = None
+    # FIL_80: 2.ª opinión independiente (modelo atmosférico Copernicus CAMS)
+    # para el mismo contaminante y fecha. Solo contexto, no cambia el veredicto.
+    referencia_cams: float | None = None  # µg/m³ que da CAMS
+    delta_vs_cams: float | None = None  # valor_previsto − referencia_cams
+
+
+class CalidadAireCams(BaseModel):
+    """Previsión de calidad del aire del modelo atmosférico **Copernicus
+    CAMS** para Madrid (`FIL_80`), leída de
+    `gold.cams_calidad_aire_por_contaminante_fecha_validez`.
+
+    Es nivel de área (la rejilla CAMS no tiene estación/lat-lon), así que
+    devuelve el `avg`/`max` de la ciudad por `fecha_validez`. Fuente
+    independiente de los modelos propios (LightGBM/STGNN) — sirve de
+    contraste. Con el pipeline congelado (2026-08-30) sin `fecha` explícita
+    devuelve la última `fecha_validez` disponible y lo dice en `motivo`.
+    """
+
+    contaminante: str
+    disponible: bool = False
+    fecha_validez: str | None = None
+    avg_ugm3: float | None = None
+    max_ugm3: float | None = None
+    unidad: str | None = None
+    leadtime_horas: list[int] = []
+    emitido_en: str | None = None  # last_forecast_issued_at
+    n_fechas_disponibles: int = 0
+    motivo: str | None = None
+    fuente_dataset: str | None = None
 
 
 class CalidadAireEpisodio(BaseModel):
