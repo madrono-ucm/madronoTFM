@@ -21,6 +21,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM, VirtualConsole } from "jsdom";
+import { jsInline } from "../extraer_js.mjs";
 
 const MAPA = join(dirname(fileURLToPath(import.meta.url)), "..", "mapa");
 const html = readFileSync(join(MAPA, "index.html"), "utf8").replace(/\r\n/g, "\n");
@@ -31,7 +32,7 @@ const files = Object.fromEntries(
   ]),
 );
 // El único <script> sin atributos (los del CDN son <script src=...>).
-const pageScript = html.match(/<script>\n([\s\S]*?)<\/script>/)[1];
+const pageScript = jsInline(html);
 
 // Monta la página en un DOM real con deck.gl / maplibre / fetch simulados y
 // espera a que resuelva la carga. Devuelve `{ win, errors, $ }`.

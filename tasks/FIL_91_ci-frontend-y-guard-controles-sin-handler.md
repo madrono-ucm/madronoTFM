@@ -91,3 +91,35 @@ frontends sí tienen los handlers cableados** (`viz/mapa/index.html`,
 **Alta, hacer primero (con FIL_93).** Es barato (~medio día), no depende de
 nada y **protege el trabajo de FIL_71/72/73/74/75**: cualquier regresión de
 cableado que introduzcan sale en CI en vez de en la demo.
+
+## Hecho (2026-09-10, rama `fil-85-frontend-ci-guard`, stacked sobre `fil-88`)
+
+- **`.github/workflows/ci.yml`**: job `frontend` nuevo (Node 20, `npm ci` +
+  `npm test` en `viz/`), obligatorio en cada PR/push.
+- **`viz/extraer_js.mjs`**: extractor de `<script>` inline compartido
+  (`jsInline` / `sinScripts`). `mapa.test.mjs` lo reutiliza en vez de su
+  regex propia.
+- **`viz/test/js-syntax.test.mjs`**: `node --check` del JS embebido de las
+  **4** páginas (`viz/mapa/index.html`, `viz/grafo_explorador_live.html`,
+  `viz/grafo_explorador.html`, `web/index.html`) — antes solo el mapa
+  (FIL_57).
+- **`viz/test/dead-controls.test.mjs`**: guard estático «ningún control sin
+  cablear» — todo `<button>/<input>/<select>` del marcado estático de
+  `viz/mapa/index.html`, `viz/grafo_explorador_live.html` y `web/index.html`
+  tiene que ser alcanzable desde el JS (por `id`, clase, `data-*`,
+  `onclick=` o ser el submit de un `<form>` con manejador). Allowlist
+  `CONOCIDOS` para excepciones documentadas (vacía por ahora).
+- El arnés jsdom dinámico (disparar todos los controles sin excepción) ya
+  vive en `mapa.test.mjs` (FIL_56/FIL_94) y ahora corre en CI.
+
+**Recortes conscientes** (no bloquean, follow-up si sobra tiempo):
+- Sin `viz/CONTROLES.md` declarativo con la acción esperada por control: el
+  guard estático + el arnés jsdom del mapa cubren el caso que reportó el
+  usuario. Un inventario cruzado es más ceremonia que valor a 7 días.
+- El explorador **offline** (`grafo_explorador.html`, 6 MB, grafo
+  embebido) entra en `node --check` pero no en el guard de controles
+  dinámico: comparte generador (`build_grafo_explorador.py`) y controles
+  con el `--live`, que sí se cubre.
+
+**Verificación local:** `cd viz && npm test` → 14/14 (4 `node --check` + 3
+dead-controls + FIL_56/57 + 4 FIL_94).
