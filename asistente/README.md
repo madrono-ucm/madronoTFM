@@ -6,10 +6,14 @@ movilidad y vida urbana de Madrid (p.ej. «¿voy al centro a las nueve de la
 noche del viernes?») con un veredicto, un nivel de fiabilidad y una
 explicación trazable a los datos.
 
-**Estado (tarea `ML_09`): 7 `tools`, todas con lógica real.** Este
-directorio define la estructura del servicio, el esquema de su respuesta y
-la interfaz de 7 `tools` (las 5 originales del esqueleto de la tarea 044,
-más `trafico_cercano`, tarea 081, y `calidad_aire_prevista`, tarea `ML_09`).
+**Estado (tras `FIL_82`): 19 `tools`, todas con lógica real.** Este
+directorio define la estructura del servicio y el esquema de su respuesta.
+La tabla completa de las 19 `tools` (fuentes, introducidas en qué tarea)
+vive más abajo en "Las 19 `tools` del agente MCP". El resto de esta sección narra el
+origen histórico de las 7 primeras (esqueleto de la tarea 044 + `trafico_
+cercano`/`calidad_aire_prevista`); las 12 añadidas después (`FIL_13` en
+adelante) no tienen aquí su propia narrativa — ver su `doc/FIL-NN-...md`
+respectivo.
 `calidad_aire`
 (tarea 079) y `disponibilidad_aparcamiento` (tarea 090) leen datos reales de
 Gold vía Athena directamente (una sola tabla cada una, sin grafo).
@@ -43,14 +47,18 @@ de `ML_07` (LightGBM multi-horizonte de `ML_03`, exportado; copia vendida en
 `asistente/modelos/`) sobre las 19 features de `modelado/export/CONTRATO.md`,
 construidas a partir de las últimas 24 h de Gold. Ancla el forecast en la
 última hora con lectura real (Gold va con retraso) y baja la fiabilidad si
-faltan features históricas. Las siete están montadas como agente MCP dentro
+faltan features históricas. Las 19 están montadas como agente MCP dentro
 de la app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
-`GET /calidad-aire-prevista`, `GET /calidad-aire-episodio`, `GET /calidad-aire-cams`, `GET /meteo-cercana`, `GET /avisos-meteo`, `GET /trafico-cercano`,
-`GET /afluencia-estimada`, `GET /disponibilidad-aparcamiento`,
-`GET /eventos-cercanos`, `GET /opciones-movilidad`) — verificado con
-invocaciones reales contra la cuenta AWS de este proyecto, incluida la
-instancia real de Neo4j (ver "Verificación real" más abajo). No queda
-ninguna `tool` con `NotImplementedError`.
+`GET /calidad-aire-prevista`, `GET /calidad-aire-prevista-grafo`,
+`GET /calidad-aire-episodio`, `GET /calidad-aire-cams`, `GET /meteo-cercana`,
+`GET /avisos-meteo`, `GET /trafico-cercano`, `GET /trafico-prevista`,
+`GET /trafico-prevista-grafo`, `GET /afluencia-estimada`,
+`GET /afluencia-prevista`, `GET /disponibilidad-aparcamiento`,
+`GET /eventos-cercanos`, `GET /opciones-movilidad`, `GET /ruta-saludable`,
+`GET /contexto-urbano`, `GET /consulta-grafo`, `GET /mejor-hora-zona`) —
+verificado con invocaciones reales contra la cuenta AWS de este proyecto,
+incluida la instancia real de Neo4j (ver "Verificación real" más abajo). No
+queda ninguna `tool` con `NotImplementedError`.
 
 ## Por qué solo `calidad_aire` en esta tarea
 

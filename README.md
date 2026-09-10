@@ -42,7 +42,7 @@ flowchart LR
     end
 
     subgraph Asis["asistente/ — FastAPI + servidor MCP"]
-        T["10 tools: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista (incl. STGNN vía grafo), …"]
+        T["19 tools: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista (incl. STGNN vía grafo),<br/>consulta_grafo, ruta_saludable, mejor_hora_zona, …"]
     end
 
     P --> B --> G1 --> S --> G2 --> G
@@ -134,7 +134,7 @@ comandos con datos completos: `doc/VIKT-06-recorrido-e2e.md`.
 **En vivo: https://d2obcdu8duk47f.cloudfront.net** (usuario y contraseña de
 demo: `demo` / `demo`)
 
-Landing + chat en lenguaje natural sobre las 14 tools del asistente, vía Groq
+Landing + chat en lenguaje natural sobre las 19 tools del asistente, vía Groq
 (`FIL_62`, `FIL_63`). Front estático (`web/index.html`, sin dependencias) en
 S3 + CloudFront (Origin Access Control, bucket privado). Backend FastAPI
 (`asistente/`) en la misma EC2 que el daemon de ingesta, detrás de nginx con
@@ -187,7 +187,7 @@ de integración end-to-end (`tests/integracion/`, `doc/FIL-18-...md`).
 | `infra/` | Terraform del lakehouse, Glue, Lambda, Athena, IAM, observabilidad. `OPERACION.md` = runbook. `kafka/` = diseño de la ruta caliente (sin aplicar). |
 | `grafo/` | Construcción del grafo urbano en Neo4j (`:Lugar`, `:EstacionMedida`, `PROXIMO_A`) desde Gold + OSM. |
 | `modelado/` | Feature store, entrenamiento LightGBM/STGNN, evaluación, MLflow registry, export a ONNX. |
-| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 14 tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo` STGNN de grafo `FIL_26`/`FIL_31`, `ruta_saludable` `FIL_37`, `contexto_urbano` `FIL_53`, `mejor_hora_zona` `FIL_46`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
+| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 19 tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo` STGNN de grafo `FIL_26`/`FIL_31`, `ruta_saludable` `FIL_37`, `contexto_urbano` `FIL_53`, `mejor_hora_zona` `FIL_46`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
 | `herramientas/` | Scripts de operación: `costes/` (estimación de gasto), `salud/` (frescura de Gold, FIL_16). |
 | `viz/` | Mapa animado del grafo (`FIL_32`–`FIL_36`): scripts de build offline, `mapa/` (HTML deck.gl + JSON), `data/gold_slices/` (snapshot Gold congelado), `PROGRESO_MAPA.md`. |
 | `tests/` | Test de integración end-to-end (el resto de tests vive junto a su paquete). |

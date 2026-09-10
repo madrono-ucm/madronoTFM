@@ -100,7 +100,10 @@ mcp = MCPServer(
         "`calidad_aire_cams` trae la previsión de Copernicus CAMS como "
         "segunda opinión independiente (FIL_80), `meteo_cercana` da la "
         "meteorología observada junto a un lugar y `avisos_meteo` los "
-        "avisos AEMET activos (FIL_82). Ver asistente/mcp_agent/tools.py."
+        "avisos AEMET activos (FIL_82), y `consulta_grafo` da acceso "
+        "directo a 8 plantillas de solo lectura sobre el grafo urbano de "
+        "Neo4j (FIL_67) para preguntas relacionales que no encajan en "
+        "ninguna otra tool. Ver asistente/mcp_agent/tools.py."
     ),
 )
 
