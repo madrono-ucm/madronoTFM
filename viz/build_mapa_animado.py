@@ -2,9 +2,9 @@
 
 Es el entregable de visualización del TFM: un HTML autónomo que se publica
 en GitHub Pages y muestra los ~1.798 nodos del grafo latiendo hora a hora
-con la previsión de los dos STGNN (tráfico y calidad del aire), sobre los
-polígonos de distrito y sin tiles de mapa base (opcionalmente, un basemap
-vectorial Carto).
+con la previsión de los dos STGNN (tráfico y calidad del aire), sobre un
+basemap vectorial claro (Carto Positron por defecto; conmutable a Voyager,
+Dark Matter o "sin tiles" — solo polígonos de distrito — en el selector).
 
 Lee de local (nunca de red ni con credenciales): el grafo canónico
 (`viz/grafo_madrid.json`), la previsión ya inferida
@@ -53,13 +53,15 @@ _GEOJSON = json.loads((_VIZ / "assets" / "distritos_madrid.geojson").read_text(e
 _EJES = json.loads((_VIZ / "assets" / "ejes_madrid.geojson").read_text(encoding="utf-8"))
 _PARQUES = json.loads((_VIZ / "assets" / "parques_madrid.geojson").read_text(encoding="utf-8"))
 _OUT = _VIZ / "mapa"
-_DECKGL_CDN = "https://unpkg.com/deck.gl@9.0.38/dist.min.js"
-# El basemap vectorial (maplibre-gl) es opcional y opt-in: solo se descargan
-# tiles si quien mira el mapa elige un estilo Carto en el selector. Si el CDN
-# no carga, el selector queda deshabilitado y el mapa sigue siendo el DeckGL
-# plano de siempre. Se cargó como mejora en FIL_50.
-_MAPLIBRE_JS_CDN = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
-_MAPLIBRE_CSS_CDN = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+_DECKGL_CDN = "https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js"
+# El basemap vectorial (maplibre-gl) es Carto Positron por defecto (estilo
+# claro y minimal, pensado para viz de datos); el selector lo cambia a
+# Voyager, Dark Matter o "ninguno" (solo los polígonos de distrito sobre
+# fondo oscuro). Si el CDN de maplibre no carga, el selector queda
+# deshabilitado y el mapa sigue siendo el DeckGL plano de siempre. Se cargó
+# como mejora en FIL_50; Positron pasó a ser el arranque en FIL_76.
+_MAPLIBRE_JS_CDN = "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"
+_MAPLIBRE_CSS_CDN = "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css"
 
 
 def _centroide(anillo: "list[list[float]]") -> "list[float]":
@@ -88,18 +90,26 @@ def _frames_json(df: pd.DataFrame, node_ids: "list[str]") -> dict:
     Estructura: `{dia: {metrica: matriz[24 horas][n_nodos]}}` con los
     valores redondeados a entero (el navegador solo necesita la precisión
     del color) y los nulos como -1, para que el JSON quepa en unos pocos MB.
-    El tráfico se multiplica por 100 antes de redondear porque llega en
-    "nivel de servicio" (0-3), demasiado pequeño para cuantizar a entero.
+    Las series de tráfico (`traf_now/h1/h3/h6/h1_act`) se multiplican por 100
+    antes de redondear porque llegan en "nivel de servicio" (0-3), demasiado
+    pequeño para cuantizar a entero. No se emite una clave `trafico` aparte:
+    sería idéntica a `traf_h1` (misma columna `y_traf_h1`) -- el cliente lee
+    el modo "trafico" de `traf_h1`.
     """
     idx = {nid: i for i, nid in enumerate(node_ids)}
     out: dict = {}
     for dia, g_dia in df.groupby("day"):
         md: dict = {}
         for clave, (col, _, _, _) in _METRICAS.items():
+            # `trafico` usa la columna `y_traf_h1`, idéntica byte a byte a la
+            # serie `traf_h1` que se emite justo debajo -> no se duplica en el
+            # JSON (~100 KB/día); el cliente lee el modo "trafico" de `traf_h1`.
+            if clave == "trafico":
+                continue
             arr = [[-1] * len(node_ids) for _ in range(24)]
             for h, nid, v in zip(g_dia["hour"], g_dia["node_id"], g_dia[col]):
                 if pd.notna(v):
-                    arr[int(h)][idx[nid]] = round(float(v) * (100 if clave == "trafico" else 1))
+                    arr[int(h)][idx[nid]] = round(float(v))
             md[clave] = arr
         # Series de tráfico por horizonte de previsión (para el selector
         # ahora/+1h/+3h/+6h) más la observación real a +1h, que el cliente
@@ -332,9 +342,19 @@ _TEMPLATE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Madrid — mapa animado del grafo</title>
-<script src="__DECKGL_CDN__"></script>
-<link href="__MAPLIBRE_CSS_CDN__" rel="stylesheet">
-<script src="__MAPLIBRE_JS_CDN__"></script>
+<meta name="description" content="Mapa animado del grafo urbano de Madrid: previsión de tráfico y calidad del aire hora a hora sobre 1798 nodos, con recorrido guiado y asistente de datos.">
+<meta name="theme-color" content="#0b1220">
+<meta name="color-scheme" content="dark light">
+<!-- Optimización de carga: abrir conexiones a los CDN cuanto antes y empezar
+     la descarga de los JSON grandes durante el parseo del <head>, en paralelo
+     con la librería del mapa (que se carga al final del <body>, no bloquea el
+     primer pintado). -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
+<link rel="preconnect" href="https://tiles.basemaps.cartocdn.com" crossorigin>
+<link rel="dns-prefetch" href="https://tiles-a.basemaps.cartocdn.com">
+<link rel="preload" as="fetch" href="./meta.json" crossorigin>
+<link rel="preload" as="fetch" href="./data.json" crossorigin>
 <style>
   :root { color-scheme: light dark; }
   html,body { margin:0; height:100%; font-family:system-ui,Segoe UI,Roboto,sans-serif; }
@@ -460,8 +480,8 @@ _TEMPLATE = r"""<!doctype html>
     <div class="row" aria-label="Basemap vectorial (opcional)">
       <span class="muted">basemap:</span>
       <select id="basemap" aria-label="Basemap vectorial">
-        <option value="voyager">Carto Voyager (calles)</option>
         <option value="positron">Carto Positron (claro)</option>
+        <option value="voyager">Carto Voyager (calles)</option>
         <option value="dark-matter">Carto Dark Matter (oscuro)</option>
         <option value="ninguno">ninguno (sin tiles)</option>
       </select>
@@ -534,6 +554,14 @@ _TEMPLATE = r"""<!doctype html>
   </div>
 </div>
 
+<!-- La librería del mapa (deck.gl ~365 KB + maplibre ~210 KB gzip) se carga
+     aquí, al final del <body>: así el esqueleto de la interfaz (paneles,
+     timeline, leyenda) pinta de inmediato con el CSS, sin esperar ~575 KB de
+     JS. El script de la app va justo después y los usa en cuanto están. -->
+<link href="__MAPLIBRE_CSS_CDN__" rel="stylesheet">
+<script src="__DECKGL_CDN__"></script>
+<script src="__MAPLIBRE_JS_CDN__"></script>
+
 <script>
 // Interfaz del mapa. `META` (estático), `DATA` (valores por día/hora/nodo) y
 // `WX` (meteo) se cargan de tres JSON al final del fichero; `state` guarda lo
@@ -545,7 +573,7 @@ let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
   view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
   layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false},
-  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"voyager",
+  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"positron",
 };
 
 // El mapa base es una instancia de maplibre-gl (dueña de la cámara) y los
@@ -611,7 +639,7 @@ function _saludPerfilHora(h){
   const sw = w.traf+w.no2+w.o3+w.noise;
   const md = DATA[state.day];
   return META.coords.map((_,i)=>{
-    const traf=md.trafico[h][i], no2=md.no2[h][i], o3=md.o3[h][i];
+    const traf=md.traf_h1[h][i], no2=md.no2[h][i], o3=md.o3[h][i];  // `trafico` === `traf_h1`, no duplicado en data.json
     const db = META.ruido_distrito[META.distrito[i]];
     if(no2<0||o3<0) return -1;
     const carga = (w.traf*_n("traf", traf<0?0:traf) + w.no2*_n("no2",no2) + w.o3*_n("o3",o3)
