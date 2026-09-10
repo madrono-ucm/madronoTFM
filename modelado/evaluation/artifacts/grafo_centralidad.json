@@ -1,0 +1,227 @@
+{
+ "_nota": "CONECTADO_CON modela UN viaje representativo por línea; la red está poco mallada por construcción. La centralidad vale para el grafo tal como se modela, no para la topología física del metro/EMT.",
+ "n_nodos": 3053,
+ "pagerank_suma": 0.999999,
+ "top_pagerank": [
+  {
+   "parada": "Castellana - José Vasconcelos",
+   "modo": "emt",
+   "grado": 10,
+   "pagerank": 0.001378
+  },
+  {
+   "parada": "Santo Domingo",
+   "modo": "emt",
+   "grado": 9,
+   "pagerank": 0.001169
+  },
+  {
+   "parada": "Plaza Castilla",
+   "modo": "emt",
+   "grado": 8,
+   "pagerank": 0.000972
+  },
+  {
+   "parada": "Basílica De Atocha",
+   "modo": "emt",
+   "grado": 8,
+   "pagerank": 0.000919
+  },
+  {
+   "parada": "Cardenal Cisneros",
+   "modo": "emt",
+   "grado": 7,
+   "pagerank": 0.00088
+  },
+  {
+   "parada": "Begoñahospital La Paz",
+   "modo": "emt",
+   "grado": 8,
+   "pagerank": 0.000879
+  },
+  {
+   "parada": "O'Donnell",
+   "modo": "emt",
+   "grado": 9,
+   "pagerank": 0.000874
+  },
+  {
+   "parada": "Alvarado",
+   "modo": "emt",
+   "grado": 7,
+   "pagerank": 0.000863
+  },
+  {
+   "parada": "Intercambiador Plaza Elíptica",
+   "modo": "emt",
+   "grado": 8,
+   "pagerank": 0.000858
+  },
+  {
+   "parada": "Neptuno",
+   "modo": "emt",
+   "grado": 8,
+   "pagerank": 0.000853
+  },
+  {
+   "parada": "La Latina",
+   "modo": "emt",
+   "grado": 7,
+   "pagerank": 0.000846
+  },
+  {
+   "parada": "Alcalá - Puerta De Alcalá",
+   "modo": "emt",
+   "grado": 8,
+   "pagerank": 0.000824
+  }
+ ],
+ "top_intermediacion": [
+  {
+   "parada": "Canillejas",
+   "modo": "emt",
+   "grado": 6,
+   "intermediacion": 0.31427
+  },
+  {
+   "parada": "Metro O Donnell",
+   "modo": "emt",
+   "grado": 8,
+   "intermediacion": 0.29107
+  },
+  {
+   "parada": "Aeropuerto T1 - Salidas",
+   "modo": "emt",
+   "grado": 4,
+   "intermediacion": 0.25856
+  },
+  {
+   "parada": "O'Donnell",
+   "modo": "emt",
+   "grado": 9,
+   "intermediacion": 0.21332
+  },
+  {
+   "parada": "Hospital Ramón Y Cajal - Consultas",
+   "modo": "emt",
+   "grado": 6,
+   "intermediacion": 0.21071
+  },
+  {
+   "parada": "Avenida De Logroño - Canillejas",
+   "modo": "emt",
+   "grado": 6,
+   "intermediacion": 0.20172
+  },
+  {
+   "parada": "Prado - Atocha",
+   "modo": "emt",
+   "grado": 6,
+   "intermediacion": 0.19364
+  },
+  {
+   "parada": "Sainz De Baranda",
+   "modo": "emt",
+   "grado": 6,
+   "intermediacion": 0.17452
+  },
+  {
+   "parada": "Conde Casal",
+   "modo": "emt",
+   "grado": 5,
+   "intermediacion": 0.16698
+  },
+  {
+   "parada": "Museo Reina Sofía",
+   "modo": "emt",
+   "grado": 6,
+   "intermediacion": 0.16609
+  },
+  {
+   "parada": "Puente De Los Capuchinos",
+   "modo": "emt",
+   "grado": 4,
+   "intermediacion": 0.14494
+  },
+  {
+   "parada": "Alcalá - Puerta De Alcalá",
+   "modo": "emt",
+   "grado": 8,
+   "intermediacion": 0.13336
+  }
+ ],
+ "comunidades": {
+  "n_comunidades": 54,
+  "n_barrios": 131,
+  "modularidad": 0.932,
+  "ARI_vs_barrios": 0.362,
+  "NMI_vs_barrios": 0.754,
+  "comunidades_que_juntan_barrios": [
+   {
+    "comunidad": 53,
+    "barrios": [
+     "156",
+     "155",
+     "044",
+     "052",
+     "053",
+     "154"
+    ],
+    "n_barrios": 11,
+    "n_nodos": 285
+   },
+   {
+    "comunidad": 52,
+    "barrios": [
+     "044",
+     "051",
+     "045",
+     "052",
+     "046",
+     "042"
+    ],
+    "n_barrios": 10,
+    "n_nodos": 266
+   },
+   {
+    "comunidad": 20,
+    "barrios": [
+     "022",
+     "026",
+     "012",
+     "035",
+     "021",
+     "025"
+    ],
+    "n_barrios": 9,
+    "n_nodos": 241
+   },
+   {
+    "comunidad": 50,
+    "barrios": [
+     "083",
+     "084",
+     "085",
+     "094",
+     "087",
+     "065"
+    ],
+    "n_barrios": 9,
+    "n_nodos": 425
+   },
+   {
+    "comunidad": 47,
+    "barrios": [
+     "117",
+     "112",
+     "126",
+     "125",
+     "115",
+     "127"
+    ],
+    "n_barrios": 9,
+    "n_nodos": 161
+   }
+  ]
+ }
+}
