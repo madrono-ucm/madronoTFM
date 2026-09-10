@@ -2,7 +2,7 @@
 kind: vic-eval
 title: "QA — anclaje temporal del asistente (FIL_84): un momento explícito gana, sin env no cambia nada"
 owner: Claude (QA)
-status: pending
+status: done
 depends_on: [FIL_84]
 created_at: "2026-09-10"
 ---
@@ -43,3 +43,14 @@ FIL_84 añade `ASSISTANT_ANCHOR_DATE` + `ahora_o_ancla()` en
 - Tests de FIL_84 verdes + un caso por tool de "momento explícito gana".
 - Suite `asistente/` verde con y sin `ASSISTANT_ANCHOR_DATE`.
 - `infra/OPERACION.md` documenta la env y el valor de despliegue.
+
+## Hecho (2026-09-10, Claude QA)
+
+Los 7 puntos verificados (código + suite real + un script empírico para
+el punto 7). Sin bugs de comportamiento. Un hallazgo de limpieza técnica
+(`DIAS_CURADOS` duplicado en `asistente/timeutils.py` y
+`viz/build_prevision_animada.py`, sin fuente única) -> abierto `FIL_90`,
+mismo patrón que `FIL_87` de hoy, no arreglado inline (fuera del alcance
+de este ticket). `infra/OPERACION.md` ya documentaba `ASSISTANT_ANCHOR_
+DATE` y su valor de despliegue. Detalle completo en
+[`doc/VIC-44-eval-anclaje-temporal.md`](../doc/VIC-44-eval-anclaje-temporal.md).
