@@ -95,13 +95,21 @@ def nombres_transporte(g: dict, G_conn: nx.Graph) -> "dict[str, str]":
 
 # ---------------------------------------------------------------------------
 
-def centralidad_transporte(G_conn: nx.Graph, nombres: "dict[str, str] | None" = None) -> pd.DataFrame:
+def centralidad_transporte(
+    G_conn: nx.Graph, nombres: "dict[str, str] | None" = None,
+    bet_inicial: "dict | None" = None,
+) -> pd.DataFrame:
+    """`bet_inicial`: betweenness ya calculado sobre el componente mayor
+    (mismo `seed=42`), para no recalcularlo si ya lo tiene el llamador --
+    `main()` lo comparte con `curva_robustez`, que necesita exactamente el
+    mismo valor para su paso 0 (`FIL_85`: antes se calculaba dos veces con
+    entradas idénticas)."""
     nombres = nombres or {}
     comp = max(nx.connected_components(G_conn), key=len)
     H = G_conn.subgraph(comp).copy()
     logger.info("CONECTADO_CON: %d nodos, %d aristas; componente mayor %d",
                 G_conn.number_of_nodes(), G_conn.number_of_edges(), H.number_of_nodes())
-    bet = nx.betweenness_centrality(H, normalized=True, seed=42)
+    bet = bet_inicial if bet_inicial is not None else nx.betweenness_centrality(H, normalized=True, seed=42)
     clo = nx.closeness_centrality(H)
     pr = nx.pagerank(H)  # FIL_81: centralidad tipo "flujo de navegación"
     deg = dict(H.degree())
@@ -297,7 +305,8 @@ def kcore_resumen(G_conn: nx.Graph) -> dict:
 
 
 def curva_robustez(G_conn: nx.Graph, frac_max: float = 0.10, recalc_cada: int = 25,
-                   reps_aleatorio: int = 5, seed: int = 42) -> dict:
+                   reps_aleatorio: int = 5, seed: int = 42,
+                   bet_inicial: "dict | None" = None) -> dict:
     """Curva de fragmentación de `CONECTADO_CON` bajo dos regímenes de fallo:
 
     - **dirigido**: quita iterativamente la parada de mayor intermediación,
@@ -305,6 +314,10 @@ def curva_robustez(G_conn: nx.Graph, frac_max: float = 0.10, recalc_cada: int = 
       va quedando (recalcular en cada baja es O(V·E) por paso — inviable a
       esta escala; recalcular por lotes es la aproximación estándar).
     - **aleatorio**: quita nodos al azar; media de `reps_aleatorio` corridas.
+
+    `bet_inicial`: betweenness ya calculado sobre el componente mayor (mismo
+    `seed`), para el paso 0 -- evita recalcular lo mismo que ya calculó
+    `centralidad_transporte` sobre idéntica entrada (`FIL_85`).
 
     Devuelve, para cada régimen, la lista de `(frac_eliminada,
     frac_componente_mayor)`.
@@ -323,7 +336,10 @@ def curva_robustez(G_conn: nx.Graph, frac_max: float = 0.10, recalc_cada: int = 
         if H.number_of_nodes() <= 1:
             break
         if not ranking or i % recalc_cada == 0:
-            bet = nx.betweenness_centrality(H, normalized=True, seed=seed)
+            if i == 0 and bet_inicial is not None:
+                bet = bet_inicial
+            else:
+                bet = nx.betweenness_centrality(H, normalized=True, seed=seed)
             ranking = [x for x, _ in sorted(bet.items(), key=lambda kv: -kv[1])]
         objetivo = next((x for x in ranking if x in H), None)
         if objetivo is None:
@@ -361,8 +377,15 @@ def curva_robustez(G_conn: nx.Graph, frac_max: float = 0.10, recalc_cada: int = 
     }
 
 
-def resiliencia_transporte(G_conn: nx.Graph, nombres: "dict[str, str] | None" = None) -> dict:
-    """Agrega los cuatro análisis de resiliencia de `FIL_64` en un dict."""
+def resiliencia_transporte(
+    G_conn: nx.Graph, nombres: "dict[str, str] | None" = None,
+    bet_inicial: "dict | None" = None,
+) -> dict:
+    """Agrega los cuatro análisis de resiliencia de `FIL_64` en un dict.
+
+    `bet_inicial`: ver `curva_robustez` (`FIL_85`) -- reutiliza el
+    betweenness ya calculado por `centralidad_transporte` en vez de
+    recalcularlo en el paso 0 de la curva de robustez."""
     art = puntos_de_articulacion(G_conn, nombres)
     return {
         "_nota": (
@@ -378,7 +401,7 @@ def resiliencia_transporte(G_conn: nx.Graph, nombres: "dict[str, str] | None" = 
         "puntos_articulacion_top": art,
         "puentes": puentes_por_linea(G_conn),
         "kcore": kcore_resumen(G_conn),
-        "robustez": curva_robustez(G_conn),
+        "robustez": curva_robustez(G_conn, bet_inicial=bet_inicial),
     }
 
 
@@ -529,12 +552,17 @@ def main() -> int:
     G_prox, G_conn = construir_grafos(g)
     nombres = nombres_transporte(g, G_conn)
 
-    cent = centralidad_transporte(G_conn, nombres)
+    # Betweenness del componente mayor, calculado una sola vez y compartido
+    # entre `centralidad_transporte` y el paso 0 de `curva_robustez`, que
+    # antes lo recalculaban por separado sobre la misma entrada (`FIL_85`).
+    bet_inicial = nx.betweenness_centrality(_componente_mayor(G_conn), normalized=True, seed=42)
+
+    cent = centralidad_transporte(G_conn, nombres, bet_inicial=bet_inicial)
     com = comunidades_vs_barrios(g, G_prox)
     cent_json = resumen_centralidad(cent, com)
     svc = stgnn_vs_conectividad(g, G_prox)
     stats = estadisticos(g, G_prox, G_conn)
-    res = resiliencia_transporte(G_conn, nombres)
+    res = resiliencia_transporte(G_conn, nombres, bet_inicial=bet_inicial)
 
     _ART.mkdir(parents=True, exist_ok=True)
     cent.to_csv(_ART / "grafo_centralidad_transporte.csv", index=False)

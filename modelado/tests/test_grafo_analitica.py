@@ -96,6 +96,27 @@ class FuncionesTests(unittest.TestCase):
         for k in ("ARI", "NMI", "modularidad", "n_comunidades", "n_barrios"):
             self.assertIn(k, c)
 
+    def test_centralidad_acepta_betweenness_precalculado(self):  # FIL_85
+        """`bet_inicial` da exactamente el mismo resultado que dejar que
+        `centralidad_transporte` lo calcule por su cuenta -- confirma que
+        reusarlo (para no repetir el cálculo O(V·E) en `curva_robustez`,
+        `main()`) no cambia ninguna cifra."""
+        import networkx as nx
+
+        _, gc = construir_grafos(_G)
+        nm = nombres_transporte(_G, gc)
+        comp = max(nx.connected_components(gc), key=len)
+        H = gc.subgraph(comp).copy()
+        bet = nx.betweenness_centrality(H, normalized=True, seed=42)
+
+        df_normal = centralidad_transporte(gc, nm)
+        df_con_bet = centralidad_transporte(gc, nm, bet_inicial=bet)
+
+        self.assertEqual(
+            df_normal.sort_values("nodo").reset_index(drop=True)["intermediacion"].tolist(),
+            df_con_bet.sort_values("nodo").reset_index(drop=True)["intermediacion"].tolist(),
+        )
+
 
 class ResilienciaTests(unittest.TestCase):
     """FIL_64. Grafo `CONECTADO_CON` sintético: dos "líneas" en cadena
@@ -156,6 +177,35 @@ class ResilienciaTests(unittest.TestCase):
         res = resiliencia_transporte(gc)
         for k in ("n_puntos_articulacion", "puntos_articulacion_top", "puentes", "kcore", "robustez"):
             self.assertIn(k, res)
+
+    def test_curva_robustez_bet_inicial_no_recalcula_el_paso_0(self):  # FIL_85
+        """Con `bet_inicial` dado, el paso 0 del ataque dirigido no debe
+        llamar a `nx.betweenness_centrality` -- verifica que la reutilización
+        realmente evita el cálculo duplicado, no solo que da el mismo
+        número."""
+        import networkx as nx
+        from unittest.mock import patch
+
+        _, gc = construir_grafos(self._g())
+        H0 = gc.subgraph(max(nx.connected_components(gc), key=len)).copy()
+        bet = nx.betweenness_centrality(H0, normalized=True, seed=42)
+
+        with patch(
+            "modelado.grafo_analitica.analisis.nx.betweenness_centrality",
+            wraps=nx.betweenness_centrality,
+        ) as spy:
+            r_con_bet = curva_robustez(gc, frac_max=0.5, recalc_cada=1, reps_aleatorio=1, bet_inicial=bet)
+            llamadas_con_bet = spy.call_count
+
+        with patch(
+            "modelado.grafo_analitica.analisis.nx.betweenness_centrality",
+            wraps=nx.betweenness_centrality,
+        ) as spy:
+            r_sin_bet = curva_robustez(gc, frac_max=0.5, recalc_cada=1, reps_aleatorio=1)
+            llamadas_sin_bet = spy.call_count
+
+        self.assertEqual(llamadas_con_bet, llamadas_sin_bet - 1)
+        self.assertEqual(r_con_bet["dirigido"], r_sin_bet["dirigido"])
 
 
 class ArtefactosTests(unittest.TestCase):
