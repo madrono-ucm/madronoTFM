@@ -16,20 +16,37 @@ así que se leen directamente como JSON de S3 (mismo bucket/convención de
 prefijo que `ingesta/capturas/bronze.py::BronzeWriter`:
 `<dataset>/fecha=YYYY-MM-DD/hora=HH/<archivo>.json`).
 
-## Por qué `GROUP BY <id> ... max_by(<col>, date)` y no el histórico completo
+## Por qué `GROUP BY <id> ... max_by(<col>, date)` sobre el histórico completo
 
 Gold es una serie temporal (una fila por punto/estación **y hora**, o por
 parking/cine **y día**); un nodo del grafo es una entidad única y su
 identidad/ubicación es, en la práctica, constante en el tiempo (mismo
-criterio que ya documenta `grafo/nodos.py::dedupe_nodes`). Traer todo el
-histórico de cada dataset para quedarse solo con `id`/`nombre`/`lat`/`lon`
-sería escanear muchos más bytes de los necesarios (para `trafico`, cientos de
-millones de filas a fecha de la tarea 068) -- cada consulta de este módulo
-agrega en el propio Athena con `GROUP BY <id>` y `max_by(<col>, date)` (se
-queda con el valor de la fila con la fecha más reciente dentro de la
-ventana), acotando además el escaneo a los últimos `_RECENT_WINDOW_DAYS` días
-con un filtro de partición (Athena solo lee esas particiones gracias a la
-Partition Projection de la tarea 068).
+criterio que ya documenta `grafo/nodos.py::dedupe_nodes`). Cada consulta de
+este módulo agrega en el propio Athena con `GROUP BY <id>` y
+`max_by(<col>, date)` (se queda con el valor de la fila con la fecha más
+reciente).
+
+**Sin filtro de ventana reciente (`FIL_89`)**: hasta esta corrección, la
+mayoría de estas consultas acotaban además el escaneo a los últimos 14 días
+con un filtro de partición sobre `current_date` real (Athena solo leía esas
+particiones gracias a la Partition Projection de la tarea 068) -- una
+optimización de coste pensada para una ingesta en continuo. Con la ingesta
+**congelada desde 2026-08-30** (ver `NEXT_STEPS.md`), esa ventana desliza
+sobre el reloj real mientras los datos reales quedan fijos: cada día que
+pasa sin reanudar la ingesta, la ventana pierde datos reales en silencio (sin
+error, sin excepción, solo cada vez menos filas) hasta devolver un conjunto
+vacío -- verificado que ocurriría entre el 13 y el 14 de septiembre de 2026,
+días antes de la entrega. Se quitó el filtro por completo para las 7
+consultas afectadas, con el mismo criterio que ya usaban
+`fetch_estaciones_meteo`/`fetch_recintos_eventos_silver` desde el principio:
+son conjuntos pequeños o moderados (el mayor, `trafico_por_punto_hora`, es
+del orden de un millón de filas con la ingesta congelada) y la identidad de
+la entidad no caduca, así que escanear el histórico completo es correcto y
+barato -- y, sobre todo, no depende de cuándo se ejecute la consulta. Si la
+ingesta se reanuda en producción durante meses o años, esta decisión debería
+revisitarse (volver a acotar por partición, pero anclado a una fecha
+conocida en vez de al reloj real, mismo patrón que `ASSISTANT_ANCHOR_DATE`
+en `asistente/timeutils.py`).
 
 ## `lat`/`lon` planas (Gold) -> `location` anidada (lo que espera `nodos.py`)
 
@@ -72,10 +89,6 @@ SILVER_DATABASE = os.environ.get("ATHENA_SILVER_DATABASE", "madrono-tfm_dev_silv
 GOLD_DATABASE = os.environ.get("ATHENA_GOLD_DATABASE", "madrono-tfm_dev_gold")
 BRONZE_BUCKET = os.environ.get("BRONZE_BUCKET", "madrono-tfm-dev-bronze-222234418587")
 
-# Ventana de días sobre la que se agrega cada consulta Gold (ver docstring del
-# módulo, "Por qué GROUP BY... y no el histórico completo").
-_RECENT_WINDOW_DAYS = 14
-
 _TERMINAL_STATES = {"SUCCEEDED", "FAILED", "CANCELLED"}
 _INTEGER_TYPES = {"tinyint", "smallint", "integer", "int", "bigint"}
 _FLOAT_TYPES = {"float", "double", "decimal", "real"}
@@ -97,16 +110,6 @@ def _cast_athena_value(value: Optional[str], athena_type: str):
         except ValueError:
             return value
     return value
-
-
-def _recent_date_filter(column: str = "date") -> str:
-    """Filtro de partición para acotar el escaneo a los últimos
-    `_RECENT_WINDOW_DAYS` días (comparación de texto: los valores de
-    partición son `string` con formato `yyyy-MM-dd`, que ordena igual que un
-    `date` real)."""
-    return (
-        f"{column} >= date_format(date_add('day', -{_RECENT_WINDOW_DAYS}, current_date), '%Y-%m-%d')"
-    )
 
 
 def run_athena_query(
@@ -223,15 +226,15 @@ def _split_csv(row: dict, *keys: str) -> dict:
 
 
 def fetch_estaciones_trafico(athena_client=None) -> "list[dict]":
-    """Un registro por `point_id` con su ubicación más reciente (ventana de
-    `_RECENT_WINDOW_DAYS` días), listo para `nodos.estaciones_medida_from_trafico_gold`."""
-    sql = f"""
+    """Un registro por `point_id` con su ubicación más reciente, sobre el
+    histórico completo (`FIL_89`; ver docstring del módulo), listo para
+    `nodos.estaciones_medida_from_trafico_gold`."""
+    sql = """
         SELECT point_id,
                max_by(subarea, date) AS subarea,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM trafico_por_punto_hora
-        WHERE {_recent_date_filter()}
         GROUP BY point_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
@@ -241,15 +244,15 @@ def fetch_estaciones_trafico(athena_client=None) -> "list[dict]":
 def fetch_estaciones_calidad_aire(athena_client=None) -> "list[dict]":
     """`contaminantes` (FIL_66): la lista de contaminantes que la estación
     mide de hecho -- cada estación mide un subconjunto distinto, así que sin
-    esto no se puede pedir "la más cercana que mida O₃"."""
-    sql = f"""
+    esto no se puede pedir "la más cercana que mida O₃". Sobre el histórico
+    completo (`FIL_89`; ver docstring del módulo)."""
+    sql = """
         SELECT station_id,
                max_by(station_name, date) AS station_name,
                array_join(array_sort(array_agg(DISTINCT pollutant)), ',') AS contaminantes,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM calidad_aire_por_estacion_contaminante_hora
-        WHERE {_recent_date_filter()}
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
@@ -257,14 +260,14 @@ def fetch_estaciones_calidad_aire(athena_client=None) -> "list[dict]":
 
 
 def fetch_estaciones_ruido(athena_client=None) -> "list[dict]":
-    sql = f"""
+    """Sobre el histórico completo (`FIL_89`; ver docstring del módulo)."""
+    sql = """
         SELECT station_id,
                max_by(station_name, date) AS station_name,
                max_by(altitude_m, date) AS altitude_m,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM ruido_por_estacion_periodo_fecha
-        WHERE {_recent_date_filter()}
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
@@ -319,17 +322,17 @@ def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dic
     propios), así que no hace falta agrupar también por `mode` para
     identificar el nodo.
 
-    **Sin `_recent_date_filter()`, a diferencia de trafico/calidad_aire/ruido**
-    (verificado el 28/8, Prioridad 7 de `NEXT_STEPS.md`): la fuente municipal
-    de aforos peatones/bicicletas está descontinuada desde 2024-06-30, así
-    que todo el Gold real (1971 filas, 83 estaciones) tiene `date =
-    '2024-06-30'`. Un filtro "últimos 14 días" deja la consulta en 0 filas y
-    los nodos de aforos nunca entran al grafo (tarea 087) pese a que la tabla
-    tiene datos -- exactamente lo que ocurría hasta esta fecha. La ventana
-    reciente existe para acotar el escaneo en series vivas de cientos de
-    millones de filas; aquí la tabla entera son ~2000 filas, así que
-    escanearla completa para quedarse con la última ubicación conocida por
-    estación (`max_by(col, date)`) es correcto y barato."""
+    **Sin ventana reciente** (verificado el 28/8, Prioridad 7 de
+    `NEXT_STEPS.md`; el resto de `fetch_*` de este módulo dejó de usar
+    ventana también, ver `FIL_89`): la fuente municipal de aforos peatones/
+    bicicletas está descontinuada desde 2024-06-30, así que todo el Gold
+    real (1971 filas, 83 estaciones) tiene `date = '2024-06-30'`. Un filtro
+    "últimos 14 días" deja la consulta en 0 filas y los nodos de aforos
+    nunca entran al grafo (tarea 087) pese a que la tabla tiene datos --
+    exactamente lo que ocurría hasta esta fecha. Aquí la tabla entera son
+    ~2000 filas, así que escanearla completa para quedarse con la última
+    ubicación conocida por estación (`max_by(col, date)`) es correcto y
+    barato."""
     sql = """
         SELECT station_id,
                max_by(address, date) AS address,
@@ -353,24 +356,24 @@ def fetch_estaciones_aforos_peatones_bicicletas(athena_client=None) -> "list[dic
 def fetch_paradas_emt(athena_client=None) -> "list[dict]":
     """Gold de `transporte_publico_emt` no trae nombre ni ubicación de parada
     (ver `grafo/nodos.py::parada_transporte_from_transporte_publico_emt_gold`)
-    -- solo hace falta la identidad (`stop_id`)."""
-    sql = f"""
+    -- solo hace falta la identidad (`stop_id`). Sobre el histórico completo
+    (`FIL_89`; ver docstring del módulo)."""
+    sql = """
         SELECT DISTINCT stop_id
         FROM transporte_publico_emt_por_parada_hora
-        WHERE {_recent_date_filter()}
     """
     return run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
 
 
 def fetch_paradas_bicimad(athena_client=None) -> "list[dict]":
-    sql = f"""
+    """Sobre el histórico completo (`FIL_89`; ver docstring del módulo)."""
+    sql = """
         SELECT station_id,
                max_by(name, date) AS name,
                max_by(docks_total, date) AS docks_total,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM bicimad_por_estacion_hora
-        WHERE {_recent_date_filter()}
         GROUP BY station_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
@@ -384,14 +387,14 @@ def fetch_paradas_bicimad(athena_client=None) -> "list[dict]":
 
 
 def fetch_lugares_aparcamientos(athena_client=None) -> "list[dict]":
-    sql = f"""
+    """Sobre el histórico completo (`FIL_89`; ver docstring del módulo)."""
+    sql = """
         SELECT parking_id,
                max_by(name, date) AS name,
                max_by(total_spaces, date) AS total_spaces,
                max_by(lat, date) AS lat,
                max_by(lon, date) AS lon
         FROM aparcamientos_por_parking_hora
-        WHERE {_recent_date_filter()}
         GROUP BY parking_id
     """
     rows = run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)
@@ -405,12 +408,12 @@ def fetch_lugares_cartelera_cines(athena_client=None) -> "list[dict]":
     A fecha de esta tarea, Gold de este dataset sigue vacío (bug ya conocido
     desde la tarea 063: el job Silver->Gold no recibe `--extra-py-files`) --
     esta consulta devuelve `[]` sin ningún error, no es un bug de esta tarea
-    (ver docstring del módulo y `grafo/README.md`)."""
-    sql = f"""
+    (ver docstring del módulo y `grafo/README.md`). Sobre el histórico
+    completo (`FIL_89`; ver docstring del módulo)."""
+    sql = """
         SELECT cinema_id,
                max_by(cinema_name, date) AS cinema_name
         FROM cartelera_cines_estrenos_por_pelicula_cine_fecha
-        WHERE {_recent_date_filter()}
         GROUP BY cinema_id
     """
     return run_athena_query(sql, GOLD_DATABASE, athena_client=athena_client)

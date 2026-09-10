@@ -378,6 +378,47 @@ class FetchGoldNodeSourcesTests(unittest.TestCase):
 
         self.assertEqual(result, [])
 
+    def test_sin_ventana_reciente_ninguna_fetch_gold_depende_del_reloj(self):
+        """FIL_89: con la ingesta congelada desde el 30/8, una ventana de
+        "últimos N días" sobre `current_date` real pierde datos reales en
+        silencio según pasan los días (verificado: se habría vaciado del
+        todo entre el 13 y el 14/9, días antes de la entrega). Ninguna de
+        estas 7 consultas debe depender ya del reloj real -- mismo criterio
+        que ya usaban `fetch_estaciones_meteo`/`fetch_recintos_eventos_silver`
+        desde el principio (ver `test_fetch_estaciones_meteo`)."""
+        columns_by_fn = {
+            extract.fetch_estaciones_trafico: [
+                _column("point_id", "varchar"), _column("lat", "double"), _column("lon", "double"),
+            ],
+            extract.fetch_estaciones_calidad_aire: [
+                _column("station_id", "varchar"), _column("station_name", "varchar"),
+                _column("lat", "double"), _column("lon", "double"),
+            ],
+            extract.fetch_estaciones_ruido: [
+                _column("station_id", "varchar"), _column("station_name", "varchar"),
+                _column("lat", "double"), _column("lon", "double"),
+            ],
+            extract.fetch_paradas_emt: [_column("stop_id", "varchar")],
+            extract.fetch_paradas_bicimad: [
+                _column("station_id", "varchar"), _column("name", "varchar"),
+                _column("lat", "double"), _column("lon", "double"),
+            ],
+            extract.fetch_lugares_aparcamientos: [
+                _column("parking_id", "varchar"), _column("name", "varchar"),
+                _column("lat", "double"), _column("lon", "double"),
+            ],
+            extract.fetch_lugares_cartelera_cines: [
+                _column("cinema_id", "varchar"), _column("cinema_name", "varchar"),
+            ],
+        }
+        for fn, columns in columns_by_fn.items():
+            with self.subTest(fn=fn.__name__):
+                client = FakeAthenaClient(columns, [])
+                fn(athena_client=client)
+                sql = client.start_query_execution_calls[0]["QueryString"]
+                self.assertNotIn("current_date", sql)
+                self.assertNotIn("WHERE", sql)
+
 
 class FetchBronzeOnlySourcesTests(unittest.TestCase):
     """Fuentes sin Silver/Gold: lectura JSON directa de S3, sin Athena."""
