@@ -324,6 +324,25 @@ un `pip install` puntual, pero por debajo del 20 % recomendado; el
 redimensionado de EBS de arriba es la vía para un margen holgado y
 duradero de cara al cierre (17/9).
 
+## Asistente web (EC2 `MadronoHouse`) — variables de entorno de servicio
+
+El servicio `madrono-web.service` (`uvicorn asistente.main:app`, tras nginx,
+ver `doc/FIL-63`) lee del entorno de la unit systemd
+(`/etc/systemd/system/madrono-web.service`, líneas `Environment=`) más el
+`start-madrono-web.sh` que inyecta los `NEO4J_*` de SSM:
+
+| Variable | Valor de despliegue | Para qué |
+|---|---|---|
+| `AWS_DEFAULT_REGION` | `eu-west-1` | Athena / SSM (FIL_63) |
+| `ASSISTANT_ANCHOR_DATE` | `2026-08-26` | **FIL_84** — día "de hoy" por defecto cuando una tool no recibe `momento`. Sin esto, las tools usan el reloj real y no hay datos (ingesta congelada desde 2026-08-30). Uno de los 3 días curados del mapa (`2026-08-19` / `2026-08-23` / `2026-08-26`). |
+| `ASSISTANT_CACHE_TTL` | `900` | **FIL_83** — TTL (s) de la caché de `run_athena_query`/`run_neo4j_query`. `0` la desactiva. |
+
+Aplicar un cambio: editar la unit, `sudo systemctl daemon-reload &&
+sudo systemctl restart madrono-web`, y `curl -s localhost:8000/health`.
+Redeploy de código: `cd /home/ubuntu/repos/madronoTFM && sudo -u ubuntu git
+fetch origin main && sudo -u ubuntu git reset --hard origin/main && sudo
+systemctl restart madrono-web`.
+
 ## Rellenar huecos horarios de Silver/Gold (`--backfill_fecha`, FIL_12)
 
 Si un dataset horario (`trafico`, `calidad_aire`, `meteorologia`, `bicimad`,
