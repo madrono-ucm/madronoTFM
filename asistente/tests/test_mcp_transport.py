@@ -27,14 +27,11 @@ from mcp.shared.memory import create_client_server_memory_streams
 
 from asistente.mcp_agent import tools
 from asistente.mcp_agent.server import mcp
+from asistente.mcp_agent.server import NOMBRES_TOOLS
 
-_ESPERADAS = {
-    "afluencia_estimada", "afluencia_prevista", "calidad_aire",
-    "calidad_aire_prevista", "calidad_aire_prevista_grafo", "calidad_aire_episodio", "calidad_aire_cams", "meteo_cercana", "avisos_meteo",
-    "trafico_cercano", "trafico_prevista", "trafico_prevista_grafo",
-    "opciones_movilidad", "disponibilidad_aparcamiento", "eventos_cercanos",
-    "ruta_saludable", "contexto_urbano", "consulta_grafo", "mejor_hora_zona",
-}
+# El conjunto esperado se deriva del registro único (`server.TOOLS`, FIL_93);
+# antes era una lista dura que había que actualizar a mano con cada tool.
+_ESPERADAS = set(NOMBRES_TOOLS)
 
 
 def _aire_mock(instante: datetime, n=25):
@@ -90,7 +87,7 @@ async def _run_client(escenario):
 
 
 class TransporteEnMemoriaTests(unittest.TestCase):
-    def test_list_tools_expone_las_19(self):
+    def test_list_tools_coincide_con_el_registro(self):
         async def escenario(session):
             return await session.list_tools()
 
