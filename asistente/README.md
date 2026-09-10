@@ -6,15 +6,12 @@ movilidad y vida urbana de Madrid (p.ej. «¿voy al centro a las nueve de la
 noche del viernes?») con un veredicto, un nivel de fiabilidad y una
 explicación trazable a los datos.
 
-**Estado (tras `FIL_82`): 19 `tools`, todas con lógica real.** Este
-directorio define la estructura del servicio y el esquema de su respuesta.
-La tabla completa de las 19 `tools` (fuentes, introducidas en qué tarea)
-vive más abajo en "Las 19 `tools` del agente MCP". El resto de esta sección narra el
-origen histórico de las 7 primeras (esqueleto de la tarea 044 + `trafico_
-cercano`/`calidad_aire_prevista`); las 12 añadidas después (`FIL_13` en
-adelante) no tienen aquí su propia narrativa — ver su `doc/FIL-NN-...md`
-respectivo.
-`calidad_aire`
+**Estado: todas las `tools` tienen lógica real** — ninguna con
+`NotImplementedError`. El número exacto y la lista viven en un solo sitio
+(`asistente/mcp_agent/server.py::TOOLS`) y la tabla de abajo se genera desde
+ahí con `python -m asistente.gen_tabla_tools` (FIL_93). Este directorio
+define la estructura del servicio, el esquema de su respuesta y la interfaz
+de las `tools`. `calidad_aire`
 (tarea 079) y `disponibilidad_aparcamiento` (tarea 090) leen datos reales de
 Gold vía Athena directamente (una sola tabla cada una, sin grafo).
 `trafico_cercano` (tarea 081) y `afluencia_estimada` (tarea 089) son las
@@ -47,18 +44,12 @@ de `ML_07` (LightGBM multi-horizonte de `ML_03`, exportado; copia vendida en
 `asistente/modelos/`) sobre las 19 features de `modelado/export/CONTRATO.md`,
 construidas a partir de las últimas 24 h de Gold. Ancla el forecast en la
 última hora con lectura real (Gold va con retraso) y baja la fiabilidad si
-faltan features históricas. Las 19 están montadas como agente MCP dentro
-de la app FastAPI y expuestas también por HTTP (`GET /calidad-aire`,
-`GET /calidad-aire-prevista`, `GET /calidad-aire-prevista-grafo`,
-`GET /calidad-aire-episodio`, `GET /calidad-aire-cams`, `GET /meteo-cercana`,
-`GET /avisos-meteo`, `GET /trafico-cercano`, `GET /trafico-prevista`,
-`GET /trafico-prevista-grafo`, `GET /afluencia-estimada`,
-`GET /afluencia-prevista`, `GET /disponibilidad-aparcamiento`,
-`GET /eventos-cercanos`, `GET /opciones-movilidad`, `GET /ruta-saludable`,
-`GET /contexto-urbano`, `GET /consulta-grafo`, `GET /mejor-hora-zona`) —
-verificado con invocaciones reales contra la cuenta AWS de este proyecto,
-incluida la instancia real de Neo4j (ver "Verificación real" más abajo). No
-queda ninguna `tool` con `NotImplementedError`.
+faltan features históricas. Todas están montadas como agente MCP dentro de
+la app FastAPI y expuestas también por HTTP (un endpoint por tool, ver la
+tabla de «Las `tools` del agente MCP» más abajo) — verificado con
+invocaciones reales contra la cuenta AWS de este proyecto, incluida la
+instancia real de Neo4j (ver "Verificación real" más abajo). No queda
+ninguna `tool` con `NotImplementedError`.
 
 ## Por qué solo `calidad_aire` en esta tarea
 
@@ -95,8 +86,8 @@ asistente/
     respuesta.py                # RespuestaAsistente: veredicto/fiabilidad/explicación/fuentes
     herramientas.py               # Modelos de retorno de cada tool MCP
   mcp_agent/
-    server.py                     # Instancia de MCPServer + registro de las 6 tools
-    tools.py                       # las 6 tools, todas con lógica real (opciones_movilidad, tarea 096, es la última)
+    server.py                     # Instancia de MCPServer + `TOOLS` (registro único) + add_tool()
+    tools.py                       # las funciones de cada tool, todas con lógica real
   tests/
     test_app.py                     # La app arranca y /health responde
     test_mcp_tools.py                 # calidad_aire/trafico_cercano/disponibilidad_aparcamiento/eventos_cercanos (mockeando Athena/Neo4j) + firma/docstring/registro del resto
@@ -262,11 +253,38 @@ fallan, la tool devuelve el objeto con `disponible=False`,
 `valor_previsto=None` y `motivo` explicativo (cubierto por
 `asistente/tests/test_mcp_hardening.py` y `test_mcp_transport.py`).
 
-## Las 19 `tools` del agente MCP
+## Las `tools` del agente MCP
 
-De la memoria (apartado 6.7). **Todas tienen lógica real** — ninguna
-`NotImplementedError` (`FIL_29` limpió esta tabla, que databa de antes de
-las tareas 090/095/096). Registro y anotaciones: `asistente/mcp_agent/server.py`.
+De la memoria (apartado 6.7). Registro y anotaciones:
+`asistente/mcp_agent/server.py`.
+
+<!-- TOOLS:INI (generado por `python -m asistente.gen_tabla_tools`; no editar a mano) -->
+**19 tools**, todas con lógica real (ninguna con `NotImplementedError`). Generado desde `asistente/mcp_agent/server.py::TOOLS`.
+
+| tool | endpoint HTTP | qué hace |
+|---|---|---|
+| `afluencia_estimada` | `GET /afluencia-estimada` | Afluencia estimada ahora |
+| `afluencia_prevista` | `GET /afluencia-prevista` | Afluencia prevista |
+| `calidad_aire` | `GET /calidad-aire` | Calidad del aire ahora |
+| `calidad_aire_prevista` | `GET /calidad-aire-prevista` | Calidad del aire prevista |
+| `calidad_aire_prevista_grafo` | `GET /calidad-aire-prevista-grafo` | Calidad del aire prevista (modelo de grafo) |
+| `calidad_aire_episodio` | `GET /calidad-aire-episodio` | Probabilidad de episodio de contaminación |
+| `calidad_aire_cams` | `GET /calidad-aire-cams` | Calidad del aire previsión Copernicus CAMS |
+| `meteo_cercana` | `GET /meteo-cercana` | Meteorología observada cerca de un lugar |
+| `avisos_meteo` | `GET /avisos-meteo` | Avisos meteorológicos AEMET |
+| `trafico_cercano` | `GET /trafico-cercano` | Tráfico cerca de un lugar |
+| `trafico_prevista` | `GET /trafico-prevista` | Tráfico previsto |
+| `trafico_prevista_grafo` | `GET /trafico-prevista-grafo` | Tráfico previsto (modelo de grafo) |
+| `opciones_movilidad` | `GET /opciones-movilidad` | Opciones de movilidad entre dos puntos |
+| `disponibilidad_aparcamiento` | `GET /disponibilidad-aparcamiento` | Disponibilidad de aparcamiento |
+| `eventos_cercanos` | `GET /eventos-cercanos` | Eventos cercanos |
+| `ruta_saludable` | `GET /ruta-saludable` | Ruta saludable entre dos lugares |
+| `contexto_urbano` | `GET /contexto-urbano` | Contexto urbano multi-salto de un lugar |
+| `consulta_grafo` | `GET /consulta-grafo` | Consulta parametrizada del grafo urbano (Neo4j) |
+| `mejor_hora_zona` | `GET /mejor-hora-zona` | Mejor hora del día para una zona |
+<!-- TOOLS:FIN -->
+
+### Procedencia y fuentes por tool
 
 | Tool | Fuente(s) | Introducida en |
 |---|---|---|

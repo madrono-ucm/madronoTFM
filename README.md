@@ -42,7 +42,7 @@ flowchart LR
     end
 
     subgraph Asis["asistente/ — FastAPI + servidor MCP"]
-        T["19 tools: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista (incl. STGNN vía grafo),<br/>consulta_grafo, ruta_saludable, mejor_hora_zona, …"]
+        T["tools MCP: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista (incl. STGNN vía grafo),<br/>consulta_grafo, ruta_saludable, mejor_hora_zona, …"]
     end
 
     P --> B --> G1 --> S --> G2 --> G
@@ -121,6 +121,34 @@ Sin credenciales, `initialize` + `list_tools` funcionan igual (descubrimiento)
 y cada `call_tool` degrada con un `motivo` legible en vez de fallar. Detalle
 del contrato de respuesta y de las tools: [`asistente/README.md`](asistente/README.md).
 
+<!-- TOOLS:INI (generado por `python -m asistente.gen_tabla_tools`; no editar a mano) -->
+**19 tools**, todas con lógica real (ninguna con `NotImplementedError`). Generado desde `asistente/mcp_agent/server.py::TOOLS`.
+
+| tool | endpoint HTTP | qué hace |
+|---|---|---|
+| `afluencia_estimada` | `GET /afluencia-estimada` | Afluencia estimada ahora |
+| `afluencia_prevista` | `GET /afluencia-prevista` | Afluencia prevista |
+| `calidad_aire` | `GET /calidad-aire` | Calidad del aire ahora |
+| `calidad_aire_prevista` | `GET /calidad-aire-prevista` | Calidad del aire prevista |
+| `calidad_aire_prevista_grafo` | `GET /calidad-aire-prevista-grafo` | Calidad del aire prevista (modelo de grafo) |
+| `calidad_aire_episodio` | `GET /calidad-aire-episodio` | Probabilidad de episodio de contaminación |
+| `calidad_aire_cams` | `GET /calidad-aire-cams` | Calidad del aire previsión Copernicus CAMS |
+| `meteo_cercana` | `GET /meteo-cercana` | Meteorología observada cerca de un lugar |
+| `avisos_meteo` | `GET /avisos-meteo` | Avisos meteorológicos AEMET |
+| `trafico_cercano` | `GET /trafico-cercano` | Tráfico cerca de un lugar |
+| `trafico_prevista` | `GET /trafico-prevista` | Tráfico previsto |
+| `trafico_prevista_grafo` | `GET /trafico-prevista-grafo` | Tráfico previsto (modelo de grafo) |
+| `opciones_movilidad` | `GET /opciones-movilidad` | Opciones de movilidad entre dos puntos |
+| `disponibilidad_aparcamiento` | `GET /disponibilidad-aparcamiento` | Disponibilidad de aparcamiento |
+| `eventos_cercanos` | `GET /eventos-cercanos` | Eventos cercanos |
+| `ruta_saludable` | `GET /ruta-saludable` | Ruta saludable entre dos lugares |
+| `contexto_urbano` | `GET /contexto-urbano` | Contexto urbano multi-salto de un lugar |
+| `consulta_grafo` | `GET /consulta-grafo` | Consulta parametrizada del grafo urbano (Neo4j) |
+| `mejor_hora_zona` | `GET /mejor-hora-zona` | Mejor hora del día para una zona |
+<!-- TOOLS:FIN -->
+
+_(La tabla de arriba se regenera con `python -m asistente.gen_tabla_tools`; CI la comprueba.)_
+
 ## Demo end-to-end
 
 [`notebooks/demo_madrono.ipynb`](notebooks/demo_madrono.ipynb) recorre el
@@ -134,7 +162,7 @@ comandos con datos completos: `doc/VIKT-06-recorrido-e2e.md`.
 **En vivo: https://d2obcdu8duk47f.cloudfront.net** (usuario y contraseña de
 demo: `demo` / `demo`)
 
-Landing + chat en lenguaje natural sobre las 19 tools del asistente, vía Groq
+Landing + chat en lenguaje natural sobre las tools del asistente, vía Groq
 (`FIL_62`, `FIL_63`). Front estático (`web/index.html`, sin dependencias) en
 S3 + CloudFront (Origin Access Control, bucket privado). Backend FastAPI
 (`asistente/`) en la misma EC2 que el daemon de ingesta, detrás de nginx con
@@ -187,7 +215,7 @@ de integración end-to-end (`tests/integracion/`, `doc/FIL-18-...md`).
 | `infra/` | Terraform del lakehouse, Glue, Lambda, Athena, IAM, observabilidad. `OPERACION.md` = runbook. `kafka/` = diseño de la ruta caliente (sin aplicar). |
 | `grafo/` | Construcción del grafo urbano en Neo4j (`:Lugar`, `:EstacionMedida`, `PROXIMO_A`) desde Gold + OSM. |
 | `modelado/` | Feature store, entrenamiento LightGBM/STGNN, evaluación, MLflow registry, export a ONNX. |
-| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/tools.py` = las 19 tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo` STGNN de grafo `FIL_26`/`FIL_31`, `ruta_saludable` `FIL_37`, `contexto_urbano` `FIL_53`, `mejor_hora_zona` `FIL_46`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. |
+| `asistente/` | App FastAPI + servidor MCP. `mcp_agent/server.py::TOOLS` = registro único de las tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo` STGNN de grafo `FIL_26`/`FIL_31`, `ruta_saludable` `FIL_37`, `contexto_urbano` `FIL_53`, `mejor_hora_zona` `FIL_46`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. Tabla y conteo: `python -m asistente.gen_tabla_tools`. |
 | `herramientas/` | Scripts de operación: `costes/` (estimación de gasto), `salud/` (frescura de Gold, FIL_16). |
 | `viz/` | Mapa animado del grafo (`FIL_32`–`FIL_36`): scripts de build offline, `mapa/` (HTML deck.gl + JSON), `data/gold_slices/` (snapshot Gold congelado), `PROGRESO_MAPA.md`. |
 | `tests/` | Test de integración end-to-end (el resto de tests vive junto a su paquete). |
