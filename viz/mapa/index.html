@@ -133,8 +133,10 @@
     <div class="muted" id="legrange" style="display:flex;justify-content:space-between"></div>
     <div id="leg-bandas" class="muted" style="display:none;margin-top:4px"></div>
     <div class="row"><button id="ghost">modelo vs persistencia (E2)</button></div>
-    <div class="muted" style="margin-top:4px">Arcos = 15 conexiones más influyentes del STGNN
-      (importancia estática, grosor ∝ importancia, color animado por el tráfico). Clic en un nodo → detalle.</div>
+    <div class="muted" style="margin-top:4px">Arcos = las 15 conexiones más influyentes del STGNN
+      (top-15 global, grosor ∝ importancia, color animado por el tráfico). Dos nodos —#5768 y
+      #4848— concentran la mayoría: son los concentradores de flujo del modelo. Clic en un nodo →
+      detalle, con sus aristas resaltadas.</div>
   </section>
 
   <section class="sec" data-sec="salud" aria-label="Salud · perfil de sensibilidad">
@@ -413,12 +415,20 @@ function layers(){
   if(state.layers.tex && !state.clean)
     L.push(new LineLayer({id:"tex", data:META.tex, getSourcePosition:d=>META.coords[d[0]],
       getTargetPosition:d=>META.coords[d[1]], getColor:[150,170,200,10], getWidth:1}));
-  if(!state.clean)
+  if(!state.clean){
+    // Con un nodo seleccionado, las aristas que lo tocan van a plena
+    // intensidad y el resto se atenúan — así se lee qué conecta con qué.
+    const arcOn = d => selNode==null || d.s===selNode || d.t===selNode;
+    const arcTint = (d,v) => { const c = arcCol(v).slice(); if(!arcOn(d)) c[3] = Math.round(c[3]*0.16); return c; };
     L.push(new ArcLayer({id:"imp", data:META.arcs,
       getSourcePosition:d=>META.coords[d.s], getTargetPosition:d=>META.coords[d.t],
-      getSourceColor:d=>arcCol(trafNow[d.s]), getTargetColor:d=>arcCol(trafNow[d.t]),
-      getWidth:d=>0.8+3*d.w, getHeight:0.16,
-      updateTriggers:{getSourceColor:[state.day,state.hour,state.hz], getTargetColor:[state.day,state.hour,state.hz]}}));
+      getSourceColor:d=>arcTint(d, trafNow[d.s]), getTargetColor:d=>arcTint(d, trafNow[d.t]),
+      getWidth:d=>(0.8+3*d.w)*(arcOn(d)?1:0.45), getHeight:0.16,
+      updateTriggers:{
+        getSourceColor:[state.day,state.hour,state.hz,selNode],
+        getTargetColor:[state.day,state.hour,state.hz,selNode],
+        getWidth:[selNode]}}));
+  }
   const onNode = info => { if(info.index!=null){ selNode=info.index; state.tab="a"; syncTabs(); render(); } };
   // incluye perfil y escala: con la métrica "salud (perfil)" fija, cambiar de
   // perfil o de escala (lineal<->bandas) recolorea los nodos aunque metric no cambie
@@ -531,6 +541,19 @@ function spark(svg, series, colors, lo, hi){
     + `<line x1="${x(state.hour)}" y1="0" x2="${x(state.hour)}" y2="${H}" stroke="#89a" stroke-width="1" stroke-dasharray="2 2"/>`;
 }
 
+// Cuántas de las 15 aristas más influyentes del STGNN tocan cada nodo.
+// `importancia_aristas` es un top-15 GLOBAL, no una adyacencia por nodo:
+// #5768 sale en 8 y #4848 en 6 (son los concentradores de flujo del
+// modelo), el resto en 1. Memoizado.
+let _impDeg = null;
+function impDeg(){
+  if(_impDeg) return _impDeg;
+  _impDeg = {};
+  (META.arcs||[]).forEach(a=>{ _impDeg[a.s]=(_impDeg[a.s]||0)+1; _impDeg[a.t]=(_impDeg[a.t]||0)+1; });
+  return _impDeg;
+}
+const HUB_MIN = 3;
+
 function edgePane(){
   if(selNode==null) return;
   const md = DATA[state.day], id = META.node_id ? META.node_id[selNode] : selNode;
@@ -543,10 +566,42 @@ function edgePane(){
   const no2 = Array.from({length:24}, (_,h)=>md.no2[h][selNode]);
   const o3  = Array.from({length:24}, (_,h)=>md.o3[h][selNode]);
   spark(document.getElementById("ea-spark-a"), [no2,o3], ["#c58bff","#9adf9a"], 0, 140);
-  const tocan = META.arcs.filter(a=>a.s===selNode||a.t===selNode).map(a=> (a.s===selNode?a.t:a.s)+" (w="+a.w+")");
-  document.getElementById("ea-imp").textContent = tocan.length
-    ? "aristas influyentes del STGNN que tocan este nodo: "+tocan.join(", ")
-    : "este nodo no está en el top-15 de importancia_aristas.";
+
+  const box = document.getElementById("ea-imp");
+  box.textContent = "";
+  const mine = META.arcs
+    .filter(a=>a.s===selNode||a.t===selNode)
+    .map(a=>({ otro:(a.s===selNode?a.t:a.s), dir:(a.s===selNode?"influye":"influido por"), w:a.w }))
+    .sort((x,y)=>y.w-x.w);
+  if(!mine.length){
+    box.className = "muted";
+    box.textContent = "Este nodo no está en el top-15 de aristas influyentes del STGNN.";
+    return;
+  }
+  box.className = "";
+  const n = impDeg()[selNode] || mine.length;
+  const cab = document.createElement("div");
+  if(n >= HUB_MIN){
+    cab.style.cssText = "color:#ffd27f;font-weight:600;margin-bottom:4px";
+    cab.textContent = "Nodo concentrador — "+n+" de las 15 aristas más influyentes del STGNN pasan por aquí.";
+  } else {
+    cab.className = "muted"; cab.style.marginBottom = "4px";
+    cab.textContent = "Aristas influyentes del STGNN que tocan este nodo (dirección · peso):";
+  }
+  box.appendChild(cab);
+  mine.forEach(m=>{
+    const nid = META.node_id ? META.node_id[m.otro] : m.otro;
+    const pct = Math.max(4, Math.round(m.w*100));
+    const r = document.createElement("div");
+    r.style.cssText = "display:flex;align-items:center;gap:6px;margin:2px 0;font-size:11px";
+    r.innerHTML =
+      "<span style='color:#c8d4df;white-space:nowrap'>"+(m.dir==="influye"?"→":"←")+" #"+nid+"</span>"
+     +"<span style='color:#9fb0c0;white-space:nowrap'>"+m.dir+"</span>"
+     +"<span style='flex:1;height:6px;background:#2c3644;border-radius:3px'>"
+     +"<span style='display:block;height:100%;border-radius:3px;width:"+pct+"%;background:#7fd1ff'></span></span>"
+     +"<span style='color:#9fb0c0;width:26px;text-align:right'>"+m.w.toFixed(2)+"</span>";
+    box.appendChild(r);
+  });
 }
 
 function syncTabs(){
