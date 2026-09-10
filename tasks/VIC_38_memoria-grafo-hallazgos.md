@@ -2,10 +2,83 @@
 kind: vic-eval
 title: "Memoria — integrar los hallazgos de grafo (FIL_52/64/65/66/67) en §6 y §7"
 owner: Víctor / Claude (QA)
-status: pending
+status: done
 created_at: "2026-09-09"
 depends_on: [FIL_52, FIL_64, FIL_65, FIL_66, FIL_67, VIC_34, VIC_36]
 ---
+
+## Hecho (2026-09-10, Claude)
+
+Escrito directamente en `documents/Memoria_TFM FV.docx` con `python-docx`,
+anclando cada edición por subcadena única (nunca por índice de párrafo
+contado a mano — un error de desfase así ya causó ediciones en el sitio
+equivocado en una sesión anterior). Antes de escribir se releyó el `.docx`
+completo de cero: **el trabajo de la sesión anterior (ticket `VIKT_12`,
+14 tools/app web/mapa/secretos) nunca había llegado a aplicarse de
+verdad** — un `git reset --hard origin/main` externo se llevó por delante
+ese commit local antes de que se hiciera `git push`. Se rehizo todo ese
+contenido en la misma pasada, ya con las cifras reales de hoy (**19**
+tools, no 14 — `FIL_79`-`83` aterrizaron entre medias).
+
+**§6.6** (tras el párrafo de Athena/Neo4j): dos párrafos nuevos — el patrón
+medallion→grafo («dónde y qué hay cerca» = nodos, «qué valor en el
+tiempo» = Gold, «qué valor tendrá» = `modelado/`) con la explicación de
+por qué `agenda_eventos`/`aforos`/`transporte_publico_emt` no aportan
+nodos propios; y el inventario final verificado por `VIC_34` (9806 nodos,
+5 labels, 76002 relaciones, 4 tipos).
+
+**§6.7**: de 7 a 19 tools, reagrupadas en 3 familias (antes 4, ya no
+distinguía previsión ONNX de previsión-grafo como familias separadas —
+ahora conviven en "previsión y contraste"). Tres párrafos nuevos: la
+aplicación web (`FIL_62`/`63`, con nota de que el LLM es Groq con
+proveedor/modelo configurables — el modelo por defecto ha cambiado ya dos
+veces desde que se desplegó, así que no se fija un nombre concreto en la
+memoria), la visualización animada del grafo (`FIL_36`+), y una tercera
+superficie no contemplada por `VIKT_12`: el explorador del grafo en vivo
+(`FIL_67` Parte 3, consulta Neo4j en directo con el chat incrustado).
+
+**§7.1**: segunda instancia de "7 tools" corregida a 19 (la primera vez
+solo se había corregido la de §6.7, no esta).
+
+**§7.3** (antes de §7.4): nueva subsección de analítica de grafo —
+centralidad/comunidades (`FIL_52`/`VIC_41`: top-3 PageRank e
+intermediación, 54 comunidades vs 131 barrios, NMI/ARI) y resiliencia
+(`FIL_64`/`VIC_36`: 683 puntos de articulación, 39,6 %/89,1 % de
+fragmentación dirigida/aleatoria) **con el matiz de `FIL_86`
+incorporado en el propio texto** — el 39,6 % se presenta explícitamente
+como cota optimista, no como cifra ajustada, porque `VIC_36` demostró que
+el recálculo por lotes de la curva subestima el daño real. Insertada
+también la Figura 2 (`grafo_resiliencia.png`, imagen real embebida con
+`python-docx`, mismo patrón que la Figura 1 existente) y un párrafo sobre
+la correlación STGNN↔grafo (ρ pasó de 0,34 no significativo a 0,64
+significativo tras `FIL_66`, cifra verificada en el artefacto committeado
+`modelado/evaluation/artifacts/grafo_stgnn_vs_conectividad.json`).
+
+**§7.4**: ventana de entrenamiento fija por la congelación del 30/8
+(ya no "hasta 4 semanas"); cron de reentrenamiento ya no descrito como
+pendiente (`doc/105` lo da por instalado y verificado); tres bullets
+nuevos — alertado parcial (`FIL_16`), autenticación de demostración de la
+app web, y los atributos de `FIL_66` sobre la ventana congelada (con las
+cifras reales de `VIC_34`: `contaminantes`/`magnitudes` completos,
+`subarea` 4413/4705, no "salió fino" como asumía este ticket antes de
+verificarse — corregido para no repetir una suposición no confirmada).
+
+**§7.5**: dos líneas futuras obsoletas corregidas — el export de STGNN a
+ONNX ya no "habilitaría" ninguna tool (las basadas en STGNN ya sirven
+nativas); el hueco de `ML_01` (meteo/festivos) ya estaba cerrado desde el
+29/8 y ha sido sustituido por la deuda real con 7.3 (las dos ablaciones
+descartadas).
+
+**Anexo C**: URLs de la app web y el mapa animado, más el comando para
+regenerar la analítica de grafo.
+
+Verificado tras guardar: el documento sigue abriendo con `python-docx`
+(163 párrafos, 145+18 insertados), grep de "siete herramientas"/"7 tools"
+sin resultados, grep de las cifras/términos nuevos con hits en las
+secciones esperadas, y la imagen nueva confirmada como un `w:drawing`
+real (no una coincidencia de subcadena en el XML de namespaces).
+
+Commit `docs(memoria): VIC_38 - ...` en `main`, empujado a `origin`.
 
 ## Contexto
 

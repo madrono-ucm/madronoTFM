@@ -43,6 +43,54 @@ Word Online) — it does not merge in git.
 Word Online turn-taking — coordinate before editing further so this doesn't
 collide with in-progress manual edits.
 
+## `VIC_08`–`VIC_33` — technical evaluation rounds (not memoria writing)
+
+Seven rounds of technical QA/eval tickets (`doc/VIC-08-...` through
+`doc/VIC-33-...`) covering `ingesta/`, `procesamiento/`, `grafo/`,
+`asistente/`, `modelado/`, `infra/terraform/`, CI/daemon/costes, security
+(bandit/pip-audit/checkov/detect-secrets), lint (ruff), types (mypy), test
+coverage, and independent verification of `FIL_16/17`'s AWS apply and
+`FIL_55`'s browser-real map fix. **All 26 done** (see each `tasks/VIC_NN_*.md`
+and its paired `doc/VIC-NN-*.md` report) — not itemized here individually
+since they're technical evals, not memoria sections; `VIC_15`/`VIC_20`
+already reconciled their findings into the `.docx`.
+
+## `VIC_34`–`VIC_43` — QA + memoria pass after the 2026-09-09/10 burst (`FIL_64`–`83`)
+
+A fast burst of engineering landed between the `VIKT_*` close-out and
+2026-09-10 — the graph densified (`FIL_65`/`66`/`67`), tool count went
+14→19 (`FIL_46`, `FIL_67` `consulta_grafo`, `FIL_79`–`83`), and new
+analytics shipped (`FIL_52`/`64` centrality+resilience, `FIL_81`
+centrality artifact). These 10 tickets QA'd all of it and closed the gap
+in the memoria.
+
+| Ticket | Qué | Toca `.docx` | Estado |
+|---|---|---|---|
+| `VIC_34` | Verificación agregada de la instancia Neo4j real tras `FIL_65`/`66`/`67` (conteos, huérfanos, atributos, schema) | No | ✅ **done 10/9 (Claude)** — limpio, 0 bugs; snapshot offline 27 nodos por detrás anotado (housekeeping, sin ticket) |
+| `VIC_35` | QA de `consulta_grafo` (15ª tool, `FIL_67`) — solo lectura, contrato de degradación, guard anti-escritura, compat de `contexto_urbano` | No (código) | ✅ **done 10/9 (Claude)** — endureció `run_neo4j_query` con `access_mode="READ"`; abrió `FIL_89` (ventana deslizante de `grafo/extract.py` expirará ~13-14/9, antes de la entrega) |
+| `VIC_36` | QA de la analítica de resiliencia (`FIL_64`): puntos de articulación, puentes, k-core, curva de robustez | Sí (vía `VIC_38`) | ✅ **done 10/9 (Claude)** — abrió `FIL_86` (el recálculo por lotes subestima el daño ~0,77 en un subgrafo de contraste); texto de memoria matizado ya incorporado por `VIC_38` |
+| `VIC_37` | Consistencia documental tras 14→15→19 tools (recuento, endpoints, `grafo/consulta.py`) | No | ✅ **done 10/9 (Claude)** — `asistente/README.md` seguía en "7 tools"; corregido en README raíz, `asistente/README.md`, `grafo/README.md`, `infra/OPERACION.md`, `_INSTRUCCIONES` |
+| `VIC_38` | Integrar los hallazgos de grafo (`FIL_52/64/65/66/67`) en §6 y §7 de la memoria | **Sí** | ✅ **done 10/9 (Claude)** — ver el propio `tasks/VIC_38_memoria-grafo-hallazgos.md` para el detalle completo; también rehizo el contenido de `VIKT_12` que se había perdido (ver nota abajo) |
+| `VIC_39` | QA de `calidad_aire_episodio` (16ª tool, `FIL_79`) | No | ✅ **done 10/9 (Claude)** — abrió `FIL_87` (umbrales OMS/UE duplicados en 4 ficheros, sin módulo único) |
+| `VIC_40` | QA de `calidad_aire_cams` (17ª tool, `FIL_80`) + contraste en `calidad_aire_prevista` | No | ✅ **done 10/9 (Claude)** — sin bug nuevo; arregló una brecha de aislamiento de tests que dejaba el contraste CAMS sin cobertura real |
+| `VIC_41` | QA de `grafo_centralidad` (`FIL_81`): PageRank/Louvain, artefacto, explorador | No | ✅ **done 10/9 (Claude)** — abrió `FIL_85` (betweenness recalculado dos veces con la misma entrada) |
+| `VIC_42` | QA de `meteo_cercana`+`avisos_meteo` (18ª/19ª tools, `FIL_82`) | No | ✅ **done 10/9 (Claude)** — abrió `FIL_88` (`meteo_cercana` no degrada fiabilidad por frescura, a diferencia de sus hermanas) |
+| `VIC_43` | QA de la caché TTL + vistas Athena (`FIL_83`) | No | ✅ **done 10/9 (Claude)** — sin bug de producción; arregló contaminación de caché entre tests (17 tests flaky con `ASSISTANT_CACHE_TTL=900`) |
+
+**Nota sobre `VIKT_12`**: una sesión anterior había preparado y comiteado
+localmente el contenido de `VIKT_12` (14 tools, app web, mapa animado,
+secretos/alertado) pero nunca llegó a hacer `git push` — un
+`git reset --hard origin/main` externo se llevó ese commit por delante
+antes de que se subiera. `VIC_38` lo detectó al releer el `.docx` de cero
+(seguía en "siete herramientas") y rehizo todo ese contenido en la misma
+pasada, ya con las cifras reales de hoy (19 tools, no 14). Lección para
+quien edite el `.docx` en el futuro: **hacer `git push` inmediatamente
+después de cada commit que lo toque**, no acumular trabajo local.
+
+Nuevos tickets `FIL_*` abiertos por esta ronda: `FIL_85`, `FIL_86`,
+`FIL_87`, `FIL_88`, `FIL_89` — ninguno bloqueante para la entrega, pero
+`FIL_89` tiene fecha límite real (empieza a fallar en silencio ~13-14/9).
+
 ## Cross-cutting: claims in the June draft that must change
 
 - "Apache Kafka / Kafka Connect / Avro" → EventBridge Scheduler + Lambda;
