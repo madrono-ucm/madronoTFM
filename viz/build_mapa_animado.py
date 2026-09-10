@@ -328,7 +328,7 @@ def main() -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"  (rutas.json omitido: {exc})")
 
-    png = _frame_strip_png(df, "2026-08-26")
+    png = _frame_strip_png(df, "2026-08-26")  # uno de los DIAS_CURADOS (FIL_90); actualizar a mano si cambian
 
     for p in ("index.html", "meta.json", "data.json", "weather.json"):
         kb = (_OUT / p).stat().st_size / 1024
@@ -1103,6 +1103,7 @@ const CAPITULOS = [
    a:()=>setEstado({metric:"dosis_o3", ghost:false, escala:"bandas", hour:16, route:-1})},
   {t:"3 · Laborable vs domingo",
    d:"El mismo O₃ en domingo (08-23): sin la punta de tráfico laboral, el patrón del aire cambia. Compara con el capítulo 2 (miércoles).",
+   // "2026-08-23" es uno de los DIAS_CURADOS (FIL_90); actualizar a mano si cambian
    a:()=>setEstado({metric:"dosis_o3", day:"2026-08-23", escala:"bandas", hour:16, route:-1})},
   {t:"4 · Ruta saludable vs rápida",
    d:"Sol → Atocha, perfil ciclista: la ruta verde (saludable) evita ~27 % de exposición ponderada frente a la gris (la más corta) a las 8:00.",

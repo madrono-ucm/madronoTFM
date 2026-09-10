@@ -46,6 +46,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from asistente import prevision_grafo  # noqa: E402
+from asistente.timeutils import DIAS_CURADOS as DIAS  # noqa: E402
 from modelado.features.build import _DEFAULT_FESTIVOS, _cargar_festivos  # noqa: E402
 
 _VIZ = Path(__file__).resolve().parent
@@ -53,7 +54,8 @@ _SLICES = _VIZ / "data" / "gold_slices"
 _OUT = _VIZ / "data" / "prevision_animada.parquet"
 _GRAFO = json.loads((_VIZ / "grafo_madrid.json").read_text(encoding="utf-8"))
 
-DIAS = ("2026-08-19", "2026-08-23", "2026-08-26")
+# DIAS = asistente.timeutils.DIAS_CURADOS (import de arriba, FIL_90) -- antes
+# era una copia independiente que podía desincronizarse en silencio.
 HORIZONTES = (1, 3, 6)
 _POLL = ("NO2", "O3")
 

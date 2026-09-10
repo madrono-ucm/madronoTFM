@@ -2,7 +2,7 @@
 kind: fil
 title: "DIAS_CURADOS duplicado en asistente/timeutils.py y viz/build_prevision_animada.py sin módulo compartido"
 owner: Sistema
-status: pending
+status: done
 found_by: "VIC_44 (QA de anclaje temporal, FIL_84)"
 created_at: "2026-09-10"
 ---
@@ -61,3 +61,24 @@ Ningún bug funcional hoy — los tres coinciden, verificado por `VIC_44`.
 Baja / no bloqueante para la entrega del 17/9 -- los tres coinciden hoy,
 verificado por `VIC_44`. Es limpieza técnica, mismo criterio de prioridad
 que `FIL_87`.
+
+## Hecho (2026-09-10, Claude)
+
+`viz/build_prevision_animada.py` importa `DIAS_CURADOS` de
+`asistente.timeutils` como `DIAS` (`from asistente.timeutils import
+DIAS_CURADOS as DIAS`) en vez de mantener su propia tupla -- mismo patrón
+que `asistente/umbrales.py` en `FIL_87`, y consistente con que `viz/` ya
+importa de `asistente/` en ese mismo fichero
+(`from asistente import prevision_grafo`). Verificado: `bpa.DIAS is
+DIAS_CURADOS` (mismo objeto, no solo mismo valor) -- ya no puede
+divergir, no hace falta un test de igualdad porque no hay dos valores que
+comparar.
+
+Los dos literales sueltos de `viz/build_mapa_animado.py` (línea del frame
+por defecto y el pie del capítulo 3 del tour guiado) se dejaron como
+literales -- por lo que decía el propio ticket, parametrizarlos no
+compensa el coste para solo 2 sitios -- pero con un comentario `FIL_90`
+que remite a `DIAS_CURADOS` para quien los toque en el futuro.
+
+Suite `tests/test_prevision_animada.py` + `tests/test_mapa_animado.py` +
+`asistente/tests/`: 258 passed, 57 subtests, sin fallos.
