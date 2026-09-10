@@ -21,7 +21,7 @@ ONNX vendorizados. El pipeline sigue congelado.
 - `git log --oneline -- viz/` es la línea temporal del entregable.
 - Esta tabla es la fuente de verdad del estado.
 
-| URL publicada | **https://madrono-ucm.github.io/madronoTFM/** (rama `gh-pages`, `FIL_42`) · local: `python -m http.server -d viz/mapa` |
+| URL publicada | **https://madrono-ucm.github.io/madronoTFM/** (rama `gh-pages`, `FIL_42`) · explorador del grafo en vivo: **https://35-42-164-183.nip.io/grafo/explorador** (`demo`/`demo`, `FIL_67`/`FIL_68`) · local: `python -m http.server -d viz/mapa` |
 |---|---|
 | Estado | **spine M1–M6 completo + FIL_38 + FIL_42 + FIL_43 + M4c (47/48/49) + M4b (45) — todo mergeado** (2026-08-31; objetivo M6 era 09-14) |
 | Bloqueos | — (G8 resuelto: Pages sirve `gh-pages`/`root`; mapa refrescado con la corrección de `FIL_43`) |
