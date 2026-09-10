@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#C81E3A">
 <title>Madroño</title>
+<!-- Endpoint del backend (EC2, FIL_63). Se puede sobreescribir sin editar
+     este fichero con `?api=<url>` en la URL. -->
+<meta name="madrono-api" content="https://35-42-164-183.nip.io">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -213,6 +217,19 @@
   }
   .msg.bot.pending { color: var(--ink-soft); font-style: italic; }
   .msg.bot.error { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+  .msg.bot.error .retry {
+    display: inline-block;
+    margin-top: 8px;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
 
   .suggestions { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 12px; flex-shrink: 0; scrollbar-width: none; }
   .suggestions::-webkit-scrollbar { display: none; }
@@ -308,7 +325,8 @@
         <button class="primary" type="submit" id="login-btn">Entrar</button>
         <div class="alert" id="login-err"></div>
       </form>
-      <p class="hint">Acceso de demostración — <a href="https://madrono-ucm.github.io/madronoTFM/" target="_blank" rel="noopener">ver el mapa animado del grafo →</a></p>
+      <p class="hint">Acceso de demostración — <a href="https://madrono-ucm.github.io/madronoTFM/" target="_blank" rel="noopener">ver el mapa animado del grafo →</a><br>
+        <span style="opacity:.8">No es seguridad real: usuario y contraseña de demo, sobre datos 100&nbsp;% abiertos y sin información personal.</span></p>
     </div>
   </section>
 
@@ -323,7 +341,7 @@
         <button class="logout" id="logout-btn">Salir</button>
       </header>
     </div>
-    <div id="msgs"></div>
+    <div id="msgs" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación con el asistente"></div>
     <div class="suggestions" id="suggestions">
       <button data-q="¿Cómo está el tráfico cerca de Atocha?">🚗 Tráfico en Atocha</button>
       <button data-q="¿Cómo está la calidad del aire en Retiro?">🌬️ Aire en Retiro</button>
@@ -333,7 +351,7 @@
     <div class="composer-bar">
       <form id="composer">
         <div class="field-wrap">
-          <input id="input" type="text" placeholder="Escribe tu pregunta sobre Madrid..." autocomplete="off">
+          <input id="input" type="text" placeholder="Escribe tu pregunta sobre Madrid..." autocomplete="off" aria-label="Tu pregunta sobre Madrid">
         </div>
         <button type="submit" aria-label="Enviar">➤</button>
       </form>
@@ -352,10 +370,21 @@
 // DNS, no una IP, para emitir un certificado real (antes autofirmado, con
 // el navegador bloqueando en silencio el fetch() del login con
 // ERR_CERT_AUTHORITY_INVALID; ver doc/FIL-62-app-web-m2-chat-groq.md).
-const API = "https://35-42-164-183.nip.io";
+//
+// FIL_92: endpoint configurable sin editar este fichero -> `?api=<url>` en
+// la URL, luego `<meta name="madrono-api">`, luego el valor por defecto.
+const API = (
+  new URLSearchParams(location.search).get("api")
+  || document.querySelector('meta[name="madrono-api"]')?.content
+  || "https://35-42-164-183.nip.io"
+).replace(/\/+$/, "");
+
+const SIN_MOV = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
 
 let auth = sessionStorage.getItem("madrono_auth");
 let historial = [];
+let ultimoMensaje = null;
 
 function apiFetch(path, opts = {}) {
   return fetch(API + path, {
@@ -364,91 +393,152 @@ function apiFetch(path, opts = {}) {
   });
 }
 
+// Distingue credenciales incorrectas (401) de un backend caído / TLS / CORS
+// (fetch lanza TypeError) de otros errores HTTP -- cada uno con su mensaje.
 async function tryLogin(u, p) {
   auth = btoa(u + ":" + p);
-  const r = await apiFetch("/health");
-  if (!r.ok) { auth = null; return false; }
+  let r;
+  try {
+    r = await apiFetch("/health");
+  } catch {
+    auth = null;
+    return "sin_red";
+  }
+  if (r.status === 401) { auth = null; return "credenciales"; }
+  if (!r.ok) { auth = null; return "backend"; }
   sessionStorage.setItem("madrono_auth", auth);
-  return true;
+  return "ok";
 }
 
+const _ERR_LOGIN = {
+  credenciales: "Usuario o contraseña incorrectos.",
+  backend: "El servicio no está disponible ahora mismo. Inténtalo en unos minutos.",
+  sin_red: "No se pudo contactar con el servidor. Revisa tu conexión e inténtalo de nuevo.",
+};
+
 function showChat() {
-  document.getElementById("login").style.display = "none";
-  document.getElementById("chat-screen").style.display = "flex";
-  document.getElementById("input").focus();
+  $("login").style.display = "none";
+  $("chat-screen").style.display = "flex";
+  $("input").focus();
 }
 
 function addMsg(texto, tipo) {
   const el = document.createElement("div");
   el.className = "msg " + tipo;
   el.textContent = texto;
-  document.getElementById("msgs").appendChild(el);
-  el.scrollIntoView({ block: "end", behavior: "smooth" });
+  $("msgs").appendChild(el);
+  el.scrollIntoView({ block: "end", behavior: SIN_MOV ? "auto" : "smooth" });
   return el;
 }
 
+function addErrorConReintento(texto) {
+  const el = addMsg(texto, "bot error");
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "retry";
+  b.textContent = "Reintentar";
+  b.addEventListener("click", () => { el.remove(); if (ultimoMensaje) enviar(ultimoMensaje); });
+  el.append(document.createElement("br"), b);
+  return el;
+}
+
+function setEnviando(activo) {
+  $("input").disabled = activo;
+  const btnEnviar = $("composer").querySelector('button[type="submit"]');
+  btnEnviar.disabled = activo;
+  btnEnviar.setAttribute("aria-busy", activo ? "true" : "false");
+  btnEnviar.textContent = activo ? "…" : "➤";
+  if (!activo) $("input").focus();
+}
+
 async function enviar(texto) {
-  document.getElementById("suggestions").style.display = "none";
+  ultimoMensaje = texto;
+  $("suggestions").style.display = "none";
   addMsg(texto, "user");
-  const pending = addMsg("Consultando los datos reales de Madrid...", "bot pending");
-  const input = document.getElementById("input");
-  input.disabled = true;
+  const pending = addMsg("Consultando los datos reales de Madrid…", "bot pending");
+  setEnviando(true);
+
+  let error = null;
   try {
     const r = await apiFetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mensaje: texto, historial }),
     });
-    if (r.status === 401) { pending.remove(); logout(); return; }
-    const data = await r.json();
-    historial = data.historial || historial;
-    pending.remove();
-    addMsg(data.respuesta || "(sin respuesta)", "bot");
-  } catch (e) {
-    pending.remove();
-    addMsg("No se pudo contactar con el asistente. Comprueba tu conexión e inténtalo de nuevo.", "bot error");
-  } finally {
-    input.disabled = false;
-    input.focus();
+    if (r.status === 401) {
+      pending.remove();
+      setEnviando(false);
+      logout("Tu sesión ha caducado. Vuelve a entrar.");
+      return;
+    }
+    if (r.status === 429) {
+      error = "El asistente está saturado ahora mismo (límite de uso gratuito). Espera unos segundos y reintenta.";
+    } else if (!r.ok) {
+      error = `El servicio respondió con un error (${r.status}). Inténtalo de nuevo en un momento.`;
+    } else {
+      const data = await r.json().catch(() => null);
+      if (!data || !data.respuesta) {
+        error = "El asistente no devolvió una respuesta. Reformula la pregunta o reinténtalo.";
+      } else {
+        historial = data.historial || historial;
+        pending.remove();
+        addMsg(data.respuesta, "bot");
+        setEnviando(false);
+        return;
+      }
+    }
+  } catch {
+    error = "No se pudo contactar con el asistente. Revisa tu conexión e inténtalo de nuevo.";
   }
+
+  pending.remove();
+  addErrorConReintento(error);
+  setEnviando(false);
 }
 
-function logout() {
+function logout(motivo) {
   sessionStorage.removeItem("madrono_auth");
-  auth = null; historial = [];
-  document.getElementById("msgs").innerHTML = "";
-  document.getElementById("chat-screen").style.display = "none";
-  document.getElementById("login").style.display = "flex";
-  document.getElementById("login-err").textContent = "";
+  auth = null; historial = []; ultimoMensaje = null;
+  $("msgs").innerHTML = "";
+  $("suggestions").style.display = "";
+  $("chat-screen").style.display = "none";
+  $("login").style.display = "flex";
+  $("login-err").textContent = motivo || "";
+  setEnviando(false);
 }
 
-document.getElementById("login-form").addEventListener("submit", async (e) => {
+$("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const btn = document.getElementById("login-btn");
-  const err = document.getElementById("login-err");
-  btn.disabled = true; err.textContent = "";
-  const ok = await tryLogin(document.getElementById("u").value, document.getElementById("p").value).catch(() => false);
+  const btn = $("login-btn");
+  const err = $("login-err");
+  btn.disabled = true;
+  btn.textContent = "Comprobando…";
+  err.textContent = "";
+  const estado = await tryLogin($("u").value, $("p").value).catch(() => "sin_red");
   btn.disabled = false;
-  if (ok) showChat(); else err.textContent = "Usuario o contraseña incorrectos.";
+  btn.textContent = "Entrar";
+  if (estado === "ok") showChat();
+  else err.textContent = _ERR_LOGIN[estado] || _ERR_LOGIN.sin_red;
 });
 
-document.getElementById("composer").addEventListener("submit", (e) => {
+$("composer").addEventListener("submit", (e) => {
   e.preventDefault();
-  const input = document.getElementById("input");
-  const v = input.value.trim();
+  const v = $("input").value.trim();
   if (!v) return;
-  input.value = "";
+  $("input").value = "";
   enviar(v);
 });
 
-document.querySelectorAll("#suggestions button").forEach(b => {
+document.querySelectorAll("#suggestions button").forEach((b) => {
   b.addEventListener("click", () => enviar(b.dataset.q));
 });
 
-document.getElementById("logout-btn").addEventListener("click", logout);
+$("logout-btn").addEventListener("click", () => logout());
 
 if (auth) {
-  apiFetch("/health").then(r => { if (r.ok) showChat(); else sessionStorage.removeItem("madrono_auth"); });
+  apiFetch("/health")
+    .then((r) => { if (r.ok) showChat(); else sessionStorage.removeItem("madrono_auth"); })
+    .catch(() => sessionStorage.removeItem("madrono_auth"));
 }
 </script>
 </body>
