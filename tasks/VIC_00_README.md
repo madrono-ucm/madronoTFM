@@ -103,6 +103,38 @@ ya están arreglados (10/9, Claude, mismo día que se abrieron)**:
 silencio entre el 13 y el 14/9, días antes de la entrega) — ya no es un
 riesgo.
 
+## `VIC_45`–`VIC_53` — Ronda final pre-entrega: análisis profundo + diagramas de todo el documento (15/9)
+
+Con ~30 tickets `FIL_69`–`FIL_99` aterrizados desde el cierre de la ronda
+`VIC_34`-`44` (10/9) — chat con traza de herramientas y catálogo de
+preguntas, explorador del grafo en vivo con chatbot, showcase de las "6
+capas" (`FIL_95`-`99`), pases de UX, observabilidad MCP, `consulta_grafo`
+endurecida — y a 2 días de la entrega (17/9), esta ronda cubre **todo el
+documento**, sección por sección, con dos objetivos por ticket: (1)
+verificar cada afirmación contra el estado real de hoy, no el de hace
+días, y (2) producir un diagrama real donde el texto lo pida (`graphviz`
+instalado en esta sesión: `sudo apt install graphviz` + `pip install
+graphviz` en el `.venv` del proyecto).
+
+**Orden de ejecución recomendado** (los últimos dependen de los primeros):
+`VIC_47` (arquitectura, prioridad 1) y `VIC_50` (explotación, prioridad 2,
+la sección con más churn) primero; luego `VIC_45`/`46`/`48`/`49`/`51` en
+cualquier orden; `VIC_52` después de `VIC_49`/`50`; `VIC_53` **al final**,
+después de todos los demás (numera figuras, hace el pase de consistencia
+global).
+
+| Ticket | Sección(es) | Diagrama | Estado |
+|---|---|---|---|
+| `VIC_45` | §1 Resumen · §2 Palabras clave · §3 Introducción | No (opcional, sugerir a `VIC_46`) | ⬜ pendiente |
+| `VIC_46` | §4 Metodología | Cronograma/fases del proyecto | ⬜ pendiente |
+| `VIC_47` | §5 Arquitectura — **prioridad 1** | Arquitectura completa (sustituye Figura 1) | ⬜ pendiente |
+| `VIC_48` | §6.1–6.4 Fuentes, preparación, flujos | Pipeline Bronze→Silver→Gold | ⬜ pendiente |
+| `VIC_49` | §6.5–6.6 Orquestación, almacenamiento | Orquestación (triggers/cadencia) | ⬜ pendiente |
+| `VIC_50` | §6.7–6.8 Explotación, ética — **prioridad 2** | Secuencia de una consulta end-to-end | ⬜ pendiente |
+| `VIC_51` | §7.1–7.3 Resultados, métricas | Pipeline de `modelado/` | ⬜ pendiente |
+| `VIC_52` | §7.4–7.5 Limitaciones, futuras líneas | No | ⬜ pendiente — depende de `VIC_49`/`50` |
+| `VIC_53` | §8 Anexos + consistencia global final | No (renumera las de arriba) | ⬜ pendiente — depende de todos los anteriores |
+
 ## Cross-cutting: claims in the June draft that must change
 
 - "Apache Kafka / Kafka Connect / Avro" → EventBridge Scheduler + Lambda;
