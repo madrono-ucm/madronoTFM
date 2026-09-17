@@ -1,0 +1,24 @@
+flowchart LR
+    D["Distrito<br/>21"]
+    B["Barrio<br/>131"]
+    EM["EstacionMedida<br/>4867<br/>(tráfico·aire·ruido·<br/>meteo·aforos)"]
+    PT["ParadaTransporte<br/>4056"]
+    L["Lugar<br/>737<br/>(POI·parque·recinto·<br/>aparcamiento·cine)"]
+
+    B -->|PERTENECE_A| D
+    EM -->|UBICADO_EN| B
+    PT -->|UBICADO_EN| B
+    L -->|UBICADO_EN| B
+    EM ---|PROXIMO_A<br/>≤300 m| L
+    EM ---|PROXIMO_A| PT
+    L ---|PROXIMO_A| PT
+    PT ---|CONECTADO_CON<br/>misma línea CRTM| PT
+
+    classDef admin fill:#eef3fb,stroke:#3d6ce0,color:#333;
+    classDef sensor fill:#fbeced,stroke:#d1495b,color:#333;
+    classDef lugar fill:#fdf3e7,stroke:#e8a23c,color:#333;
+    classDef transporte fill:#eef7f0,stroke:#66a182,color:#333;
+    class D,B admin;
+    class EM sensor;
+    class L lugar;
+    class PT transporte;

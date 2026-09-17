@@ -1,0 +1,33 @@
+flowchart LR
+    subgraph SUP["Superficies con chat"]
+        S1["App demo"]
+        S2["Mapa animado<br/>(GitHub Pages)"]
+        S3["Explorador en vivo<br/>(GitHub Pages)"]
+    end
+
+    SUP --> LLM["Modelo de<br/>lenguaje (Groq)"]
+    LLM <-->|MCP| MCP["Agente MCP<br/>19 tools"]
+
+    subgraph F1["Estado actual (8)"]
+        T1["calidad_aire · trafico_cercano<br/>afluencia_estimada · aparcamiento<br/>eventos · movilidad · meteo · avisos"]
+    end
+    subgraph F2["Previsión y contraste (7)"]
+        T2["*_prevista (ONNX)<br/>*_prevista_grafo (STGNN)<br/>episodio · CAMS · afluencia_prevista"]
+    end
+    subgraph F3["Consulta relacional (4)"]
+        T3["ruta_saludable · contexto_urbano<br/>consulta_grafo · mejor_hora_zona"]
+    end
+
+    MCP --> F1 & F2 & F3
+    F1 --> D1[("Athena / Neo4j")]
+    F2 --> D2[("ONNX / STGNN")]
+    F3 --> D3[("Neo4j")]
+
+    classDef sup fill:#fff7e0,stroke:#c8a600,color:#333;
+    classDef llm fill:#eef3fb,stroke:#3d6ce0,color:#333;
+    classDef fam fill:#f5eefb,stroke:#8a5fc9,color:#333;
+    classDef data fill:#eef7f0,stroke:#66a182,color:#333;
+    class S1,S2,S3 sup;
+    class LLM,MCP llm;
+    class T1,T2,T3 fam;
+    class D1,D2,D3 data;
