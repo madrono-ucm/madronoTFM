@@ -42,7 +42,13 @@ flowchart LR
     end
 
     subgraph Asis["asistente/ — FastAPI + servidor MCP"]
-        T["tools MCP: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista (incl. STGNN vía grafo),<br/>consulta_grafo, ruta_saludable, mejor_hora_zona, …"]
+        T["19 tools MCP: calidad_aire, trafico_cercano,<br/>afluencia_estimada, *_prevista (incl. STGNN vía grafo),<br/>consulta_grafo, ruta_saludable, mejor_hora_zona, …"]
+    end
+
+    subgraph Explo["Explotación pública — un único backend, tres caras"]
+        WEB["App demo<br/>(S3 + CloudFront)"]
+        MAPA["Mapa animado<br/>(GitHub Pages)"]
+        EXPL["Explorador en vivo<br/>(GitHub Pages)"]
     end
 
     P --> B --> G1 --> S --> G2 --> G
@@ -52,8 +58,13 @@ flowchart LR
     A --> MF --> OX --> T
     A --> T
     N --> T
-    T -->|stdio / HTTP| Cliente["Cliente MCP<br/>(Claude Desktop, …)"]
+    T --> WEB & MAPA & EXPL
 ```
+
+Las tres superficies de la última fila comparten el mismo backend
+conversacional (mismo agente MCP, mismo chat) — el mapa animado y el
+explorador, publicados gratis en GitHub Pages, llevan el chat incrustado
+directamente en la página, no son solo un enlace a la app de demostración.
 
 **Fuera de alcance / línea futura (§7.5 de la memoria), NO construido:** la
 ruta caliente de streaming (Kafka autogestionado en EC2 —diseñado en
@@ -157,35 +168,37 @@ asistente MCP) en ~4 min y **corre sin credenciales** (mini-grafo sintético +
 mocks). Con `AWS_PROFILE`/`NEO4J_*` reales usa datos vivos. Versión de
 comandos con datos completos: `doc/VIKT-06-recorrido-e2e.md`.
 
-## App web: Madroño (landing + chat)
+## Explotación en producción: un backend, tres superficies
 
-**En vivo: https://d2obcdu8duk47f.cloudfront.net** (usuario y contraseña de
-demo: `demo` / `demo`)
+El mismo backend conversacional (agente MCP + chat vía Groq) es accesible
+desde tres sitios; los dos primeros son el enlace recomendado para
+evaluar el proyecto — gratuitos, sin autenticación, con el chat ya
+incrustado en la propia página:
 
-Landing + chat en lenguaje natural sobre las tools del asistente, vía Groq
-(`FIL_62`, `FIL_63`). Front estático (`web/index.html`, sin dependencias) en
-S3 + CloudFront (Origin Access Control, bucket privado). Backend FastAPI
-(`asistente/`) en la misma EC2 que el daemon de ingesta, detrás de nginx con
-TLS (Let's Encrypt) y Basic Auth: `https://35-42-164-183.nip.io`. Detalle
-de la infraestructura y
-bugs encontrados en el despliegue: `doc/FIL-63-app-web-m1-desplegada.md`,
-`doc/FIL-62-app-web-m2-chat-groq.md`.
+- **Mapa animado — https://madrono-ucm.github.io/madronoTFM/** — recorrido
+  guiado de 6 capítulos con chat incrustado (`FIL_69`, `FIL_95`: cada
+  respuesta muestra qué herramientas MCP se invocaron, y un catálogo de
+  preguntas sugeridas ayuda a empezar). El grafo de 1.798 nodos de tráfico
+  se recorre hora a hora con la previsión de los STGNN (`trafico` +
+  `calidad_aire`), importancia de aristas, índice de salud por nodo, pulso
+  de distrito, toggle modelo-vs-persistencia y rutas saludables
+  (`ruta_saludable`, `FIL_37`). Se genera **offline** desde los ONNX
+  vendorizados y un snapshot congelado de Gold (`viz/data/gold_slices/`);
+  detalle en [`viz/README.md`](viz/README.md).
+- **Explorador del grafo en vivo — el capítulo 6 del mapa enlaza a él**
+  (`https://35-42-164-183.nip.io/grafo/explorador`) — a diferencia del
+  mapa, consulta Neo4j real en directo y en solo lectura (~9 800 nodos),
+  con su propio chat incrustado (`FIL_67`/`FIL_68`; usuario/contraseña de
+  demo `demo`/`demo` si el explorador lo pide).
+- **App de demostración — https://d2obcdu8duk47f.cloudfront.net** (`demo`/
+  `demo`) — landing + el mismo chat, pensada como puerta de entrada
+  alternativa con autenticación básica. Front estático (`web/index.html`)
+  en S3 + CloudFront (Origin Access Control, bucket privado); backend
+  FastAPI (`asistente/`) en la misma EC2 que el daemon de ingesta, detrás
+  de nginx con TLS (Let's Encrypt): `https://35-42-164-183.nip.io`.
 
-## Mapa animado del grafo
-
-**En vivo: https://madrono-ucm.github.io/madronoTFM/** — con recorrido
-guiado de 6 capítulos y chat contra el asistente (`FIL_69`). El capítulo 6
-enlaza al **explorador del grafo en vivo**:
-`https://35-42-164-183.nip.io/grafo/explorador` (grafo real de Neo4j,
-~9.600 nodos, con su propio chat — `FIL_67`/`FIL_68`; usuario/contraseña de
-demo `demo`/`demo`).
-
-[`viz/`](viz/README.md) — el grafo de 1.798 nodos de tráfico sobre Madrid,
-animado hora a hora con la previsión de los STGNN de grafo (`trafico` +
-`calidad_aire`), importancia de aristas, índice de salud por nodo, pulso de
-distrito, toggle modelo-vs-persistencia y rutas saludables (`ruta_saludable`,
-`FIL_37`). Se genera **offline** desde los ONNX vendorizados y un snapshot
-congelado de Gold (`viz/data/gold_slices/`).
+Detalle de la infraestructura y bugs encontrados en el despliegue:
+`doc/FIL-63-app-web-m1-desplegada.md`, `doc/FIL-62-app-web-m2-chat-groq.md`.
 
 ```bash
 pip install -r viz/requirements.txt && python -m http.server -d viz/mapa

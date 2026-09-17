@@ -1,0 +1,20 @@
+flowchart LR
+    S["Fuente de datos<br/>abierta"] -->|"Lambda programada<br/>por EventBridge Scheduler"| B[("Bronze<br/>Parquet crudo,<br/>partición fecha/hora")]
+    B -->|"AWS Glue<br/>trigger SCHEDULED"| GX{"Great Expectations<br/>puerta de calidad"}
+    GX -->|lote válido| SV[("Silver<br/>limpio, tipado,<br/>normalizado")]
+    GX -->|lote inválido| RJ["Lote rechazado<br/>no progresa de capa<br/>(informe persistido)"]
+    SV -->|"AWS Glue<br/>trigger CONDITIONAL"| GD[("Gold<br/>agregado horario<br/>o diario")]
+    GD --> AT["Amazon Athena<br/>+ Partition Projection"]
+    GD --> N4["Grafo Neo4j<br/>(atributos por entidad)"]
+    GD --> MD["modelado/<br/>feature store"]
+
+    classDef bronze fill:#fdf3e7,stroke:#e8a23c,color:#333;
+    classDef gate fill:#fbeced,stroke:#d1495b,color:#333;
+    classDef silver fill:#eef3fb,stroke:#3d6ce0,color:#333;
+    classDef gold fill:#eef7f0,stroke:#66a182,color:#333;
+    classDef reject fill:#f5f5f5,stroke:#999,color:#666,stroke-dasharray: 4 3;
+    class B bronze;
+    class GX gate;
+    class SV silver;
+    class GD,AT,N4,MD gold;
+    class RJ reject;
