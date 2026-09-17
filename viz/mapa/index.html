@@ -880,6 +880,10 @@ const CHAT_SUG = [
   "¿Cómo está el tráfico cerca de Atocha ahora?",
   "Mejor hora hoy en Chamberí para alguien con asma",
 ];
+// nginx delante del asistente exige Basic Auth (FIL_63) incluso en /chat;
+// esta página no tiene login (es el mapa público) así que manda la misma
+// credencial de demo (no es seguridad real, ver FIL_63) en cada fetch.
+const AUTH_DEMO = {"Authorization": "Basic " + btoa("demo:demo")};
 let chatHist = [];
 function chatMsg(rol, txt){
   const d = document.createElement("div"); d.style.margin = "3px 0";
@@ -905,7 +909,8 @@ async function chatEnviar(){
   inp.value = ""; chatMsg("user", q); est.textContent = "pensando…";
   document.getElementById("chat-send").disabled = true;
   try{
-    const r = await fetch(API_BASE + "/chat", {method:"POST", headers:{"content-type":"application/json"},
+    const r = await fetch(API_BASE + "/chat", {method:"POST",
+      headers:{"content-type":"application/json", ...AUTH_DEMO},
       body: JSON.stringify({mensaje:q, historial:chatHist})});
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j = await r.json();
@@ -934,7 +939,7 @@ async function mkChat(){
   // FIL_95: si el asistente responde, se cambian las sugerencias fijas por
   // el catálogo real (una por herramienta del chat, del registro único).
   try{
-    const r = await fetch(API_BASE + "/chat/catalogo");
+    const r = await fetch(API_BASE + "/chat/catalogo", {headers: AUTH_DEMO});
     if(r.ok){ const items = await r.json();
       if(Array.isArray(items) && items.length) chatSugerencias(items); }
   }catch(e){ /* sin red: se quedan las fijas */ }
