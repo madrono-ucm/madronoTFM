@@ -128,7 +128,7 @@ _TOOLS = (
              "Previsión de calidad del aire del modelo Copernicus CAMS (nivel ciudad) para un contaminante — segunda opinión independiente.", False),
     ToolSpec(tools.meteo_cercana, "Meteorología observada cerca de un lugar",
              "Meteorología observada (temperatura, viento, precipitación, humedad) en la estación más cercana a un lugar.", True,
-             "¿Qué temperatura y viento hace ahora cerca de Chamartín?"),
+             "¿Qué temperatura y viento hace ahora cerca de Chamberí?"),
     ToolSpec(tools.avisos_meteo, "Avisos meteorológicos AEMET",
              "Avisos meteorológicos AEMET activos en Madrid (nivel amarillo/naranja/rojo y fenómenos).", True,
              "¿Hay algún aviso meteorológico activo en Madrid?"),
@@ -143,7 +143,7 @@ _TOOLS = (
              "Compara ir en coche/bici/transporte público entre dos lugares.", False),
     ToolSpec(tools.disponibilidad_aparcamiento, "Disponibilidad de aparcamiento",
              "Plazas de aparcamiento regulado disponibles cerca de un lugar.", True,
-             "¿Hay plazas de aparcamiento regulado libres cerca de Sol?"),
+             "¿Hay plazas de aparcamiento regulado libres cerca de Salamanca?"),
     ToolSpec(tools.eventos_cercanos, "Eventos cercanos",
              "Eventos culturales y de ocio cerca de un lugar en los próximos días.", True,
              "¿Qué eventos hay cerca de Gran Vía estos días?"),
@@ -157,7 +157,7 @@ _TOOLS = (
              "Consulta de solo lectura al grafo urbano de Neo4j mediante plantillas predefinidas (`plantilla`): "
              "estaciones de aire que miden un contaminante cerca de un lugar, paradas/líneas de transporte, "
              "aparcamientos, BiciMAD, vecindario de un lugar, etc.", True,
-             "¿Qué estación de aire cerca de Retiro mide O₃?"),
+             "¿Qué estación de aire cerca de Sol mide O₃?"),
     ToolSpec(tools.mejor_hora_zona, "Mejor hora del día para una zona",
              "Mejor hora del día para estar en una zona según una métrica (aire, ruido, tráfico).", True,
              "¿Cuál es la mejor hora para pasear por Chamberí hoy?"),
