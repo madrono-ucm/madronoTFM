@@ -7,9 +7,18 @@ los datos y las previsiones como herramientas [MCP](https://modelcontextprotocol
 Responde preguntas del tipo *«¿cómo estará el tráfico cerca del Retiro dentro
 de 3 horas?»* cruzando la capa Gold con un grafo urbano en Neo4j.
 
-Diseño y decisiones completas: `documents/Memoria_TFM FV.docx` (apartados 5.2
-y 6.7). Historial de trabajo: `doc/` (una entrada por tarea), `PLAN.md`,
-`tasks/`.
+Diseño y decisiones completas: [`documents/Memoria_TFM FV.docx`](documents/Memoria_TFM%20FV.docx)
+(el documento de entrega, apartados 5.2 y 6.7).
+
+Otros documentos de seguimiento del proyecto, por si hace falta más
+contexto: [`PLAN.md`](PLAN.md) (coordinación del equipo, reparto de
+trabajo), [`PROGRESS.md`](PROGRESS.md) (bitácora de sesiones de
+ingeniería interactiva), [`NEXT_STEPS.md`](NEXT_STEPS.md) (plan
+priorizado hacia el cierre), [`PLATFORM_SCHEMA.md`](PLATFORM_SCHEMA.md)
+(inventario de plataformas/arquitectura), [`DATA_SOURCES.md`](DATA_SOURCES.md)
+(catálogo de las 24 fuentes). Historial técnico tarea a tarea: `doc/`
+(una entrada por tarea), `tasks/` (cola de trabajo, ver
+[`tasks/README.md`](tasks/README.md)).
 
 ## Arquitectura (lo que está construido)
 
@@ -69,8 +78,12 @@ directamente en la página, no son solo un enlace a la app de demostración.
 **Fuera de alcance / línea futura (§7.5 de la memoria), NO construido:** la
 ruta caliente de streaming (Kafka autogestionado en EC2 —diseñado en
 `infra/terraform/kafka.tf` + `infra/kafka/`, sin aplicar—, Flink), tablas
-Delta/Iceberg, cuadros de mando Power BI, servido del STGNN (sigue sin export
-ONNX), auth/rate-limiting del MCP.
+Delta/Iceberg, cuadros de mando Power BI. El STGNN sí se sirve en
+producción (`calidad_aire_prevista_grafo` / `trafico_prevista_grafo`, ver
+la tabla de tools) — lo que falta es su **export a ONNX** (bloqueado por
+una limitación de `torch.export` con su bucle temporal, se sirve desde su
+registro nativo mientras tanto); rate-limiting del MCP (no auth: el
+servidor ya se endureció contra clientes no autorizados, `FIL_73`).
 
 ## Estado actual
 
@@ -86,7 +99,7 @@ Reanudar, backfill de los huecos, accesos y runbook completo:
 
 ## Ejecutar el asistente en local
 
-Requiere Python 3.12 y credenciales AWS (perfil `madrono`, ver
+Requiere Python 3.14 y credenciales AWS (perfil `madrono`, ver
 `infra/OPERACION.md`) para las tools que leen Gold vía Athena, y las
 variables `NEO4J_*` para las que cruzan el grafo.
 
@@ -236,5 +249,7 @@ de integración end-to-end (`tests/integracion/`, `doc/FIL-18-...md`).
 | `asistente/` | App FastAPI + servidor MCP. `mcp_agent/server.py::TOOLS` = registro único de las tools (incl. `calidad_aire_prevista_grafo` / `trafico_prevista_grafo` STGNN de grafo `FIL_26`/`FIL_31`, `ruta_saludable` `FIL_37`, `contexto_urbano` `FIL_53`, `mejor_hora_zona` `FIL_46`); `routers/` = espejo HTTP; `modelos/*.onnx` = modelos vendorizados. Tabla y conteo: `python -m asistente.gen_tabla_tools`. |
 | `herramientas/` | Scripts de operación: `costes/` (estimación de gasto), `salud/` (frescura de Gold, FIL_16). |
 | `viz/` | Mapa animado del grafo (`FIL_32`–`FIL_36`): scripts de build offline, `mapa/` (HTML deck.gl + JSON), `data/gold_slices/` (snapshot Gold congelado), `PROGRESO_MAPA.md`. |
+| `web/` | App de demostración (landing + chat, `FIL_62`/`FIL_63`): `index.html` estático, sin dependencias, desplegado en S3 + CloudFront. |
+| `documents/` | `Memoria_TFM FV.docx` (el documento de entrega) y `figuras/` (fuentes Mermaid + renderer de las figuras embebidas en la memoria, `python -m documents.figuras.mermaid_render`). |
 | `tests/` | Test de integración end-to-end (el resto de tests vive junto a su paquete). |
 | `doc/` | Una entrada por tarea (decisiones, verificaciones). `tasks/` = cola de trabajo. |
