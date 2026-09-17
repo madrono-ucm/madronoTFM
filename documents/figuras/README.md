@@ -18,10 +18,18 @@ python -m documents.figuras.mermaid_render documents/figuras/01_arquitectura.mmd
 | 3 | `02_pipeline_datos.mmd` | §6.3 — flujo Bronze→Silver→Gold |
 | 4 | `05_modelo_grafo.mmd` | §6.6 — modelo del grafo urbano (labels/relaciones) |
 | 5 | `04_secuencia_consulta.mmd` | §6.7 — secuencia de una consulta al asistente |
-| 6 | `07_mcp_chat.mmd` | §6.7 — catálogo de las 19 tools MCP + 3 superficies de chat |
-| 7 | `03_pipeline_ml.mmd` | §7.2 — pipeline de `modelado/` |
-| 8 | `06_analitica_grafo.mmd` | §7.3 — pipeline de analítica de grafo (centralidad/comunidades/resiliencia) |
-| 9 | `grafo_resiliencia.png` (en `modelado/evaluation/artifacts/`, no aquí) | §7.3 — curva de robustez del grafo |
+| 6 | *(pendiente — slot manual)* | §6.7 — captura de la aplicación web (landing + chat) |
+| 7 | *(pendiente — slot manual)* | §6.7 — captura del mapa animado / explorador en vivo |
+| 8 | `07_mcp_chat.mmd` | §6.7 — catálogo de las 19 tools MCP + 3 superficies de chat |
+| 9 | `03_pipeline_ml.mmd` | §7.2 — pipeline de `modelado/` |
+| 10 | `06_analitica_grafo.mmd` | §7.3 — pipeline de analítica de grafo (centralidad/comunidades/resiliencia) |
+| 11 | `grafo_resiliencia.png` (en `modelado/evaluation/artifacts/`, no aquí) | §7.3 — curva de robustez del grafo |
+
+Las Figuras 6 y 7 son **slots vacíos a rellenar a mano**: en el `.docx`
+son un párrafo centrado en cursiva ("Captura de pantalla pendiente de
+insertar aquí") seguido de su leyenda — sustituir ese párrafo por la
+imagen real en Word (clic en el marcador → Insertar imagen) antes de la
+entrega.
 
 Tras editar un `.mmd`, re-renderizar el PNG y volver a insertarlo en el
 `.docx` con `python-docx` (ver el histórico de `git log -- "documents/Memoria_TFM FV.docx"`
