@@ -57,8 +57,8 @@ En local:
 python -m http.server -d viz/mapa      # http://localhost:8000
 ```
 
-Necesita red al abrir (bundle de deck.gl por CDN; `maplibre-gl` también
-por CDN pero solo se usa si se activa un basemap, `FIL_50`). La tira
+Necesita red al abrir (bundle de deck.gl y `maplibre-gl` por CDN, este
+último para el basemap fijo Carto Positron, `FIL_50`). La tira
 `viz/mapa_frames.png` es el respaldo sin red y la figura de la memoria.
 
 ### Controles (panel izquierdo, en 5 grupos colapsables)
@@ -85,17 +85,15 @@ por CDN pero solo se usa si se activa un basemap, `FIL_50`). La tira
   Guardarraíles siempre a la vista: agregados por zona, sin datos
   personales, describe el aire y la hora (no señala barrios), apoyo a la
   decisión — no consejo médico.
-- **🧭 Vista**: cámara **2D / 3D**, **"encajar a Madrid"**, **"vista
-  limpia"** (oculta todo el chrome para una captura); representación de los
-  nodos **auto / puntos / barras (3D)** — en *barras* la columna sube donde
-  las condiciones son **peores** (skyline de problema); y capas conmutables
-  — nombres de distrito, hitos, ejes estructurantes (M-30, Castellana…
-  *contexto*), parques grandes, textura del grafo (las 8.758 aristas).
-  **Basemap** vectorial opcional (`FIL_50`): *ninguno* por defecto (aspecto
-  plano de siempre, sin pedir tiles) · Carto *Positron / Dark Matter /
-  Voyager* sin token vía `maplibre-gl` por CDN; si el CDN no carga el
-  selector se deshabilita y el mapa sigue igual. Sin satélite (necesitaría
-  tiles con token).
+- **🧭 Vista**: cámara **2D fija**, **"encajar a Madrid"**, **"vista
+  limpia"** (oculta todo el chrome para una captura); nodos como **puntos**
+  coloreados según la métrica activa; y capas conmutables — nombres de
+  distrito, hitos, ejes estructurantes (M-30, Castellana… *contexto*),
+  parques grandes, textura del grafo (las 8.758 aristas). **Basemap**
+  vectorial fijo (`FIL_50`): Carto *Positron*, sin token, vía `maplibre-gl`
+  por CDN. La cámara 3D y las barras extruidas (`ColumnLayer`) y el selector
+  de basemap (Voyager/Dark Matter/"ninguno") se retiraron post-`FIL_95` por
+  bugs de render — ver `viz/PROGRESO_MAPA.md`.
 - **Panel inferior (resumen)**: media de la ciudad de la métrica actual a
   lo largo de las 24 h (con la hora marcada), barras por distrito ahora, y
   meteo + skill del modelo.

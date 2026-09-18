@@ -97,7 +97,7 @@ class MapaArtefactosTests(unittest.TestCase):
 
     def test_html_legibilidad(self):
         for marca in ("TextLayer", "getTooltip", "fitBounds",
-                      'id="v2d"', 'id="v3d"', 'id="fit"', 'id="l-ejes"', 'id="l-parques"',
+                      'id="fit"', 'id="l-ejes"', 'id="l-parques"',
                       'id="r-od"', 'id="r-perfil"', 'id="rail"', 'class="sec', "titulo-sub",
                       'characterSet:"auto"', "focus-visible", 'lang="es"'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_47)")
@@ -137,17 +137,19 @@ class MapaArtefactosTests(unittest.TestCase):
         self.assertIn("arcOn", self.html)
         self.assertIn("getWidth:[selNode]", self.html)
 
-    def test_html_barras_y_resumen(self):
-        # FIL_49: ColumnLayer (barras 3D) + selector de representación + panel de resumen
-        for marca in ("ColumnLayer", "nodeElev", "usaBarras", 'class="rp"',
-                      'id="resumen"', "function resumen()", 'id="rs-city"', 'id="rs-distr"'):
+    def test_html_resumen(self):
+        # FIL_49: panel de resumen (media ciudad / distrito / meteo)
+        for marca in ('id="resumen"', "function resumen()", 'id="rs-city"', 'id="rs-distr"'):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML (FIL_49)")
-        # FIL_61: las columnas van en px (en metros eran ~1 px = invisibles) y
-        # elegir "barras"/"auto" inclina la cámara para que se vean en volumen.
-        col = self.html.split("new ColumnLayer(", 1)[1].split("}));", 1)[0]
-        self.assertIn('radiusUnits:"pixels"', col)
-        self.assertNotIn('radiusUnits:"meters"', col)
-        self.assertIn("map.getPitch() < 5) setPitch", self.html)
+
+    def test_sin_barras_3d_ni_camara_3d(self):
+        # Post-FIL_95: las barras extruidas (ColumnLayer) y la cámara 2D/3D
+        # daban problemas de render en producción -- se retiraron para dejar
+        # solo la vista 2D de puntos, más estable. No deben reaparecer sin
+        # que alguien lo decida a propósito.
+        for marca in ("ColumnLayer", "nodeElev", "usaBarras", 'class="rp"',
+                      'id="v2d"', 'id="v3d"', "setPitch", "dragRotate:true"):
+            self.assertNotIn(marca, self.html, f"{marca} reapareció en el HTML (bug conocido, ver PROGRESO_MAPA.md)")
 
     def test_meta_tex_es_el_grafo_completo(self):
         # FIL_49: la capa "textura" pasa a ser TODAS las aristas del grafo
@@ -228,19 +230,19 @@ class MapaArtefactosTests(unittest.TestCase):
 
     # --- FIL_50 / FIL_61: mapa base maplibre + deck.gl como MapboxOverlay ---
     def test_html_basemap(self):
-        for marca in ("maplibre-gl.js", "maplibre-gl.css", 'id="basemap"',
-                      "BASEMAPS", "cartocdn.com", "new maplibregl.Map",
-                      "MapboxOverlay", "map.setStyle(estiloBase(), {diff:false})",
-                      'map.easeTo({pitch'):
+        for marca in ("maplibre-gl.js", "maplibre-gl.css",
+                      "cartocdn.com", "new maplibregl.Map", "MapboxOverlay"):
             self.assertIn(marca, self.html, f"falta {marca} en el HTML")
-        # el basemap por defecto es Carto Positron (claro, para viz de datos;
-        # FIL_76 lo cambió desde Voyager)
-        self.assertIn('basemap:"positron"', self.html.replace(" ", ""))
-        # el selector ofrece las 3 opciones Carto + "ninguno"
-        opciones = self.html.split('id="basemap"', 1)[1].split("</select>", 1)[0]
-        for v in ('value="ninguno"', 'value="positron"', 'value="dark-matter"',
-                  'value="voyager"'):
-            self.assertIn(v, opciones)
+        # el basemap es Carto Positron fijo (claro, para viz de datos)
+        self.assertIn('positron-gl-style', self.html)
+
+    def test_sin_selector_de_basemap(self):
+        # Post-FIL_95: el selector de estilo (Voyager/Dark Matter/"ninguno")
+        # recargaba el estilo entero y desligaba el overlay de deck.gl del
+        # bucle de render -- se retiró, el estilo queda fijo en Positron.
+        for marca in ('id="basemap"', "BASEMAPS", "BASEMAP_VACIO",
+                      "map.setStyle(estiloBase()"):
+            self.assertNotIn(marca, self.html, f"{marca} reapareció en el HTML (bug conocido, ver PROGRESO_MAPA.md)")
 
 
 if __name__ == "__main__":

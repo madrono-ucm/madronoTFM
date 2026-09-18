@@ -94,6 +94,12 @@ class ToolSpec(NamedTuple):
       catálogo «¿qué puedo preguntar?» (`GET /chat/catalogo`, FIL_95).
       Cadena vacía = no aparece en el catálogo. Solo tiene sentido con
       ``en_chat=True``.
+    - ``destacado``: si es una de las sugerencias que se muestran por
+      defecto (los botones rápidos, antes de que el usuario haya escrito
+      nada) en vez de un catálogo entero. Un puñado de ejemplos vende mejor
+      la conversación que una pared de botones; el catálogo completo sigue
+      disponible detrás de «¿qué puedo preguntar?». Solo tiene sentido con
+      ``ejemplo_chat`` no vacío.
     """
 
     fn: Callable[..., object]
@@ -101,6 +107,7 @@ class ToolSpec(NamedTuple):
     desc_chat: str
     en_chat: bool
     ejemplo_chat: str = ""
+    destacado: bool = False
 
 
 # Registro único de las tools del asistente. **Fuente de verdad** para: el
@@ -116,7 +123,7 @@ _TOOLS = (
              "Afluencia prevista cerca de un lugar a un horizonte de 1, 3 o 6 horas.", False),
     ToolSpec(tools.calidad_aire, "Calidad del aire ahora",
              "Calidad del aire medida ahora en una zona o estación de Madrid.", True,
-             "¿Cómo está la calidad del aire en Retiro?"),
+             "¿Cómo está la calidad del aire en Retiro?", destacado=True),
     ToolSpec(tools.calidad_aire_prevista, "Calidad del aire prevista",
              "Previsión de calidad del aire (modelo LightGBM) a 1, 3 o 6 horas.", False),
     ToolSpec(tools.calidad_aire_prevista_grafo, "Calidad del aire prevista (modelo de grafo)",
@@ -134,7 +141,7 @@ _TOOLS = (
              "¿Hay algún aviso meteorológico activo en Madrid?"),
     ToolSpec(tools.trafico_cercano, "Tráfico cerca de un lugar",
              "Tráfico medido ahora cerca de un lugar de Madrid.", True,
-             "¿Cómo está el tráfico cerca de Atocha ahora?"),
+             "¿Cómo está el tráfico cerca de Atocha ahora?", destacado=True),
     ToolSpec(tools.trafico_prevista, "Tráfico previsto",
              "Previsión de tráfico (modelo LightGBM) a 1, 3 o 6 horas cerca de un lugar.", False),
     ToolSpec(tools.trafico_prevista_grafo, "Tráfico previsto (modelo de grafo)",
@@ -149,7 +156,7 @@ _TOOLS = (
              "¿Qué eventos hay cerca de Gran Vía estos días?"),
     ToolSpec(tools.ruta_saludable, "Ruta saludable entre dos lugares",
              "Ruta que minimiza la exposición a tráfico/aire/ruido entre dos lugares, vs. la más rápida.", True,
-             "Dame una ruta saludable de Sol a Atocha para alguien con asma"),
+             "Dame una ruta saludable de Sol a Atocha para alguien con asma", destacado=True),
     ToolSpec(tools.contexto_urbano, "Contexto urbano multi-salto de un lugar",
              "Resumen del contexto urbano (distrito, lugares, estaciones) alrededor de un punto.", True,
              "¿Qué hay alrededor de Nuevos Ministerios?"),
@@ -177,7 +184,7 @@ DESCRIPCIONES_CHAT = {s.fn.__name__: s.desc_chat for s in _TOOLS}
 # desincronicen del registro (misma lección que FIL_70/FIL_71).
 CATALOGO_CHAT = tuple(
     {"tool": s.fn.__name__, "titulo": s.titulo, "descripcion": s.desc_chat,
-     "ejemplo": s.ejemplo_chat}
+     "ejemplo": s.ejemplo_chat, "destacado": s.destacado}
     for s in _TOOLS if s.en_chat and s.ejemplo_chat
 )
 

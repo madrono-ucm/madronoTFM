@@ -37,8 +37,8 @@ const pageScript = jsInline(html);
 // Monta la página en un DOM real con deck.gl / maplibre / fetch simulados y
 // espera a que resuelva la carga. Devuelve `{ win, errors, $ }`.
 // `MapboxOverlay.setProps` ejecuta de verdad los accessors de la capa de
-// nodos (color/altura) sobre una muestra de índices: así los tests ven un
-// `throw` dentro de `nodeColor`/`nodeElev` (que con el stub plano pasaba
+// nodos (color) sobre una muestra de índices: así los tests ven un
+// `throw` dentro de `nodeColor` (que con el stub plano pasaba
 // desapercibido) y el coste O(n²) de FIL_94 si se pierde la memoización.
 async function montar() {
   const vc = new VirtualConsole();
@@ -58,6 +58,7 @@ async function montar() {
       Object.assign(this, props);
     }
   }
+  const touchZoomRotateStub = { disableRotation() {} };
   const ejercitarAccessors = (layers) => {
     for (const L of layers || []) {
       if (L?.id !== "nodes" || !Array.isArray(L.data)) continue;
@@ -72,7 +73,6 @@ async function montar() {
   };
   win.deck = {
     ScatterplotLayer: LayerStub,
-    ColumnLayer: LayerStub,
     LineLayer: LayerStub,
     ArcLayer: LayerStub,
     GeoJsonLayer: LayerStub,
@@ -86,7 +86,7 @@ async function montar() {
     },
   };
   class MapStub {
-    constructor(o) { this._o = o || {}; this._h = {}; this._z = o?.zoom ?? 10.6; this._p = o?.pitch ?? 0; this._b = o?.bearing ?? 0; }
+    constructor(o) { this._o = o || {}; this._h = {}; this._z = o?.zoom ?? 10.6; this._p = o?.pitch ?? 0; this._b = o?.bearing ?? 0; this.touchZoomRotate = touchZoomRotateStub; }
     addControl() { return this; }
     removeControl() { return this; }
     on(ev, cb) { (this._h[ev] = this._h[ev] || []).push(cb); if (ev === "load") setTimeout(cb, 0); return this; }
@@ -153,7 +153,6 @@ test("FIL_56 · disparar todos los controles no lanza ninguna excepción", async
   win.document.querySelectorAll(".es").forEach(click); // escala lineal / bandas
   win.document.querySelectorAll(".hz").forEach(click); // 4 horizontes
   win.document.querySelectorAll(".day").forEach(click); // 3 días
-  win.document.querySelectorAll(".rp").forEach(click); // puntos / auto / barras
   win.document.querySelectorAll("#hist-caps button").forEach(click); // recorrido guiado: los 6 capítulos
   click($("hist-prev"));
   click($("hist-next"));
@@ -167,15 +166,9 @@ test("FIL_56 · disparar todos los controles no lanza ninguna excepción", async
   fire($("hour"), "input");
   $("hour").value = "0";
   fire($("hour"), "input");
-  click($("v3d"));
-  click($("v2d"));
   click($("fit"));
   click($("clean"));
   click($("clean"));
-  for (const opt of [...$("basemap").options].map((o) => o.value)) { // voyager/positron/dark-matter/ninguno
-    $("basemap").value = opt;
-    fire($("basemap"), "change");
-  }
   ["l-distr", "l-hitos", "l-ejes", "l-parques", "l-tex", "l-idw"].forEach((id) => {
     $(id).checked = !$(id).checked;
     fire($(id), "change");
@@ -199,8 +192,8 @@ test("FIL_56 · disparar todos los controles no lanza ninguna excepción", async
 
   assert.deepEqual(errors.slice(before), [], "excepciones al disparar los controles");
   // FIL_94: los accessors de la capa de nodos se ejecutaron de verdad
-  // (montar() los llama); si alguna combinación métrica/escala/repr/perfil
-  // rompiera `nodeColor`/`nodeElev`, `render()` lo captaría y mostraría el
+  // (montar() los llama); si alguna combinación métrica/escala/perfil
+  // rompiera `nodeColor`, `render()` lo captaría y mostraría el
   // banner. No debe estar visible tras un recorrido sano.
   assert.equal($("err").style.display, "none", `#err visible: ${$("err").textContent}`);
 });

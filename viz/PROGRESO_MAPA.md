@@ -25,7 +25,7 @@ ONNX vendorizados. El pipeline sigue congelado.
 |---|---|
 | Estado | **spine M1–M6 completo + FIL_38 + FIL_42 + FIL_43 + M4c (47/48/49) + M4b (45) — todo mergeado** (2026-08-31; objetivo M6 era 09-14) |
 | Bloqueos | — (G8 resuelto: Pages sirve `gh-pages`/`root`; mapa refrescado con la corrección de `FIL_43`) |
-| Hecho después del spine | `FIL_42` hosting · `FIL_37` como **12.ª tool MCP** (`ruta_saludable`) · `FIL_38` backtest MTD (STGNN bate persistencia: skill +0,37 / +0,70 / +0,85 a h1/h3/h6) · `FIL_43` métrica de ruta = la que Dijkstra minimiza (0 negativas) · `FIL_47/48/49` legibilidad + pulido + barras 3D · `FIL_45` capa social (9 perfiles, bandas OMS·UE, dosis, mejor hora) · `FIL_50` basemap Carto opcional (opt-in) |
+| Hecho después del spine | `FIL_42` hosting · `FIL_37` como **12.ª tool MCP** (`ruta_saludable`) · `FIL_38` backtest MTD (STGNN bate persistencia: skill +0,37 / +0,70 / +0,85 a h1/h3/h6) · `FIL_43` métrica de ruta = la que Dijkstra minimiza (0 negativas) · `FIL_47/48/49` legibilidad + pulido + barras 3D · `FIL_45` capa social (9 perfiles, bandas OMS·UE, dosis, mejor hora) · `FIL_50` basemap Carto opcional (opt-in) · **2026-09-18: retiradas las barras 3D (`ColumnLayer`), la cámara 2D/3D y el selector de basemap** — bugs de render reportados en producción; el mapa queda solo en 2D de puntos, sobre Positron fijo · mismo día: sugerencias del chat reducidas a 3 destacadas (`ToolSpec.destacado`) en vez de las 11 del catálogo completo, y las respuestas del chat renderizan **negrita** markdown |
 | Fork Vía A/B | **Vía A** completa. Vía B (MTD) usada para el backtest `FIL_38`; no como sustrato de la animación. |
 
 ## Fork abierto — decisión del usuario antes de M2

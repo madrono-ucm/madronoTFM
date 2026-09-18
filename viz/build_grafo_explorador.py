@@ -331,10 +331,14 @@ const CHAT_SUG = [
 ];
 let chatHist = [];
 
+// El asistente a veces marca nombres/cifras en negrita markdown (**así**);
+// `esc()` (usada en tooltips/paneles) solo escapa HTML a propósito, así que
+// aquí se añade el paso de **negrita** aparte, solo para el chat.
 function chatMsg(rol, txt){
   const d = document.createElement("div");
   d.className = "chat-msg " + rol;
-  d.innerHTML = "<b>" + (rol === "user" ? "tú" : "asistente") + ":</b> " + esc(txt);
+  d.innerHTML = "<b>" + (rol === "user" ? "tú" : "asistente") + ":</b> "
+    + esc(txt).replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>");
   const h = document.getElementById("chat-hilo");
   h.appendChild(d); h.scrollTop = 1e9;
   return d;

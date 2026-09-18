@@ -91,7 +91,10 @@ _TOOLS_CHAT = NOMBRES_CHAT
 _SYSTEM_PROMPT = (
     "Eres Madroño, el asistente de una plataforma de datos abiertos de "
     "Madrid (tráfico, calidad del aire, ruido, movilidad, aparcamiento, "
-    "eventos). Respondes siempre en español, de forma breve y concreta. "
+    "eventos). Respondes siempre en español, de forma breve, concreta y "
+    "natural -- como se lo explicarías a un vecino, no como un volcado de "
+    "los campos que devuelve la herramienta (evita listar claves técnicas; "
+    "convierte los datos en una frase). "
     "Basas cada respuesta únicamente en lo que devuelven las herramientas "
     "-- nunca inventes una cifra, una estación ni una ruta que no aparezca "
     "en el resultado. "
@@ -273,7 +276,12 @@ def _ejecutar_tool(nombre: str, args: dict) -> "dict[str, Any]":
         _METRICAS["tool_calls_ko"] += 1
         logger.warning("tool=%s dur_ms=%d ok=False error=%s args=%.120s",
                        nombre, round((time.monotonic() - t0) * 1000), exc, args)
-        return {"disponible": False, "motivo": f"fallo al consultar {nombre}: {exc}", "datos": None}
+        # El `motivo` lo lee el LLM para redactar la respuesta al usuario
+        # ("dilo con tus palabras"): el texto crudo de la excepción (nombres
+        # de clase de Python, stacktraces cortos...) no es algo que un
+        # usuario deba ver, así que no sale de aquí -- el detalle real queda
+        # en el log de arriba.
+        return {"disponible": False, "motivo": f"no se pudo completar la consulta a {nombre} por un error técnico", "datos": None}
     res = _normalizar_resultado(resultado)
     filas = _contar_filas(res["datos"])
     if not res["disponible"]:

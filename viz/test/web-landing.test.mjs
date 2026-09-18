@@ -169,8 +169,8 @@ test("FIL_92 · sin excepciones de página en ningún camino", async () => {
 // --- FIL_95: traza de herramientas + catálogo -----------------------------
 
 const CATALOGO = [
-  { tool: "calidad_aire", titulo: "Calidad del aire ahora", descripcion: "…", ejemplo: "¿Cómo está el aire en Retiro?" },
-  { tool: "trafico_cercano", titulo: "Tráfico cerca de un lugar", descripcion: "…", ejemplo: "¿Tráfico cerca de Atocha?" },
+  { tool: "calidad_aire", titulo: "Calidad del aire ahora", descripcion: "…", ejemplo: "¿Cómo está el aire en Retiro?", destacado: true },
+  { tool: "trafico_cercano", titulo: "Tráfico cerca de un lugar", descripcion: "…", ejemplo: "¿Tráfico cerca de Atocha?", destacado: false },
 ];
 const OK_CAT = { "GET /chat/catalogo": { status: 200, body: CATALOGO } };
 
@@ -212,7 +212,10 @@ test("FIL_95 · el catálogo llena las sugerencias y el panel se abre/cierra", a
   await login(ctx);
   await tick();
   const qs = [...ctx.$("suggestions").querySelectorAll("button:not(.cat-toggle)")].map((b) => b.dataset.q);
-  assert.deepEqual(qs, CATALOGO.map((c) => c.ejemplo), "las sugerencias no salen del catálogo");
+  assert.deepEqual(
+    qs, CATALOGO.filter((c) => c.destacado).map((c) => c.ejemplo),
+    "las sugerencias rápidas deben ser solo las destacadas del catálogo",
+  );
 
   const toggle = ctx.$("suggestions").querySelector(".cat-toggle");
   assert.equal(ctx.$("catalogo").hidden, true);

@@ -73,7 +73,10 @@ class SubconjuntoToolsTests(unittest.TestCase):
         with patch.object(tm, "consulta_grafo", lambda **kw: (_ for _ in ()).throw(RuntimeError("boom"))):
             r3 = chat._ejecutar_tool("consulta_grafo", {})
         self.assertFalse(r3["disponible"])
-        self.assertIn("boom", r3["motivo"])
+        # el `motivo` lo redacta el LLM para el usuario: no debe filtrar el
+        # texto crudo de la excepción de Python (eso va solo al log).
+        self.assertNotIn("boom", r3["motivo"])
+        self.assertIn("consulta_grafo", r3["motivo"])
 
         # un centinela de "sin datos" del payload se traduce a disponible=false
         with patch.object(tm, "calidad_aire", lambda **kw: {"indice_calidad": "sin_datos"}):
@@ -318,6 +321,12 @@ class CatalogoEndpointTests(unittest.TestCase):
             self.assertTrue(e["ejemplo"].strip(), f"{e['tool']} sin ejemplo")
             self.assertTrue(e["titulo"].strip())
             self.assertTrue(e["descripcion"].strip())
+        # las sugerencias rápidas (botones visibles antes de escribir nada)
+        # se limitan a un puñado -- si se marcan más, vuelven a ser "un
+        # catálogo entero" en vez de 3 sugerencias, que es justo lo que
+        # `destacado` existe para evitar.
+        destacados = [e["tool"] for e in data if e["destacado"]]
+        self.assertEqual(len(destacados), 3, f"sugerencias destacadas != 3: {destacados}")
 
 
 if __name__ == "__main__":

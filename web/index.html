@@ -375,10 +375,9 @@
     <div id="catalogo" hidden></div>
     <div class="suggestions" id="suggestions">
       <button type="button" class="cat-toggle" aria-expanded="false" aria-controls="catalogo">? Qué puedo preguntar</button>
-      <button data-q="¿Cómo está el tráfico cerca de Atocha?">🚗 Tráfico en Atocha</button>
+      <button data-q="¿Cómo está el tráfico cerca de Atocha ahora?">🚗 Tráfico en Atocha</button>
       <button data-q="¿Cómo está la calidad del aire en Retiro?">🌬️ Aire en Retiro</button>
-      <button data-q="¿Cuál es la mejor hora para pasear por Sol hoy?">☀️ Mejor hora en Sol</button>
-      <button data-q="Recomiéndame una ruta saludable de Sol a Atocha">🌳 Ruta saludable</button>
+      <button data-q="Dame una ruta saludable de Sol a Atocha para alguien con asma">🌳 Ruta saludable</button>
     </div>
     <div class="composer-bar">
       <form id="composer">
@@ -455,10 +454,19 @@ function showChat() {
   cargarCatalogo();
 }
 
+// El asistente a veces marca nombres/cifras en negrita markdown (**así**);
+// sin esto se veían los asteriscos literales en pantalla. Escapa HTML antes
+// de introducir <strong>, así el texto del modelo nunca se interpreta como
+// marcado propio (solo **negrita**, no hace falta más para este chat).
+function mdInline(texto) {
+  const esc = String(texto).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  return esc.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
 function addMsg(texto, tipo) {
   const el = document.createElement("div");
   el.className = "msg " + tipo;
-  el.textContent = texto;
+  el.innerHTML = mdInline(texto);
   $("msgs").appendChild(el);
   el.scrollIntoView({ block: "end", behavior: SIN_MOV ? "auto" : "smooth" });
   return el;
@@ -525,9 +533,12 @@ async function cargarCatalogo() {
   if (!Array.isArray(items) || !items.length) return;
   catalogoCargado = true;
 
+  // Botones rápidos (visibles antes de escribir nada): solo los 3
+  // destacados del registro -- toda la lista completa vive en el catálogo
+  // expandible de abajo, no como pared de botones.
   const sug = $("suggestions");
   sug.querySelectorAll("button:not(.cat-toggle)").forEach((b) => b.remove());
-  for (const it of items) {
+  for (const it of items.filter((x) => x.destacado)) {
     const b = document.createElement("button");
     b.type = "button";
     b.dataset.q = it.ejemplo;

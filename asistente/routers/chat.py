@@ -49,6 +49,9 @@ class EntradaCatalogo(BaseModel):
     titulo: str
     descripcion: str
     ejemplo: str
+    # FIL_9x: una sugerencia rápida (botón visible antes de que el usuario
+    # escriba nada) en vez de todo el catálogo -- ver ToolSpec.destacado.
+    destacado: bool = False
 
 
 @router.post("/chat", response_model=RespuestaChat)

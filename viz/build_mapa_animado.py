@@ -3,8 +3,8 @@
 Es el entregable de visualización del TFM: un HTML autónomo que se publica
 en GitHub Pages y muestra los ~1.798 nodos del grafo latiendo hora a hora
 con la previsión de los dos STGNN (tráfico y calidad del aire), sobre un
-basemap vectorial claro (Carto Positron por defecto; conmutable a Voyager,
-Dark Matter o "sin tiles" — solo polígonos de distrito — en el selector).
+basemap vectorial claro (Carto Positron, fijo — sin selector de estilo ni
+cámara 3D: daban problemas de render y se retiraron, ver `viz/PROGRESO_MAPA.md`).
 
 Lee de local (nunca de red ni con credenciales): el grafo canónico
 (`viz/grafo_madrid.json`), la previsión ya inferida
@@ -15,13 +15,12 @@ Escribe en `viz/mapa/`:
 
 - `index.html`   — la interfaz completa (deck.gl vía CDN). Bucle de 24 h;
   cuatro grupos de control colapsables (Tiempo / Capa de color / Salud /
-  Vista / Ruta); cámara 2D/3D con "encajar a Madrid" y "vista limpia";
-  nodos como puntos o como barras extruidas cuya altura crece donde las
-  condiciones son peores; etiquetas de distrito, hitos, ejes y parques
-  como capas conmutables; tooltip y detalle al hacer clic en un nodo;
-  panel de resumen inferior (media de ciudad de 24 h, desglose por
-  distrito, meteo y skill del modelo). Carga los tres JSON de abajo más
-  `rutas.json` (opcional) con `fetch`.
+  Vista / Ruta); cámara 2D fija con "encajar a Madrid" y "vista limpia";
+  nodos como puntos, coloreados según la métrica activa; etiquetas de
+  distrito, hitos, ejes y parques como capas conmutables; tooltip y detalle
+  al hacer clic en un nodo; panel de resumen inferior (media de ciudad de
+  24 h, desglose por distrito, meteo y skill del modelo). Carga los tres
+  JSON de abajo más `rutas.json` (opcional) con `fetch`.
 - `data.json`    — los valores por día, hora y nodo, cuantizados a entero
   (los nulos van como -1 para no inflar el JSON).
 - `meta.json`    — todo lo estático: grafo, distritos, centroides, hitos,
@@ -56,12 +55,11 @@ _EJES = json.loads((_VIZ / "assets" / "ejes_madrid.geojson").read_text(encoding=
 _PARQUES = json.loads((_VIZ / "assets" / "parques_madrid.geojson").read_text(encoding="utf-8"))
 _OUT = _VIZ / "mapa"
 _DECKGL_CDN = "https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js"
-# El basemap vectorial (maplibre-gl) es Carto Positron por defecto (estilo
-# claro y minimal, pensado para viz de datos); el selector lo cambia a
-# Voyager, Dark Matter o "ninguno" (solo los polígonos de distrito sobre
-# fondo oscuro). Si el CDN de maplibre no carga, el selector queda
-# deshabilitado y el mapa sigue siendo el DeckGL plano de siempre. Se cargó
-# como mejora en FIL_50; Positron pasó a ser el arranque en FIL_76.
+# El basemap vectorial (maplibre-gl) es Carto Positron, fijo (estilo claro y
+# minimal, pensado para viz de datos). Se cargó en FIL_50 con un selector de
+# estilo (Voyager/Dark Matter/"ninguno") y cámara 2D/3D; ambos se retiraron
+# (post-FIL_95) por bugs de render -- ver `viz/PROGRESO_MAPA.md`. Si el CDN
+# de maplibre no carga, el mapa muestra un error (`catch` al final del script).
 _MAPLIBRE_JS_CDN = "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"
 _MAPLIBRE_CSS_CDN = "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css"
 
@@ -519,23 +517,8 @@ _TEMPLATE = r"""<!doctype html>
   <section class="sec" data-sec="vista" aria-label="Vista del mapa">
     <h3>Vista del mapa</h3>
     <div class="row">
-      <button id="v2d" class="on">2D</button><button id="v3d">3D</button>
       <button id="fit">centrar en Madrid</button>
       <button id="clean">ocultar paneles</button>
-    </div>
-    <div class="row" aria-label="Forma de los nodos">
-      <span class="muted">nodos:</span>
-      <button data-r="puntos" class="rp on">puntos</button>
-      <button data-r="barras" class="rp">barras 3D</button>
-    </div>
-    <div class="row" aria-label="Mapa base">
-      <span class="muted">mapa base:</span>
-      <select id="basemap" aria-label="Mapa base">
-        <option value="positron">claro</option>
-        <option value="voyager">con calles</option>
-        <option value="dark-matter">oscuro</option>
-        <option value="ninguno">sin mapa base</option>
-      </select>
     </div>
     <label class="chk"><input type="checkbox" id="l-distr" checked> nombres de distrito</label>
     <label class="chk"><input type="checkbox" id="l-hitos" checked> lugares (Sol, Atocha…)</label>
@@ -622,7 +605,7 @@ _TEMPLATE = r"""<!doctype html>
 // `WX` (meteo) se cargan de tres JSON al final del fichero; `state` guarda lo
 // que el usuario elige con los controles; `render()` reconstruye las capas de
 // deck.gl y los paneles a partir de `state` cada vez que algo cambia.
-const {ScatterplotLayer, ColumnLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, MapboxOverlay} = deck;
+const {ScatterplotLayer, LineLayer, ArcLayer, GeoJsonLayer, PathLayer, TextLayer, MapboxOverlay} = deck;
 let META, DATA, WX, RUTAS, map, overlay, selNode = null;
 // Índices de nodo 0..N-1, estable entre renders: si `data` cambiara de
 // identidad en cada `layers()`, deck.gl re-ejecutaría todos los accessors
@@ -631,35 +614,18 @@ let META, DATA, WX, RUTAS, map, overlay, selNode = null;
 let NODE_IDX = [];
 let state = {
   day:null, hour:8, metric:"salud", hz:"now", playing:false, ghost:false, tab:"d", route:-1,
-  view:{longitude:-3.70, latitude:40.43, zoom:10.6, pitch:0, bearing:0},
+  view:{longitude:-3.70, latitude:40.43, zoom:10.6},
   layers:{distr:true, hitos:true, ejes:false, parques:false, tex:false, idw:false},
-  clean:false, repr:"puntos", escala:"lineal", perfil:"general", basemap:"positron",
+  clean:false, escala:"lineal", perfil:"general",
 };
 
 // El mapa base es una instancia de maplibre-gl (dueña de la cámara) y los
 // nodos/arcos van encima como un MapboxOverlay de deck.gl, para que siempre
-// queden anclados a la misma proyección y el pitch 3D funcione de forma
-// nativa. Estilos Carto sin token.
-//
-// "ninguno" = modo sin tiles: un estilo con SOLO una capa `background`
-// oscura. No puede ser un estilo vacío de verdad: sin ninguna capa que
-// pintar, maplibre deja de emitir "render" y el MapboxOverlay (que se
-// engancha a ese bucle) dejaría de dibujar los nodos. Se genera fresco
-// cada vez porque `setStyle` puede mutar el objeto.
-const BASEMAP_VACIO = () => ({
-  version: 8, sources: {},
-  layers: [{id:"fondo", type:"background", paint:{"background-color":"#0a0e14"}}],
-});
-const BASEMAPS = {
-  voyager: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
-  positron: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-  "dark-matter": "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-  ninguno: BASEMAP_VACIO,
-};
-const estiloBase = () => {
-  const s = BASEMAPS[state.basemap] || BASEMAP_VACIO;
-  return typeof s === "function" ? s() : s;
-};
+// queden anclados a la misma proyección. Estilo Carto Positron fijo, sin
+// token ni selector: la cámara 3D y el cambio de estilo en caliente daban
+// problemas de render (overlay desligado del bucle de deck.gl) y se
+// retiraron para dejar solo la vista 2D, estable.
+const ESTILO_BASE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
 const clamp01 = x => Math.max(0, Math.min(1, x));
 const scale = (v, lo, hi) => clamp01((v-lo)/(hi-lo));
@@ -725,12 +691,10 @@ function mejorHoraPerfil(){
     if(m<worst){ worst=m; wh=h; } }
   return (_mhpCache[key] = {hora:bh, salud:best, peor_hora:wh});
 }
-// El vector de la métrica activa. `nodeColor` y `nodeElev` lo piden una vez
-// por nodo (1798) y, en «barras (3D)», los dos → sin caché, cada render
-// reconstruía el array de perfil/dosis 1798·2 veces (O(n²): ~3-26 M
-// iteraciones/frame) y el mapa se congelaba al inclinar la cámara o al
-// reproducir. Se memoiza por el estado del que depende; sólo se recalcula
-// cuando cambia de verdad.
+// El vector de la métrica activa. `nodeColor` lo pide una vez por nodo
+// (1798) → sin caché, cada render reconstruía el array de perfil/dosis 1798
+// veces (O(n²)) y el mapa se congelaba al reproducir. Se memoiza por el
+// estado del que depende; sólo se recalcula cuando cambia de verdad.
 let _maCache = {k:null, v:null};
 function _metricArrCalc(){
   if(state.metric==="trafico") return trafArr(state.hz);
@@ -774,20 +738,6 @@ const arcCol = a => a>0 ? ramp(1-scale(a/100,0,2.5)).concat(220) : [110,130,235,
 // radio de nodo dependiente del zoom: puntos nítidos de lejos, no una mancha
 function nodeRmin(){ const z = state.view.zoom;
   return z < 10.6 ? 1.6 : z < 11.6 ? 2.4 : z < 12.6 ? 3.2 : 4.2; }
-// "gravedad" 0..100 -> altura de barra: sube donde las condiciones son PEORES
-function nodeElev(i){
-  if(state.ghost){
-    const f = DATA[state.day]["traf_h1"][state.hour][i], p = DATA[state.day]["traf_now"][state.hour][i];
-    return (f<0||p<0) ? 0 : Math.min(100, Math.abs(f-p)*0.7);
-  }
-  const v = metricArr()[i];
-  if(v<0) return 0;
-  const md = metDef(state.metric), [lo,hi] = md.rango;
-  const t = scale(state.metric==="trafico" ? v/100 : v, lo, hi);
-  return (md.peor>0 ? t : 1-t) * 100;   // salud: alto = salud baja (problema)
-}
-const usaBarras = () => state.repr==="barras";
-
 function layers(){
   const idxs = NODE_IDX;
   const trafNow = trafArr(state.hz);
@@ -819,20 +769,10 @@ function layers(){
   // incluye perfil y escala: con la métrica "salud (perfil)" fija, cambiar de
   // perfil o de escala (lineal<->bandas) recolorea los nodos aunque metric no cambie
   const trig = [state.day,state.hour,state.metric,state.hz,state.ghost,state.perfil,state.escala];
-  if(usaBarras())
-    // Columnas de ancho fijo en píxeles (en metros, 40 m ≈ 1 px a zoom de
-    // ciudad → invisibles). Altura = "gravedad" 0..100 escalada a metros;
-    // `material:false` para que el color plano = el valor, sin depender de
-    // una luz que no está montada.
-    L.push(new ColumnLayer({id:"nodes", data:idxs, pickable:true, diskResolution:12,
-      radius:5, radiusUnits:"pixels", extruded:true, elevationScale:35, material:false,
-      getPosition:i=>META.coords[i], getElevation:nodeElev, getFillColor:nodeColor,
-      updateTriggers:{getFillColor:trig, getElevation:trig}, onClick:onNode}));
-  else
-    L.push(new ScatterplotLayer({id:"nodes", data:idxs, pickable:true,
-      radiusMinPixels:nodeRmin(), radiusMaxPixels:8, getPosition:i=>META.coords[i], getRadius:70,
-      stroked:true, getLineColor:[8,11,16,110], lineWidthMinPixels:0.4, getFillColor:nodeColor,
-      updateTriggers:{getFillColor:trig, radiusMinPixels:[state.view.zoom]}, onClick:onNode}));
+  L.push(new ScatterplotLayer({id:"nodes", data:idxs, pickable:true,
+    radiusMinPixels:nodeRmin(), radiusMaxPixels:8, getPosition:i=>META.coords[i], getRadius:70,
+    stroked:true, getLineColor:[8,11,16,110], lineWidthMinPixels:0.4, getFillColor:nodeColor,
+    updateTriggers:{getFillColor:trig, radiusMinPixels:[state.view.zoom]}, onClick:onNode}));
   if(state.layers.idw && META.idw_dist)
     L.push(new ScatterplotLayer({id:"idw", data:NODE_IDX.filter(i=>META.idw_dist[i]>1800),
       getPosition:i=>META.coords[i], getRadius:i=>Math.min(3, META.idw_dist[i]/2500),
@@ -1225,20 +1165,23 @@ function mkHistoria(){
 const API_BASE = new URLSearchParams(location.search).get("api")
   || (location.hostname.endsWith("github.io") ? "https://35-42-164-183.nip.io" : "");
 const CHAT_SUG = [
-  "¿Qué estación de aire cerca de Sol mide O₃?",
-  "Ruta saludable de Sol a Atocha para perfil asma",
+  "¿Cómo está la calidad del aire en Retiro?",
   "¿Cómo está el tráfico cerca de Atocha ahora?",
-  "Mejor hora hoy en Chamberí para alguien con asma",
+  "Dame una ruta saludable de Sol a Atocha para alguien con asma",
 ];
 // nginx delante del asistente exige Basic Auth (FIL_63) incluso en /chat;
 // esta página no tiene login (es el mapa público) así que manda la misma
 // credencial de demo (no es seguridad real, ver FIL_63) en cada fetch.
 const AUTH_DEMO = {"Authorization": "Basic " + btoa("demo:demo")};
 let chatHist = [];
+// El asistente a veces marca nombres/cifras en negrita markdown (**así**);
+// sin esto se veían los asteriscos literales. Escapa HTML antes de meter
+// <strong>, así el texto del modelo nunca se interpreta como marcado propio.
 function chatMsg(rol, txt){
   const d = document.createElement("div"); d.style.margin = "3px 0";
+  const esc = String(txt).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
   d.innerHTML = "<b style='color:#9fb0c0'>"+(rol==="user"?"tú":"asistente")+":</b> "
-    + String(txt).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+    + esc.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   const h = document.getElementById("chat-hilo"); h.appendChild(d); h.scrollTop = 1e9;
 }
 // FIL_95: traza de herramientas del turno (`pasos` de /chat). Vacía = el
@@ -1287,11 +1230,13 @@ async function mkChat(){
   document.getElementById("chat-send").onclick = chatEnviar;
   document.getElementById("chat-in").addEventListener("keydown", e=>{ if(e.key==="Enter") chatEnviar(); });
   // FIL_95: si el asistente responde, se cambian las sugerencias fijas por
-  // el catálogo real (una por herramienta del chat, del registro único).
+  // las destacadas del catálogo real (del registro único) -- solo un
+  // puñado, no todas las tools del chat.
   try{
     const r = await fetch(API_BASE + "/chat/catalogo", {headers: AUTH_DEMO});
     if(r.ok){ const items = await r.json();
-      if(Array.isArray(items) && items.length) chatSugerencias(items); }
+      const destacadas = Array.isArray(items) ? items.filter(it=>it.destacado) : [];
+      if(destacadas.length) chatSugerencias(destacadas); }
   }catch(e){ /* sin red: se quedan las fijas */ }
 }
 
@@ -1368,14 +1313,6 @@ function mkControls(){
   document.getElementById("tab-d").onclick=()=>{ state.tab="d"; syncTabs(); render(); };
   document.getElementById("tab-a").onclick=()=>{ state.tab="a"; syncTabs(); render(); };
 
-  document.querySelectorAll(".rp").forEach(b=>b.onclick=()=>{ state.repr=b.dataset.r;
-    document.querySelectorAll(".rp").forEach(x=>x.classList.remove("on")); b.classList.add("on");
-    // las barras no dicen nada con la cámara plana: inclínala al elegirlas.
-    if(b.dataset.r==="barras" && map.getPitch() < 5) setPitch(45);
-    else render();
-  });
-  document.getElementById("v2d").onclick=()=>setPitch(0);
-  document.getElementById("v3d").onclick=()=>setPitch(45);
   document.getElementById("fit").onclick=fitBounds;
   document.getElementById("clean").onclick=e=>{
     state.clean=!state.clean;
@@ -1390,26 +1327,6 @@ function mkControls(){
     el.onchange=()=>{ state.layers[key]=el.checked; render(); }; };
   setChk("l-distr","distr"); setChk("l-hitos","hitos"); setChk("l-ejes","ejes");
   setChk("l-parques","parques"); setChk("l-tex","tex");
-
-  const bmSel = document.getElementById("basemap");
-  bmSel.value = state.basemap;
-  bmSel.onchange = ()=>{
-    state.basemap = bmSel.value;
-    // `setStyle` recarga por completo el estilo (`diff:false` — el diff
-    // falla entre estilos muy distintos, Carto <-> "ninguno"). El overlay
-    // de deck.gl se recrea de cero cuando el nuevo estilo está listo: es lo
-    // más robusto frente a que el canvas del overlay se desligue del bucle
-    // de render al cambiar el estilo.
-    map.removeControl(overlay);
-    map.setStyle(estiloBase(), {diff:false});
-    const rehacer = ()=>{
-      if(!map.isStyleLoaded()){ map.once("styledata", rehacer); return; }
-      overlay = new MapboxOverlay({interleaved:false, layers:[], getTooltip:tooltip});
-      map.addControl(overlay);
-      render();
-    };
-    map.once("styledata", rehacer);
-  };
 
   // ruta: 2 desplegables (origen·destino  ×  perfil)
   if(RUTAS && RUTAS.rutas.length){
@@ -1431,13 +1348,6 @@ function mkControls(){
     document.getElementById("r-perfil").disabled = true;
   }
 }
-function setPitch(p){
-  document.getElementById("v2d").classList.toggle("on", p===0);
-  document.getElementById("v3d").classList.toggle("on", p!==0);
-  // La cámara la lleva maplibre; el evento "move" sincroniza state.view y
-  // dispara render(), así que "auto" pasa a barras cuando el pitch sube.
-  map.easeTo({pitch:p, bearing:p ? map.getBearing() : 0, duration:300});
-}
 function tick(){ if(!state.playing) return;
   state.hour=(state.hour+1)%24; document.getElementById("hour").value=state.hour; render();
   setTimeout(tick, 650); }
@@ -1453,23 +1363,25 @@ Promise.all([
   if(typeof maplibregl === "undefined") throw new Error("maplibre-gl no se pudo cargar (CDN)");
 
   const v = state.view;
+  // Cámara fija en 2D (sin pitch ni rotación): la vista 3D y el cambio de
+  // estilo en caliente daban problemas de render y se retiraron.
   map = new maplibregl.Map({
-    container:"map", style: estiloBase(),
-    center:[v.longitude, v.latitude], zoom:v.zoom, pitch:v.pitch, bearing:v.bearing,
-    attributionControl:{compact:true}, dragRotate:true,
+    container:"map", style: ESTILO_BASE,
+    center:[v.longitude, v.latitude], zoom:v.zoom, pitch:0, bearing:0,
+    attributionControl:{compact:true}, dragRotate:false, pitchWithRotate:false,
   });
-  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), "bottom-right");
+  map.touchZoomRotate.disableRotation();
+  map.addControl(new maplibregl.NavigationControl({showCompass:false}), "bottom-right");
 
   overlay = new MapboxOverlay({interleaved:false, layers:[], getTooltip:tooltip});
   map.addControl(overlay);
 
   // maplibre es la fuente de verdad de la cámara: cada "move" refresca
-  // state.view (radio de nodo, opacidad de etiquetas, puntos<->barras en
-  // "auto" y el aro de selección lo leen) y repinta, como mucho 1 vez/frame.
+  // state.view (radio de nodo, opacidad de etiquetas y el aro de selección
+  // lo leen) y repinta, como mucho 1 vez/frame.
   map.on("move", ()=>{
     const c = map.getCenter();
-    state.view = {longitude:c.lng, latitude:c.lat, zoom:map.getZoom(),
-                  pitch:map.getPitch(), bearing:map.getBearing()};
+    state.view = {longitude:c.lng, latitude:c.lat, zoom:map.getZoom()};
     if(!render._raf) render._raf = requestAnimationFrame(()=>{ render._raf = 0; render(); });
   });
 
