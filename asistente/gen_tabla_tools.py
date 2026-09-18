@@ -4,13 +4,14 @@ Fuente de verdad: `asistente.mcp_agent.server.TOOLS` (la lista con la que se
 registran en el servidor MCP) + los routers HTTP de `asistente.routers`.
 
 Sin este generador, el número y la lista de tools vivían copiados a mano en
-`asistente/README.md`, el `README.md` raíz, el `description` de
-`server.py` y varios tests de conteo -- y se desincronizaban: FIL_29 ya lo
-arregló una vez (6->10) y, a fecha de FIL_93, `asistente/README.md` decía
-"7 tools" mientras `server.py` decía "19".
+`asistente/README.md`, el `description` de `server.py` y varios tests de
+conteo -- y se desincronizaban: FIL_29 ya lo arregló una vez (6->10) y, a
+fecha de FIL_93, `asistente/README.md` decía "7 tools" mientras `server.py`
+decía "19". (El README raíz tenía la misma tabla hasta que se retiró del
+repo -- ver `.gitignore`, 2026-09-18.)
 
 El bloque generado va entre los marcadores ``<!-- TOOLS:INI ... -->`` y
-``<!-- TOOLS:FIN -->`` de cada README.
+``<!-- TOOLS:FIN -->`` de `asistente/README.md`.
 
 Uso::
 
@@ -29,7 +30,7 @@ from asistente.mcp_agent.server import TOOLS
 _RAIZ = Path(__file__).resolve().parents[1]
 _INI = "<!-- TOOLS:INI (generado por `python -m asistente.gen_tabla_tools`; no editar a mano) -->"
 _FIN = "<!-- TOOLS:FIN -->"
-_DESTINOS = (_RAIZ / "asistente" / "README.md", _RAIZ / "README.md")
+_DESTINOS = (_RAIZ / "asistente" / "README.md",)
 
 
 def _endpoint_http(nombre: str) -> str:

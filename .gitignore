@@ -259,3 +259,18 @@ grafo/_data/*.json
 
 # Node solo para los tests funcionales del mapa (viz/test/); el lock sí se versiona
 node_modules/
+
+/README.md
+/PLAN.md
+/PROGRESS.md
+/NEXT_STEPS.md
+/PLATFORM_SCHEMA.md
+/DATA_SOURCES.md
+/doc/
+/documents/
+/tasks/*.md
+/tasks/done/
+
+# Archivos de bloqueo temporales de Office (se crean solos al abrir un
+# .docx/.pptx; nunca son contenido real).
+~$*
