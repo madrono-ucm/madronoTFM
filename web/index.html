@@ -7,7 +7,7 @@
 <title>Madroño</title>
 <!-- Endpoint del backend (EC2, FIL_63). Se puede sobreescribir sin editar
      este fichero con `?api=<url>` en la URL. -->
-<meta name="madrono-api" content="https://35-42-164-183.nip.io">
+<meta name="madrono-api" content="https://35-43-165-117.nip.io">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -395,7 +395,7 @@
 // S3+CloudFront, origen distinto -- por eso las credenciales de acceso se
 // reenvían como Basic Auth real en cada fetch() al backend, no son un
 // gate cosmético aparte.
-// 35-42-164-183.nip.io resuelve a la misma IP de la EC2 (nip.io es un
+// 35-43-165-117.nip.io resuelve a la misma IP de la EC2 (nip.io es un
 // servicio DNS comodín público gratuito: <ip-con-guiones>.nip.io -> <ip>)
 // -- se usa en vez de la IP desnuda porque Let's Encrypt exige un nombre
 // DNS, no una IP, para emitir un certificado real (antes autofirmado, con
@@ -407,7 +407,7 @@
 const API = (
   new URLSearchParams(location.search).get("api")
   || document.querySelector('meta[name="madrono-api"]')?.content
-  || "https://35-42-164-183.nip.io"
+  || "https://35-43-165-117.nip.io"
 ).replace(/\/+$/, "");
 
 const SIN_MOV = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

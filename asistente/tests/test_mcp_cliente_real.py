@@ -6,7 +6,7 @@ que provocó el `421 Misdirected Request` en la EC2 pública y se encontró a
 mano. Aquí se levanta la app en un puerto efímero y:
 
   - un `ClientSession` real sobre `streamable_http` lista las tools;
-  - un POST crudo con `Host: 35-42-164-183.nip.io` NO recibe 421 — falla si
+  - un POST crudo con `Host: 35-43-165-117.nip.io` NO recibe 421 — falla si
     alguien revierte el `allowed_hosts` de `asistente/main.py`.
 
 Arranca un servidor, así que se salta con un mensaje claro si el entorno no
@@ -87,13 +87,13 @@ class ClienteMcpRealTests(unittest.TestCase):
         self.assertEqual({t.name for t in res.tools}, _ESPERADAS)
 
     def test_host_publico_no_recibe_421(self):
-        # `35-42-164-183.nip.io` está en `allowed_hosts` (asistente/main.py).
+        # `35-43-165-117.nip.io` está en `allowed_hosts` (asistente/main.py).
         # Sin ese ajuste, el SDK MCP responde 421 a cualquier Host != 127.0.0.1.
         with _Servidor() as srv:
             r = httpx.post(
                 f"{srv.base}/mcp-server/mcp",
                 headers={
-                    "Host": "35-42-164-183.nip.io",
+                    "Host": "35-43-165-117.nip.io",
                     "Content-Type": "application/json",
                     "Accept": "application/json, text/event-stream",
                 },

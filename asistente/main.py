@@ -64,7 +64,7 @@ def create_app() -> FastAPI:
     # `streamable_http_app()` sin argumentos activa por defecto (SDK `mcp`,
     # ver `mcp.server.lowlevel.server.Server.streamable_http_app`) protección
     # DNS-rebinding restringida a `host="127.0.0.1"` -- cualquier `Host` real
-    # (la IP pública o `35-42-164-183.nip.io`, ver FIL_63/FIL_62) recibe
+    # (la IP pública o `35-43-165-117.nip.io`, ver FIL_63/FIL_62) recibe
     # `421 Misdirected Request` del propio SDK MCP, antes incluso de llegar al
     # código de este proyecto. Bug real encontrado probando un cliente MCP de
     # verdad contra la instancia pública (`mcp.client.streamable_http`) --
@@ -75,13 +75,13 @@ def create_app() -> FastAPI:
     mcp_app = mcp.streamable_http_app(
         transport_security=TransportSecuritySettings(
             allowed_hosts=[
-                "35-42-164-183.nip.io",
-                "35-42-164-183.nip.io:*",
+                "35-43-165-117.nip.io",
+                "35-43-165-117.nip.io:*",
                 "127.0.0.1:*",
                 "localhost:*",
             ],
             allowed_origins=[
-                "https://35-42-164-183.nip.io",
+                "https://35-43-165-117.nip.io",
                 "https://d2obcdu8duk47f.cloudfront.net",
                 "http://127.0.0.1:*",
                 "http://localhost:*",

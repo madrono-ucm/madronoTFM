@@ -37,7 +37,7 @@ class McpTransportHostHeaderTests(unittest.TestCase):
     """Regresión: `mcp.streamable_http_app()` sin argumentos activa por
     defecto protección DNS-rebinding restringida a `Host: 127.0.0.1` (SDK
     `mcp`, ver `create_app()`), así que cualquier `Host` real de producción
-    (`35-42-164-183.nip.io`) recibía `421 Misdirected Request` -- bug real
+    (`35-43-165-117.nip.io`) recibía `421 Misdirected Request` -- bug real
     descubierto probando un cliente MCP de verdad contra la instancia
     pública, nunca detectado por los tests existentes (`test_mcp_transport.py`
     usa streams en memoria, sin pasar por este middleware)."""
@@ -55,7 +55,7 @@ class McpTransportHostHeaderTests(unittest.TestCase):
             )
 
     def test_host_publico_real_no_recibe_421(self):
-        self.assertNotEqual(self._post("35-42-164-183.nip.io").status_code, 421)
+        self.assertNotEqual(self._post("35-43-165-117.nip.io").status_code, 421)
 
     def test_host_no_reconocido_sigue_bloqueado(self):
         self.assertEqual(self._post("evil-dns-rebinding.example.com").status_code, 421)

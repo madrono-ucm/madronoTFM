@@ -1132,7 +1132,7 @@ const CAPITULOS = [
    d:"La misma Sol → Atocha con el perfil general: otros pesos de aire, ruido y tráfico dan otro camino y otro ahorro. El color es el índice de salud del perfil.",
    a:()=>setEstado({route:rutaIdx("Sol","Atocha","general"), perfil:"general", metric:"salud_perfil"})},
   {t:"6 · Lo que se ve en el grafo real",
-   d:"En el grafo de Neo4j (fuera de este mapa): 683 puntos cuya caída partiría la red de transporte · se agrupa en 54 comunidades muy distintas de los 131 barrios oficiales · el 96 % de los sensores de tráfico no tienen una estación de aire a menos de 300 m · Fuencarral tiene 544 sensores y Vicálvaro 62. Míralo en vivo: <a href=\"https://35-42-164-183.nip.io/grafo/explorador\" target=\"_blank\" rel=\"noopener\">explorador del grafo →</a> (demo / demo).",
+   d:"En el grafo de Neo4j (fuera de este mapa): 683 puntos cuya caída partiría la red de transporte · se agrupa en 54 comunidades muy distintas de los 131 barrios oficiales · el 96 % de los sensores de tráfico no tienen una estación de aire a menos de 300 m · Fuencarral tiene 544 sensores y Vicálvaro 62. Míralo en vivo: <a href=\"https://35-43-165-117.nip.io/grafo/explorador\" target=\"_blank\" rel=\"noopener\">explorador del grafo →</a> (demo / demo).",
    a:()=>setEstado({metric:"salud", ghost:false, route:-1})},
 ];
 let histIdx = -1;
@@ -1163,7 +1163,7 @@ function mkHistoria(){
 // sobrescribir con ?api=<url>; servida desde el propio asistente, "" (mismo
 // origen) ya funciona.
 const API_BASE = new URLSearchParams(location.search).get("api")
-  || (location.hostname.endsWith("github.io") ? "https://35-42-164-183.nip.io" : "");
+  || (location.hostname.endsWith("github.io") ? "https://35-43-165-117.nip.io" : "");
 const CHAT_SUG = [
   "¿Cómo está la calidad del aire en Retiro?",
   "¿Cómo está el tráfico cerca de Atocha ahora?",

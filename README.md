@@ -199,7 +199,7 @@ incrustado en la propia página:
   vendorizados y un snapshot congelado de Gold (`viz/data/gold_slices/`);
   detalle en [`viz/README.md`](viz/README.md).
 - **Explorador del grafo en vivo — el capítulo 6 del mapa enlaza a él**
-  (`https://35-42-164-183.nip.io/grafo/explorador`) — a diferencia del
+  (`https://35-43-165-117.nip.io/grafo/explorador`) — a diferencia del
   mapa, consulta Neo4j real en directo y en solo lectura (~9 800 nodos),
   con su propio chat incrustado (`FIL_67`/`FIL_68`; usuario/contraseña de
   demo `demo`/`demo` si el explorador lo pide).
@@ -208,7 +208,7 @@ incrustado en la propia página:
   alternativa con autenticación básica. Front estático (`web/index.html`)
   en S3 + CloudFront (Origin Access Control, bucket privado); backend
   FastAPI (`asistente/`) en la misma EC2 que el daemon de ingesta, detrás
-  de nginx con TLS (Let's Encrypt): `https://35-42-164-183.nip.io`.
+  de nginx con TLS (Let's Encrypt): `https://35-43-165-117.nip.io`.
 
 Detalle de la infraestructura y bugs encontrados en el despliegue:
 `doc/FIL-63-app-web-m1-desplegada.md`, `doc/FIL-62-app-web-m2-chat-groq.md`.
